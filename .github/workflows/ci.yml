@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Verify sample export (must pass, exit 0)
+        run: python -m keel_verifier sample/export.json
+
+      - name: Verify sample export with --offline (must pass, exit 0)
+        run: python -m keel_verifier sample/export.json --offline
+
+      - name: Verify sample export with --json produces parseable JSON
+        run: |
+          python -m keel_verifier sample/export.json --json | python -c "import json, sys; d = json.load(sys.stdin); assert d['ok'] is True, d; print('json output ok')"
+
+      - name: Verify tampered chain (must fail, exit 1)
+        run: |
+          set +e
+          python -m keel_verifier sample/tampered.json
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "ERROR: tampered.json verified as OK; verifier is broken." >&2
+            exit 1
+          fi
+          if [ "$rc" -ne 1 ]; then
+            echo "ERROR: expected exit 1 on tampered.json, got $rc." >&2
+            exit 1
+          fi
+
+      - name: Verify tampered TSA receipt (must fail, exit 1)
+        run: |
+          set +e
+          python -m keel_verifier sample/tsa_tampered.json
+          rc=$?
+          set -e
+          if [ "$rc" -ne 1 ]; then
+            echo "ERROR: expected exit 1 on tsa_tampered.json, got $rc." >&2
+            exit 1
+          fi
+
+      - name: Tampered TSA passes with --no-tsa (must pass, exit 0)
+        run: python -m keel_verifier sample/tsa_tampered.json --no-tsa

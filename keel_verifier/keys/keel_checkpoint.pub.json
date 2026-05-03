@@ -1,0 +1,7 @@
+{
+  "algorithm": "ed25519",
+  "public_key": "ed25519:CvfKyK/t8oZZogxSp61fYXNuGj/Hyz6gwfw5axcR2/Y=",
+  "key_id": "sha256:1a6eb20e308c021dea0c6ee28ad78bfb",
+  "scope": "integrity_checkpoints",
+  "_note": "Bundled trust root for --offline mode. Currently matches the sample/ artifacts shipped with this verifier. Production verifiers anchored against keelapi.com should replace this file with the value from https://keelapi.com/v1/integrity/checkpoint-public-key."
+}

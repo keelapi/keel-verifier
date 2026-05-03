@@ -1,0 +1,29 @@
+{
+  "checkpoint_id": "11111111-2222-3333-4444-555555555555",
+  "computed_at": "2026-04-15T12:00:00Z",
+  "chain_heads": {
+    "admin:global": {
+      "sequence_number": 1024,
+      "last_record_hash": "c75b144d356352b707b765f9f0fb30a9d7e2c64ef44dc3da2831f7ef8921cf40"
+    },
+    "project:00000000-0000-0000-0000-000000000001": {
+      "sequence_number": 247,
+      "last_record_hash": "e3cd0e7d0c8bed8ecb8fd490ba6e62c848dd875f8641c358558eed6157e4aaf2"
+    },
+    "project:00000000-0000-0000-0000-000000000002": {
+      "sequence_number": 91,
+      "last_record_hash": "0037fc594d38b990175efe72ad13c6de32ef2b18bdd2ecc4d62b4c8932f12540"
+    }
+  },
+  "composite_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+  "signature": "ed25519:NQjHY10m/PwkrRcVRKL7d/SonlzA+tnY+nvPevR4qLAvF/XReTmiLAZEhykuC2pNkUEPGyAkYZoj7BN1jmknBg==",
+  "public_key": "ed25519:CvfKyK/t8oZZogxSp61fYXNuGj/Hyz6gwfw5axcR2/Y=",
+  "key_id": "sha256:1a6eb20e308c021dea0c6ee28ad78bfb",
+  "keel_version": "sample",
+  "tsa": {
+    "url": "https://example-tsa.invalid/tsr",
+    "requested_at": "2026-04-15T12:00:01Z",
+    "receipt_b64": "MIGRBgkqhkiG9w0BBwKggYMwgYACAQMxDzANBglghkgBZQMEAgEFADBoBgsqhkiG9w0BCRABBKBZBFcwVQIBAQYJKwYBBAGGjR8BMDEwDQYJYIZIAWUDBAIBBQAEIL8Tox7G0DVyiOYPHL5v9KtjafhHl/xZj8g08uqC1ZHXAgEBGA8yMDI2MDQxNTEyMDAwMVoxAA==",
+    "receipt_hash": "sha256:4b81a66422ede2fe4b1b918413157e3b05388d437728e814324e9b3035580138"
+  }
+}

@@ -1,0 +1,193 @@
+"""Regenerate sample/export.json, sample/tampered.json, and the bundled
+offline trust root.
+
+Run from the repo root:
+
+    python tools/make_sample.py
+
+Determinism: the signing key is derived from a fixed seed so re-running
+the script produces byte-identical output (modulo any future changes to
+the JSON shape). The chain heads carry no real customer or project data
+— project IDs are zero-padded sentinels and last_record_hash values are
+SHA-256 of fixed sample strings.
+
+The TSA receipt is synthesized locally as a syntactically valid CMS
+SignedData wrapping a TSTInfo with the correct MessageImprint. The
+verifier only checks that the imprint equals composite_hash; full TSA
+trust-chain validation is out of scope (use ``openssl ts -verify`` for
+that). The synthetic receipt is sufficient to demonstrate the imprint
+check both in the success path and in a tampered-imprint failure path.
+"""
+
+from __future__ import annotations
+
+import base64
+import copy
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+
+SAMPLE_KEY_SEED_LABEL = b"keel-verifier-sample-key-v1"
+
+
+def composite_hash(chain_heads: dict) -> str:
+    parts = []
+    for k in sorted(chain_heads):
+        h = chain_heads[k]
+        parts.append(f"{k}:{h['sequence_number']}:{h['last_record_hash']}")
+    combined = "\n".join(parts)
+    return f"sha256:{hashlib.sha256(combined.encode('utf-8')).hexdigest()}"
+
+
+def public_key_fingerprint(pub_b64: str) -> str:
+    raw = base64.b64decode(pub_b64)
+    return f"sha256:{hashlib.sha256(raw).hexdigest()[:32]}"
+
+
+def make_synthetic_tsa_receipt(content_hash_hex: str) -> str:
+    from asn1crypto import algos, cms, core, tsp
+
+    hash_bytes = bytes.fromhex(content_hash_hex)
+    tst_info = tsp.TSTInfo({
+        "version": "v1",
+        "policy": "1.3.6.1.4.1.99999.1",
+        "message_imprint": tsp.MessageImprint({
+            "hash_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+            "hashed_message": hash_bytes,
+        }),
+        "serial_number": 1,
+        "gen_time": datetime(2026, 4, 15, 12, 0, 1, tzinfo=timezone.utc),
+    })
+
+    encap = cms.EncapsulatedContentInfo({
+        "content_type": "tst_info",
+        "content": core.ParsableOctetString(tst_info.dump()),
+    })
+    signed_data = cms.SignedData({
+        "version": "v3",
+        "digest_algorithms": cms.DigestAlgorithms(
+            [algos.DigestAlgorithm({"algorithm": "sha256"})]
+        ),
+        "encap_content_info": encap,
+        "signer_infos": cms.SignerInfos([]),
+    })
+    content_info = cms.ContentInfo({
+        "content_type": "signed_data",
+        "content": signed_data,
+    })
+    return base64.b64encode(content_info.dump()).decode()
+
+
+def main() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    sample_dir = repo_root / "sample"
+    keys_dir = repo_root / "keel_verifier" / "keys"
+    sample_dir.mkdir(exist_ok=True)
+    keys_dir.mkdir(parents=True, exist_ok=True)
+
+    seed = hashlib.sha256(SAMPLE_KEY_SEED_LABEL).digest()
+    pk = Ed25519PrivateKey.from_private_bytes(seed)
+    pub_bytes = pk.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    pub_b64 = base64.b64encode(pub_bytes).decode()
+    pub_str = f"ed25519:{pub_b64}"
+    key_id = public_key_fingerprint(pub_b64)
+
+    # Synthetic chain heads. Project IDs are zero-padded sentinels (not
+    # real Keel project UUIDs); last_record_hash values are SHA-256 of
+    # plain ASCII placeholders.
+    chain_heads = {
+        "admin:global": {
+            "sequence_number": 1024,
+            "last_record_hash": hashlib.sha256(b"sample-admin-1024").hexdigest(),
+        },
+        "project:00000000-0000-0000-0000-000000000001": {
+            "sequence_number": 247,
+            "last_record_hash": hashlib.sha256(b"sample-project-1-247").hexdigest(),
+        },
+        "project:00000000-0000-0000-0000-000000000002": {
+            "sequence_number": 91,
+            "last_record_hash": hashlib.sha256(b"sample-project-2-91").hexdigest(),
+        },
+    }
+
+    composite = composite_hash(chain_heads)
+    sig_b64 = base64.b64encode(pk.sign(composite.encode("utf-8"))).decode()
+
+    receipt_b64 = make_synthetic_tsa_receipt(composite.removeprefix("sha256:"))
+    receipt_hash = (
+        f"sha256:{hashlib.sha256(base64.b64decode(receipt_b64)).hexdigest()}"
+    )
+
+    export = {
+        "checkpoint_id": "11111111-2222-3333-4444-555555555555",
+        "computed_at": "2026-04-15T12:00:00Z",
+        "chain_heads": chain_heads,
+        "composite_hash": composite,
+        "signature": f"ed25519:{sig_b64}",
+        "public_key": pub_str,
+        "key_id": key_id,
+        "keel_version": "sample",
+        "tsa": {
+            "url": "https://example-tsa.invalid/tsr",
+            "requested_at": "2026-04-15T12:00:01Z",
+            "receipt_b64": receipt_b64,
+            "receipt_hash": receipt_hash,
+        },
+    }
+
+    sample_path = sample_dir / "export.json"
+    sample_path.write_text(json.dumps(export, indent=2) + "\n")
+
+    # Tampered chain: flip the first hex digit of one chain head's
+    # last_record_hash. This breaks composite_hash recomputation; the
+    # verifier fails fast at that step.
+    tampered = copy.deepcopy(export)
+    head = tampered["chain_heads"]["project:00000000-0000-0000-0000-000000000001"]
+    h = head["last_record_hash"]
+    head["last_record_hash"] = ("0" if h[0] != "0" else "1") + h[1:]
+    tampered_path = sample_dir / "tampered.json"
+    tampered_path.write_text(json.dumps(tampered, indent=2) + "\n")
+
+    # Tampered TSA: synthesize a TSA receipt for the WRONG composite hash
+    # so the MessageImprint check fails. composite_hash, signature, and
+    # chain heads are untouched — this isolates the TSA-mismatch failure
+    # mode for documentation purposes.
+    tsa_tampered = copy.deepcopy(export)
+    wrong_hash_hex = hashlib.sha256(b"wrong-content-for-tsa-demo").hexdigest()
+    bad_receipt = make_synthetic_tsa_receipt(wrong_hash_hex)
+    tsa_tampered["tsa"]["receipt_b64"] = bad_receipt
+    tsa_tampered["tsa"]["receipt_hash"] = (
+        f"sha256:{hashlib.sha256(base64.b64decode(bad_receipt)).hexdigest()}"
+    )
+    tsa_tampered_path = sample_dir / "tsa_tampered.json"
+    tsa_tampered_path.write_text(json.dumps(tsa_tampered, indent=2) + "\n")
+
+    bundled_key = {
+        "algorithm": "ed25519",
+        "public_key": pub_str,
+        "key_id": key_id,
+        "scope": "integrity_checkpoints",
+        "_note": (
+            "Bundled trust root for --offline mode. Currently matches the "
+            "sample/ artifacts shipped with this verifier. Production "
+            "verifiers anchored against keelapi.com should replace this "
+            "file with the value from "
+            "https://keelapi.com/v1/integrity/checkpoint-public-key."
+        ),
+    }
+    bundled_path = keys_dir / "keel_checkpoint.pub.json"
+    bundled_path.write_text(json.dumps(bundled_key, indent=2) + "\n")
+
+    print(f"wrote {sample_path}")
+    print(f"wrote {tampered_path}")
+    print(f"wrote {tsa_tampered_path}")
+    print(f"wrote {bundled_path}")
+
+
+if __name__ == "__main__":
+    main()
