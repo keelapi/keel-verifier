@@ -4,6 +4,8 @@ Verify that AI decisions are real, unchanged, and signed by a trusted source.
 
 Most systems give you logs.
 
+Logs can be edited.
+
 Keel gives you evidence you can verify independently.
 
 ## Why this exists
@@ -52,7 +54,7 @@ There are two kinds of verification:
 
 Most systems stop at the first.
 
-Keel enforces the second.
+Keel requires the second.
 
 ## Why this matters
 
@@ -65,6 +67,12 @@ When something goes wrong with AI, people ask:
 Logs can't answer that reliably.
 
 A signed, verifiable record can.
+
+## Where this comes from
+
+Every AI request in Keel creates a signed decision record.
+
+That record can be exported and verified like you just did.
 
 ## What it verifies
 
