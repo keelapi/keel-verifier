@@ -10,7 +10,7 @@ Keel gives you evidence you can verify independently.
 
 ## Why this exists
 
-Logs can be edited. Dashboards can be wrong. Screenshots prove nothing.
+Dashboards can be wrong. Screenshots prove nothing.
 
 Keel signs every AI decision record and binds it to a timestamp so that
 anyone — a customer, auditor, or partner — can verify that it has not
