@@ -1,10 +1,22 @@
 # keel-verifier
 
-Standalone verifier for Keel's signed compliance exports. Verifies tamper-evident chains and RFC 3161 timestamps without requiring access to Keel.
+Verify that AI decisions are real, unchanged, and signed by a trusted source.
+
+Most systems give you logs.
+
+Keel gives you evidence you can verify independently.
 
 ## Why this exists
 
-A compliance export is only as trustworthy as the party that issues it — and as the trust root used to verify it. Keel signs every export with an Ed25519 key and binds it to an externally-anchored RFC 3161 timestamp so that customers, auditors, and partners can confirm the artifact has not been altered since issuance, against a trust root that does not flow through Keel's runtime infrastructure. This repository is the reference implementation of that check. It is small, dependency-light, and runs offline.
+Logs can be edited. Dashboards can be wrong. Screenshots prove nothing.
+
+Keel signs every AI decision record and binds it to a timestamp so that
+anyone — a customer, auditor, or partner — can verify that it has not
+been altered since it was created.
+
+This tool performs that verification.
+
+It runs locally, requires no access to Keel, and never phones home.
 
 ## Quick start
 
@@ -14,7 +26,45 @@ cd keel-verifier && pip install -r requirements.txt
 python -m keel_verifier sample/export.json --self-attested
 ```
 
-The third command should print `VERIFIED:` and exit `0`. The `--self-attested` flag is necessary because the sample is signed by a development key shipped in this repo, not by Keel's production key. For a real Keel export, drop the flag — see [Trust model](#trust-model) below.
+You should see `VERIFIED:`.
+
+Now try without the flag:
+
+```
+python -m keel_verifier sample/export.json
+```
+
+This fails — because the sample is not signed by Keel's production key.
+
+That distinction is the entire point.
+
+## What you just saw
+
+There are two kinds of verification:
+
+- **Self-attested**  
+  → "This file agrees with itself"  
+  → proves it wasn't changed  
+
+- **Trust-root verified (default)**  
+  → "This file was signed by Keel"  
+  → proves it came from the right source  
+
+Most systems stop at the first.
+
+Keel enforces the second.
+
+## Why this matters
+
+When something goes wrong with AI, people ask:
+
+- Who approved this?
+- What exactly ran?
+- Can we prove it?
+
+Logs can't answer that reliably.
+
+A signed, verifiable record can.
 
 ## What it verifies
 
