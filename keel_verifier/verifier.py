@@ -137,9 +137,17 @@ def _resolve_trust_root(
     *,
     public_key: str | None,
     public_key_url: str | None,
-    offline: bool,
+    self_attested: bool,
 ) -> tuple[str | None, str | None, str | None]:
-    """Returns (trusted_public_key, trust_source, error)."""
+    """Returns (trusted_public_key, trust_source, error).
+
+    Resolution precedence:
+      1. --public-key  → user-supplied pin
+      2. --public-key-url → fetched from URL
+      3. --self-attested → use the artifact's embedded public_key (weak;
+         only proves internal consistency, not that Keel signed it)
+      4. default → bundled trust root (committed in keel_verifier/keys/)
+    """
     if public_key is not None:
         if not public_key.startswith("ed25519:"):
             return None, None, "--public-key must start with 'ed25519:'"
@@ -151,16 +159,21 @@ def _resolve_trust_root(
             return None, None, err
         return pub, f"fetched from {public_key_url}", None
 
-    if offline:
-        pub, err = _load_bundled_offline_key()
-        if err:
-            return None, None, err
-        return pub, "bundled offline trust root", None
-
-    if embedded_pub is not None:
+    if self_attested:
+        if embedded_pub is None:
+            return None, None, (
+                "--self-attested requested but the artifact has no "
+                "embedded public_key field"
+            )
         return embedded_pub, "self-attested (embedded public_key)", None
 
-    return None, None, "no trust root available (artifact has no public_key)"
+    pub, err = _load_bundled_offline_key()
+    if err:
+        return None, None, (
+            f"{err} — pass --public-key, --public-key-url, or "
+            "--self-attested to override the default bundled trust root"
+        )
+    return pub, "bundled trust root", None
 
 
 def _verify_tsa_receipt(receipt_b64: str, content_hash_hex: str) -> tuple[bool, str]:
@@ -196,10 +209,21 @@ def verify(
     *,
     public_key: str | None = None,
     public_key_url: str | None = None,
-    offline: bool = False,
+    self_attested: bool = False,
     check_tsa: bool = True,
 ) -> VerifyResult:
     """Verify a single sealed Keel export at ``export_path``.
+
+    Trust-root resolution (highest precedence first):
+
+      * ``public_key`` — pin to a specific Ed25519 key
+      * ``public_key_url`` — fetch the trust root from a URL
+      * ``self_attested=True`` — use the artifact's embedded public_key.
+        Only proves the artifact is internally consistent; does NOT prove
+        that Keel signed it. Use only for development or when the
+        embedded key has been authenticated out-of-band.
+      * default — use the trust root bundled with this verifier
+        (``keel_verifier/keys/keel_checkpoint.pub.json``).
 
     Returns a ``VerifyResult`` with ``ok=True`` if every check passed.
     On failure, ``ok=False`` and ``error`` carries the first failure
@@ -282,7 +306,7 @@ def verify(
         embedded_pub if isinstance(embedded_pub, str) else None,
         public_key=public_key,
         public_key_url=public_key_url,
-        offline=offline,
+        self_attested=self_attested,
     )
     if err is not None or trusted_pub is None:
         return VerifyResult(

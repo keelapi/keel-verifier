@@ -16,4 +16,4 @@ The package is also runnable as a CLI:
 from keel_verifier.verifier import VerifyResult, verify
 
 __all__ = ["VerifyResult", "verify", "__version__"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

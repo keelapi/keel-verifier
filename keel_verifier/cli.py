@@ -54,13 +54,20 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--self-attested",
+        action="store_true",
+        dest="self_attested",
+        help=(
+            "Verify against the artifact's own embedded public_key. This "
+            "only proves the artifact is internally consistent — it does "
+            "NOT prove that Keel signed it. Use only for development or "
+            "when the embedded key has been authenticated out-of-band."
+        ),
+    )
+    parser.add_argument(
         "--offline",
         action="store_true",
-        help=(
-            "Use the public key bundled with this verifier as the trust "
-            "root. Use this when you cannot reach the network and have "
-            "out-of-band confidence in the bundled key."
-        ),
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--version",
@@ -113,24 +120,28 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
     if result.ok and result.self_attested:
         p()
         p(
-            "NOTE: trust source is the export's own embedded public key. "
-            "To anchor against"
+            "WARNING: --self-attested verification only proves internal "
+            "consistency."
         )
-        p("Keel's published trust root, re-run with:")
+        p(
+            "It does not prove that Keel signed this artifact. Drop "
+            "--self-attested to"
+        )
+        p("verify against the bundled trust root, or pin explicitly with:")
         p(f"  --public-key-url {KEELAPI_TRUST_ROOT_URL}")
-        p("or with --offline to use the bundled trust root.")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    flag_count = sum(
-        bool(x) for x in (args.public_key, args.public_key_url, args.offline)
-    )
-    if flag_count > 1:
+    # --offline is a deprecated alias for the default behavior (the bundled
+    # trust root is now the default trust source).
+    flags = (args.public_key, args.public_key_url, args.self_attested)
+    if sum(bool(x) for x in flags) > 1:
         print(
-            "ERROR: --public-key, --public-key-url, and --offline are mutually exclusive.",
+            "ERROR: --public-key, --public-key-url, and --self-attested "
+            "are mutually exclusive.",
             file=sys.stderr,
         )
         return 2
@@ -139,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         args.export_file,
         public_key=args.public_key,
         public_key_url=args.public_key_url,
-        offline=args.offline,
+        self_attested=args.self_attested,
         check_tsa=not args.no_tsa,
     )
 

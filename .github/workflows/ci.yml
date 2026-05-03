@@ -23,43 +23,66 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Verify sample export (must pass, exit 0)
-        run: python -m keel_verifier sample/export.json
+      - name: Bundled trust root matches live api.keelapi.com endpoint
+        # Catches a silent swap of keel_verifier/keys/keel_checkpoint.pub.json,
+        # or an unsynced key rotation that would render real Keel checkpoints
+        # unverifiable by the default trust root.
+        run: python tools/check_bundled_key.py
 
-      - name: --offline rejects sample (must fail, exit 1) — sample is signed by a test key, bundled trust root is the real Keel prod key, so they must mismatch
+      - name: Default trust root rejects sample (must fail, exit 1)
+        # The sample is signed by a deterministic test key shipped in tools/
+        # make_sample.py. The default trust root is the real Keel production
+        # key from the bundled file. A mismatch is the correct outcome and
+        # proves the default behavior actually anchors against an external
+        # trust root rather than the artifact's own embedded key.
         run: |
           set +e
-          python -m keel_verifier sample/export.json --offline
+          python -m keel_verifier sample/export.json
           rc=$?
           set -e
           if [ "$rc" -ne 1 ]; then
-            echo "ERROR: expected exit 1 from --offline trust-root mismatch, got $rc." >&2
+            echo "ERROR: default mode should reject sample (test key vs prod trust root), got exit $rc." >&2
             exit 1
           fi
 
-      - name: Verify sample export with --json produces parseable JSON
-        run: |
-          python -m keel_verifier sample/export.json --json | python -c "import json, sys; d = json.load(sys.stdin); assert d['ok'] is True, d; print('json output ok')"
+      - name: --self-attested verifies sample (must pass, exit 0)
+        run: python -m keel_verifier sample/export.json --self-attested
 
-      - name: Verify tampered chain (must fail, exit 1)
+      - name: --offline alias still works (back-compat with v0.1)
+        run: python -m keel_verifier sample/export.json --offline --self-attested
+
+      - name: --json output is parseable on success
+        run: |
+          python -m keel_verifier sample/export.json --self-attested --json | \
+            python -c "import json, sys; d = json.load(sys.stdin); assert d['ok'] is True, d; assert d['self_attested'] is True, d; print('json output ok')"
+
+      - name: --json output is parseable on failure
         run: |
           set +e
-          python -m keel_verifier sample/tampered.json
+          python -m keel_verifier sample/export.json --json > /tmp/result.json
           rc=$?
           set -e
-          if [ "$rc" -eq 0 ]; then
-            echo "ERROR: tampered.json verified as OK; verifier is broken." >&2
+          if [ "$rc" -ne 1 ]; then
+            echo "ERROR: expected exit 1 on default-mode sample, got $rc." >&2
             exit 1
           fi
+          python -c "import json; d = json.load(open('/tmp/result.json')); assert d['ok'] is False, d; assert d['error'], d; print('json output ok')"
+
+      - name: Tampered chain (must fail, exit 1)
+        run: |
+          set +e
+          python -m keel_verifier sample/tampered.json --self-attested
+          rc=$?
+          set -e
           if [ "$rc" -ne 1 ]; then
             echo "ERROR: expected exit 1 on tampered.json, got $rc." >&2
             exit 1
           fi
 
-      - name: Verify tampered TSA receipt (must fail, exit 1)
+      - name: Tampered TSA receipt (must fail, exit 1)
         run: |
           set +e
-          python -m keel_verifier sample/tsa_tampered.json
+          python -m keel_verifier sample/tsa_tampered.json --self-attested
           rc=$?
           set -e
           if [ "$rc" -ne 1 ]; then
@@ -68,4 +91,27 @@ jobs:
           fi
 
       - name: Tampered TSA passes with --no-tsa (must pass, exit 0)
-        run: python -m keel_verifier sample/tsa_tampered.json --no-tsa
+        run: python -m keel_verifier sample/tsa_tampered.json --self-attested --no-tsa
+
+      - name: --public-key-url against live endpoint rejects sample (must fail, exit 1)
+        run: |
+          set +e
+          python -m keel_verifier sample/export.json \
+            --public-key-url https://api.keelapi.com/v1/integrity/checkpoint-public-key
+          rc=$?
+          set -e
+          if [ "$rc" -ne 1 ]; then
+            echo "ERROR: live --public-key-url should reject sample (test key vs prod), got $rc." >&2
+            exit 1
+          fi
+
+      - name: Mutually-exclusive trust-root flags rejected
+        run: |
+          set +e
+          python -m keel_verifier sample/export.json --self-attested --public-key ed25519:dummy
+          rc=$?
+          set -e
+          if [ "$rc" -ne 2 ]; then
+            echo "ERROR: expected usage error (exit 2), got $rc." >&2
+            exit 1
+          fi
