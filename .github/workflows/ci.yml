@@ -26,8 +26,16 @@ jobs:
       - name: Verify sample export (must pass, exit 0)
         run: python -m keel_verifier sample/export.json
 
-      - name: Verify sample export with --offline (must pass, exit 0)
-        run: python -m keel_verifier sample/export.json --offline
+      - name: --offline rejects sample (must fail, exit 1) — sample is signed by a test key, bundled trust root is the real Keel prod key, so they must mismatch
+        run: |
+          set +e
+          python -m keel_verifier sample/export.json --offline
+          rc=$?
+          set -e
+          if [ "$rc" -ne 1 ]; then
+            echo "ERROR: expected exit 1 from --offline trust-root mismatch, got $rc." >&2
+            exit 1
+          fi
 
       - name: Verify sample export with --json produces parseable JSON
         run: |

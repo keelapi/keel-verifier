@@ -9,7 +9,7 @@ import sys
 from keel_verifier import __version__
 from keel_verifier.verifier import VerifyResult, verify
 
-KEELAPI_TRUST_ROOT_URL = "https://keelapi.com/v1/integrity/checkpoint-public-key"
+KEELAPI_TRUST_ROOT_URL = "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
 
 
 def _build_parser() -> argparse.ArgumentParser:

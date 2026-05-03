@@ -44,7 +44,7 @@ python -m keel_verifier <export.json> --offline
 Keel publishes the checkpoint signing public key at:
 
 ```
-https://keelapi.com/v1/integrity/checkpoint-public-key
+https://api.keelapi.com/v1/integrity/checkpoint-public-key
 ```
 
 The endpoint returns JSON of the form:
@@ -58,7 +58,7 @@ The endpoint returns JSON of the form:
 }
 ```
 
-Pass the URL to `--public-key-url` to fetch and pin verification against it. For air-gapped or sandboxed environments, replace `keel_verifier/keys/keel_checkpoint.pub.json` with the published value and use `--offline`. The bundled file shipped with this repository currently corresponds to `sample/`, not production.
+Pass the URL to `--public-key-url` to fetch and pin verification against it. For air-gapped or sandboxed environments, use `--offline`, which reads the bundled copy at `keel_verifier/keys/keel_checkpoint.pub.json`. The bundled copy is committed to this repository as a snapshot of the production trust root; verify it against the live endpoint when you next have network access. The samples in `sample/` are signed by a separate test key, so `--offline` deliberately fails on them — that mismatch is the trust-root check working as intended.
 
 ## Output examples
 
@@ -80,7 +80,7 @@ VERIFIED: sample/export.json
 
 NOTE: trust source is the export's own embedded public key. To anchor against
 Keel's published trust root, re-run with:
-  --public-key-url https://keelapi.com/v1/integrity/checkpoint-public-key
+  --public-key-url https://api.keelapi.com/v1/integrity/checkpoint-public-key
 or with --offline to use the bundled trust root.
 ```
 
