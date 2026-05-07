@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-07T19:31:25Z",
+  "sources": {
+    "compliance_keys": "https://api.keelapi.com/v1/compliance/keys",
+    "checkpoint_public_key": "https://api.keelapi.com/v1/integrity/checkpoint-public-key",
+    "permit_binding_public_keys": "https://api.keelapi.com/v1/integrity/permit-binding-public-keys",
+    "permit_binding_public_keys_status": "404 Not Found on 2026-05-07; refresh this file when the endpoint is live."
+  },
+  "keys": [
+    {
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
+      "algorithm": "ed25519",
+      "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
+      "purpose": "export_signing",
+      "status": "active",
+      "valid_from": "2026-04-27T02:03:12.371544+00:00",
+      "valid_to": null
+    },
+    {
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
+      "algorithm": "ed25519",
+      "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
+      "purpose": "integrity_checkpoint",
+      "status": "active",
+      "valid_from": "2026-04-27T02:03:12.371544+00:00",
+      "valid_to": null
+    }
+  ]
+}

@@ -1,18 +1,4 @@
-"""Verify that the bundled trust root matches the live Keel endpoint.
-
-Run from the repo root:
-
-    python tools/check_bundled_key.py
-
-Exit 0 if the bundled key at ``keel_verifier/keys/keel_checkpoint.pub.json``
-matches the value served by ``https://api.keelapi.com/v1/integrity/checkpoint-public-key``.
-Exit 1 on mismatch (catches silent swap of the bundled file, or an
-unsynced key rotation that would render real Keel checkpoints
-unverifiable by the default ``--offline``-equivalent path).
-Exit 2 on operational failure (network unreachable, malformed response).
-
-Run from CI on every push so the trust root cannot drift unnoticed.
-"""
+"""Verify that the bundled trust root matches live Keel public endpoints."""
 
 from __future__ import annotations
 
@@ -20,63 +6,92 @@ import json
 import sys
 import urllib.request
 from pathlib import Path
+from typing import Any
 
-LIVE_URL = "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
+COMPLIANCE_KEYS_URL = "https://api.keelapi.com/v1/compliance/keys"
+CHECKPOINT_PUBLIC_KEY_URL = "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
+PERMIT_BINDING_KEYS_URL = "https://api.keelapi.com/v1/integrity/permit-binding-public-keys"
 BUNDLED_PATH = (
     Path(__file__).resolve().parent.parent
     / "keel_verifier"
-    / "keys"
-    / "keel_checkpoint.pub.json"
+    / "data"
+    / "trust_root.json"
 )
+
+
+def _fetch_json(url: str) -> dict[str, Any]:
+    with urllib.request.urlopen(url, timeout=10) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _entries_by_purpose(body: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    out: dict[str, list[dict[str, Any]]] = {}
+    for entry in body.get("keys", []):
+        if isinstance(entry, dict) and isinstance(entry.get("purpose"), str):
+            out.setdefault(entry["purpose"], []).append(entry)
+    return out
+
+
+def _active_entry(entries: list[dict[str, Any]]) -> dict[str, Any] | None:
+    active = [entry for entry in entries if entry.get("status") == "active" or entry.get("valid_to") is None]
+    return active[0] if active else None
 
 
 def main() -> int:
     if not BUNDLED_PATH.exists():
-        print(f"FAIL: bundled key not found at {BUNDLED_PATH}", file=sys.stderr)
+        print(f"FAIL: bundled trust root not found at {BUNDLED_PATH}", file=sys.stderr)
         return 2
 
     try:
         bundled = json.loads(BUNDLED_PATH.read_text(encoding="utf-8"))
     except Exception as exc:
-        print(f"FAIL: bundled key file is not valid JSON: {exc}", file=sys.stderr)
+        print(f"FAIL: bundled trust root is not valid JSON: {exc}", file=sys.stderr)
         return 2
-
-    bundled_pub = bundled.get("public_key")
-    bundled_kid = bundled.get("key_id")
 
     try:
-        with urllib.request.urlopen(LIVE_URL, timeout=10) as resp:
-            live = json.loads(resp.read().decode("utf-8"))
+        live_compliance = _fetch_json(COMPLIANCE_KEYS_URL)
+        live_checkpoint = _fetch_json(CHECKPOINT_PUBLIC_KEY_URL)
     except Exception as exc:
-        print(f"FAIL: could not fetch {LIVE_URL}: {exc}", file=sys.stderr)
+        print(f"FAIL: could not fetch live trust roots: {exc}", file=sys.stderr)
         return 2
 
-    live_pub = live.get("public_key")
-    live_kid = live.get("key_id")
+    bundled_by_purpose = _entries_by_purpose(bundled)
+    live_by_purpose = _entries_by_purpose(live_compliance)
 
-    if bundled_pub == live_pub and bundled_kid == live_kid:
-        print(f"OK: bundled trust root matches {LIVE_URL}")
-        print(f"  public_key: {bundled_pub}")
-        print(f"  key_id:     {bundled_kid}")
-        return 0
+    for purpose in ("export_signing", "integrity_checkpoint"):
+        bundled_active = _active_entry(bundled_by_purpose.get(purpose, []))
+        live_active = _active_entry(live_by_purpose.get(purpose, []))
+        if bundled_active is None or live_active is None:
+            print(f"FAIL: missing active {purpose} entry", file=sys.stderr)
+            return 1
+        for field in ("key_id", "public_key"):
+            if bundled_active.get(field) != live_active.get(field):
+                print(f"FAIL: bundled {purpose}.{field} does not match live endpoint", file=sys.stderr)
+                print(f"  bundled: {bundled_active.get(field)}", file=sys.stderr)
+                print(f"  live:    {live_active.get(field)}", file=sys.stderr)
+                return 1
 
-    print("FAIL: bundled trust root does NOT match the live endpoint.", file=sys.stderr)
-    print(f"  bundled public_key: {bundled_pub}", file=sys.stderr)
-    print(f"  live    public_key: {live_pub}", file=sys.stderr)
-    print(f"  bundled key_id:     {bundled_kid}", file=sys.stderr)
-    print(f"  live    key_id:     {live_kid}", file=sys.stderr)
-    print(file=sys.stderr)
-    print(
-        "If the live key rotated, refresh the bundled file with:",
-        file=sys.stderr,
-    )
-    print(f"  curl -fsS {LIVE_URL} > {BUNDLED_PATH.relative_to(BUNDLED_PATH.parent.parent.parent)}", file=sys.stderr)
-    print(
-        "Then commit the change. If you did not expect a rotation, "
-        "investigate before refreshing.",
-        file=sys.stderr,
-    )
-    return 1
+    checkpoint = _active_entry(bundled_by_purpose.get("integrity_checkpoint", []))
+    if checkpoint is None or checkpoint.get("public_key") != live_checkpoint.get("public_key"):
+        print("FAIL: bundled integrity_checkpoint key does not match checkpoint endpoint", file=sys.stderr)
+        return 1
+
+    try:
+        permit = _fetch_json(PERMIT_BINDING_KEYS_URL)
+    except Exception as exc:
+        print(f"WARN: could not fetch permit-binding public keys: {exc}")
+    else:
+        if permit.get("detail") == "Not Found":
+            print("WARN: permit-binding public-key endpoint returned 404; bundled manifest has no production permit-binding key")
+        elif permit.get("keys"):
+            bundled_permit = bundled_by_purpose.get("permit_binding_signing", [])
+            if not bundled_permit:
+                print("FAIL: live permit-binding keys exist but bundled manifest has none", file=sys.stderr)
+                return 1
+
+    print(f"OK: bundled trust root matches {COMPLIANCE_KEYS_URL}")
+    print(f"  path: {BUNDLED_PATH}")
+    return 0
 
 
 if __name__ == "__main__":
