@@ -542,6 +542,80 @@ def _required_int(entry: dict[str, Any], field: str) -> int:
     return value
 
 
+def _optional_sequence_number(entry: dict[str, Any]) -> int | None:
+    if entry.get("sequence_number") is None:
+        return None
+    return _required_int(entry, "sequence_number")
+
+
+def _sequence_sort_key(entry: dict[str, Any]) -> tuple[bool, int]:
+    sequence_number = _optional_sequence_number(entry)
+    return (
+        sequence_number is None,
+        sequence_number if sequence_number is not None else 0,
+    )
+
+
+def _walk_array_order_fail(
+    chain_scope: Any,
+    entries: list[dict[str, Any]],
+) -> int | None:
+    for index in range(1, len(entries)):
+        previous = entries[index - 1]
+        current = entries[index]
+        try:
+            previous_sequence = _optional_sequence_number(previous)
+            current_sequence = _optional_sequence_number(current)
+        except (TypeError, ValueError) as exc:
+            return _walk_fail(
+                WALK_SEQUENCE_INVERSION,
+                f"event_id={_entry_id(current)} {exc}",
+            )
+        if previous_sequence is None or current_sequence is None:
+            continue
+        if current_sequence < previous_sequence:
+            return _walk_fail(
+                WALK_SEQUENCE_INVERSION,
+                (
+                    f"chain_scope={_scope_label(chain_scope)} "
+                    f"prev_event_id={_entry_id(previous)} "
+                    f"prev_sequence_number={previous_sequence} "
+                    f"event_id={_entry_id(current)} "
+                    f"sequence_number={current_sequence}"
+                ),
+            )
+    return None
+
+
+def _walk_duplicate_sequence_fail(
+    chain_scope: Any,
+    entries: list[dict[str, Any]],
+) -> int | None:
+    seen: dict[int, dict[str, Any]] = {}
+    for entry in entries:
+        try:
+            sequence_number = _optional_sequence_number(entry)
+        except (TypeError, ValueError) as exc:
+            return _walk_fail(
+                WALK_SEQUENCE_INVERSION,
+                f"event_id={_entry_id(entry)} {exc}",
+            )
+        if sequence_number is None:
+            continue
+        if sequence_number in seen:
+            return _walk_fail(
+                WALK_SEQUENCE_INVERSION,
+                (
+                    f"chain_scope={_scope_label(chain_scope)} "
+                    f"event_id={_entry_id(entry)} "
+                    f"previous_event_id={_entry_id(seen[sequence_number])} "
+                    f"duplicate_sequence_number={sequence_number}"
+                ),
+            )
+        seen[sequence_number] = entry
+    return None
+
+
 def _load_audit_export_bundle_for_optional_check(
     export_data: bytes,
     *,
@@ -693,6 +767,7 @@ def _walk_export_events(export_data: bytes) -> int:
             return _walk_structure_fail(
                 f"records[{record_index}].chain_entries must be a list",
             )
+        record_entries_by_scope: dict[Any, list[dict[str, Any]]] = {}
         for entry_index, entry in enumerate(chain_entries):
             if not isinstance(entry, dict):
                 return _walk_structure_fail(
@@ -709,14 +784,20 @@ def _walk_export_events(export_data: bytes) -> int:
                     ),
                 )
             try:
-                _required_int(entry, "sequence_number")
+                _optional_sequence_number(entry)
             except (TypeError, ValueError) as exc:
                 return _walk_fail(
                     WALK_SEQUENCE_INVERSION,
                     f"event_id={_entry_id(entry)} {exc}",
                 )
-            by_scope.setdefault(entry.get("chain_scope"), []).append(entry)
+            chain_scope = entry.get("chain_scope")
+            by_scope.setdefault(chain_scope, []).append(entry)
+            record_entries_by_scope.setdefault(chain_scope, []).append(entry)
             entries_walked += 1
+        for chain_scope, scope_entries in record_entries_by_scope.items():
+            sequence_failure = _walk_array_order_fail(chain_scope, scope_entries)
+            if sequence_failure is not None:
+                return sequence_failure
 
     record_hash_checks = 0
     prev_hash_checks = 0
@@ -725,7 +806,10 @@ def _walk_export_events(export_data: bytes) -> int:
         by_scope.items(),
         key=lambda item: _scope_label(item[0]),
     ):
-        entries.sort(key=lambda entry: entry["sequence_number"])
+        sequence_failure = _walk_duplicate_sequence_fail(chain_scope, entries)
+        if sequence_failure is not None:
+            return sequence_failure
+        entries.sort(key=_sequence_sort_key)
         first = entries[0]
         print(
             "WALK-EVENTS: "
