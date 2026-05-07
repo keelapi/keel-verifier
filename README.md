@@ -1,258 +1,156 @@
 # keel-verifier
 
-Verify that AI decisions are real, unchanged, and signed by a trusted source.
+Independent verifier for Keel governance evidence.
 
-Most systems give you logs.
+It runs locally, requires no access to Keel, and makes no outbound network calls unless you explicitly ask it to fetch a public key or key manifest URL.
 
-Logs can be edited.
+## Quick Start
 
-Keel gives you evidence you can verify independently.
-
-## Why this exists
-
-Dashboards can be wrong. Screenshots prove nothing.
-
-Keel signs every AI decision record and binds it to a timestamp so that
-anyone — a customer, auditor, or partner — can verify that it has not
-been altered since it was created.
-
-This tool performs that verification.
-
-It runs locally, requires no access to Keel, and never phones home.
-
-## Quick start
-
+```bash
+python -m pip install keel-verifier
+keel-verify export --help
 ```
-git clone https://github.com/keelapi/keel-verifier.git
-cd keel-verifier && pip install -r requirements.txt
+
+From a checkout:
+
+```bash
+python -m pip install -e .
+python -m keel_verifier --help
+```
+
+The v0.2.0 invocation pattern still works:
+
+```bash
 python -m keel_verifier sample/export.json --self-attested
 ```
 
-You should see `VERIFIED:`.
+## What It Verifies
 
-Now try without the flag:
+`keel-verify export` verifies a signed compliance export in three layers:
 
-```
-python -m keel_verifier sample/export.json
-```
+1. The export bytes match the signed manifest `content_hash`.
+2. The manifest Ed25519 signature verifies against a trusted key.
+3. Optional Phase C/D checks walk bundled chain entries and verify closure records.
 
-This fails — because the sample is not signed by Keel's production key.
+`keel-verify checkpoint` verifies integrity checkpoint JSON artifacts: the `chain_heads` composite hash, the Ed25519 checkpoint signature, and an embedded RFC 3161 timestamp MessageImprint when present.
 
-That distinction is the entire point.
+## Obtaining a Signed Export
 
-## What you just saw
+Request an audit export from Keel's compliance export API and include chain entries when you want full lifecycle walking:
 
-There are two kinds of verification:
-
-- **Self-attested**  
-  → "This file agrees with itself"  
-  → proves it wasn't changed  
-
-- **Trust-root verified (default)**  
-  → "This file was signed by Keel"  
-  → proves it came from the right source  
-
-Most systems stop at the first.
-
-Keel requires the second.
-
-## Why this matters
-
-When something goes wrong with AI, people ask:
-
-- Who approved this?
-- What exactly ran?
-- Can we prove it?
-
-Logs can't answer that reliably.
-
-A signed, verifiable record can.
-
-## Where this comes from
-
-Every AI request in Keel creates a signed decision record.
-
-That record can be exported and verified like you just did.
-
-## What it verifies
-
-A sealed Keel export is a single JSON document. The verifier checks, in order:
-
-1. **Composite hash recomputes.** The exported `chain_heads` (one entry per scope: `sequence_number` + `last_record_hash`) are deterministically hashed and compared to the export's `composite_hash`. Any byte flipped in any chain head fails this step.
-2. **Ed25519 signature is valid against the resolved trust root.** The signature must verify over the composite hash. The trust root is the bundled production key by default (see [Trust model](#trust-model)).
-3. **RFC 3161 timestamp is authentic** (when present). The verifier parses the embedded TimeStampToken and checks that its `MessageImprint` equals the composite hash. This proves the timestamp authority signed *this exact export* at the time on the receipt. Pass `--no-tsa` to skip. Full TSA certificate-chain validation is out of scope; use `openssl ts -verify` for that.
-
-Exit `0` on pass, non-zero on fail. The failure reason is written to stderr.
-
-## Trust model
-
-The verifier supports four trust-root sources, in order of strongest to weakest:
-
-| Mode | Flag | Trust chain |
-|---|---|---|
-| Pinned | `--public-key ed25519:<base64>` | The user obtained the key out-of-band — SOC 2 auditor's report, third-party transparency log, key-transparency feed, or a TLS-verified one-time fetch the user personally performed. Strongest. |
-| Live fetch | `--public-key-url <URL>` | Trust root fetched from the URL (canonical: `https://api.keelapi.com/v1/integrity/checkpoint-public-key`). Trust chain: TLS cert + Keel honestly serving the right key. |
-| Bundled (default) | *(none)* | Trust root is `keel_verifier/keys/keel_checkpoint.pub.json`, a snapshot of the production key committed to this repository. Trust chain: GitHub authentication of the repo owner + the repo owner committed the right key. CI on every push asserts that the bundled key still matches the live endpoint, so a silent swap or stale rotation fails loudly. |
-| Self-attested | `--self-attested` | Trust root is the artifact's own embedded `public_key`. **Only proves internal consistency** — that the artifact was signed by whoever signed it. Does NOT prove Keel signed it. Use only for development, sample testing, or when the embedded key has been authenticated out-of-band. |
-
-`--public-key`, `--public-key-url`, and `--self-attested` are mutually exclusive. With none set, the bundled trust root is used.
-
-## CLI
-
-```
-python -m keel_verifier <export.json>                            # default: bundled trust root
-python -m keel_verifier <export.json> --self-attested            # weak; embedded public_key
-python -m keel_verifier <export.json> --public-key ed25519:...   # pinned
-python -m keel_verifier <export.json> --public-key-url URL       # fetched
-python -m keel_verifier <export.json> --json                     # structured JSON output
-python -m keel_verifier <export.json> --no-tsa                   # skip RFC 3161 check
+```bash
+curl -sS -X POST "https://api.keelapi.com/v1/compliance/exports?include_chain_entries=true"   -H "Authorization: Bearer $KEEL_API_KEY"   -H "Content-Type: application/json"   -d '{"project_id":"<project_uuid>","format":"json"}'
 ```
 
-## Public-key endpoint
+Download both artifacts returned by the export workflow:
 
-Keel publishes the checkpoint signing public key at:
+- the export payload, for example `export.json`
+- the signed manifest, for example `manifest.json`
 
-```
-https://api.keelapi.com/v1/integrity/checkpoint-public-key
-```
+Then run:
 
-Response:
-
-```json
-{
-  "algorithm": "ed25519",
-  "public_key": "ed25519:<base64>",
-  "key_id": "sha256:<hex-prefix>",
-  "scope": "integrity_checkpoints"
-}
+```bash
+keel-verify export export.json manifest.json --walk-events --verify-closure
 ```
 
-To refresh the bundled trust root after a key rotation:
+The explicit flag form is also supported:
 
-```
-curl -fsS https://api.keelapi.com/v1/integrity/checkpoint-public-key \
-    > keel_verifier/keys/keel_checkpoint.pub.json
-python tools/check_bundled_key.py
+```bash
+keel-verify export --export-file export.json --manifest manifest.json --walk-events --verify-closure
 ```
 
-CI runs `tools/check_bundled_key.py` on every push and fails the build if the bundled key drifts from the live endpoint.
+## Chain Walking
 
-## Output examples
+`--walk-events` parses `audit_export_bundle` files with `schema_version=2` and `include_chain_entries=true`.
 
-### Pass — `--self-attested` against the development sample
+It groups entries by `chain_scope`, sorts by `sequence_number`, recomputes every `record_hash`, verifies `prev_hash` continuity inside the export window, and fails closed on unknown `chain_format_version` values.
 
-```
-$ python -m keel_verifier sample/export.json --self-attested
-VERIFIED: sample/export.json
-  Checkpoint:    11111111-2222-3333-4444-555555555555
-  Computed at:   2026-04-15T12:00:00Z
-  Composite:     sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7
-  Chain heads:   3 scope(s)
-  Public key:    ed25519:CvfKyK/t8oZZogxSp61fYXNuGj/Hyz6gwfw5axcR2/Y=
-  Key id:        sha256:1a6eb20e308c021dea0c6ee28ad78bfb
-  Trust source:  self-attested (embedded public_key)
-  TSA:           verified (TSA message imprint matches composite_hash)
-    url:         https://example-tsa.invalid/tsr
-    stamped at:  2026-04-15T12:00:01Z
+Schema version 1 exports remain backward compatible. They can still be verified at the export-signature layer, but they do not contain chain entries to walk.
 
-WARNING: --self-attested verification only proves internal consistency.
-It does not prove that Keel signed this artifact. Drop --self-attested to
-verify against the bundled trust root, or pin explicitly with:
-  --public-key-url https://api.keelapi.com/v1/integrity/checkpoint-public-key
+## Closure Verification
+
+`--verify-closure` verifies `permit.closed` entries.
+
+For `closure_v1`, it verifies the closure Ed25519 signature and cross-references provider/client response digests against the bundled lifecycle events.
+
+For `closure_v2`, it also verifies `dispatch_request_digest_v1` against the permit's `binding_request_hash`, proving that the dispatch-time request body is the one covered by the closure record.
+
+Closure verification uses public keys with purpose `permit_binding_signing`. Pass a manifest explicitly when needed:
+
+```bash
+keel-verify export export.json manifest.json   --key-manifest permit-binding-keys.json   --walk-events   --verify-closure
 ```
 
-### Trust-root mismatch — default mode against the development sample
+The bundled trust root lives at `keel_verifier/data/trust_root.json`. It includes the production export and checkpoint signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`. The production permit-binding endpoint returned 404 on 2026-05-07, so maintainers should refresh the bundled manifest when `https://api.keelapi.com/v1/integrity/permit-binding-public-keys` is live.
 
-The sample is signed by the development key, the bundled trust root is Keel's production key — so the default-mode verification correctly refuses to certify the sample as Keel-signed:
+## Tampering Matrix
 
-```
-$ python -m keel_verifier sample/export.json
-FAILED: sample/export.json
-  embedded public_key does not match resolved trust root
-    trust root: ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=
-    embedded:   ed25519:CvfKyK/t8oZZogxSp61fYXNuGj/Hyz6gwfw5axcR2/Y=
-  Checkpoint:    11111111-2222-3333-4444-555555555555
-  Composite:     sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7
-  Chain heads:   3 scope(s)
-  TSA:           not present
-$ echo $?
-1
-```
+The verifier emits stable `WALK_*` failure codes, including:
 
-### Tampered chain
+- `WALK_RECORD_HASH_MISMATCH`
+- `WALK_PREV_HASH_DISCONTINUITY`
+- `WALK_SEQUENCE_INVERSION`
+- `WALK_UNKNOWN_CHAIN_FORMAT`
+- `WALK_CLOSURE_SIGNATURE_INVALID`
+- `WALK_CLOSURE_DIGEST_MISMATCH`
+- `WALK_CLOSURE_DIGEST_MISSING`
+- `WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH`
+- `WALK_UNKNOWN_CLOSURE_FORMAT`
 
-One byte flipped in a chain head's `last_record_hash`. The composite-hash recomputation fails before any trust-root check is reached:
+The authoritative matrix is maintained in the Keel docs: https://docs.keelapi.com/12-tampering-detection-matrix
 
-```
-$ python -m keel_verifier sample/tampered.json
-FAILED: sample/tampered.json
-  composite_hash mismatch — chain_heads have been altered
-    stored:     sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7
-    recomputed: sha256:05545a901233939246500f53eaafdf0670125b1424a4cd1842e5297e1eb6f0d2
-  Checkpoint:    11111111-2222-3333-4444-555555555555
-  Composite:     sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7
-  Chain heads:   3 scope(s)
-  TSA:           not present
-$ echo $?
-1
-```
+## Trust Model
 
-### Timestamp mismatch
+There are two useful kinds of verification:
 
-Signature and chain are intact; the TSA receipt's `MessageImprint` was synthesized for a different hash:
+- Self-attested: the file agrees with itself. This proves internal consistency only.
+- Trust-root verified: the artifact verifies against a key you trust, such as the bundled production trust root, a pinned public key, or a manifest fetched and saved out-of-band.
 
-```
-$ python -m keel_verifier sample/tsa_tampered.json --self-attested
-FAILED: sample/tsa_tampered.json
-  TSA: TSA message imprint does not match composite_hash
-  Checkpoint:    11111111-2222-3333-4444-555555555555
-  Computed at:   2026-04-15T12:00:00Z
-  Composite:     sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7
-  Chain heads:   3 scope(s)
-  Public key:    ed25519:CvfKyK/t8oZZogxSp61fYXNuGj/Hyz6gwfw5axcR2/Y=
-  Key id:        sha256:1a6eb20e308c021dea0c6ee28ad78bfb
-  Trust source:  self-attested (embedded public_key)
-  TSA:           FAILED (TSA message imprint does not match composite_hash)
-$ echo $?
-1
+Trust sources, strongest first:
+
+| Mode | Flags | Notes |
+| --- | --- | --- |
+| Pinned key | `--expected-public-key ed25519:...` or `--public-key ed25519:...` | Strongest when obtained out-of-band. |
+| Key manifest | `--key-manifest keys.json` | Supports key rotation and active windows. |
+| Key manifest URL | `--key-manifest-url URL` | Explicit network fetch. |
+| Bundled trust root | none | Default. No phone-home. |
+| Self-attested | `--self-attested` | Development/sample mode only. |
+
+`--public-key-url` is also supported for checkpoint verification against the single live checkpoint public-key endpoint.
+
+## CLI Examples
+
+```bash
+keel-verify export export.json manifest.json
+keel-verify export export.json manifest.json --walk-events
+keel-verify export export.json manifest.json --walk-events --verify-closure
+keel-verify checkpoint checkpoint.json
+python -m keel_verifier sample/export.json --self-attested
+python -m keel_verifier sample/export.json --json --self-attested
 ```
 
-## Network behavior
+Exit code `0` means verified. Exit code `1` means verification failed. Exit code `2` means bad usage.
 
-The verifier makes no outbound calls by default. It will reach the network only when:
+## Network Behavior
 
-- `--public-key-url URL` is passed (one HTTPS GET to that URL).
+The verifier does not phone home. It reaches the network only when you pass `--public-key-url` or `--key-manifest-url`.
 
-There is no telemetry. The verifier never phones home.
+There is no telemetry.
 
-## Library use
+## Library Use
 
 ```python
-from keel_verifier import verify
+from keel_verifier import verify, verify_export_walk_events, verify_closure_record
 
-# Default mode: verify against the bundled trust root.
-result = verify("path/to/export.json")
+result = verify("sample/export.json", self_attested=True)
 if not result.ok:
     raise SystemExit(result.error)
-print(result.composite_hash, result.key_id)
-
-# Pin to a specific key:
-result = verify("path/to/export.json", public_key="ed25519:...")
-
-# Self-attested (development only):
-result = verify("path/to/export.json", self_attested=True)
 ```
-
-`result.to_dict()` returns the same shape that `--json` writes.
 
 ## Versioning
 
-Semantic versioning. v0.2.0 changed the default trust-root from self-attested to the bundled production key; the `--self-attested` flag is required to opt into the v0.1 behavior. The `--offline` flag from v0.1 is preserved as a silent no-op alias for the default.
+v1.0.0 expands the public verifier across Phase A/B/C/D verification surfaces. v0.2.0 users can keep using `python -m keel_verifier <artifact>`.
 
 ## License
 
 MIT. See `LICENSE`.
-
-## Links
-
-Keel — <https://keelapi.com>

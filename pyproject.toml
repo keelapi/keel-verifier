@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keel-verifier"
+version = "1.0.0"
+description = "Independent verifier for Keel governance evidence"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "Keel API, Inc."}]
+dependencies = [
+    "cryptography>=42",
+]
+
+[project.scripts]
+keel-verify = "keel_verifier.cli:main"
+
+[project.urls]
+Homepage = "https://keelapi.com/verify"
+Documentation = "https://docs.keelapi.com/11-running-keel-verify"
+Repository = "https://github.com/keelapi/keel-verifier"
+Changelog = "https://github.com/keelapi/keel-verifier/releases"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["keel_verifier*"]
+
+[tool.setuptools.package-data]
+keel_verifier = ["data/*.json", "keys/*.json"]
