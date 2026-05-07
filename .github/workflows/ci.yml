@@ -21,11 +21,16 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install -e . pytest build
+
+      - name: Run pytest
+        run: pytest -q
 
       - name: Bundled trust root matches live api.keelapi.com endpoint
-        # Catches a silent swap of keel_verifier/keys/keel_checkpoint.pub.json,
-        # or an unsynced key rotation that would render real Keel checkpoints
+        # Catches a silent swap of keel_verifier/data/trust_root.json,
+        # or an unsynced key rotation that would render real Keel trust artifacts
         # unverifiable by the default trust root.
         run: python tools/check_bundled_key.py
 

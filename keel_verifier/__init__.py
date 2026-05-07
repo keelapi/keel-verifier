@@ -1,19 +1,21 @@
-"""Standalone verifier for Keel's signed compliance exports.
+"""Standalone verifier for Keel governance evidence."""
 
-Public API:
+from keel_verifier.verifier import (
+    CHAIN_FORMAT_HASHERS,
+    CLOSURE_FORMAT_VERIFIERS,
+    VerifyResult,
+    verify,
+    verify_closure_record,
+    verify_export_walk_events,
+)
 
-    from keel_verifier import verify, VerifyResult
-
-    result = verify("path/to/export.json")
-    if not result.ok:
-        ...
-
-The package is also runnable as a CLI:
-
-    python -m keel_verifier path/to/export.json
-"""
-
-from keel_verifier.verifier import VerifyResult, verify
-
-__all__ = ["VerifyResult", "verify", "__version__"]
-__version__ = "0.2.0"
+__all__ = [
+    "CHAIN_FORMAT_HASHERS",
+    "CLOSURE_FORMAT_VERIFIERS",
+    "VerifyResult",
+    "verify",
+    "verify_closure_record",
+    "verify_export_walk_events",
+    "__version__",
+]
+__version__ = "1.0.0"
