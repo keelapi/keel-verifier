@@ -7,73 +7,198 @@ import json
 import sys
 
 from keel_verifier import __version__
-from keel_verifier.verifier import VerifyResult, verify
+from keel_verifier.verifier import (
+    KEELAPI_CHECKPOINT_PUBLIC_KEY_URL,
+    KEELAPI_COMPLIANCE_KEYS_URL,
+    VerifyResult,
+    cmd_checkpoint,
+    cmd_export,
+    verify,
+)
 
-KEELAPI_TRUST_ROOT_URL = "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
+LEGACY_COMMANDS = {"export", "checkpoint"}
+
+
+def _public_key_alias(args: argparse.Namespace) -> None:
+    if getattr(args, "public_key", None) and getattr(args, "expected_public_key", None):
+        raise argparse.ArgumentTypeError(
+            "--public-key and --expected-public-key are aliases; pass only one"
+        )
+    if getattr(args, "expected_public_key", None) is None:
+        args.expected_public_key = getattr(args, "public_key", None)
+
+
+def _trust_flag_count(args: argparse.Namespace, *, include_public_key_url: bool) -> int:
+    values = [
+        getattr(args, "expected_public_key", None),
+        getattr(args, "key_manifest", None),
+        getattr(args, "key_manifest_url", None),
+        getattr(args, "self_attested", False),
+    ]
+    if include_public_key_url:
+        values.append(getattr(args, "public_key_url", None))
+    return sum(bool(value) for value in values)
+
+
+def _add_key_manifest_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument(
+        "--key-manifest",
+        help=(
+            "Local path to a Keel public key manifest JSON file. Defaults to "
+            "the bundled production trust root when no trust override is passed."
+        ),
+    )
+    p.add_argument(
+        "--key-manifest-url",
+        help=f"URL to fetch the key manifest from (canonical: {KEELAPI_COMPLIANCE_KEYS_URL}).",
+    )
+
+
+def _add_common_trust_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument(
+        "--expected-public-key",
+        help="ed25519:<base64> public key the artifact must be signed with.",
+    )
+    p.add_argument(
+        "--public-key",
+        help="Alias for --expected-public-key, preserved for v0.2.0 users.",
+    )
+    p.add_argument(
+        "--self-attested",
+        action="store_true",
+        help=(
+            "Verify against the artifact's embedded public_key. This only proves "
+            "internal consistency; it does not prove Keel signed the artifact."
+        ),
+    )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+
+
+def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    try:
+        _public_key_alias(args)
+    except argparse.ArgumentTypeError as exc:
+        parser.error(str(exc))
+    args.export_file = args.export_file_flag or args.export_file_pos
+    args.manifest = args.manifest_flag or args.manifest_pos
+    if not args.export_file:
+        parser.error("export requires EXPORT_FILE or --export-file")
+    if not args.manifest:
+        parser.error("export requires MANIFEST or --manifest")
+    if _trust_flag_count(args, include_public_key_url=False) > 1:
+        parser.error(
+            "--expected-public-key/--public-key, --key-manifest, "
+            "--key-manifest-url, and --self-attested are mutually exclusive"
+        )
+    return cmd_export(args)
+
+
+def _cmd_checkpoint_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    try:
+        _public_key_alias(args)
+    except argparse.ArgumentTypeError as exc:
+        parser.error(str(exc))
+    args.checkpoint_file = args.checkpoint_file_flag or args.checkpoint_file_pos
+    if not args.checkpoint_file:
+        parser.error("checkpoint requires CHECKPOINT_FILE or --checkpoint-file")
+    if _trust_flag_count(args, include_public_key_url=True) > 1:
+        parser.error(
+            "--expected-public-key/--public-key, --public-key-url, --key-manifest, "
+            "--key-manifest-url, and --self-attested are mutually exclusive"
+        )
+    return cmd_checkpoint(args)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        prog="keel-verify",
+        description="Standalone verifier for Keel trust artifacts.",
+        epilog=(
+            "New export verification supports --walk-events and --verify-closure. "
+            "Backward compatible usage remains: python -m keel_verifier <checkpoint.json>."
+        ),
+    )
+    parser.add_argument("--version", action="version", version=f"keel_verifier {__version__}")
+    sub = parser.add_subparsers(dest="cmd")
+
+    p_export = sub.add_parser("export", help="Verify a signed compliance export.")
+    p_export.add_argument("export_file_pos", nargs="?", metavar="EXPORT_FILE")
+    p_export.add_argument("manifest_pos", nargs="?", metavar="MANIFEST")
+    p_export.add_argument("--export-file", dest="export_file_flag")
+    p_export.add_argument("--manifest", dest="manifest_flag")
+    p_export.add_argument(
+        "--walk-events",
+        action="store_true",
+        help=(
+            "After export content hash and signature verification, parse an "
+            "audit export bundle and walk bundled chain_entries."
+        ),
+    )
+    p_export.add_argument(
+        "--verify-closure",
+        action="store_true",
+        help=(
+            "After export content hash and signature verification, verify "
+            "permit.closed closure signatures and dispatch/provider/client digest "
+            "consistency from bundled chain_entries."
+        ),
+    )
+    _add_common_trust_args(p_export)
+    _add_key_manifest_args(p_export)
+    p_export.set_defaults(func=lambda args: _cmd_export_cli(p_export, args))
+
+    p_cp = sub.add_parser("checkpoint", help="Verify an integrity checkpoint JSON file.")
+    p_cp.add_argument("checkpoint_file_pos", nargs="?", metavar="CHECKPOINT_FILE")
+    p_cp.add_argument("--checkpoint-file", dest="checkpoint_file_flag")
+    _add_common_trust_args(p_cp)
+    p_cp.add_argument(
+        "--public-key-url",
+        help=(
+            "URL to fetch the single checkpoint public key "
+            f"(canonical: {KEELAPI_CHECKPOINT_PUBLIC_KEY_URL})."
+        ),
+    )
+    _add_key_manifest_args(p_cp)
+    p_cp.add_argument(
+        "--tsa-ca-bundle",
+        help="Optional CA bundle for TSA trust-chain validation (note only).",
+    )
+    p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))
+    return parser
+
+
+def _build_legacy_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
         prog="python -m keel_verifier",
         description=(
-            "Standalone verifier for Keel's signed compliance exports. "
-            "Verifies the chain-heads composite hash, the Ed25519 signature, "
-            "and the optional RFC 3161 timestamp receipt."
+            "Backward-compatible v0.2.0 checkpoint verifier. For signed "
+            "compliance exports, use: keel-verify export --help."
         ),
     )
-    parser.add_argument(
-        "export_file",
-        help="Path to a sealed Keel export JSON file.",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        dest="as_json",
-        help="Emit the result as a single JSON object on stdout.",
-    )
-    parser.add_argument(
-        "--no-tsa",
-        action="store_true",
-        help="Skip RFC 3161 timestamp receipt verification even if present.",
-    )
-    parser.add_argument(
-        "--public-key",
-        metavar="ed25519:BASE64",
-        help=(
-            "Pin verification to this public key. The export's signature "
-            "must verify against it; if the export embeds a public_key, the "
-            "two must match."
-        ),
-    )
+    parser.add_argument("export_file", help="Path to a sealed Keel checkpoint/export JSON file.")
+    parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--no-tsa", action="store_true", help="Skip RFC 3161 TSA receipt verification.")
+    parser.add_argument("--public-key", metavar="ed25519:BASE64")
     parser.add_argument(
         "--public-key-url",
         metavar="URL",
-        help=(
-            "Fetch the trust-root public key from this URL "
-            f"(canonical: {KEELAPI_TRUST_ROOT_URL})."
-        ),
+        help=f"Fetch the trust-root public key from this URL (canonical: {KEELAPI_CHECKPOINT_PUBLIC_KEY_URL}).",
     )
     parser.add_argument(
         "--self-attested",
         action="store_true",
         dest="self_attested",
         help=(
-            "Verify against the artifact's own embedded public_key. This "
-            "only proves the artifact is internally consistent — it does "
-            "NOT prove that Keel signed it. Use only for development or "
-            "when the embedded key has been authenticated out-of-band."
+            "Verify against the artifact's own embedded public_key. This only "
+            "proves internal consistency; it does not prove Keel signed it."
         ),
     )
-    parser.add_argument(
-        "--offline",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"keel_verifier {__version__}",
-    )
+    parser.add_argument("--offline", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--version", action="version", version=f"keel_verifier {__version__}")
     return parser
 
 
@@ -119,29 +244,19 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
 
     if result.ok and result.self_attested:
         p()
-        p(
-            "WARNING: --self-attested verification only proves internal "
-            "consistency."
-        )
-        p(
-            "It does not prove that Keel signed this artifact. Drop "
-            "--self-attested to"
-        )
+        p("WARNING: --self-attested verification only proves internal consistency.")
+        p("It does not prove that Keel signed this artifact. Drop --self-attested to")
         p("verify against the bundled trust root, or pin explicitly with:")
-        p(f"  --public-key-url {KEELAPI_TRUST_ROOT_URL}")
+        p(f"  --public-key-url {KEELAPI_CHECKPOINT_PUBLIC_KEY_URL}")
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+def _main_legacy(argv: list[str]) -> int:
+    parser = _build_legacy_parser()
     args = parser.parse_args(argv)
-
-    # --offline is a deprecated alias for the default behavior (the bundled
-    # trust root is now the default trust source).
     flags = (args.public_key, args.public_key_url, args.self_attested)
     if sum(bool(x) for x in flags) > 1:
         print(
-            "ERROR: --public-key, --public-key-url, and --self-attested "
-            "are mutually exclusive.",
+            "ERROR: --public-key, --public-key-url, and --self-attested are mutually exclusive.",
             file=sys.stderr,
         )
         return 2
@@ -161,8 +276,20 @@ def main(argv: list[str] | None = None) -> int:
     else:
         stream = sys.stdout if result.ok else sys.stderr
         _print_human(result, args.export_file, stream)
-
     return 0 if result.ok else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw and raw[0] not in LEGACY_COMMANDS and raw[0] not in {"-h", "--help", "--version"}:
+        return _main_legacy(raw)
+
+    parser = _build_parser()
+    args = parser.parse_args(raw)
+    if not hasattr(args, "func"):
+        parser.print_help()
+        return 0
+    return args.func(args)
 
 
 if __name__ == "__main__":
