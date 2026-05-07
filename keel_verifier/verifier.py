@@ -10,16 +10,16 @@ Three modes:
   1. Compliance export (manifest + payload):
        keel_verify.py export --export-file export.jsonl.gz --manifest manifest.json \\
            [--key-manifest keys.json]
-           [--key-manifest-url https://api.keel.com/v1/compliance/keys]
+           [--key-manifest-url https://api.keelapi.com/v1/compliance/keys]
            [--expected-public-key ed25519:...]
 
   2. Integrity checkpoint (raw JSON downloaded from external anchor):
        keel_verify.py checkpoint \\
            --checkpoint-file checkpoint.json \\
            [--key-manifest keys.json]
-           [--key-manifest-url https://api.keel.com/v1/compliance/keys]
+           [--key-manifest-url https://api.keelapi.com/v1/compliance/keys]
            [--expected-public-key ed25519:...] \\
-           [--public-key-url https://api.keel.com/v1/integrity/checkpoint-public-key]
+           [--public-key-url https://api.keelapi.com/v1/integrity/checkpoint-public-key]
 
      If neither --expected-public-key, --public-key-url, nor --key-manifest is
      given, the verifier uses the public_key embedded in the artifact and
@@ -2027,7 +2027,7 @@ def _add_key_manifest_args(p: argparse.ArgumentParser) -> None:
         "--key-manifest-url",
         help=(
             "URL to fetch the key manifest from "
-            "(e.g. https://api.keel.com/v1/compliance/keys)."
+            "(e.g. https://api.keelapi.com/v1/compliance/keys)."
         ),
     )
 
