@@ -4,6 +4,25 @@ Independent verifier for Keel governance evidence.
 
 It runs locally, requires no access to Keel, and makes no outbound network calls unless you explicitly ask it to fetch a public key or key manifest URL.
 
+## What this verifier proves — and the boundary
+
+The verifier proves exported evidence has not been altered after
+signing. Like any signing system, the trust boundary includes the
+signer at signing-time. Hardware-backed attestation tiers are on
+the roadmap for customers requiring insider-threat-resistant
+evidence generation.
+
+In practical terms:
+- Post-signing tampering of any element in the permit lifecycle
+  (input, dispatch, provider response, client response, closure
+  record) is detected — see the Tampering Detection Matrix in the
+  online documentation.
+- Pre-signing manipulation by a privileged Keel operator at the
+  moment evidence is created is NOT detected by this verifier.
+  Defending against that threat model requires hardware-backed
+  signing (TEE/HSM), a separate capability tier above what this
+  verifier covers.
+
 ## Quick Start
 
 ```bash
