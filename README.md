@@ -2,11 +2,17 @@
 
 Independent verifier for Keel governance evidence.
 
-It runs locally, requires no access to Keel's internal systems, and makes no outbound network calls unless you explicitly ask it to fetch a public key or key manifest URL.
+## Why this exists
 
-## What this verifier proves — and the boundary
+Most AI platforms can tell you what they logged.
 
-The verifier proves exported evidence has not been altered after signing. Like any signing system, the trust boundary includes the signer at signing-time. Hardware-backed attestation tiers are on the roadmap for customers requiring insider-threat-resistant evidence generation.
+This verifier detects post-signing tampering of exported governance evidence. An auditor, customer, regulator, or security team can independently verify decisions, dispatched requests, returned responses, and lifecycle evidence integrity.
+
+Verification runs locally and does not require access to Keel systems.
+
+## What this verifier can and cannot prove
+
+The verifier proves exported evidence has not been altered after signing. Like any signing system, the trust boundary includes the signer at signing-time. Defending against privileged signing-time manipulation requires a higher-assurance signing architecture beyond the scope of this verifier.
 
 In practical terms:
 - Post-signing tampering of any element in the permit lifecycle
@@ -88,7 +94,7 @@ Schema version 1 exports remain backward compatible. They can still be verified 
 
 For `closure_v1`, it verifies the closure Ed25519 signature and cross-references provider/client response digests against the bundled lifecycle events.
 
-For `closure_v2`, it also verifies `dispatch_request_digest_v1` against the permit's `binding_request_hash`, proving that the dispatch-time request body is the one covered by the closure record.
+For `closure_v2`, it also verifies `dispatch_request_digest_v1` against the permit's `binding_request_hash`, verifying that the dispatch-time request body is the one covered by the closure record.
 
 Closure verification uses public keys with purpose `permit_binding_signing`. Pass a manifest explicitly when needed:
 
@@ -112,13 +118,15 @@ The verifier emits stable `WALK_*` failure codes, including:
 - `WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH`
 - `WALK_UNKNOWN_CLOSURE_FORMAT`
 
+Example: if a provider response is modified after signing, verification fails with `WALK_CLOSURE_DIGEST_MISMATCH`.
+
 The authoritative matrix is maintained in the Keel docs: https://docs.keelapi.com/12-tampering-detection-matrix
 
 ## Trust Model
 
 There are two useful kinds of verification:
 
-- Self-attested: the file agrees with itself. This proves internal consistency only.
+- Self-attested: the file agrees with itself. This verifies internal consistency only.
 - Trust-root verified: the artifact verifies against a key you trust, such as the bundled production trust root, a pinned public key, or a manifest fetched and saved out-of-band.
 
 Trust sources, strongest first:
