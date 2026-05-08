@@ -1,0 +1,28 @@
+name: trust-root-drift
+on:
+  schedule:
+    # Mondays 09:00 UTC = ~Monday morning EU, late Sunday US.
+    # Trust-root drift only happens at production key rotations,
+    # which are infrequent (annual cadence), so weekly is plenty.
+    - cron: "0 9 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "keel_verifier/data/trust_root.json"
+      - "tools/check_bundled_key.py"
+      - ".github/workflows/trust-root-drift.yml"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  check:
+    name: Compare bundled trust root vs live keelapi.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run check_bundled_key.py
+        run: python3 tools/check_bundled_key.py
