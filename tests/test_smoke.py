@@ -4,7 +4,7 @@ import keel_verifier
 
 
 def test_import_version_and_public_api():
-    assert keel_verifier.__version__ == "1.0.0"
+    assert keel_verifier.__version__ == "1.0.2"
     assert callable(keel_verifier.verify)
     assert callable(keel_verifier.verify_export_walk_events)
     assert callable(keel_verifier.verify_closure_record)
