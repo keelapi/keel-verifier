@@ -1,0 +1,11 @@
+{
+  "purpose": "permit_binding_signing",
+  "keys": [
+    {
+      "key_id": "157c11203f46bfdc",
+      "public_key_b64": "OV8hlgXauPxS9m1M/qkoJRnSGr5uYgeoIrGujr4m0PI=",
+      "active_from": "2026-05-08T00:02:39.852542Z",
+      "active_to": null
+    }
+  ]
+}

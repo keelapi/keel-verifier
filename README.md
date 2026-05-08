@@ -96,7 +96,7 @@ Closure verification uses public keys with purpose `permit_binding_signing`. Pas
 keel-verify export export.json manifest.json   --key-manifest permit-binding-keys.json   --walk-events   --verify-closure
 ```
 
-The bundled trust root lives at `keel_verifier/data/trust_root.json`. It includes the production export and checkpoint signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`. The production permit-binding endpoint returned 404 on 2026-05-07, so maintainers should refresh the bundled manifest when `https://api.keelapi.com/v1/integrity/permit-binding-public-keys` is live.
+The bundled trust root lives at `keel_verifier/data/trust_root.json`. It includes the production export and checkpoint signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`, plus the production permit-binding key served by `https://api.keelapi.com/v1/integrity/permit-binding-public-keys`.
 
 ## Tampering Matrix
 
