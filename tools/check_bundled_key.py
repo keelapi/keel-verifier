@@ -37,6 +37,42 @@ def _active_entry(entries: list[dict[str, Any]]) -> dict[str, Any] | None:
     return active[0] if active else None
 
 
+def _normalize_permit_binding_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
+    key_id = entry.get("key_id")
+    public_key = entry.get("public_key")
+    public_key_b64 = entry.get("public_key_b64")
+    if not isinstance(public_key, str) and isinstance(public_key_b64, str):
+        public_key = f"ed25519:{public_key_b64.removeprefix('ed25519:')}"
+    if not isinstance(key_id, str) or not isinstance(public_key, str):
+        return None
+
+    valid_to = entry.get("valid_to", entry.get("active_to"))
+    return {
+        "key_id": key_id,
+        "public_key": public_key,
+        "status": entry.get("status") or ("active" if valid_to is None else "retired"),
+        "valid_from": entry.get("valid_from", entry.get("active_from")),
+        "valid_to": valid_to,
+    }
+
+
+def _normalized_permit_binding_entries(body: dict[str, Any]) -> list[dict[str, Any]]:
+    if body.get("purpose") != "permit_binding_signing":
+        return []
+    keys = body.get("keys")
+    if not isinstance(keys, list):
+        return []
+
+    entries: list[dict[str, Any]] = []
+    for entry in keys:
+        if not isinstance(entry, dict):
+            continue
+        normalized = _normalize_permit_binding_entry(entry)
+        if normalized is not None:
+            entries.append(normalized)
+    return entries
+
+
 def main() -> int:
     if not BUNDLED_PATH.exists():
         print(f"FAIL: bundled trust root not found at {BUNDLED_PATH}", file=sys.stderr)
@@ -88,6 +124,27 @@ def main() -> int:
             if not bundled_permit:
                 print("FAIL: live permit-binding keys exist but bundled manifest has none", file=sys.stderr)
                 return 1
+            live_permit = _normalized_permit_binding_entries(permit)
+            if not live_permit:
+                print("FAIL: live permit-binding response had no normalizable keys", file=sys.stderr)
+                return 1
+            for live_entry in live_permit:
+                matches = [
+                    entry
+                    for entry in bundled_permit
+                    if entry.get("public_key") == live_entry.get("public_key")
+                ]
+                if not matches:
+                    print("FAIL: live permit-binding public key is missing from bundled manifest", file=sys.stderr)
+                    print(f"  live: {live_entry.get('public_key')}", file=sys.stderr)
+                    return 1
+                bundled_entry = matches[0]
+                for field in ("key_id", "status", "valid_from", "valid_to"):
+                    if bundled_entry.get(field) != live_entry.get(field):
+                        print(f"FAIL: bundled permit_binding_signing.{field} does not match live endpoint", file=sys.stderr)
+                        print(f"  bundled: {bundled_entry.get(field)}", file=sys.stderr)
+                        print(f"  live:    {live_entry.get(field)}", file=sys.stderr)
+                        return 1
 
     print(f"OK: bundled trust root matches {COMPLIANCE_KEYS_URL}")
     print(f"  path: {BUNDLED_PATH}")
