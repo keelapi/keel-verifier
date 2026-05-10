@@ -74,7 +74,10 @@ def _add_common_trust_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--offline",
         action="store_true",
-        help=argparse.SUPPRESS,
+        help=(
+            "Compatibility flag for the default bundled trust-root mode. "
+            "URL trust-root flags still take precedence when supplied."
+        ),
     )
 
 
@@ -197,7 +200,14 @@ def _build_legacy_parser() -> argparse.ArgumentParser:
             "proves internal consistency; it does not prove Keel signed it."
         ),
     )
-    parser.add_argument("--offline", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help=(
+            "Compatibility flag for the default bundled trust-root mode. "
+            "--public-key-url still takes precedence when supplied."
+        ),
+    )
     parser.add_argument("--version", action="version", version=f"keel_verifier {__version__}")
     return parser
 

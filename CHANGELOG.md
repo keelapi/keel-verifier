@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.0.3 (2026-05-07)
+
+- README clarity pass for verifier trust-boundary language
+- Add scheduled CI check for bundled trust-root drift against live endpoints
+- Bump package metadata to v1.0.3
+
+## v1.0.2 (2026-05-07)
+
+- Bundle permit-binding trust-root keys in `keel_verifier/data/trust_root.json`
+- Add test/tool coverage for bundled trust-root key material
+- Bump package metadata and module version to v1.0.2
+
+## v1.0.1 (2026-05-07)
+
+- Detect array-order and duplicate-sequence tampering as `WALK_SEQUENCE_INVERSION`
+- Update CLI help/documentation URLs to `api.keelapi.com`
+- Precision-harden README trust-boundary language
+- Bump package metadata and module version to v1.0.1
+
 ## v1.0.0 (2026-05-07)
 
 - Add `--walk-events` flag (Phase C verifier walking)
