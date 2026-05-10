@@ -10,13 +10,15 @@ from keel_verifier import __version__
 from keel_verifier.verifier import (
     KEELAPI_CHECKPOINT_PUBLIC_KEY_URL,
     KEELAPI_COMPLIANCE_KEYS_URL,
+    REFRESH_KEYS_SOURCES,
     VerifyResult,
     cmd_checkpoint,
     cmd_export,
+    cmd_refresh_keys,
     verify,
 )
 
-LEGACY_COMMANDS = {"export", "checkpoint"}
+LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys"}
 
 
 def _public_key_alias(args: argparse.Namespace) -> None:
@@ -171,6 +173,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional CA bundle for TSA trust-chain validation (note only).",
     )
     p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))
+
+    refresh_choices = ["auto"] + [slug for slug, _, _ in REFRESH_KEYS_SOURCES]
+    p_refresh = sub.add_parser(
+        "refresh-keys",
+        help=(
+            "Refresh the cached public-key manifest from a live channel "
+            "(Keel API or GitHub) into ~/.keel-verifier/trust-root.json. "
+            "Subsequent verifications prefer the cached manifest over the "
+            "wheel-bundled trust root."
+        ),
+    )
+    p_refresh.add_argument(
+        "--source",
+        choices=refresh_choices,
+        default="auto",
+        help=(
+            "Which channel to fetch from. 'auto' tries each in order: "
+            f"{', '.join(name for _slug, name, _url in REFRESH_KEYS_SOURCES)}."
+        ),
+    )
+    p_refresh.set_defaults(func=cmd_refresh_keys)
+
     return parser
 
 

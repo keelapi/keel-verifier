@@ -72,9 +72,19 @@ except ImportError:
 
 
 DEFAULT_TRUST_ROOT_PATH = Path(__file__).resolve().parent / "data" / "trust_root.json"
+CACHED_TRUST_ROOT_PATH = Path.home() / ".keel-verifier" / "trust-root.json"
 KEELAPI_COMPLIANCE_KEYS_URL = "https://api.keelapi.com/v1/compliance/keys"
 KEELAPI_CHECKPOINT_PUBLIC_KEY_URL = (
     "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
+)
+GITHUB_TRUST_ROOT_URL = (
+    "https://raw.githubusercontent.com/keelapi/keel-verifier/main/"
+    "keel_verifier/data/trust_root.json"
+)
+REFRESH_KEYS_SOURCES: tuple[tuple[str, str, str], ...] = (
+    # (slug, display_name, url)
+    ("api", "Keel API", KEELAPI_COMPLIANCE_KEYS_URL),
+    ("github", "GitHub", GITHUB_TRUST_ROOT_URL),
 )
 
 
@@ -479,12 +489,29 @@ def _bundled_key_manifest_source() -> str | None:
     return str(DEFAULT_TRUST_ROOT_PATH) if DEFAULT_TRUST_ROOT_PATH.exists() else None
 
 
+def _cached_key_manifest_source() -> str | None:
+    """Path to the user-refreshed manifest at ``~/.keel-verifier/trust-root.json`` if present."""
+    return str(CACHED_TRUST_ROOT_PATH) if CACHED_TRUST_ROOT_PATH.exists() else None
+
+
 def _key_manifest_source_for_args(args: argparse.Namespace) -> str | None:
+    """Resolve which trust-root source to use for a verification run.
+
+    Resolution order:
+      1. Explicit ``--key-manifest`` / ``--key-manifest-url`` argument.
+      2. Self-attested mode short-circuits to no manifest.
+      3. Cached manifest at ``~/.keel-verifier/trust-root.json`` (populated by
+         ``keel-verify refresh-keys``).
+      4. Bundled trust root shipped with the wheel.
+    """
     explicit = getattr(args, "key_manifest", None) or getattr(args, "key_manifest_url", None)
     if explicit:
         return explicit
     if getattr(args, "self_attested", False):
         return None
+    cached = _cached_key_manifest_source()
+    if cached is not None:
+        return cached
     return _bundled_key_manifest_source()
 
 
@@ -1398,6 +1425,113 @@ def _verify_export_closures(export_data: bytes, args: argparse.Namespace) -> int
     if dispatch_digest_warnings:
         print(f"  dispatch_digest_warnings: {dispatch_digest_warnings}")
     return 0
+
+
+def _fetch_manifest_bytes(url: str) -> bytes:
+    """Fetch raw manifest bytes from a URL with a short timeout."""
+    with urllib.request.urlopen(url, timeout=10) as resp:
+        return resp.read()
+
+
+def _validate_manifest_payload(payload: dict[str, Any]) -> int:
+    """Validate that ``payload`` looks like a Keel public-key manifest.
+
+    Returns the number of keys when valid; raises ``ValueError`` otherwise. A
+    valid manifest is a JSON object with a non-empty ``keys`` list, where each
+    entry has at minimum a ``public_key`` (or ``public_key_b64``) string.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("manifest is not a JSON object")
+    keys = payload.get("keys")
+    if not isinstance(keys, list) or not keys:
+        raise ValueError("manifest has no 'keys' list or it is empty")
+    for entry in keys:
+        if not isinstance(entry, dict):
+            raise ValueError("manifest 'keys' entries must be JSON objects")
+        pub = entry.get("public_key")
+        pub_b64 = entry.get("public_key_b64")
+        if not (isinstance(pub, str) and pub.strip()) and not (
+            isinstance(pub_b64, str) and pub_b64.strip()
+        ):
+            raise ValueError("manifest 'keys' entries must include 'public_key'")
+    return len(keys)
+
+
+def cmd_refresh_keys(args: argparse.Namespace) -> int:
+    """Pull a fresh Keel public-key manifest into ``~/.keel-verifier/trust-root.json``.
+
+    Tries the configured channels in order (Keel API, then GitHub) and writes
+    the first valid response to the cache. Subsequent verifications prefer the
+    cache over the wheel-bundled trust root, so the bundled snapshot does not
+    need to be regenerated when Keel rotates a signing key.
+    """
+    requested_source = (getattr(args, "source", "auto") or "auto").lower()
+    candidates: list[tuple[str, str, str]] = []
+    for slug, name, url in REFRESH_KEYS_SOURCES:
+        if requested_source in {"auto", slug}:
+            candidates.append((slug, name, url))
+        if requested_source != "auto" and slug == requested_source:
+            break
+    if not candidates:
+        valid = ", ".join(slug for slug, _, _ in REFRESH_KEYS_SOURCES)
+        print(
+            f"FAILED: unknown --source value {requested_source!r}; "
+            f"valid choices: auto, {valid}",
+            file=sys.stderr,
+        )
+        return 2
+
+    last_error: str | None = None
+    for _slug, name, url in candidates:
+        print(f"trying {name} ({url})...", file=sys.stderr)
+        try:
+            raw = _fetch_manifest_bytes(url)
+        except Exception as exc:  # network or HTTP failure
+            last_error = f"{name}: fetch failed: {exc}"
+            print(f"  fetch failed: {exc}", file=sys.stderr)
+            continue
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except Exception as exc:
+            last_error = f"{name}: invalid JSON: {exc}"
+            print(f"  invalid JSON: {exc}", file=sys.stderr)
+            continue
+        try:
+            key_count = _validate_manifest_payload(payload)
+        except ValueError as exc:
+            last_error = f"{name}: invalid manifest: {exc}"
+            print(f"  invalid manifest: {exc}", file=sys.stderr)
+            continue
+
+        try:
+            CACHED_TRUST_ROOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = CACHED_TRUST_ROOT_PATH.with_suffix(".json.tmp")
+            tmp_path.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            tmp_path.replace(CACHED_TRUST_ROOT_PATH)
+        except OSError as exc:
+            print(f"FAILED: could not write cache: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"refreshed from {name}")
+        print(f"  cache:     {CACHED_TRUST_ROOT_PATH}")
+        print(f"  key count: {key_count}")
+        generated_at = (
+            payload.get("generated_at") if isinstance(payload, dict) else None
+        )
+        if isinstance(generated_at, str):
+            print(f"  generated: {generated_at}")
+        return 0
+
+    print(
+        "FAILED: no channel returned a valid manifest" + (
+            f" (last error: {last_error})" if last_error else ""
+        ),
+        file=sys.stderr,
+    )
+    return 1
 
 
 def cmd_export(args: argparse.Namespace) -> int:

@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_import_version_and_public_api():
-    assert keel_verifier.__version__ == "1.0.3"
+    assert keel_verifier.__version__ == "1.0.4"
     assert callable(keel_verifier.verify)
     assert callable(keel_verifier.verify_export_walk_events)
     assert callable(keel_verifier.verify_closure_record)

@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.4 (2026-05-10)
+
+- Add `refresh-keys` subcommand: pulls a fresh public-key manifest from any of the trust-root channels (Keel API, GitHub) into `~/.keel-verifier/trust-root.json`. Subsequent verifications prefer the cached manifest over the wheel-bundled trust root, so the bundled snapshot does not need to be regenerated when Keel rotates a signing key.
+- Trust-root resolution order is now: explicit `--key-manifest[-url]` → cached `~/.keel-verifier/trust-root.json` → wheel-bundled `data/trust_root.json`.
+- New `--source` flag on `refresh-keys` (`auto` | `api` | `github`); default `auto` tries channels in order.
+- Bump package metadata and module version to v1.0.4
+
 ## v1.0.3 (2026-05-07)
 
 - README clarity pass for verifier trust-boundary language

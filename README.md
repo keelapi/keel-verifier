@@ -136,10 +136,29 @@ Trust sources, strongest first:
 | Pinned key | `--expected-public-key ed25519:...` or `--public-key ed25519:...` | Strongest when obtained out-of-band. |
 | Key manifest | `--key-manifest keys.json` | Supports key rotation and active windows. |
 | Key manifest URL | `--key-manifest-url URL` | Explicit network fetch. |
-| Bundled trust root | none | Default. No phone-home. |
+| Cached manifest | none (set up via `keel-verify refresh-keys`) | Default once cache exists. Lives at `~/.keel-verifier/trust-root.json`. |
+| Bundled trust root | none | Always-present floor. No phone-home. |
 | Self-attested | `--self-attested` | Development/sample mode only. |
 
 `--public-key-url` is also supported for checkpoint verification against the single live checkpoint public-key endpoint.
+
+When no flag is passed, the verifier resolves the trust root in this order: explicit `--key-manifest[-url]` → cached `~/.keel-verifier/trust-root.json` (if present) → wheel-bundled `data/trust_root.json`.
+
+### Refreshing trust roots after key rotation
+
+The wheel ships a snapshot of the trust root from build time. Once Keel rotates a signing key, a wheel published before the rotation will not verify post-rotation artifacts out of the box. Three resolutions:
+
+1. `pip install --upgrade keel-verifier` — pulls the latest bundled snapshot.
+2. `keel-verify refresh-keys` — fetches a fresh manifest from any trust-root channel and caches it at `~/.keel-verifier/trust-root.json`. The verifier prefers the cache over the bundled snapshot on subsequent runs.
+3. Pin a manifest at audit time: download the manifest alongside the artifact, pass it explicitly with `--key-manifest <archived-file>`.
+
+`refresh-keys` flags:
+
+```bash
+keel-verify refresh-keys                  # auto: try Keel API, then GitHub
+keel-verify refresh-keys --source api     # only try the Keel API
+keel-verify refresh-keys --source github  # only try the GitHub mirror
+```
 
 ## CLI Examples
 
@@ -148,6 +167,8 @@ keel-verify export export.json manifest.json
 keel-verify export export.json manifest.json --walk-events
 keel-verify export export.json manifest.json --walk-events --verify-closure
 keel-verify checkpoint checkpoint.json
+keel-verify refresh-keys
+keel-verify refresh-keys --source github
 python -m keel_verifier sample/export.json --self-attested
 python -m keel_verifier sample/export.json --json --self-attested
 ```
