@@ -1,6 +1,6 @@
 # keel-verifier
 
-Independent verifier for Keel governance evidence.
+Independent verifier for Permit-spec governance evidence and Keel audit exports.
 
 ## Why this exists
 
@@ -57,10 +57,13 @@ python -m keel_verifier sample/export.json --self-attested
 
 ## Obtaining a Signed Export
 
-Request an audit export from Keel's compliance export API and include chain entries when you want full lifecycle walking:
+Request an audit export from the Keel compliance export API and include chain entries when you want full lifecycle walking:
 
 ```bash
-curl -sS -X POST "https://api.keelapi.com/v1/compliance/exports?include_chain_entries=true"   -H "Authorization: Bearer $KEEL_API_KEY"   -H "Content-Type: application/json"   -d '{"project_id":"<project_uuid>","format":"json"}'
+curl -sS -X POST "https://api.keelapi.com/v1/compliance/exports?include_chain_entries=true" \
+  -H "Authorization: Bearer $KEEL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id":"<project_uuid>","format":"json"}'
 ```
 
 Download both artifacts returned by the export workflow:
@@ -99,7 +102,10 @@ For `closure_v2`, it also verifies `dispatch_request_digest_v1` against the perm
 Closure verification uses public keys with purpose `permit_binding_signing`. Pass a manifest explicitly when needed:
 
 ```bash
-keel-verify export export.json manifest.json   --key-manifest permit-binding-keys.json   --walk-events   --verify-closure
+keel-verify export export.json manifest.json \
+  --key-manifest permit-binding-keys.json \
+  --walk-events \
+  --verify-closure
 ```
 
 The bundled trust root lives at `keel_verifier/data/trust_root.json`. It includes the production export and checkpoint signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`, plus the production permit-binding key served by `https://api.keelapi.com/v1/integrity/permit-binding-public-keys`.
@@ -120,7 +126,7 @@ The verifier emits stable `WALK_*` failure codes, including:
 
 Example: if a provider response is modified after signing, verification fails with `WALK_CLOSURE_DIGEST_MISMATCH`.
 
-The authoritative matrix is maintained in the Keel docs: https://docs.keelapi.com/12-tampering-detection-matrix
+The authoritative matrix is maintained in the online documentation: https://docs.keelapi.com/12-tampering-detection-matrix
 
 ## Trust Model
 
@@ -146,7 +152,7 @@ When no flag is passed, the verifier resolves the trust root in this order: expl
 
 ### Refreshing trust roots after key rotation
 
-The wheel ships a snapshot of the trust root from build time. Once Keel rotates a signing key, a wheel published before the rotation will not verify post-rotation artifacts out of the box. Three resolutions:
+The wheel ships a snapshot of the trust root from build time. After a key rotation, a wheel published before the rotation will not verify post-rotation artifacts out of the box. Three resolutions:
 
 1. `pip install --upgrade keel-verifier` — pulls the latest bundled snapshot.
 2. `keel-verify refresh-keys` — fetches a fresh manifest from any trust-root channel and caches it at `~/.keel-verifier/trust-root.json`. The verifier prefers the cache over the bundled snapshot on subsequent runs.
@@ -194,6 +200,16 @@ if not result.ok:
 ## Versioning
 
 v1.0.0 syncs the public verifier with the Phase A/B/C/D internal verifier. v0.2.0 users can keep using `python -m keel_verifier <artifact>`.
+
+## Related Projects
+
+- Permit Specification: https://github.com/keelapi/keel-permit
+- Reference API: https://github.com/keelapi/keel-api
+- Documentation: https://docs.keelapi.com
+
+## Maintainer
+
+Maintained by Keel API, Inc.
 
 ## License
 
