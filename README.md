@@ -83,6 +83,15 @@ The explicit flag form is also supported:
 keel-verify export --export-file export.json --manifest manifest.json --walk-events --verify-closure
 ```
 
+Export manifests must be signed by default. Legacy unsigned manifests fail closed
+after the content-hash check. Use `--allow-unsigned` only for archaeology or
+local fixtures where content-hash consistency is useful but issuer authenticity
+is intentionally out of scope:
+
+```bash
+keel-verify export export.json manifest.json --allow-unsigned
+```
+
 ## Chain Walking
 
 `--walk-events` parses `audit_export_bundle` files with `schema_version=2` and `include_chain_entries=true`.
@@ -172,6 +181,7 @@ keel-verify refresh-keys --source github  # only try the GitHub mirror
 keel-verify export export.json manifest.json
 keel-verify export export.json manifest.json --walk-events
 keel-verify export export.json manifest.json --walk-events --verify-closure
+keel-verify export export.json manifest.json --allow-unsigned
 keel-verify checkpoint checkpoint.json
 keel-verify refresh-keys
 keel-verify refresh-keys --source github

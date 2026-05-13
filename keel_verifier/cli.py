@@ -152,6 +152,14 @@ def _build_parser() -> argparse.ArgumentParser:
             "consistency from bundled chain_entries."
         ),
     )
+    p_export.add_argument(
+        "--allow-unsigned",
+        action="store_true",
+        help=(
+            "Allow legacy unsigned manifests after content-hash verification. "
+            "Prints a warning and exits 0."
+        ),
+    )
     _add_common_trust_args(p_export)
     _add_key_manifest_args(p_export)
     p_export.set_defaults(func=lambda args: _cmd_export_cli(p_export, args))
