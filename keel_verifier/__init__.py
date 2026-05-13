@@ -18,4 +18,4 @@ __all__ = [
     "verify_export_walk_events",
     "__version__",
 ]
-__version__ = "1.0.4"
+__version__ = "1.1.0"
