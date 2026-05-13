@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.1.0 (2026-05-13)
+
+- Verifies `keel.vanta.workflow_evidence/v1` sibling schema: declaration signatures, amendment ordering and signatures.
+- Recognizes incident bundle `manifest_version: 2` with new `workflow_declarations.jsonl` and `workflow_amendments.jsonl` files.
+- Re-derives `effective_intent_hash` (`SHA-256(declaration.intent_json ‖ ordered amendments at decision time)`) and verifies it matches the value carried in `permit.workflow_state_json`.
+- Workflow declaration and amendment signatures are validated against the existing `permit_binding_signing` public-key purpose from the bundled trust root — no new key sources required.
+- Backward compatibility: v1 bundles (no workflow files) verify unchanged.
+- Bump package metadata and module version to v1.1.0
+
 ## v1.0.4 (2026-05-10)
 
 - Add `refresh-keys` subcommand: pulls a fresh public-key manifest from any of the trust-root channels (Keel API, GitHub) into `~/.keel-verifier/trust-root.json`. Subsequent verifications prefer the cached manifest over the wheel-bundled trust root, so the bundled snapshot does not need to be regenerated when Keel rotates a signing key.
