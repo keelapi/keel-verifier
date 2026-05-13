@@ -1566,7 +1566,16 @@ def cmd_export(args: argparse.Namespace) -> int:
     )
 
     if not sig:
-        print("WARNING: Export is unsigned (no signature in manifest).")
+        if not getattr(args, "allow_unsigned", False):
+            print(
+                "FAILED: Export manifest is unsigned (no signature in manifest).",
+                file=sys.stderr,
+            )
+            return 1
+        print(
+            "WARNING: Export manifest is unsigned (no signature in manifest).",
+            file=sys.stderr,
+        )
         print(f"Content hash verified: {actual}")
         return 0
 
@@ -2194,6 +2203,14 @@ def main(argv: list[str] | None = None) -> int:
             "After export content hash and signature verification, verify "
             "permit.closed closure signatures and dispatch/provider/client digest "
             "consistency from bundled chain_entries."
+        ),
+    )
+    p_export.add_argument(
+        "--allow-unsigned",
+        action="store_true",
+        help=(
+            "Allow legacy unsigned manifests after content-hash verification. "
+            "Prints a warning and exits 0."
         ),
     )
     p_export.add_argument(
