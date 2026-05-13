@@ -56,8 +56,9 @@ import hashlib
 import json
 import sys
 import urllib.request
+import zipfile
 from datetime import datetime, timezone
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
 from typing import Any
 
@@ -101,8 +102,19 @@ WALK_CLOSURE_DIGEST_MISMATCH = "WALK_CLOSURE_DIGEST_MISMATCH"
 WALK_CLOSURE_DIGEST_MISSING = "WALK_CLOSURE_DIGEST_MISSING"
 WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH = "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH"
 WALK_UNKNOWN_CLOSURE_FORMAT = "WALK_UNKNOWN_CLOSURE_FORMAT"
+WORKFLOW_EVIDENCE_SCHEMA_INVALID = "WORKFLOW_EVIDENCE_SCHEMA_INVALID"
+WORKFLOW_SIGNATURE_INVALID = "WORKFLOW_SIGNATURE_INVALID"
+WORKFLOW_AMENDMENT_ORDER_INVALID = "WORKFLOW_AMENDMENT_ORDER_INVALID"
+WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH = "WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH"
+INCIDENT_MANIFEST_SCHEMA_INVALID = "INCIDENT_MANIFEST_SCHEMA_INVALID"
+INCIDENT_UNKNOWN_MANIFEST_VERSION = "INCIDENT_UNKNOWN_MANIFEST_VERSION"
 
 PERMIT_BINDING_SIGNING_PURPOSE = "permit_binding_signing"
+WORKFLOW_DECLARATION_BINDING_VERSION = "workflow_declaration.v1"
+WORKFLOW_AMENDMENT_BINDING_VERSION = "workflow_amendment.v1"
+VANTA_WORKFLOW_EVIDENCE_SCHEMA = "keel.vanta.workflow_evidence/v1"
+INCIDENT_WORKFLOW_DECLARATIONS_SCHEMA = "keel.workflow_declarations/v1"
+INCIDENT_WORKFLOW_AMENDMENTS_SCHEMA = "keel.workflow_amendments/v1"
 DISPATCH_REQUEST_DIGEST_SEMANTICS = "approved_request_body_bytes_at_dispatch_time"
 PROVIDER_RESPONSE_DIGEST_SEMANTICS = "provider_bytes_received_by_keel"
 CLIENT_RESPONSE_DIGEST_SEMANTICS = "response_bytes_handed_to_asgi_not_tcp_receipt"
@@ -1427,6 +1439,1171 @@ def _verify_export_closures(export_data: bytes, args: argparse.Namespace) -> int
     return 0
 
 
+@dataclass(frozen=True)
+class _WorkflowEvidenceIndex:
+    declarations: dict[str, dict[str, Any]]
+    amendments_by_declaration: dict[str, list[dict[str, Any]]]
+
+
+def _workflow_fail(code: str, message: str) -> int:
+    print(f"FAILED: {code}: {message}", file=sys.stderr)
+    return 1
+
+
+def _strip_none(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            str(key): _strip_none(item)
+            for key, item in value.items()
+            if item is not None
+        }
+    if isinstance(value, list):
+        return [_strip_none(item) for item in value]
+    return value
+
+
+def _canonical_workflow_json(value: Any) -> str:
+    return json.dumps(
+        _strip_none(value),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
+def _normalize_sha256_hex(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if text.startswith("sha256:"):
+        text = text.removeprefix("sha256:")
+    return text or None
+
+
+def _required_workflow_str(record: dict[str, Any], field: str) -> str:
+    value = record.get(field)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be a non-empty string")
+    return value.strip()
+
+
+def _optional_workflow_str(record: dict[str, Any], field: str) -> str | None:
+    value = record.get(field)
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    raise ValueError(f"{field} must be a string or null")
+
+
+def _optional_workflow_int(record: dict[str, Any], field: str) -> int | None:
+    value = record.get(field)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{field} must be an integer or null")
+    if value < 0:
+        raise ValueError(f"{field} must be non-negative")
+    return value
+
+
+def _required_workflow_int(record: dict[str, Any], field: str) -> int:
+    value = _optional_workflow_int(record, field)
+    if value is None:
+        raise ValueError(f"{field} must be an integer")
+    return value
+
+
+def _workflow_declaration_id(record: dict[str, Any]) -> str:
+    value = record.get("workflow_declaration_id", record.get("id"))
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("workflow_declaration_id must be a non-empty string")
+    return value.strip()
+
+
+def _workflow_amendment_id(record: dict[str, Any]) -> str:
+    value = record.get("workflow_amendment_id", record.get("id"))
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("workflow_amendment_id must be a non-empty string")
+    return value.strip()
+
+
+def _workflow_project_id(record: dict[str, Any]) -> str:
+    return _required_workflow_str(record, "project_id")
+
+
+def _workflow_datetime_sort_key(record: dict[str, Any], field: str) -> datetime:
+    parsed = _parse_iso_or_none(record.get(field))
+    if parsed is None:
+        raise ValueError(f"{field} must be an ISO-8601 timestamp")
+    return parsed
+
+
+def _workflow_issued_at_candidates(value: Any) -> list[str]:
+    candidates: list[str] = []
+    if isinstance(value, str) and value.strip():
+        candidates.append(value.strip())
+    parsed = _parse_iso_or_none(value)
+    if parsed is not None:
+        normalized = parsed.astimezone(timezone.utc).isoformat()
+        if normalized not in candidates:
+            candidates.append(normalized)
+    return candidates
+
+
+def _workflow_principal_payload(
+    record: dict[str, Any],
+    *,
+    object_field: str,
+    api_key_field: str,
+    dashboard_session_field: str,
+) -> dict[str, Any]:
+    principal = record.get(object_field)
+    if isinstance(principal, dict):
+        principal_type = principal.get("type")
+        principal_id = principal.get("id")
+        if principal_type == "api_key" and isinstance(principal_id, str):
+            return {"api_key_id": principal_id}
+        if principal_type == "dashboard_session" and isinstance(principal_id, str):
+            return {"dashboard_session_id": principal_id}
+
+    return _strip_none(
+        {
+            "api_key_id": record.get(api_key_field),
+            "dashboard_session_id": record.get(dashboard_session_field),
+        }
+    )
+
+
+def _workflow_declaration_intent(record: dict[str, Any]) -> dict[str, Any]:
+    for field in ("intent_json", "intent"):
+        value = record.get(field)
+        if isinstance(value, dict):
+            return _strip_none(dict(value))
+
+    intent = _strip_none(
+        {
+            "expected_calls": record.get("expected_calls"),
+            "max_calls": record.get("max_calls"),
+            "expected_model": record.get("expected_model"),
+            "expected_input_tokens_per_call": record.get(
+                "expected_input_tokens_per_call"
+            ),
+            "expected_output_tokens_per_call": record.get(
+                "expected_output_tokens_per_call"
+            ),
+            "max_duration_seconds": record.get("max_duration_seconds"),
+        }
+    )
+    if not isinstance(intent, dict):
+        raise ValueError("workflow intent must be an object")
+    return intent
+
+
+def _validate_workflow_intent(intent: dict[str, Any]) -> None:
+    expected_calls = intent.get("expected_calls")
+    max_calls = intent.get("max_calls")
+    for field, value in (
+        ("expected_calls", expected_calls),
+        ("max_calls", max_calls),
+        ("expected_input_tokens_per_call", intent.get("expected_input_tokens_per_call")),
+        ("expected_output_tokens_per_call", intent.get("expected_output_tokens_per_call")),
+        ("max_duration_seconds", intent.get("max_duration_seconds")),
+    ):
+        if value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"intent.{field} must be a non-negative integer")
+    if expected_calls is None and max_calls is None:
+        raise ValueError("intent requires expected_calls or max_calls")
+    if expected_calls is not None and max_calls is not None and expected_calls > max_calls:
+        raise ValueError("intent.expected_calls must be <= intent.max_calls")
+    expected_model = intent.get("expected_model")
+    if expected_model is not None and not isinstance(expected_model, str):
+        raise ValueError("intent.expected_model must be a string or null")
+
+
+def _workflow_projected_cost(record: dict[str, Any]) -> dict[str, Any]:
+    projected = record.get("projected_cost")
+    if isinstance(projected, dict):
+        return _strip_none(dict(projected))
+    return _strip_none(
+        {
+            "amount_micros": record.get("projection_amount_micros"),
+            "currency": record.get("projection_currency", "USD"),
+            "methodology": record.get("projection_methodology"),
+        }
+    )
+
+
+def _workflow_declaration_payload_candidates(
+    record: dict[str, Any],
+    *,
+    binding_key_id: str,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    signed_payload = record.get("signed_payload")
+    if isinstance(signed_payload, dict):
+        payload = dict(signed_payload)
+        payload.setdefault("binding_key_id", binding_key_id)
+        candidates.append(payload)
+
+    intent = _workflow_declaration_intent(record)
+    declared_by = _workflow_principal_payload(
+        record,
+        object_field="declared_by",
+        api_key_field="declared_by_api_key_id",
+        dashboard_session_field="declared_by_dashboard_session_id",
+    )
+    issued_at_values = _workflow_issued_at_candidates(
+        record.get("declaration_signed_at")
+        or record.get("declared_at")
+        or record.get("created_at")
+    )
+    for issued_at in issued_at_values:
+        candidates.append(
+            {
+                "binding_version": WORKFLOW_DECLARATION_BINDING_VERSION,
+                "project_id": _workflow_project_id(record),
+                "workflow_id": _required_workflow_str(record, "workflow_id"),
+                "intent": intent,
+                "budget_envelope_id": record.get("budget_envelope_id"),
+                "declared_by": declared_by,
+                "projected_cost": _workflow_projected_cost(record),
+                "status": _required_workflow_str(record, "status"),
+                "issued_at": issued_at,
+                "binding_key_id": binding_key_id,
+            }
+        )
+    return candidates
+
+
+def _workflow_amendment_delta(record: dict[str, Any]) -> dict[str, Any]:
+    delta = record.get("delta")
+    if isinstance(delta, dict):
+        return _strip_none(dict(delta))
+    return _strip_none(
+        {
+            "applied_against_version": record.get("applied_against_version"),
+            "previous_max_calls": record.get("previous_max_calls"),
+            "new_max_calls": record.get("new_max_calls"),
+            "previous_expected_calls": record.get("previous_expected_calls"),
+            "new_expected_calls": record.get("new_expected_calls"),
+            "reason_provided": record.get("reason_provided"),
+        }
+    )
+
+
+def _workflow_amendment_payload_candidates(
+    record: dict[str, Any],
+    *,
+    binding_key_id: str,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    signed_payload = record.get("signed_payload")
+    if isinstance(signed_payload, dict):
+        payload = dict(signed_payload)
+        payload.setdefault("binding_key_id", binding_key_id)
+        candidates.append(payload)
+
+    amendment_id = _workflow_amendment_id(record)
+    declaration_id = _workflow_declaration_id(record)
+    project_id = _workflow_project_id(record)
+    delta = _workflow_amendment_delta(record)
+    amended_by = _workflow_principal_payload(
+        record,
+        object_field="amended_by",
+        api_key_field="amended_by_api_key_id",
+        dashboard_session_field="amended_by_dashboard_session_id",
+    )
+    issued_at_values = _workflow_issued_at_candidates(
+        record.get("amendment_signed_at") or record.get("created_at")
+    )
+    for issued_at in issued_at_values:
+        base = {
+            "binding_version": WORKFLOW_AMENDMENT_BINDING_VERSION,
+            "project_id": project_id,
+            "workflow_declaration_id": declaration_id,
+            "amended_by": amended_by,
+            "issued_at": issued_at,
+            "binding_key_id": binding_key_id,
+        }
+        candidates.append({**base, "delta": delta})
+        candidates.append({**base, "workflow_amendment_id": amendment_id, "delta": delta})
+        candidates.append({**base, **delta})
+        candidates.append({**base, "workflow_amendment_id": amendment_id, **delta})
+    return candidates
+
+
+def _verify_workflow_signed_record(
+    *,
+    record: dict[str, Any],
+    canonical_hash_field: str,
+    signature_field: str,
+    signing_time_field: str,
+    args: argparse.Namespace,
+    payload_candidates,
+    record_label: str,
+) -> int | None:
+    canonical_hash = _normalize_sha256_hex(record.get(canonical_hash_field))
+    signature = record.get(signature_field)
+    if canonical_hash is None:
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            f"{record_label} missing {canonical_hash_field}",
+        )
+    if not isinstance(signature, str) or not signature.strip():
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            f"{record_label} missing {signature_field}",
+        )
+
+    artifact_key_id = (
+        record.get("binding_key_id")
+        if isinstance(record.get("binding_key_id"), str)
+        else record.get("key_id")
+        if isinstance(record.get("key_id"), str)
+        else None
+    )
+    signing_time = _parse_iso_or_none(record.get(signing_time_field))
+    trusted_pub, trust_source, err = _resolve_trust_key(
+        artifact_pub=None,
+        artifact_key_id=artifact_key_id,
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+        expected_public_key=None,
+        public_key_url=None,
+        key_manifest_source=_key_manifest_source_for_args(args),
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            f"{record_label} {err}",
+        )
+
+    try:
+        binding_key_id = _binding_key_id_from_public_key(trusted_pub)
+    except Exception as exc:
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            f"{record_label} invalid permit-binding public key: {exc}",
+        )
+    if artifact_key_id is not None and artifact_key_id != binding_key_id:
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            (
+                f"{record_label} binding_key_id mismatch "
+                f"expected={artifact_key_id} actual={binding_key_id}"
+            ),
+        )
+
+    candidates = payload_candidates(record, binding_key_id=binding_key_id)
+    recomputed_hashes = [
+        _compute_canonical_binding_hash(candidate) for candidate in candidates
+    ]
+    if canonical_hash not in recomputed_hashes:
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            (
+                f"{record_label} canonical_hash mismatch "
+                f"actual={canonical_hash}"
+            ),
+        )
+
+    if not _verify_ed25519(trusted_pub, canonical_hash.encode("utf-8"), signature):
+        return _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            f"{record_label} Ed25519 signature invalid ({trust_source})",
+        )
+    return None
+
+
+def _validate_workflow_declaration_record(
+    record: dict[str, Any],
+    *,
+    require_effective_hash: bool,
+) -> None:
+    _required_workflow_str(record, "workflow_id")
+    _workflow_declaration_id(record)
+    _workflow_project_id(record)
+    status = _required_workflow_str(record, "status")
+    if status not in {"active", "completed", "expired", "rejected"}:
+        raise ValueError("status must be active, completed, expired, or rejected")
+    intent = _workflow_declaration_intent(record)
+    _validate_workflow_intent(intent)
+    _required_workflow_int(record, "version")
+    _optional_workflow_int(record, "cached_actual_calls")
+    _optional_workflow_int(record, "projection_amount_micros")
+    _optional_workflow_str(record, "declaration_canonical_hash")
+    _optional_workflow_str(record, "declaration_signature_b64")
+    if _parse_iso_or_none(record.get("declaration_signed_at")) is None:
+        raise ValueError("declaration_signed_at must be an ISO-8601 timestamp")
+    if require_effective_hash and _normalize_sha256_hex(record.get("effective_intent_hash")) is None:
+        raise ValueError("effective_intent_hash must be a non-empty string")
+
+
+def _validate_workflow_amendment_record(record: dict[str, Any]) -> None:
+    _workflow_amendment_id(record)
+    _workflow_declaration_id(record)
+    _workflow_project_id(record)
+    _required_workflow_int(record, "applied_against_version")
+    _optional_workflow_int(record, "previous_max_calls")
+    _optional_workflow_int(record, "new_max_calls")
+    _optional_workflow_int(record, "previous_expected_calls")
+    _optional_workflow_int(record, "new_expected_calls")
+    reason = record.get("reason_provided")
+    if reason is not None and not isinstance(reason, str):
+        raise ValueError("reason_provided must be a string or null")
+    if _parse_iso_or_none(record.get("created_at")) is None:
+        raise ValueError("created_at must be an ISO-8601 timestamp")
+    _optional_workflow_str(record, "amendment_canonical_hash")
+    _optional_workflow_str(record, "amendment_signature_b64")
+
+
+def _compute_effective_intent_hash_from_records(
+    declaration: dict[str, Any],
+    amendments: list[dict[str, Any]],
+    *,
+    before_created_at: datetime | None = None,
+) -> str:
+    selected: list[dict[str, Any]] = []
+    for amendment in amendments:
+        created_at = _workflow_datetime_sort_key(amendment, "created_at")
+        if before_created_at is not None and created_at >= before_created_at:
+            continue
+        selected.append(amendment)
+
+    selected.sort(
+        key=lambda item: (
+            _workflow_datetime_sort_key(item, "created_at"),
+            _workflow_amendment_id(item),
+        )
+    )
+    hasher = hashlib.sha256()
+    hasher.update(
+        _canonical_workflow_json(_workflow_declaration_intent(declaration)).encode(
+            "utf-8"
+        )
+    )
+    for amendment in selected:
+        hasher.update(
+            _canonical_workflow_json(_workflow_amendment_delta(amendment)).encode(
+                "utf-8"
+            )
+        )
+    return hasher.hexdigest()
+
+
+def _verify_workflow_amendment_chains(
+    declarations: dict[str, dict[str, Any]],
+    amendments_by_declaration: dict[str, list[dict[str, Any]]],
+) -> int | None:
+    for declaration_id, amendments in sorted(amendments_by_declaration.items()):
+        if declaration_id not in declarations:
+            return _workflow_fail(
+                WORKFLOW_AMENDMENT_ORDER_INVALID,
+                f"workflow_declaration_id={declaration_id} has no declaration record",
+            )
+        previous_sort_key: tuple[datetime, str] | None = None
+        expected_version = 1
+        for amendment in amendments:
+            amendment_id = _workflow_amendment_id(amendment)
+            sort_key = (
+                _workflow_datetime_sort_key(amendment, "created_at"),
+                amendment_id,
+            )
+            if previous_sort_key is not None and sort_key < previous_sort_key:
+                return _workflow_fail(
+                    WORKFLOW_AMENDMENT_ORDER_INVALID,
+                    (
+                        f"workflow_declaration_id={declaration_id} "
+                        f"workflow_amendment_id={amendment_id} is out of order"
+                    ),
+                )
+            applied_against_version = _required_workflow_int(
+                amendment,
+                "applied_against_version",
+            )
+            if applied_against_version != expected_version:
+                return _workflow_fail(
+                    WORKFLOW_AMENDMENT_ORDER_INVALID,
+                    (
+                        f"workflow_declaration_id={declaration_id} "
+                        f"workflow_amendment_id={amendment_id} "
+                        f"expected_applied_against_version={expected_version} "
+                        f"actual={applied_against_version}"
+                    ),
+                )
+            previous_sort_key = sort_key
+            expected_version += 1
+
+        declaration_version = _required_workflow_int(
+            declarations[declaration_id],
+            "version",
+        )
+        if declaration_version != expected_version:
+            return _workflow_fail(
+                WORKFLOW_AMENDMENT_ORDER_INVALID,
+                (
+                    f"workflow_declaration_id={declaration_id} "
+                    f"declaration version={declaration_version} does not match "
+                    f"amendment history version={expected_version}"
+                ),
+            )
+    return None
+
+
+def _verify_workflow_effective_hashes(
+    declarations: dict[str, dict[str, Any]],
+    amendments_by_declaration: dict[str, list[dict[str, Any]]],
+) -> int | None:
+    for declaration_id, declaration in sorted(declarations.items()):
+        expected = _compute_effective_intent_hash_from_records(
+            declaration,
+            amendments_by_declaration.get(declaration_id, []),
+        )
+        actual = _normalize_sha256_hex(declaration.get("effective_intent_hash"))
+        if actual is None:
+            continue
+        if actual != expected:
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                (
+                    f"workflow_declaration_id={declaration_id} "
+                    f"expected={expected} actual={actual}"
+                ),
+            )
+    return None
+
+
+def _verify_workflow_records(
+    *,
+    declarations: list[dict[str, Any]],
+    amendments: list[dict[str, Any]],
+    args: argparse.Namespace,
+    require_declaration_effective_hash: bool,
+) -> tuple[_WorkflowEvidenceIndex | None, int | None]:
+    declarations_by_id: dict[str, dict[str, Any]] = {}
+    amendments_by_declaration: dict[str, list[dict[str, Any]]] = {}
+
+    for index, declaration in enumerate(declarations):
+        if not isinstance(declaration, dict):
+            return None, _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"declarations[{index}] must be an object",
+            )
+        try:
+            _validate_workflow_declaration_record(
+                declaration,
+                require_effective_hash=require_declaration_effective_hash,
+            )
+            declaration_id = _workflow_declaration_id(declaration)
+        except ValueError as exc:
+            return None, _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"declarations[{index}] {exc}",
+            )
+        if declaration_id in declarations_by_id:
+            return None, _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"duplicate workflow_declaration_id={declaration_id}",
+            )
+        failure = _verify_workflow_signed_record(
+            record=declaration,
+            canonical_hash_field="declaration_canonical_hash",
+            signature_field="declaration_signature_b64",
+            signing_time_field="declaration_signed_at",
+            args=args,
+            payload_candidates=_workflow_declaration_payload_candidates,
+            record_label=f"workflow_declaration_id={declaration_id}",
+        )
+        if failure is not None:
+            return None, failure
+        declarations_by_id[declaration_id] = declaration
+
+    for index, amendment in enumerate(amendments):
+        if not isinstance(amendment, dict):
+            return None, _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"amendments[{index}] must be an object",
+            )
+        try:
+            _validate_workflow_amendment_record(amendment)
+            declaration_id = _workflow_declaration_id(amendment)
+            amendment_id = _workflow_amendment_id(amendment)
+        except ValueError as exc:
+            return None, _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"amendments[{index}] {exc}",
+            )
+        failure = _verify_workflow_signed_record(
+            record=amendment,
+            canonical_hash_field="amendment_canonical_hash",
+            signature_field="amendment_signature_b64",
+            signing_time_field="created_at",
+            args=args,
+            payload_candidates=_workflow_amendment_payload_candidates,
+            record_label=f"workflow_amendment_id={amendment_id}",
+        )
+        if failure is not None:
+            return None, failure
+        amendments_by_declaration.setdefault(declaration_id, []).append(amendment)
+
+    chain_failure = _verify_workflow_amendment_chains(
+        declarations_by_id,
+        amendments_by_declaration,
+    )
+    if chain_failure is not None:
+        return None, chain_failure
+    hash_failure = _verify_workflow_effective_hashes(
+        declarations_by_id,
+        amendments_by_declaration,
+    )
+    if hash_failure is not None:
+        return None, hash_failure
+
+    return (
+        _WorkflowEvidenceIndex(
+            declarations=declarations_by_id,
+            amendments_by_declaration=amendments_by_declaration,
+        ),
+        None,
+    )
+
+
+def _verify_workflow_evidence_document(
+    document: dict[str, Any],
+    *,
+    args: argparse.Namespace,
+    label: str,
+) -> tuple[_WorkflowEvidenceIndex | None, int | None]:
+    if document.get("schema") != VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            f"{label} schema must be {VANTA_WORKFLOW_EVIDENCE_SCHEMA!r}",
+        )
+    declarations = document.get("declarations")
+    amendments = document.get("amendments")
+    if not isinstance(declarations, list):
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            f"{label} declarations must be a list",
+        )
+    if not isinstance(amendments, list):
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            f"{label} amendments must be a list",
+        )
+    if document.get("declaration_count") != len(declarations):
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            (
+                f"{label} declaration_count={document.get('declaration_count')} "
+                f"does not match declarations length={len(declarations)}"
+            ),
+        )
+    if document.get("amendment_count") != len(amendments):
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            (
+                f"{label} amendment_count={document.get('amendment_count')} "
+                f"does not match amendments length={len(amendments)}"
+            ),
+        )
+    index, failure = _verify_workflow_records(
+        declarations=declarations,
+        amendments=amendments,
+        args=args,
+        require_declaration_effective_hash=True,
+    )
+    if failure is not None:
+        return None, failure
+    assert index is not None
+    print(f"{label}: VERIFIED")
+    print(f"  declarations_verified: {len(declarations)}")
+    print(f"  amendments_verified:   {len(amendments)}")
+    return index, None
+
+
+def _extract_permit_workflow_snapshot(record: dict[str, Any]) -> dict[str, Any] | None:
+    for key in ("workflow_state_json", "workflow_state"):
+        value = record.get(key)
+        if isinstance(value, dict):
+            return value
+    permit = record.get("permit")
+    if isinstance(permit, dict):
+        for key in ("workflow_state_json", "workflow_state"):
+            value = permit.get(key)
+            if isinstance(value, dict):
+                return value
+    return None
+
+
+def _permit_created_at(record: dict[str, Any]) -> datetime | None:
+    for key in ("created_at", "timestamp", "permit_created_at"):
+        parsed = _parse_iso_or_none(record.get(key))
+        if parsed is not None:
+            return parsed
+    permit = record.get("permit")
+    if isinstance(permit, dict):
+        for key in ("created_at", "timestamp", "permit_created_at"):
+            parsed = _parse_iso_or_none(permit.get(key))
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _verify_permit_workflow_snapshots(
+    permit_records: list[dict[str, Any]],
+    index: _WorkflowEvidenceIndex,
+    *,
+    label: str,
+) -> int | None:
+    checked = 0
+    for record_index, record in enumerate(permit_records):
+        if not isinstance(record, dict):
+            return _workflow_fail(
+                WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+                f"{label} permit_records[{record_index}] must be an object",
+            )
+        snapshot = _extract_permit_workflow_snapshot(record)
+        if snapshot is None:
+            continue
+        declaration_id = snapshot.get("workflow_declaration_id") or record.get(
+            "workflow_declaration_id"
+        )
+        if not isinstance(declaration_id, str) or not declaration_id.strip():
+            if snapshot.get("admission_state") == "unknown_or_inactive":
+                continue
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                f"{label} permit_records[{record_index}] missing workflow_declaration_id",
+            )
+        declaration_id = declaration_id.strip()
+        declaration = index.declarations.get(declaration_id)
+        if declaration is None:
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                (
+                    f"{label} permit_records[{record_index}] "
+                    f"workflow_declaration_id={declaration_id} missing declaration"
+                ),
+            )
+        created_at = _permit_created_at(record)
+        if created_at is None:
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                f"{label} permit_records[{record_index}] missing permit created_at",
+            )
+        expected_hash = _compute_effective_intent_hash_from_records(
+            declaration,
+            index.amendments_by_declaration.get(declaration_id, []),
+            before_created_at=created_at,
+        )
+        actual_hash = _normalize_sha256_hex(snapshot.get("effective_intent_hash"))
+        if actual_hash != expected_hash:
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                (
+                    f"{label} permit_records[{record_index}] "
+                    f"workflow_declaration_id={declaration_id} "
+                    f"expected={expected_hash} actual={actual_hash}"
+                ),
+            )
+        expected_version = (
+            len(
+                [
+                    amendment
+                    for amendment in index.amendments_by_declaration.get(
+                        declaration_id,
+                        [],
+                    )
+                    if _workflow_datetime_sort_key(amendment, "created_at")
+                    < created_at
+                ]
+            )
+            + 1
+        )
+        snapshot_version = snapshot.get("declaration_version_at_decision")
+        if snapshot_version != expected_version:
+            return _workflow_fail(
+                WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
+                (
+                    f"{label} permit_records[{record_index}] "
+                    f"workflow_declaration_id={declaration_id} "
+                    f"expected_version={expected_version} actual={snapshot_version}"
+                ),
+            )
+        checked += 1
+    if checked:
+        print(f"{label}: workflow_state_json checks: {checked} PASS")
+    return None
+
+
+def _json_document_or_none(data: bytes) -> dict[str, Any] | None:
+    try:
+        value = json.loads(data.decode("utf-8"))
+    except Exception:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _resolve_sibling_path(
+    *,
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    export_path: Path,
+    sibling: dict[str, Any],
+) -> Path | None:
+    descriptor = sibling.get("workflow_evidence")
+    file_name = "workflow_evidence.json"
+    if isinstance(descriptor, dict) and isinstance(descriptor.get("file_name"), str):
+        file_name = descriptor["file_name"]
+
+    candidates: list[Path] = []
+    explicit = sibling.get("workflow_evidence_file")
+    if isinstance(explicit, str) and explicit:
+        explicit_path = Path(explicit)
+        candidates.append(explicit_path)
+        if not explicit_path.is_absolute():
+            candidates.append(manifest_path.parent / explicit_path)
+
+    bundle_dir = sibling.get("bundle_dir")
+    if isinstance(bundle_dir, str) and bundle_dir:
+        bundle_path = Path(bundle_dir)
+        candidates.append(bundle_path / file_name)
+        if not bundle_path.is_absolute():
+            candidates.append(manifest_path.parent / bundle_path / file_name)
+
+    export_id = manifest.get("export_id")
+    candidates.extend(
+        [
+            manifest_path.parent / file_name,
+            export_path.parent / file_name,
+        ]
+    )
+    if isinstance(export_id, str) and export_id:
+        candidates.extend(
+            [
+                manifest_path.parent / export_id / file_name,
+                export_path.parent / export_id / file_name,
+            ]
+        )
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved.exists():
+            return resolved
+    return None
+
+
+def _verify_signed_workflow_sibling(
+    *,
+    workflow_path: Path,
+    descriptor: dict[str, Any],
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any] | None, int | None]:
+    workflow_data = workflow_path.read_bytes()
+    expected_hash = descriptor.get("content_hash")
+    actual_hash = _content_hash(workflow_data)
+    if expected_hash != actual_hash:
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            (
+                f"workflow_evidence content_hash mismatch "
+                f"expected={expected_hash} actual={actual_hash}"
+            ),
+        )
+    signature = descriptor.get("signature")
+    if not isinstance(signature, str) or not signature.strip():
+        return None, _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            "workflow_evidence sibling manifest is unsigned",
+        )
+    embedded_pub = descriptor.get("public_key")
+    artifact_key_id = (
+        descriptor.get("key_id") if isinstance(descriptor.get("key_id"), str) else None
+    )
+    signing_time = _parse_iso_or_none(descriptor.get("signed_at"))
+    trusted_pub, _trust_source, err = _resolve_trust_key(
+        artifact_pub=embedded_pub if isinstance(embedded_pub, str) else None,
+        artifact_key_id=artifact_key_id,
+        purpose="export_signing",
+        expected_public_key=getattr(args, "expected_public_key", None),
+        public_key_url=None,
+        key_manifest_source=_key_manifest_source_for_args(args),
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        return None, _workflow_fail(WORKFLOW_SIGNATURE_INVALID, str(err))
+    if isinstance(embedded_pub, str) and embedded_pub != trusted_pub:
+        return None, _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            "workflow_evidence public_key does not match trusted key",
+        )
+    if not _verify_ed25519(trusted_pub, actual_hash.encode("utf-8"), signature):
+        return None, _workflow_fail(
+            WORKFLOW_SIGNATURE_INVALID,
+            "workflow_evidence sibling signature invalid",
+        )
+    document = _json_document_or_none(workflow_data)
+    if document is None:
+        return None, _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            "workflow_evidence sibling is not a JSON object",
+        )
+    return document, None
+
+
+def _verify_vanta_workflow_extension(
+    *,
+    export_document: dict[str, Any] | None,
+    export_path: Path,
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    args: argparse.Namespace,
+) -> int | None:
+    sibling_artifacts = manifest.get("sibling_artifacts")
+    if not isinstance(sibling_artifacts, dict):
+        return None
+    sibling = sibling_artifacts.get("workflow_evidence")
+    if not isinstance(sibling, dict):
+        return None
+    if sibling.get("schema") != VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+        return _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            "workflow_evidence sibling schema is invalid",
+        )
+    descriptor = sibling.get("workflow_evidence")
+    if not isinstance(descriptor, dict):
+        return _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            "workflow_evidence sibling descriptor missing",
+        )
+    workflow_path = _resolve_sibling_path(
+        manifest=manifest,
+        manifest_path=manifest_path,
+        export_path=export_path,
+        sibling=sibling,
+    )
+    if workflow_path is None:
+        return _workflow_fail(
+            WORKFLOW_EVIDENCE_SCHEMA_INVALID,
+            "workflow_evidence file could not be found next to export/manifest",
+        )
+    workflow_document, failure = _verify_signed_workflow_sibling(
+        workflow_path=workflow_path,
+        descriptor=descriptor,
+        args=args,
+    )
+    if failure is not None:
+        return failure
+    assert workflow_document is not None
+    index, failure = _verify_workflow_evidence_document(
+        workflow_document,
+        args=args,
+        label="WORKFLOW-EVIDENCE",
+    )
+    if failure is not None:
+        return failure
+    assert index is not None
+    if isinstance(export_document, dict) and isinstance(export_document.get("records"), list):
+        snapshot_failure = _verify_permit_workflow_snapshots(
+            export_document["records"],
+            index,
+            label="WORKFLOW-EVIDENCE",
+        )
+        if snapshot_failure is not None:
+            return snapshot_failure
+    return None
+
+
+def _read_jsonl_from_zip(
+    zip_file: zipfile.ZipFile,
+    name: str,
+) -> list[dict[str, Any]]:
+    raw = zip_file.read(name).decode("utf-8")
+    records: list[dict[str, Any]] = []
+    for line_number, line in enumerate(raw.splitlines(), start=1):
+        if not line.strip():
+            continue
+        value = json.loads(line)
+        if not isinstance(value, dict):
+            raise ValueError(f"{name}:{line_number} must be a JSON object")
+        records.append(value)
+    return records
+
+
+def _incident_manifest_from_zip(zip_file: zipfile.ZipFile) -> dict[str, Any] | None:
+    for name in ("manifest.json", "bundle_manifest.json"):
+        if name not in zip_file.namelist():
+            continue
+        value = json.loads(zip_file.read(name).decode("utf-8"))
+        if not isinstance(value, dict):
+            raise ValueError(f"{name} must be a JSON object")
+        return value
+    return None
+
+
+def _manifest_file_schemas(bundle_manifest: dict[str, Any]) -> dict[str, str | None]:
+    files = bundle_manifest.get("files")
+    if not isinstance(files, list):
+        raise ValueError("files must be a list")
+    schemas: dict[str, str | None] = {}
+    for index, entry in enumerate(files):
+        if not isinstance(entry, dict):
+            raise ValueError(f"files[{index}] must be an object")
+        name = entry.get("name")
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError(f"files[{index}].name must be a non-empty string")
+        schema = entry.get("schema")
+        if schema is not None and not isinstance(schema, str):
+            raise ValueError(f"files[{index}].schema must be a string or null")
+        schemas[name] = schema
+    return schemas
+
+
+def _verify_incident_bundle(
+    *,
+    export_path: Path,
+    manifest: dict[str, Any],
+    args: argparse.Namespace,
+) -> int | None:
+    if not zipfile.is_zipfile(export_path):
+        if manifest.get("export_type") == "incident_evidence":
+            return _workflow_fail(
+                INCIDENT_MANIFEST_SCHEMA_INVALID,
+                "incident_evidence export payload must be a zip bundle",
+            )
+        return None
+
+    with zipfile.ZipFile(export_path) as zip_file:
+        try:
+            bundle_manifest = (
+                manifest
+                if "manifest_version" in manifest
+                else _incident_manifest_from_zip(zip_file)
+            )
+        except Exception as exc:
+            return _workflow_fail(
+                INCIDENT_MANIFEST_SCHEMA_INVALID,
+                f"could not read incident bundle manifest: {exc}",
+            )
+        if bundle_manifest is None:
+            return None
+
+        manifest_version = bundle_manifest.get("manifest_version")
+        if manifest_version == 1:
+            return None
+        if manifest_version != 2:
+            return _workflow_fail(
+                INCIDENT_UNKNOWN_MANIFEST_VERSION,
+                f"unsupported incident bundle manifest_version={manifest_version!r}",
+            )
+
+        try:
+            schemas = _manifest_file_schemas(bundle_manifest)
+        except ValueError as exc:
+            return _workflow_fail(INCIDENT_MANIFEST_SCHEMA_INVALID, str(exc))
+
+        expected = {
+            "workflow_declarations.jsonl": INCIDENT_WORKFLOW_DECLARATIONS_SCHEMA,
+            "workflow_amendments.jsonl": INCIDENT_WORKFLOW_AMENDMENTS_SCHEMA,
+        }
+        for name, schema in expected.items():
+            if schemas.get(name) != schema:
+                return _workflow_fail(
+                    INCIDENT_MANIFEST_SCHEMA_INVALID,
+                    f"{name} manifest schema must be {schema!r}",
+                )
+            if name not in zip_file.namelist():
+                return _workflow_fail(
+                    INCIDENT_MANIFEST_SCHEMA_INVALID,
+                    f"{name} listed in manifest but missing from zip",
+                )
+        if "permits.jsonl" not in schemas or "permits.jsonl" not in zip_file.namelist():
+            return _workflow_fail(
+                INCIDENT_MANIFEST_SCHEMA_INVALID,
+                "manifest_version=2 requires permits.jsonl",
+            )
+
+        try:
+            declarations = _read_jsonl_from_zip(
+                zip_file,
+                "workflow_declarations.jsonl",
+            )
+            amendments = _read_jsonl_from_zip(zip_file, "workflow_amendments.jsonl")
+            permits = _read_jsonl_from_zip(zip_file, "permits.jsonl")
+        except Exception as exc:
+            return _workflow_fail(
+                INCIDENT_MANIFEST_SCHEMA_INVALID,
+                f"could not read incident bundle jsonl: {exc}",
+            )
+
+    index, failure = _verify_workflow_records(
+        declarations=declarations,
+        amendments=amendments,
+        args=args,
+        require_declaration_effective_hash=False,
+    )
+    if failure is not None:
+        return failure
+    assert index is not None
+    snapshot_failure = _verify_permit_workflow_snapshots(
+        permits,
+        index,
+        label="INCIDENT-BUNDLE",
+    )
+    if snapshot_failure is not None:
+        return snapshot_failure
+    print("INCIDENT-BUNDLE: VERIFIED")
+    print("  manifest_version:    2")
+    print(f"  declarations_verified: {len(declarations)}")
+    print(f"  amendments_verified:   {len(amendments)}")
+    return None
+
+
+def _verify_export_workflow_extensions(
+    *,
+    export_data: bytes,
+    export_path: Path,
+    manifest_path: Path,
+    manifest: dict[str, Any],
+    args: argparse.Namespace,
+) -> int | None:
+    export_document = _json_document_or_none(export_data)
+    if isinstance(export_document, dict) and export_document.get("schema") == VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+        _index, failure = _verify_workflow_evidence_document(
+            export_document,
+            args=args,
+            label="WORKFLOW-EVIDENCE",
+        )
+        return failure
+
+    sibling_failure = _verify_vanta_workflow_extension(
+        export_document=export_document,
+        export_path=export_path,
+        manifest_path=manifest_path,
+        manifest=manifest,
+        args=args,
+    )
+    if sibling_failure is not None:
+        return sibling_failure
+
+    incident_failure = _verify_incident_bundle(
+        export_path=export_path,
+        manifest=manifest,
+        args=args,
+    )
+    if incident_failure is not None:
+        return incident_failure
+    return None
+
+
 def _fetch_manifest_bytes(url: str) -> bytes:
     """Fetch raw manifest bytes from a URL with a short timeout."""
     with urllib.request.urlopen(url, timeout=10) as resp:
@@ -1614,6 +2791,15 @@ def cmd_export(args: argparse.Namespace) -> int:
     print(f"  Public key:   {trusted_pub}")
     print(f"  Key id:       {artifact_key_id or _public_key_fingerprint(trusted_pub)}")
     print(f"  Trust source: {trust_source}")
+    workflow_result = _verify_export_workflow_extensions(
+        export_data=export_data,
+        export_path=export_path,
+        manifest_path=manifest_path,
+        manifest=manifest,
+        args=args,
+    )
+    if workflow_result is not None:
+        return workflow_result
     if args.walk_events:
         walk_result = _walk_export_events(export_data)
         if walk_result != 0:
@@ -1886,7 +3072,7 @@ class VerifyResult:
     tsa_url: str | None = None
     tsa_requested_at: str | None = None
 
-    diagnostics: list[str] = field(default_factory=list)
+    diagnostics: list[str] = dataclass_field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
