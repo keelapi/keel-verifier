@@ -30,6 +30,7 @@ def test_export_help_shows_phase_flags(run_cli):
     assert result.returncode == 0
     assert "--walk-events" in result.stdout
     assert "--verify-closure" in result.stdout
+    assert "--allow-unsigned" in result.stdout
     assert "--offline" in result.stdout
     assert "URL trust-root flags still take precedence" in result.stdout
 
