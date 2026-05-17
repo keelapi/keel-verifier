@@ -320,6 +320,82 @@ def test_incident_manifest_v2_with_workflows_verifies(tmp_path, run_cli):
             "workflow_amendments.jsonl",
             json.dumps(amendments[0], sort_keys=True, separators=(",", ":")) + "\n",
         )
+        zip_file.writestr("governance_events.jsonl", "")
+        zip_file.writestr("admin_actions.jsonl", "")
+        zip_file.writestr("bracket_checkpoints.json", "{}")
+        zip_file.writestr(
+            "incident_metadata.json",
+            json.dumps(
+                {"schema": "keel.incident_evidence/v1", "record_counts": {}},
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
+        )
+        zip_file.writestr("mcp_tool_decisions.jsonl", "")
+    export_file, manifest = write_signed_payload(
+        tmp_path,
+        "incident.zip",
+        buffer.getvalue(),
+        export_private_key=fixture["export_private"],
+        export_public_key=fixture["export_public"],
+        export_key_id=fixture["export_key_id"],
+        manifest_extra={
+            "export_type": "incident_evidence",
+            "manifest_version": 2,
+            "files": [
+                {"name": "admin_actions.jsonl", "schema": "keel.admin_actions/v1"},
+                {
+                    "name": "bracket_checkpoints.json",
+                    "schema": "keel.bracket_checkpoints/v1",
+                },
+                {
+                    "name": "governance_events.jsonl",
+                    "schema": "keel.governance_events/v1",
+                },
+                {
+                    "name": "incident_metadata.json",
+                    "schema": "keel.incident_metadata/v1",
+                },
+                {"name": "permits.jsonl", "schema": "keel.permits/v1"},
+                {
+                    "name": "workflow_declarations.jsonl",
+                    "schema": "keel.workflow_declarations/v1",
+                },
+                {
+                    "name": "workflow_amendments.jsonl",
+                    "schema": "keel.workflow_amendments/v1",
+                },
+                {
+                    "name": "mcp_tool_decisions.jsonl",
+                    "schema": "keel.mcp_tool_decisions/v1",
+                },
+            ],
+        },
+    )
+
+    result = run_cli(
+        "export",
+        str(export_file),
+        str(manifest),
+        "--key-manifest",
+        str(fixture["key_manifest"]),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "INCIDENT-BUNDLE: VERIFIED" in result.stdout
+
+
+def test_incident_manifest_v2_missing_auxiliary_files_fails(tmp_path, run_cli):
+    fixture = _workflow_fixture(tmp_path)
+    declaration = fixture["declaration"]
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr("permits.jsonl", "")
+        zip_file.writestr(
+            "workflow_declarations.jsonl",
+            json.dumps(declaration, sort_keys=True, separators=(",", ":")) + "\n",
+        )
+        zip_file.writestr("workflow_amendments.jsonl", "")
     export_file, manifest = write_signed_payload(
         tmp_path,
         "incident.zip",
@@ -352,8 +428,9 @@ def test_incident_manifest_v2_with_workflows_verifies(tmp_path, run_cli):
         str(fixture["key_manifest"]),
     )
 
-    assert result.returncode == 0, result.stderr
-    assert "INCIDENT-BUNDLE: VERIFIED" in result.stdout
+    assert result.returncode == 1
+    assert "INCIDENT_MANIFEST_SCHEMA_INVALID" in result.stderr
+    assert "admin_actions.jsonl" in result.stderr
 
 
 def test_incident_manifest_v1_without_workflows_still_verifies(tmp_path, run_cli):
