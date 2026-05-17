@@ -46,7 +46,6 @@ def _record_command_args(
     record: dict[str, Any],
     *,
     corpus_root: Path,
-    verifier_profile: str,
 ) -> list[str]:
     pack = record.get("pack")
     if not isinstance(pack, dict):
@@ -76,11 +75,6 @@ def _record_command_args(
             args.append("--walk-events")
         if "verify_closure" in features:
             args.append("--verify-closure")
-        # The public keel-verifier performs workflow/incident extension checks
-        # as part of export verification. The legacy internal script still
-        # gates the same checks behind --verify-workflows.
-        if "verify_workflows" in features and verifier_profile == "internal":
-            args.append("--verify-workflows")
         return args
 
     if kind == "checkpoint":
@@ -160,7 +154,6 @@ def _run_record(
     args = _record_command_args(
         record,
         corpus_root=corpus_root,
-        verifier_profile=target.profile,
     )
     command = [*target.command_prefix, *args]
     completed = subprocess.run(
