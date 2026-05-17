@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import keel_verifier
@@ -13,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 def test_import_version_and_public_api():
     assert keel_verifier.__version__ == "1.1.0"
     assert callable(keel_verifier.verify)
+    assert callable(keel_verifier.verify_checkpoint)
     assert callable(keel_verifier.verify_export_walk_events)
     assert callable(keel_verifier.verify_closure_record)
 
@@ -47,6 +49,33 @@ def test_v020_sample_still_verifies_self_attested(run_cli):
     assert result.returncode == 0, result.stderr
     assert "VERIFIED:" in result.stdout
     assert "self-attested" in result.stdout
+
+
+def test_checkpoint_cli_and_programmatic_api_share_multi_tsa_core(tmp_path, run_cli):
+    checkpoint = json.loads((REPO_ROOT / "sample" / "export.json").read_text(encoding="utf-8"))
+    legacy_tsa = checkpoint.pop("tsa")
+    checkpoint["tsa_receipts"] = [
+        {"provider": "primary", **legacy_tsa},
+        {"provider": "backup", **legacy_tsa},
+    ]
+    checkpoint_path = tmp_path / "checkpoint-multi-tsa.json"
+    checkpoint_path.write_text(json.dumps(checkpoint), encoding="utf-8")
+
+    cli_result = run_cli(
+        "checkpoint",
+        str(checkpoint_path),
+        "--self-attested",
+    )
+    api_result = verifier.verify_checkpoint(checkpoint_path, self_attested=True)
+
+    assert cli_result.returncode == 0, cli_result.stderr
+    assert "TSA[1]:" in cli_result.stdout
+    assert "TSA[2]:" in cli_result.stdout
+    assert api_result.ok
+    assert api_result.tsa_verified is True
+    assert len(api_result.tsa_receipts) == 2
+    assert api_result.to_dict()["tsa"]["verified"] is True
+    assert len(api_result.to_dict()["tsa_receipts"]) == 2
 
 
 def test_legacy_help_shows_offline_flag(run_cli):

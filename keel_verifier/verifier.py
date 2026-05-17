@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import gzip
 import hashlib
 import json
 import sys
@@ -115,6 +116,16 @@ WORKFLOW_AMENDMENT_BINDING_VERSION = "workflow_amendment.v1"
 VANTA_WORKFLOW_EVIDENCE_SCHEMA = "keel.vanta.workflow_evidence/v1"
 INCIDENT_WORKFLOW_DECLARATIONS_SCHEMA = "keel.workflow_declarations/v1"
 INCIDENT_WORKFLOW_AMENDMENTS_SCHEMA = "keel.workflow_amendments/v1"
+INCIDENT_V2_REQUIRED_FILES = {
+    "admin_actions.jsonl": "keel.admin_actions/v1",
+    "bracket_checkpoints.json": "keel.bracket_checkpoints/v1",
+    "governance_events.jsonl": "keel.governance_events/v1",
+    "incident_metadata.json": "keel.incident_metadata/v1",
+    "permits.jsonl": "keel.permits/v1",
+    "workflow_declarations.jsonl": "keel.workflow_declarations/v1",
+    "workflow_amendments.jsonl": "keel.workflow_amendments/v1",
+    "mcp_tool_decisions.jsonl": "keel.mcp_tool_decisions/v1",
+}
 DISPATCH_REQUEST_DIGEST_SEMANTICS = "approved_request_body_bytes_at_dispatch_time"
 PROVIDER_RESPONSE_DIGEST_SEMANTICS = "provider_bytes_received_by_keel"
 CLIENT_RESPONSE_DIGEST_SEMANTICS = "response_bytes_handed_to_asgi_not_tcp_receipt"
@@ -655,13 +666,59 @@ def _walk_duplicate_sequence_fail(
     return None
 
 
+def _decode_export_json_payload(export_data: bytes) -> bytes:
+    if export_data.startswith(b"\x1f\x8b"):
+        try:
+            return gzip.decompress(export_data)
+        except OSError as exc:
+            raise ValueError(f"gzip decompression failed: {exc}") from exc
+    return export_data
+
+
+def _load_export_json_document(export_data: bytes) -> Any:
+    decoded = _decode_export_json_payload(export_data).decode("utf-8")
+    try:
+        return json.loads(decoded)
+    except json.JSONDecodeError as exc:
+        records: list[dict[str, Any]] = []
+        for line_number, line in enumerate(decoded.splitlines(), start=1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as line_exc:
+                raise ValueError(
+                    f"JSONL line {line_number} is not valid JSON: {line_exc}"
+                ) from line_exc
+            if not isinstance(record, dict):
+                raise ValueError(f"JSONL line {line_number} must be a JSON object")
+            records.append(record)
+        if not records:
+            raise exc
+        project_id = next(
+            (
+                record.get("project_id")
+                for record in records
+                if isinstance(record.get("project_id"), str)
+                and record.get("project_id")
+            ),
+            None,
+        )
+        return {
+            "schema": "keel.governance_events/v1",
+            "project_id": project_id,
+            "record_count": len(records),
+            "records": records,
+        }
+
+
 def _load_audit_export_bundle_for_optional_check(
     export_data: bytes,
     *,
     label: str,
 ) -> tuple[dict[str, Any] | None, int | None]:
     try:
-        bundle = json.loads(export_data.decode("utf-8"))
+        bundle = _load_export_json_document(export_data)
     except Exception as exc:
         return None, _walk_structure_fail(f"export is not JSON: {exc}")
 
@@ -708,6 +765,21 @@ def _record_permit_binding_request_hash(record: dict[str, Any]) -> str | None:
     return None
 
 
+def _entry_inline_permit_id(entry: dict[str, Any]) -> str | None:
+    value = entry.get("permit_id")
+    if isinstance(value, str) and value:
+        return value
+    payload = _entry_payload(entry)
+    value = payload.get("permit_id")
+    if isinstance(value, str) and value:
+        return value
+    if entry.get("resource_type") == "permit":
+        value = entry.get("resource_id")
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
 def _entry_payload(entry: dict[str, Any]) -> dict[str, Any]:
     payload = entry.get("payload_json")
     if isinstance(payload, dict):
@@ -721,6 +793,39 @@ def _flatten_chain_entries(
     records = bundle.get("records")
     if not isinstance(records, list):
         return None, _walk_structure_fail("records must be a list")
+
+    record_binding_by_permit: dict[str, str] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        record_permit_id = _record_permit_id(record)
+        record_binding_request_hash = _record_permit_binding_request_hash(record)
+        if record_permit_id is not None and record_binding_request_hash is not None:
+            record_binding_by_permit[record_permit_id] = record_binding_request_hash
+
+    bundle_chain_entries = bundle.get("chain_entries")
+    if bundle_chain_entries is not None:
+        if not isinstance(bundle_chain_entries, list):
+            return None, _walk_structure_fail("chain_entries must be a list")
+        flattened: list[dict[str, Any]] = []
+        for entry_index, entry in enumerate(bundle_chain_entries):
+            if not isinstance(entry, dict):
+                return None, _walk_structure_fail(
+                    f"chain_entries[{entry_index}] must be an object",
+                )
+            permit_id = _entry_inline_permit_id(entry)
+            flattened.append(
+                {
+                    "entry": entry,
+                    "record_index": None,
+                    "entry_index": entry_index,
+                    "record_permit_id": permit_id,
+                    "record_binding_request_hash": record_binding_by_permit.get(
+                        permit_id or "",
+                    ),
+                }
+            )
+        return flattened, None
 
     flattened: list[dict[str, Any]] = []
     for record_index, record in enumerate(records):
@@ -757,15 +862,56 @@ def _flatten_chain_entries(
     return flattened, None
 
 
+def _governance_events_export_as_walk_bundle(
+    bundle: dict[str, Any],
+) -> tuple[dict[str, Any] | None, int | None]:
+    records = bundle.get("records")
+    if not isinstance(records, list):
+        return None, _walk_structure_fail("records must be a list")
+
+    chain_entries: list[dict[str, Any]] = []
+    project_id = bundle.get("project_id")
+    derived_chain_scope = (
+        f"project:{project_id}" if isinstance(project_id, str) and project_id else None
+    )
+    for record_index, record in enumerate(records):
+        if not isinstance(record, dict):
+            return None, _walk_structure_fail(
+                f"records[{record_index}] must be an object",
+            )
+        entry = dict(record)
+        entry["chain_format_version"] = str(record.get("chain_format_version") or "v1")
+        entry["created_at"] = record.get("occurred_at") or record.get("created_at")
+        if "payload_json" not in entry and isinstance(record.get("payload"), dict):
+            entry["payload_json"] = record["payload"]
+        if not entry.get("chain_scope") and derived_chain_scope is not None:
+            entry["chain_scope"] = derived_chain_scope
+        chain_entries.append(entry)
+
+    return {
+        "bundle_type": "audit_export_bundle",
+        "schema_version": 2,
+        "include_chain_entries": True,
+        "chain_entries": chain_entries,
+        "records": [],
+    }, None
+
+
 def _walk_export_events(export_data: bytes) -> int:
     try:
-        bundle = json.loads(export_data.decode("utf-8"))
+        bundle = _load_export_json_document(export_data)
     except Exception as exc:
         return _walk_structure_fail(f"export is not JSON: {exc}")
 
     if not isinstance(bundle, dict):
         return _walk_structure_fail("bundle must be a JSON object")
-    if bundle.get("bundle_type") != "audit_export_bundle":
+    if bundle.get("schema") == "keel.governance_events/v1":
+        bundle, conversion_result = _governance_events_export_as_walk_bundle(bundle)
+        if conversion_result is not None:
+            return conversion_result
+        if bundle is None:
+            return _walk_structure_fail("could not load governance events export")
+    elif bundle.get("bundle_type") != "audit_export_bundle":
         return _walk_structure_fail(
             "bundle_type must be 'audit_export_bundle'",
         )
@@ -786,32 +932,18 @@ def _walk_export_events(export_data: bytes) -> int:
             "schema_version=2 requires include_chain_entries=true",
         )
 
-    records = bundle.get("records")
-    if not isinstance(records, list):
-        return _walk_structure_fail("records must be a list")
-
     by_scope: dict[Any, list[dict[str, Any]]] = {}
     entries_walked = 0
-    for record_index, record in enumerate(records):
-        if not isinstance(record, dict):
-            return _walk_structure_fail(
-                f"records[{record_index}] must be an object",
-            )
-        chain_entries = record.get("chain_entries")
-        if chain_entries is None:
-            return _walk_structure_fail(
-                f"records[{record_index}].chain_entries missing",
-            )
-        if not isinstance(chain_entries, list):
-            return _walk_structure_fail(
-                f"records[{record_index}].chain_entries must be a list",
-            )
-        record_entries_by_scope: dict[Any, list[dict[str, Any]]] = {}
-        for entry_index, entry in enumerate(chain_entries):
+
+    bundle_chain_entries = bundle.get("chain_entries")
+    if bundle_chain_entries is not None:
+        if not isinstance(bundle_chain_entries, list):
+            return _walk_structure_fail("chain_entries must be a list")
+        bundle_entries_by_scope: dict[Any, list[dict[str, Any]]] = {}
+        for entry_index, entry in enumerate(bundle_chain_entries):
             if not isinstance(entry, dict):
                 return _walk_structure_fail(
-                    f"records[{record_index}].chain_entries[{entry_index}] "
-                    "must be an object",
+                    f"chain_entries[{entry_index}] must be an object",
                 )
             version = entry.get("chain_format_version")
             if version not in CHAIN_FORMAT_HASHERS:
@@ -831,12 +963,62 @@ def _walk_export_events(export_data: bytes) -> int:
                 )
             chain_scope = entry.get("chain_scope")
             by_scope.setdefault(chain_scope, []).append(entry)
-            record_entries_by_scope.setdefault(chain_scope, []).append(entry)
+            bundle_entries_by_scope.setdefault(chain_scope, []).append(entry)
             entries_walked += 1
-        for chain_scope, scope_entries in record_entries_by_scope.items():
+        for chain_scope, scope_entries in bundle_entries_by_scope.items():
             sequence_failure = _walk_array_order_fail(chain_scope, scope_entries)
             if sequence_failure is not None:
                 return sequence_failure
+    else:
+        records = bundle.get("records")
+        if not isinstance(records, list):
+            return _walk_structure_fail("records must be a list")
+
+        for record_index, record in enumerate(records):
+            if not isinstance(record, dict):
+                return _walk_structure_fail(
+                    f"records[{record_index}] must be an object",
+                )
+            chain_entries = record.get("chain_entries")
+            if chain_entries is None:
+                return _walk_structure_fail(
+                    f"records[{record_index}].chain_entries missing",
+                )
+            if not isinstance(chain_entries, list):
+                return _walk_structure_fail(
+                    f"records[{record_index}].chain_entries must be a list",
+                )
+            record_entries_by_scope: dict[Any, list[dict[str, Any]]] = {}
+            for entry_index, entry in enumerate(chain_entries):
+                if not isinstance(entry, dict):
+                    return _walk_structure_fail(
+                        f"records[{record_index}].chain_entries[{entry_index}] "
+                        "must be an object",
+                    )
+                version = entry.get("chain_format_version")
+                if version not in CHAIN_FORMAT_HASHERS:
+                    return _walk_fail(
+                        WALK_UNKNOWN_CHAIN_FORMAT,
+                        (
+                            f"event_id={_entry_id(entry)} "
+                            f"chain_format_version={version!r}"
+                        ),
+                    )
+                try:
+                    _optional_sequence_number(entry)
+                except (TypeError, ValueError) as exc:
+                    return _walk_fail(
+                        WALK_SEQUENCE_INVERSION,
+                        f"event_id={_entry_id(entry)} {exc}",
+                    )
+                chain_scope = entry.get("chain_scope")
+                by_scope.setdefault(chain_scope, []).append(entry)
+                record_entries_by_scope.setdefault(chain_scope, []).append(entry)
+                entries_walked += 1
+            for chain_scope, scope_entries in record_entries_by_scope.items():
+                sequence_failure = _walk_array_order_fail(chain_scope, scope_entries)
+                if sequence_failure is not None:
+                    return sequence_failure
 
     record_hash_checks = 0
     prev_hash_checks = 0
@@ -1124,13 +1306,14 @@ def _digest_candidates(
     contexts: list[dict[str, Any]],
     *,
     permit_id: str,
-    event_type: str,
+    event_types: tuple[str, ...],
 ) -> list[dict[str, Any]]:
+    accepted = set(event_types)
     return [
         context
         for context in contexts
         if _entry_permit_id(context) == permit_id
-        and context["entry"].get("event_type") == event_type
+        and context["entry"].get("event_type") in accepted
     ]
 
 
@@ -1140,7 +1323,7 @@ def _verify_closure_digest_reference(
     contexts: list[dict[str, Any]],
     permit_id: str,
     field: str,
-    event_type: str,
+    event_types: tuple[str, ...],
 ) -> int | None:
     closure_status = str(closure_payload.get("closure_status") or "").strip().lower()
     if closure_status == CLOSURE_STATUS_MISSING_CLOSURE:
@@ -1158,12 +1341,15 @@ def _verify_closure_digest_reference(
     candidates = _digest_candidates(
         contexts,
         permit_id=permit_id,
-        event_type=event_type,
+        event_types=event_types,
     )
     if not candidates:
         return _walk_fail(
             WALK_CLOSURE_DIGEST_MISSING,
-            f"permit_id={permit_id} missing {event_type} evidence for {field}",
+            (
+                f"permit_id={permit_id} missing "
+                f"{'/'.join(event_types)} evidence for {field}"
+            ),
         )
 
     candidate_values = [
@@ -1174,7 +1360,10 @@ def _verify_closure_digest_reference(
     if not present_values:
         return _walk_fail(
             WALK_CLOSURE_DIGEST_MISSING,
-            f"permit_id={permit_id} {event_type} evidence missing {field}",
+            (
+                f"permit_id={permit_id} {'/'.join(event_types)} evidence "
+                f"missing {field}"
+            ),
         )
     if closure_digest not in present_values:
         return _walk_fail(
@@ -1280,16 +1469,22 @@ def _verify_closure_v1(
             f"permit_id={permit_id} client_response_digest_semantics mismatch",
         )
 
-    for field, event_type in (
-        ("provider_response_digest_v1", "provider.response.received"),
-        ("client_response_digest_v1", "client.response.delivered"),
+    for field, event_types in (
+        (
+            "provider_response_digest_v1",
+            ("provider.response.received", "execution.completed"),
+        ),
+        (
+            "client_response_digest_v1",
+            ("client.response.delivered", "execution.completed"),
+        ),
     ):
         failure = _verify_closure_digest_reference(
             closure_payload=closure_payload,
             contexts=contexts,
             permit_id=permit_id,
             field=field,
-            event_type=event_type,
+            event_types=event_types,
         )
         if failure is not None:
             return failure
@@ -1351,16 +1546,22 @@ def _verify_closure_v2(
     if failure is not None:
         return failure
 
-    for field, event_type in (
-        ("provider_response_digest_v1", "provider.response.received"),
-        ("client_response_digest_v1", "client.response.delivered"),
+    for field, event_types in (
+        (
+            "provider_response_digest_v1",
+            ("provider.response.received", "execution.completed"),
+        ),
+        (
+            "client_response_digest_v1",
+            ("client.response.delivered", "execution.completed"),
+        ),
     ):
         failure = _verify_closure_digest_reference(
             closure_payload=closure_payload,
             contexts=contexts,
             permit_id=permit_id,
             field=field,
-            event_type=event_type,
+            event_types=event_types,
         )
         if failure is not None:
             return failure
@@ -2510,11 +2711,7 @@ def _verify_incident_bundle(
         except ValueError as exc:
             return _workflow_fail(INCIDENT_MANIFEST_SCHEMA_INVALID, str(exc))
 
-        expected = {
-            "workflow_declarations.jsonl": INCIDENT_WORKFLOW_DECLARATIONS_SCHEMA,
-            "workflow_amendments.jsonl": INCIDENT_WORKFLOW_AMENDMENTS_SCHEMA,
-        }
-        for name, schema in expected.items():
+        for name, schema in INCIDENT_V2_REQUIRED_FILES.items():
             if schemas.get(name) != schema:
                 return _workflow_fail(
                     INCIDENT_MANIFEST_SCHEMA_INVALID,
@@ -2532,12 +2729,20 @@ def _verify_incident_bundle(
             )
 
         try:
+            metadata = json.loads(zip_file.read("incident_metadata.json").decode("utf-8"))
+            if not isinstance(metadata, dict):
+                raise ValueError("incident_metadata.json must be an object")
+            if metadata.get("schema") != "keel.incident_evidence/v1":
+                raise ValueError(
+                    "incident_metadata.json schema must be keel.incident_evidence/v1"
+                )
             declarations = _read_jsonl_from_zip(
                 zip_file,
                 "workflow_declarations.jsonl",
             )
             amendments = _read_jsonl_from_zip(zip_file, "workflow_amendments.jsonl")
             permits = _read_jsonl_from_zip(zip_file, "permits.jsonl")
+            _read_jsonl_from_zip(zip_file, "mcp_tool_decisions.jsonl")
         except Exception as exc:
             return _workflow_fail(
                 INCIDENT_MANIFEST_SCHEMA_INVALID,
@@ -2948,101 +3153,74 @@ def _verify_tsa_receipt(receipt_b64: str, content_hash_hex: str) -> tuple[bool, 
         return False, f"TSA parse/verify failed: {exc}"
 
 
-def cmd_checkpoint(args: argparse.Namespace) -> int:
-    checkpoint_path = Path(args.checkpoint_file)
-    if not checkpoint_path.exists():
-        print(f"FAILED: Checkpoint file not found: {checkpoint_path}", file=sys.stderr)
-        return 1
+def _checkpoint_tsa_receipts(cp: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return TSA receipt payloads, preferring multi-receipt checkpoints."""
+    raw_receipts = cp.get("tsa_receipts")
+    if isinstance(raw_receipts, list):
+        receipts: list[dict[str, Any]] = []
+        for index, receipt in enumerate(raw_receipts, start=1):
+            if isinstance(receipt, dict):
+                receipts.append(receipt)
+            else:
+                receipts.append(
+                    {
+                        "_invalid": f"tsa_receipts[{index}] is not an object",
+                    }
+                )
+        if receipts:
+            return receipts
 
-    cp: dict[str, Any] = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-    composite_hash = cp.get("composite_hash")
-    signature = cp.get("signature")
-    embedded_pub = cp.get("public_key")
-    chain_heads = cp.get("chain_heads") or {}
     tsa = cp.get("tsa")
-    artifact_key_id = cp.get("key_id") if isinstance(cp.get("key_id"), str) else None
+    if isinstance(tsa, dict) and isinstance(tsa.get("receipt_b64"), str):
+        return [tsa]
+    return []
 
-    if not isinstance(composite_hash, str) or not composite_hash.startswith("sha256:"):
-        print("FAILED: Checkpoint missing or malformed composite_hash.", file=sys.stderr)
-        return 1
 
-    # Recompute composite_hash from chain_heads — proves the file isn't tampered
-    parts = []
-    for scope_key in sorted(chain_heads.keys()):
-        head = chain_heads[scope_key]
-        parts.append(
-            f"{scope_key}:{head['sequence_number']}:{head['last_record_hash']}"
-        )
-    recomputed = f"sha256:{hashlib.sha256(chr(10).join(parts).encode()).hexdigest()}"
-    if recomputed != composite_hash:
-        print(
-            f"FAILED: composite_hash does not match chain_heads.\n"
-            f"  Stored:     {composite_hash}\n"
-            f"  Recomputed: {recomputed}",
-            file=sys.stderr,
-        )
-        return 1
-
-    if not isinstance(signature, str):
-        print("FAILED: Checkpoint is unsigned.", file=sys.stderr)
-        return 1
-
-    signing_time = _parse_iso_or_none(cp.get("computed_at"))
-
-    trusted_pub, trust_source, err = _resolve_trust_key(
-        artifact_pub=embedded_pub if isinstance(embedded_pub, str) else None,
-        artifact_key_id=artifact_key_id,
-        purpose="integrity_checkpoint",
+def cmd_checkpoint(args: argparse.Namespace) -> int:
+    result = verify_checkpoint(
+        args.checkpoint_file,
         expected_public_key=args.expected_public_key,
         public_key_url=args.public_key_url,
-        key_manifest_source=_key_manifest_source_for_args(args),
-        signing_time=signing_time,
+        key_manifest=_key_manifest_source_for_args(args),
+        self_attested=getattr(args, "self_attested", False),
+        check_tsa=True,
     )
-    if err is not None or trusted_pub is None:
-        print(f"FAILED: {err}", file=sys.stderr)
-        return 1
-
-    if isinstance(embedded_pub, str) and embedded_pub != trusted_pub:
-        print(
-            "FAILED: Checkpoint public_key does not match trusted key.\n"
-            f"  Trusted:  {trusted_pub}\n"
-            f"  In file:  {embedded_pub}",
-            file=sys.stderr,
-        )
-        return 1
-
-    if not _verify_ed25519(trusted_pub, composite_hash.encode("utf-8"), signature):
-        print("FAILED: Checkpoint signature verification failed.", file=sys.stderr)
+    if not result.ok:
+        print(f"FAILED: {result.error}", file=sys.stderr)
         return 1
 
     print("VERIFIED")
-    print(f"  Checkpoint:   {cp.get('checkpoint_id')}")
-    print(f"  Computed at:  {cp.get('computed_at')}")
-    print(f"  Composite:    {composite_hash}")
-    print(f"  Public key:   {trusted_pub}")
-    print(f"  Key id:       {artifact_key_id or _public_key_fingerprint(trusted_pub)}")
-    print(f"  Trust source: {trust_source}")
-    print(f"  Chain heads:  {len(chain_heads)} scope(s)")
+    print(f"  Checkpoint:   {result.checkpoint_id}")
+    print(f"  Computed at:  {result.computed_at}")
+    print(f"  Composite:    {result.composite_hash}")
+    print(f"  Public key:   {result.public_key}")
+    print(f"  Key id:       {result.key_id}")
+    print(f"  Trust source: {result.trust_source}")
+    print(f"  Chain heads:  {result.chain_heads_count} scope(s)")
 
-    # Optional TSA verification
-    if isinstance(tsa, dict) and isinstance(tsa.get("receipt_b64"), str):
-        hex_hash = composite_hash.removeprefix("sha256:")
-        ok, reason = _verify_tsa_receipt(tsa["receipt_b64"], hex_hash)
-        if ok:
-            print(f"  TSA:          OK ({reason})")
-            print(f"    URL:        {tsa.get('url')}")
-            print(f"    Stamped at: {tsa.get('requested_at')}")
-        else:
-            print(f"  TSA:          FAILED ({reason})", file=sys.stderr)
-            return 1
+    if result.tsa_receipts:
+        for index, receipt in enumerate(result.tsa_receipts, start=1):
+            label = receipt.get("provider") or receipt.get("url") or f"receipt {index}"
+            if receipt.get("verified") is True:
+                print(f"  TSA[{index}]:      OK ({label}: {receipt.get('reason')})")
+                print(f"    URL:        {receipt.get('url')}")
+                print(f"    Stamped at: {receipt.get('requested_at')}")
+            elif receipt.get("checked") is False:
+                print(f"  TSA[{index}]:      present (skipped)")
+            else:
+                print(
+                    f"  TSA[{index}]:      FAILED ({label}: {receipt.get('reason')})",
+                    file=sys.stderr,
+                )
+                return 1
         if args.tsa_ca_bundle:
             print(
                 "  NOTE: full RFC 3161 trust-chain validation against "
                 f"{args.tsa_ca_bundle} is out of scope for this verifier; "
                 "use openssl ts -verify for that step.",
             )
-    elif tsa is not None:
-        print("  TSA:          present but receipt_b64 missing — skipped")
+    elif result.tsa_present:
+        print("  TSA:          present but receipt_b64 missing - skipped")
 
     return 0
 
@@ -3071,6 +3249,7 @@ class VerifyResult:
     tsa_reason: str | None = None
     tsa_url: str | None = None
     tsa_requested_at: str | None = None
+    tsa_receipts: list[dict[str, Any]] = dataclass_field(default_factory=list)
 
     diagnostics: list[str] = dataclass_field(default_factory=list)
 
@@ -3094,6 +3273,7 @@ class VerifyResult:
                 "url": self.tsa_url,
                 "requested_at": self.tsa_requested_at,
             },
+            "tsa_receipts": list(self.tsa_receipts),
             "diagnostics": list(self.diagnostics),
         }
 
@@ -3110,22 +3290,69 @@ def _fetch_single_public_key(url: str) -> tuple[str | None, str | None]:
     return pub, None
 
 
-def verify(
-    export_path: str | Path,
+def _checkpoint_base_result(
+    body: dict[str, Any] | None,
     *,
+    ok: bool,
+    error: str | None = None,
+    composite_hash: str | None = None,
+    chain_heads_count: int = 0,
     public_key: str | None = None,
+    key_id: str | None = None,
+    trust_source: str | None = None,
+    self_attested: bool = False,
+    tsa_present: bool = False,
+    tsa_checked: bool = False,
+    tsa_verified: bool | None = None,
+    tsa_reason: str | None = None,
+    tsa_url: str | None = None,
+    tsa_requested_at: str | None = None,
+    tsa_receipts: list[dict[str, Any]] | None = None,
+) -> VerifyResult:
+    return VerifyResult(
+        ok=ok,
+        error=error,
+        checkpoint_id=(
+            str(body.get("checkpoint_id") or "") or None
+            if isinstance(body, dict)
+            else None
+        ),
+        computed_at=(
+            str(body.get("computed_at") or "") or None
+            if isinstance(body, dict)
+            else None
+        ),
+        composite_hash=composite_hash,
+        chain_heads_count=chain_heads_count,
+        public_key=public_key,
+        key_id=key_id,
+        trust_source=trust_source,
+        self_attested=self_attested,
+        tsa_present=tsa_present,
+        tsa_checked=tsa_checked,
+        tsa_verified=tsa_verified,
+        tsa_reason=tsa_reason,
+        tsa_url=tsa_url,
+        tsa_requested_at=tsa_requested_at,
+        tsa_receipts=list(tsa_receipts or []),
+    )
+
+
+def _checkpoint_receipt_label(receipt: dict[str, Any], index: int) -> str:
+    value = receipt.get("provider") or receipt.get("url")
+    return value if isinstance(value, str) and value else f"receipt {index}"
+
+
+def _verify_checkpoint_core(
+    checkpoint_path: str | Path,
+    *,
+    expected_public_key: str | None = None,
     public_key_url: str | None = None,
+    key_manifest_source: str | None = None,
     self_attested: bool = False,
     check_tsa: bool = True,
 ) -> VerifyResult:
-    """Verify a v0.2-compatible integrity checkpoint JSON artifact.
-
-    This preserves the historical ``python -m keel_verifier <artifact>`` and
-    programmatic ``verify(path)`` surface. New signed compliance exports should
-    use ``keel-verify export`` so ``--walk-events`` and ``--verify-closure`` can
-    validate bundled lifecycle evidence.
-    """
-    path = Path(export_path)
+    path = Path(checkpoint_path)
 
     try:
         body = json.loads(path.read_text(encoding="utf-8"))
@@ -3143,164 +3370,219 @@ def verify(
     signature = body.get("signature")
     embedded_pub = body.get("public_key")
     chain_heads_raw = body.get("chain_heads") or {}
-    tsa = body.get("tsa")
     artifact_key_id = body.get("key_id") if isinstance(body.get("key_id"), str) else None
 
     if not isinstance(composite, str) or not composite.startswith("sha256:"):
-        return VerifyResult(ok=False, error="missing or malformed composite_hash")
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error="missing or malformed composite_hash",
+        )
     if not isinstance(chain_heads_raw, dict):
-        return VerifyResult(ok=False, error="chain_heads must be an object")
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error="chain_heads must be an object",
+            composite_hash=composite,
+        )
 
     for scope_key, head in chain_heads_raw.items():
         if not isinstance(head, dict):
-            return VerifyResult(ok=False, error=f"chain_heads[{scope_key}] must be an object")
+            return _checkpoint_base_result(
+                body,
+                ok=False,
+                error=f"chain_heads[{scope_key}] must be an object",
+                composite_hash=composite,
+                chain_heads_count=len(chain_heads_raw),
+            )
         if not isinstance(head.get("sequence_number"), int):
-            return VerifyResult(
+            return _checkpoint_base_result(
+                body,
                 ok=False,
                 error=f"chain_heads[{scope_key}].sequence_number must be an int",
+                composite_hash=composite,
+                chain_heads_count=len(chain_heads_raw),
             )
         if not isinstance(head.get("last_record_hash"), str):
-            return VerifyResult(
+            return _checkpoint_base_result(
+                body,
                 ok=False,
                 error=f"chain_heads[{scope_key}].last_record_hash must be a string",
+                composite_hash=composite,
+                chain_heads_count=len(chain_heads_raw),
             )
 
     try:
         recomputed = _composite_hash(chain_heads_raw)
     except Exception as exc:
-        return VerifyResult(ok=False, error=f"could not recompute composite_hash: {exc}")
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error=f"could not recompute composite_hash: {exc}",
+            composite_hash=composite,
+            chain_heads_count=len(chain_heads_raw),
+        )
     if recomputed != composite:
-        return VerifyResult(
+        return _checkpoint_base_result(
+            body,
             ok=False,
             error=(
-                "composite_hash mismatch — chain_heads have been altered\n"
+                "composite_hash mismatch - chain_heads have been altered\n"
                 f"  stored:     {composite}\n"
                 f"  recomputed: {recomputed}"
             ),
-            checkpoint_id=str(body.get("checkpoint_id") or "") or None,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
 
     if not isinstance(signature, str):
-        return VerifyResult(
+        return _checkpoint_base_result(
+            body,
             ok=False,
             error="export is unsigned (no signature field)",
-            checkpoint_id=str(body.get("checkpoint_id") or "") or None,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
 
-    if public_key is not None:
-        if not public_key.startswith("ed25519:"):
-            return VerifyResult(ok=False, error="--public-key must start with 'ed25519:'")
-        trusted_pub = public_key
-        trust_source = "user-supplied (--public-key)"
-    elif public_key_url is not None:
-        trusted_pub, err = _fetch_single_public_key(public_key_url)
-        if err is not None or trusted_pub is None:
-            return VerifyResult(
-                ok=False,
-                error=err or "could not resolve trust root",
-                checkpoint_id=str(body.get("checkpoint_id") or "") or None,
-                composite_hash=composite,
-                chain_heads_count=len(chain_heads_raw),
-            )
-        trust_source = f"fetched from {public_key_url}"
-    elif self_attested:
-        if not isinstance(embedded_pub, str):
-            return VerifyResult(
-                ok=False,
-                error="--self-attested requested but the artifact has no embedded public_key field",
-            )
-        trusted_pub = embedded_pub
-        trust_source = "self-attested (embedded public_key)"
-    else:
-        signing_time = _parse_iso_or_none(body.get("computed_at"))
-        trusted_pub, trust_source, err = _resolve_trust_key(
-            artifact_pub=None,
-            artifact_key_id=artifact_key_id,
-            purpose="integrity_checkpoint",
-            expected_public_key=None,
-            public_key_url=None,
-            key_manifest_source=_bundled_key_manifest_source(),
-            signing_time=signing_time,
+    if expected_public_key is not None and not expected_public_key.startswith("ed25519:"):
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error="--public-key must start with 'ed25519:'",
+            composite_hash=composite,
+            chain_heads_count=len(chain_heads_raw),
         )
-        if err is not None or trusted_pub is None:
-            return VerifyResult(
-                ok=False,
-                error=(err or "could not resolve bundled trust root"),
-                checkpoint_id=str(body.get("checkpoint_id") or "") or None,
-                composite_hash=composite,
-                chain_heads_count=len(chain_heads_raw),
-            )
-        trust_source = trust_source.replace(
-            f"key manifest ({_bundled_key_manifest_source()})", "bundled trust root"
+
+    signing_time = _parse_iso_or_none(body.get("computed_at"))
+    trusted_pub, trust_source, err = _resolve_trust_key(
+        artifact_pub=embedded_pub if self_attested and isinstance(embedded_pub, str) else None,
+        artifact_key_id=artifact_key_id,
+        purpose="integrity_checkpoint",
+        expected_public_key=expected_public_key,
+        public_key_url=public_key_url,
+        key_manifest_source=key_manifest_source,
+        signing_time=signing_time,
+    )
+    if self_attested and trust_source == "embedded":
+        trust_source = "self-attested (embedded public_key)"
+    if err is not None or trusted_pub is None:
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error=err or "could not resolve trust root",
+            composite_hash=composite,
+            chain_heads_count=len(chain_heads_raw),
         )
 
     if isinstance(embedded_pub, str) and embedded_pub != trusted_pub:
-        return VerifyResult(
+        return _checkpoint_base_result(
+            body,
             ok=False,
             error=(
                 "embedded public_key does not match resolved trust root\n"
                 f"  trust root: {trusted_pub}\n"
                 f"  embedded:   {embedded_pub}"
             ),
-            checkpoint_id=str(body.get("checkpoint_id") or "") or None,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
 
     if not _verify_ed25519(trusted_pub, composite.encode("utf-8"), signature):
-        return VerifyResult(
+        return _checkpoint_base_result(
+            body,
             ok=False,
             error="signature verification failed",
-            checkpoint_id=str(body.get("checkpoint_id") or "") or None,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
             public_key=trusted_pub,
             key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
             trust_source=trust_source,
+            self_attested=trust_source.startswith("self-attested"),
         )
 
-    tsa_present = isinstance(tsa, dict) and isinstance(tsa.get("receipt_b64"), str)
-    tsa_checked = False
-    tsa_verified: bool | None = None
-    tsa_reason: str | None = None
-    tsa_url: str | None = None
-    tsa_requested_at: str | None = None
+    tsa_inputs = _checkpoint_tsa_receipts(body)
+    tsa_receipts: list[dict[str, Any]] = []
+    hex_hash = composite.removeprefix("sha256:")
+    for index, receipt in enumerate(tsa_inputs, start=1):
+        label = _checkpoint_receipt_label(receipt, index)
+        receipt_result = {
+            "provider": receipt.get("provider") if isinstance(receipt.get("provider"), str) else None,
+            "url": receipt.get("url") if isinstance(receipt.get("url"), str) else None,
+            "requested_at": receipt.get("requested_at") if isinstance(receipt.get("requested_at"), str) else None,
+            "checked": check_tsa,
+            "verified": None,
+            "reason": None,
+        }
+        if not check_tsa:
+            receipt_result["reason"] = "skipped"
+            tsa_receipts.append(receipt_result)
+            continue
+        if not isinstance(receipt.get("receipt_b64"), str):
+            reason = receipt.get("_invalid") or "receipt_b64 missing"
+            receipt_result["verified"] = False
+            receipt_result["reason"] = f"{label}: {reason}"
+            tsa_receipts.append(receipt_result)
+            return _checkpoint_base_result(
+                body,
+                ok=False,
+                error=f"TSA: {receipt_result['reason']}",
+                composite_hash=composite,
+                chain_heads_count=len(chain_heads_raw),
+                public_key=trusted_pub,
+                key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                trust_source=trust_source,
+                self_attested=trust_source.startswith("self-attested"),
+                tsa_present=True,
+                tsa_checked=True,
+                tsa_verified=False,
+                tsa_reason=receipt_result["reason"],
+                tsa_url=receipt_result["url"],
+                tsa_requested_at=receipt_result["requested_at"],
+                tsa_receipts=tsa_receipts,
+            )
+        ok, reason = _verify_tsa_receipt(receipt["receipt_b64"], hex_hash)
+        receipt_result["verified"] = ok
+        receipt_result["reason"] = reason
+        tsa_receipts.append(receipt_result)
+        if not ok:
+            return _checkpoint_base_result(
+                body,
+                ok=False,
+                error=f"TSA: {label}: {reason}",
+                composite_hash=composite,
+                chain_heads_count=len(chain_heads_raw),
+                public_key=trusted_pub,
+                key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                trust_source=trust_source,
+                self_attested=trust_source.startswith("self-attested"),
+                tsa_present=True,
+                tsa_checked=True,
+                tsa_verified=False,
+                tsa_reason=reason,
+                tsa_url=receipt_result["url"],
+                tsa_requested_at=receipt_result["requested_at"],
+                tsa_receipts=tsa_receipts,
+            )
 
-    if tsa_present:
-        tsa_url = tsa.get("url") if isinstance(tsa.get("url"), str) else None
-        tsa_requested_at = tsa.get("requested_at") if isinstance(tsa.get("requested_at"), str) else None
-        if check_tsa:
-            tsa_checked = True
-            hex_hash = composite.removeprefix("sha256:")
-            tsa_verified, tsa_reason = _verify_tsa_receipt(tsa["receipt_b64"], hex_hash)
-            if not tsa_verified:
-                return VerifyResult(
-                    ok=False,
-                    error=f"TSA: {tsa_reason}",
-                    checkpoint_id=str(body.get("checkpoint_id") or "") or None,
-                    computed_at=str(body.get("computed_at") or "") or None,
-                    composite_hash=composite,
-                    chain_heads_count=len(chain_heads_raw),
-                    public_key=trusted_pub,
-                    key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
-                    trust_source=trust_source,
-                    self_attested=trust_source.startswith("self-attested"),
-                    tsa_present=True,
-                    tsa_checked=True,
-                    tsa_verified=False,
-                    tsa_reason=tsa_reason,
-                    tsa_url=tsa_url,
-                    tsa_requested_at=tsa_requested_at,
-                )
+    first_receipt = tsa_receipts[0] if tsa_receipts else None
+    tsa_present = bool(tsa_receipts)
+    tsa_checked = tsa_present and check_tsa
+    tsa_verified = (
+        all(receipt.get("verified") is True for receipt in tsa_receipts)
+        if tsa_checked
+        else None
+    )
+    tsa_reason = None
+    if tsa_checked:
+        tsa_reason = (
+            f"{len(tsa_receipts)} TSA receipt(s) match composite_hash"
+            if len(tsa_receipts) != 1
+            else str(first_receipt.get("reason"))
+        )
 
-    return VerifyResult(
+    return _checkpoint_base_result(
+        body,
         ok=True,
-        checkpoint_id=str(body.get("checkpoint_id") or "") or None,
-        computed_at=str(body.get("computed_at") or "") or None,
         composite_hash=composite,
         chain_heads_count=len(chain_heads_raw),
         public_key=trusted_pub,
@@ -3311,8 +3593,70 @@ def verify(
         tsa_checked=tsa_checked,
         tsa_verified=tsa_verified,
         tsa_reason=tsa_reason,
-        tsa_url=tsa_url,
-        tsa_requested_at=tsa_requested_at,
+        tsa_url=(
+            first_receipt.get("url")
+            if isinstance(first_receipt, dict)
+            and isinstance(first_receipt.get("url"), str)
+            else None
+        ),
+        tsa_requested_at=(
+            first_receipt.get("requested_at")
+            if isinstance(first_receipt, dict)
+            and isinstance(first_receipt.get("requested_at"), str)
+            else None
+        ),
+        tsa_receipts=tsa_receipts,
+    )
+
+
+def verify_checkpoint(
+    checkpoint_path: str | Path,
+    *,
+    expected_public_key: str | None = None,
+    public_key_url: str | None = None,
+    key_manifest: str | None = None,
+    self_attested: bool = False,
+    check_tsa: bool = True,
+) -> VerifyResult:
+    key_manifest_source = key_manifest
+    if (
+        key_manifest_source is None
+        and not self_attested
+        and expected_public_key is None
+        and public_key_url is None
+    ):
+        key_manifest_source = _cached_key_manifest_source() or _bundled_key_manifest_source()
+    return _verify_checkpoint_core(
+        checkpoint_path,
+        expected_public_key=expected_public_key,
+        public_key_url=public_key_url,
+        key_manifest_source=key_manifest_source,
+        self_attested=self_attested,
+        check_tsa=check_tsa,
+    )
+
+
+def verify(
+    export_path: str | Path,
+    *,
+    public_key: str | None = None,
+    public_key_url: str | None = None,
+    self_attested: bool = False,
+    check_tsa: bool = True,
+) -> VerifyResult:
+    """Verify a v0.2-compatible integrity checkpoint JSON artifact.
+
+    This preserves the historical ``python -m keel_verifier <artifact>`` and
+    programmatic ``verify(path)`` surface. New signed compliance exports should
+    use ``keel-verify export`` so ``--walk-events`` and ``--verify-closure`` can
+    validate bundled lifecycle evidence.
+    """
+    return verify_checkpoint(
+        export_path,
+        expected_public_key=public_key,
+        public_key_url=public_key_url,
+        self_attested=self_attested,
+        check_tsa=check_tsa,
     )
 
 

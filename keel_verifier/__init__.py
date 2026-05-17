@@ -5,6 +5,7 @@ from keel_verifier.verifier import (
     CLOSURE_FORMAT_VERIFIERS,
     VerifyResult,
     verify,
+    verify_checkpoint,
     verify_closure_record,
     verify_export_walk_events,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "CLOSURE_FORMAT_VERIFIERS",
     "VerifyResult",
     "verify",
+    "verify_checkpoint",
     "verify_closure_record",
     "verify_export_walk_events",
     "__version__",
