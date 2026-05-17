@@ -1,0 +1,339 @@
+#!/usr/bin/env python3
+"""Run the verifier-claim golden fixture corpus against a verifier CLI.
+
+The corpus stores durable doctrine verdicts per claim, but today's verifier
+CLIs expose whole-pack PASS/FAIL plus reason text. This runner asserts that
+temporary surface while preserving the doctrine verdicts in its JSON report.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PRODUCT_ROOT = REPO_ROOT.parent
+DEFAULT_CORPUS = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "test_vectors"
+    / "verifier_claims"
+    / "v0"
+    / "corpus.json"
+)
+DEFAULT_ALTERNATE_SCRIPT = PRODUCT_ROOT / "keel-api" / "scripts" / "keel_verify.py"
+
+
+@dataclass(frozen=True)
+class VerifierTarget:
+    profile: str
+    command_prefix: list[str]
+    cwd: Path
+
+
+def _abs(corpus_root: Path, value: str) -> Path:
+    return (corpus_root / value).resolve()
+
+
+def _record_command_args(
+    record: dict[str, Any],
+    *,
+    corpus_root: Path,
+    verifier_profile: str,
+) -> list[str]:
+    pack = record.get("pack")
+    if not isinstance(pack, dict):
+        raise ValueError(f"{record.get('id')}: pack must be an object")
+
+    kind = record.get("kind")
+    features = pack.get("features") or []
+    if not isinstance(features, list):
+        raise ValueError(f"{record.get('id')}: pack.features must be a list")
+
+    if kind == "export":
+        export_file = pack.get("export_file")
+        manifest = pack.get("manifest")
+        if not isinstance(export_file, str) or not isinstance(manifest, str):
+            raise ValueError(f"{record.get('id')}: export pack requires export_file and manifest")
+        args = [
+            "export",
+            "--export-file",
+            str(_abs(corpus_root, export_file)),
+            "--manifest",
+            str(_abs(corpus_root, manifest)),
+        ]
+        key_manifest = pack.get("key_manifest")
+        if isinstance(key_manifest, str) and key_manifest:
+            args.extend(["--key-manifest", str(_abs(corpus_root, key_manifest))])
+        if "walk_events" in features:
+            args.append("--walk-events")
+        if "verify_closure" in features:
+            args.append("--verify-closure")
+        # The public keel-verifier performs workflow/incident extension checks
+        # as part of export verification. The legacy internal script still
+        # gates the same checks behind --verify-workflows.
+        if "verify_workflows" in features and verifier_profile == "internal":
+            args.append("--verify-workflows")
+        return args
+
+    if kind == "checkpoint":
+        checkpoint_file = pack.get("checkpoint_file")
+        if not isinstance(checkpoint_file, str):
+            raise ValueError(f"{record.get('id')}: checkpoint pack requires checkpoint_file")
+        args = [
+            "checkpoint",
+            "--checkpoint-file",
+            str(_abs(corpus_root, checkpoint_file)),
+        ]
+        key_manifest = pack.get("key_manifest")
+        if isinstance(key_manifest, str) and key_manifest:
+            args.extend(["--key-manifest", str(_abs(corpus_root, key_manifest))])
+        return args
+
+    raise ValueError(f"{record.get('id')}: unsupported kind {kind!r}")
+
+
+def _reason_classes(stdout: str, stderr: str) -> list[str]:
+    text = f"{stdout}\n{stderr}"
+    classes: set[str] = set()
+
+    for match in re.finditer(r"\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b", text):
+        classes.add(match.group(0))
+
+    lowered = text.lower()
+    if "content hash mismatch" in lowered:
+        classes.add("CONTENT_HASH_MISMATCH")
+    if "signature verification failed" in lowered:
+        classes.add("SIGNATURE_VERIFICATION_FAILED")
+    if "export manifest is unsigned" in lowered:
+        classes.add("MANIFEST_SIGNATURE_MISSING")
+    if (
+        "no trust key available" in lowered
+        or "could not resolve trust root" in lowered
+        or "contains no entry with purpose" in lowered
+        or ("key_id" in lowered and "not found" in lowered)
+    ):
+        classes.add("TRUST_ROOT_UNRESOLVABLE")
+    if (
+        "composite_hash mismatch" in lowered
+        or "composite_hash does not match" in lowered
+        or "chain_heads have been altered" in lowered
+    ):
+        classes.add("CHECKPOINT_COMPOSITE_HASH_MISMATCH")
+    if "tsa" in lowered and "does not match composite_hash" in lowered:
+        classes.add("CHECKPOINT_TSA_IMPRINT_MISMATCH")
+    if "export is not json" in lowered:
+        classes.add("EXPORT_STRUCTURE_INVALID")
+
+    return sorted(classes)
+
+
+def _expected_current(record: dict[str, Any]) -> tuple[str, list[str]]:
+    expected = record.get("expected_current")
+    if not isinstance(expected, dict):
+        raise ValueError(f"{record.get('id')}: expected_current must be an object")
+    outcome = expected.get("outcome")
+    if outcome not in {"PASS", "FAIL"}:
+        raise ValueError(f"{record.get('id')}: expected_current.outcome must be PASS or FAIL")
+    reason_classes = expected.get("reason_classes") or []
+    if not isinstance(reason_classes, list) or not all(
+        isinstance(item, str) for item in reason_classes
+    ):
+        raise ValueError(f"{record.get('id')}: expected_current.reason_classes must be strings")
+    return outcome, list(reason_classes)
+
+
+def _run_record(
+    record: dict[str, Any],
+    *,
+    corpus_root: Path,
+    target: VerifierTarget,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    args = _record_command_args(
+        record,
+        corpus_root=corpus_root,
+        verifier_profile=target.profile,
+    )
+    command = [*target.command_prefix, *args]
+    completed = subprocess.run(
+        command,
+        cwd=str(target.cwd),
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=timeout_seconds,
+    )
+    actual_outcome = "PASS" if completed.returncode == 0 else "FAIL"
+    actual_reasons = _reason_classes(completed.stdout, completed.stderr)
+    expected_outcome, expected_reasons = _expected_current(record)
+    missing_reasons = [
+        reason for reason in expected_reasons if reason not in actual_reasons
+    ]
+    outcome_mismatch = actual_outcome != expected_outcome
+    reason_mismatch = actual_outcome == "FAIL" and bool(missing_reasons)
+    status = "PASS" if not outcome_mismatch and not reason_mismatch else "MISMATCH"
+
+    return {
+        "id": record.get("id"),
+        "title": record.get("title"),
+        "kind": record.get("kind"),
+        "status": status,
+        "command": command,
+        "cwd": str(target.cwd),
+        "returncode": completed.returncode,
+        "expected_outcome": expected_outcome,
+        "actual_outcome": actual_outcome,
+        "expected_reason_classes": expected_reasons,
+        "actual_reason_classes": actual_reasons,
+        "missing_reason_classes": missing_reasons,
+        "doctrine_claims": record.get("claims", []),
+        "negative": record.get("negative"),
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
+
+
+def _make_target(
+    *,
+    verifier: str,
+    python_executable: str,
+    verifier_root: Path,
+    alternate_script: Path,
+) -> VerifierTarget:
+    if verifier == "public":
+        return VerifierTarget(
+            profile="public",
+            command_prefix=[python_executable, "-m", "keel_verifier"],
+            cwd=verifier_root,
+        )
+    if verifier == "alternate":
+        return VerifierTarget(
+            profile="alternate",
+            command_prefix=[python_executable, str(alternate_script)],
+            cwd=alternate_script.parents[1],
+        )
+    raise ValueError(f"unknown verifier profile: {verifier}")
+
+
+def run_corpus(
+    *,
+    corpus_path: Path = DEFAULT_CORPUS,
+    verifier: str = "public",
+    python_executable: str = sys.executable,
+    verifier_root: Path = REPO_ROOT,
+    alternate_script: Path = DEFAULT_ALTERNATE_SCRIPT,
+    fixture_ids: set[str] | None = None,
+    timeout_seconds: int = 30,
+) -> dict[str, Any]:
+    corpus_path = corpus_path.resolve()
+    corpus_root = corpus_path.parent
+    corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+    records = corpus.get("records")
+    if not isinstance(records, list):
+        raise ValueError("corpus.records must be a list")
+
+    selected = [
+        record
+        for record in records
+        if fixture_ids is None or record.get("id") in fixture_ids
+    ]
+    if fixture_ids is not None:
+        found = {str(record.get("id")) for record in selected}
+        missing = sorted(fixture_ids - found)
+        if missing:
+            raise ValueError(f"unknown fixture id(s): {', '.join(missing)}")
+
+    target = _make_target(
+        verifier=verifier,
+        python_executable=python_executable,
+        verifier_root=verifier_root.resolve(),
+        alternate_script=alternate_script.resolve(),
+    )
+    results = [
+        _run_record(
+            record,
+            corpus_root=corpus_root,
+            target=target,
+            timeout_seconds=timeout_seconds,
+        )
+        for record in selected
+    ]
+    mismatches = [result for result in results if result["status"] != "PASS"]
+    soundness_findings = [
+        result
+        for result in results
+        if result["expected_outcome"] == "FAIL" and result["actual_outcome"] == "PASS"
+    ]
+    return {
+        "corpus": str(corpus_path),
+        "corpus_version": corpus.get("corpus_version"),
+        "verifier": verifier,
+        "verifier_command": target.command_prefix,
+        "total": len(results),
+        "passed": len(results) - len(mismatches),
+        "mismatches": len(mismatches),
+        "soundness_findings": len(soundness_findings),
+        "results": results,
+    }
+
+
+def _print_summary(report: dict[str, Any]) -> None:
+    print(
+        "{verifier}: {passed}/{total} fixtures matched ({mismatches} mismatches, "
+        "{soundness_findings} soundness findings)".format(**report)
+    )
+    for result in report["results"]:
+        if result["status"] == "PASS":
+            continue
+        print(
+            "MISMATCH {id}: expected {expected_outcome} {expected_reason_classes}, "
+            "got {actual_outcome} {actual_reason_classes}".format(**result)
+        )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--verifier", choices=["public", "alternate"], default="public")
+    parser.add_argument("--python", default=sys.executable, dest="python_executable")
+    parser.add_argument("--verifier-root", type=Path, default=REPO_ROOT)
+    parser.add_argument("--alternate-script", type=Path, default=DEFAULT_ALTERNATE_SCRIPT)
+    parser.add_argument("--fixture", action="append", default=[])
+    parser.add_argument("--timeout-seconds", type=int, default=30)
+    parser.add_argument("--report-json", type=Path)
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="Always exit 0 after writing/printing the report.",
+    )
+    args = parser.parse_args(argv)
+
+    report = run_corpus(
+        corpus_path=args.corpus,
+        verifier=args.verifier,
+        python_executable=args.python_executable,
+        verifier_root=args.verifier_root,
+        alternate_script=args.alternate_script,
+        fixture_ids=set(args.fixture) if args.fixture else None,
+        timeout_seconds=args.timeout_seconds,
+    )
+    _print_summary(report)
+    if args.report_json:
+        args.report_json.parent.mkdir(parents=True, exist_ok=True)
+        args.report_json.write_text(
+            json.dumps(report, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    return 0 if args.report_only or report["mismatches"] == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
