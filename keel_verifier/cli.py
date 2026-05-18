@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from keel_verifier import __version__
 from keel_verifier.verifier import (
@@ -12,13 +13,15 @@ from keel_verifier.verifier import (
     KEELAPI_COMPLIANCE_KEYS_URL,
     REFRESH_KEYS_SOURCES,
     VerifyResult,
+    _load_json_evidence,
     cmd_checkpoint,
     cmd_export,
     cmd_refresh_keys,
     verify,
+    verify_delegation_denied_correctly,
 )
 
-LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys"}
+LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim"}
 
 
 def _public_key_alias(args: argparse.Namespace) -> None:
@@ -118,6 +121,23 @@ def _cmd_checkpoint_cli(parser: argparse.ArgumentParser, args: argparse.Namespac
     return cmd_checkpoint(args)
 
 
+def _cmd_claim_delegation_denied_correctly(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+) -> int:
+    if not args.evidence_file:
+        parser.error("delegation_denied_correctly requires --evidence-file")
+    evidence_path = Path(args.evidence_file)
+    result = verify_delegation_denied_correctly(
+        _load_json_evidence(str(evidence_path)),
+        event_id=args.event_id,
+        pack_root=evidence_path.parent,
+        include_semantics=True,
+    )
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0 if result["status"] == "supported" else 1
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="keel-verify",
@@ -208,6 +228,21 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_refresh.set_defaults(func=cmd_refresh_keys)
+
+    p_claim = sub.add_parser("claim", help="Verify a registered verifier claim.")
+    claim_sub = p_claim.add_subparsers(dest="claim_cmd", required=True)
+    p_delegation = claim_sub.add_parser(
+        "delegation_denied_correctly",
+        help="Verify a permit-chain delegation denial.",
+    )
+    p_delegation.add_argument("--evidence-file", required=True)
+    p_delegation.add_argument("--event-id")
+    p_delegation.set_defaults(
+        func=lambda args: _cmd_claim_delegation_denied_correctly(
+            p_delegation,
+            args,
+        )
+    )
 
     return parser
 

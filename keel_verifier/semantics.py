@@ -33,9 +33,12 @@ CHECKPOINT_COMPOSITE_HASH_ID = "keel.checkpoint.composite_hash.v1"
 CHECKPOINT_SIGNATURE_ID = "keel.checkpoint.signature.v1"
 CHECKPOINT_TSA_IMPRINT_ID = "keel.checkpoint.tsa_imprint.v1"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
+GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
+    "keel.governance_event.integrity_digest.v1"
+)
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b"
+    "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8"
 )
 EXPORT_MANIFEST_INTEGRITY_HASH = (
     "sha256:d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76"
@@ -74,22 +77,33 @@ CHECKPOINT_TSA_IMPRINT_HASH = (
     "sha256:a4e02133537a190c3795737beb4bb2ddf823cd09d5b6dcba43c682fb9e37d79e"
 )
 LEGACY_PROFILE_HASH = (
-    "sha256:b7b31f30a91a50517693494d9a868c781ae5dbd82bd06228fd34e0d517b5a153"
+    "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
 )
 AUTHORITY_ENVELOPE_V0_HASH = (
     "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2"
+)
+GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH = (
+    "sha256:7d3f447e215ca53dd5add04b4a62b4223d28ad22210b5a3df8fcbc85f5dbe440"
 )
 
 SemanticsKey = tuple[str, str]
 RecordHashV1 = Callable[..., str]
 ClosureVerifier = Callable[..., int | None]
 CompositeHash = Callable[[dict[str, dict[str, Any]]], str]
+GovernanceEventIntegrityHash = Callable[[dict[str, Any]], str]
+IntegrityBatchHash = Callable[[list[dict[str, str]]], str]
+AuthorityEnvelopeComparator = Callable[..., Any]
 
 
 CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "export.integrity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "export.scope_identity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "governance_chain.local_continuity.v1": (GOVERNANCE_RECORD_HASH_ID,),
+    "permit_chain.delegation_denied_correctly.v1": (
+        GOVERNANCE_RECORD_HASH_ID,
+        GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
+        AUTHORITY_ENVELOPE_V0_ID,
+    ),
     "closure.signature.v1": (
         CLOSURE_FORMAT_V1_ID,
         CLOSURE_FORMAT_V2_ID,
@@ -128,6 +142,9 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CLAIM_REGISTRY_ID: "claim_registry/v0.json",
     EXPORT_MANIFEST_INTEGRITY_ID: "semantics/export_manifest/integrity_v1.json",
     GOVERNANCE_RECORD_HASH_ID: "semantics/governance_chain/record_hash_v1.json",
+    GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: (
+        "semantics/governance_event/integrity_digest_v1.json"
+    ),
     CLOSURE_FORMAT_V1_ID: "semantics/closure/format_v1.json",
     CLOSURE_FORMAT_V2_ID: "semantics/closure/format_v2.json",
     CLOSURE_DIGEST_RULES_ID: "semantics/closure/digest_rules_v1.json",
@@ -150,6 +167,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID: EXPORT_MANIFEST_INTEGRITY_HASH,
     GOVERNANCE_RECORD_HASH_ID: GOVERNANCE_RECORD_HASH_HASH,
+    GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
     CLOSURE_FORMAT_V1_ID: CLOSURE_FORMAT_V1_HASH,
     CLOSURE_FORMAT_V2_ID: CLOSURE_FORMAT_V2_HASH,
     CLOSURE_DIGEST_RULES_ID: CLOSURE_DIGEST_RULES_HASH,
@@ -173,6 +191,11 @@ class SemanticImplementation:
     record_hashers: dict[str, RecordHashV1] = field(default_factory=dict)
     closure_verifiers: dict[str, ClosureVerifier] = field(default_factory=dict)
     composite_hash: CompositeHash | None = None
+    governance_event_integrity_hash: GovernanceEventIntegrityHash | None = None
+    integrity_batch_hash: IntegrityBatchHash | None = None
+    authority_envelope_comparators: dict[str, AuthorityEnvelopeComparator] = field(
+        default_factory=dict
+    )
 
     @property
     def key(self) -> SemanticsKey:
@@ -221,6 +244,9 @@ class SemanticsDispatch:
     record_hashers: dict[str, RecordHashV1]
     closure_verifiers: dict[str, ClosureVerifier]
     composite_hash: CompositeHash | None
+    governance_event_integrity_hash: GovernanceEventIntegrityHash | None
+    integrity_batch_hash: IntegrityBatchHash | None
+    authority_envelope_comparators: dict[str, AuthorityEnvelopeComparator]
 
 
 @dataclass(frozen=True)
@@ -278,6 +304,9 @@ class ResolvedSemantics:
         record_hashers: dict[str, RecordHashV1] = {}
         closure_verifiers: dict[str, ClosureVerifier] = {}
         composite_hash: CompositeHash | None = None
+        governance_event_integrity_hash: GovernanceEventIntegrityHash | None = None
+        integrity_batch_hash: IntegrityBatchHash | None = None
+        authority_envelope_comparators: dict[str, AuthorityEnvelopeComparator] = {}
         for artifact in self.artifacts.values():
             impl = self.implementations.get(artifact.key)
             if impl is None:
@@ -286,10 +315,18 @@ class ResolvedSemantics:
             closure_verifiers.update(impl.closure_verifiers)
             if impl.composite_hash is not None:
                 composite_hash = impl.composite_hash
+            if impl.governance_event_integrity_hash is not None:
+                governance_event_integrity_hash = impl.governance_event_integrity_hash
+            if impl.integrity_batch_hash is not None:
+                integrity_batch_hash = impl.integrity_batch_hash
+            authority_envelope_comparators.update(impl.authority_envelope_comparators)
         return SemanticsDispatch(
             record_hashers=record_hashers,
             closure_verifiers=closure_verifiers,
             composite_hash=composite_hash,
+            governance_event_integrity_hash=governance_event_integrity_hash,
+            integrity_batch_hash=integrity_batch_hash,
+            authority_envelope_comparators=authority_envelope_comparators,
         )
 
 
@@ -353,6 +390,17 @@ def _read_bundled_legacy_profile() -> bytes | None:
         return None
 
 
+def _read_bundled_artifact(relative_path: str) -> bytes | None:
+    try:
+        rel = Path(relative_path)
+        if rel.is_absolute() or ".." in rel.parts:
+            return None
+        bundled = resources.files("keel_verifier").joinpath("data", *rel.parts)
+        return bundled.read_bytes()
+    except Exception:
+        return None
+
+
 def _resolve_artifact_bytes(
     ref: dict[str, Any],
     *,
@@ -386,6 +434,9 @@ def _resolve_artifact_bytes(
                     "bundled keel_verifier/data/semantics/profiles/pre_pinning_default_v0.json",
                     None,
                 )
+        bundled = _read_bundled_artifact(path_value)
+        if bundled is not None:
+            return bundled, f"bundled keel_verifier/data/{path_value}", None
         details = "; ".join(errors)
         suffix = f" ({details})" if details else ""
         return None, None, f"could not resolve path {path_value!r}{suffix}"
@@ -1031,6 +1082,9 @@ def make_permanent_allowlist(
     closure_v1: ClosureVerifier,
     closure_v2: ClosureVerifier,
     composite_hash: CompositeHash,
+    governance_event_integrity_hash: GovernanceEventIntegrityHash,
+    integrity_batch_hash: IntegrityBatchHash,
+    authority_envelope_v0: AuthorityEnvelopeComparator,
 ) -> dict[SemanticsKey, SemanticImplementation]:
     entries = [
         SemanticImplementation(
@@ -1048,6 +1102,13 @@ def make_permanent_allowlist(
             GOVERNANCE_RECORD_HASH_HASH,
             "governance_chain_record_hash",
             record_hashers={"v1": record_hash_v1},
+        ),
+        SemanticImplementation(
+            GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
+            GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
+            "governance_event_integrity_digest",
+            governance_event_integrity_hash=governance_event_integrity_hash,
+            integrity_batch_hash=integrity_batch_hash,
         ),
         SemanticImplementation(
             CLOSURE_FORMAT_V1_ID,
@@ -1111,6 +1172,9 @@ def make_permanent_allowlist(
             AUTHORITY_ENVELOPE_V0_ID,
             AUTHORITY_ENVELOPE_V0_HASH,
             "authority_envelope_comparator",
+            authority_envelope_comparators={
+                AUTHORITY_ENVELOPE_V0_ID: authority_envelope_v0
+            },
         ),
     ]
     return {entry.key: entry for entry in entries}

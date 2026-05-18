@@ -401,8 +401,688 @@ def _compute_record_hash_v1(
     return hashlib.sha256(parts.encode("utf-8")).hexdigest()
 
 
+_GENESIS_HASH = hashlib.sha256(b"keel-audit-chain-genesis-v1").hexdigest()
+DELEGATION_DENIED_CLAIM_NAME = "permit_chain.delegation_denied_correctly.v1"
+
+AUTHORITY_ENVELOPE_VERSION = "authority-envelope.v0"
+AUTHORITY_ENVELOPE_SET_FIELDS = (
+    "actions",
+    "tools",
+    "providers",
+    "models",
+    "data_classes",
+    "regions",
+)
+AUTHORITY_ENVELOPE_FIELDS = (*AUTHORITY_ENVELOPE_SET_FIELDS, "expires_at")
+
+
+class AuthorityEnvelopeError(ValueError):
+    """Raised when an authority envelope cannot be interpreted under v0."""
+
+
+class UnsupportedAuthorityEnvelopeVersion(AuthorityEnvelopeError):
+    """Raised when a caller asks for unsupported envelope semantics."""
+
+
+class AuthorityEnvelopeComparison:
+    __slots__ = ("allowed", "child", "details", "failed_fields", "parent")
+
+    def __init__(
+        self,
+        *,
+        allowed: bool,
+        failed_fields: tuple[str, ...],
+        parent: dict[str, Any],
+        child: dict[str, Any],
+        details: dict[str, Any],
+    ) -> None:
+        self.allowed = allowed
+        self.failed_fields = failed_fields
+        self.parent = parent
+        self.child = child
+        self.details = details
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return _canonical_json(value).encode("utf-8")
+
+
+def _compute_record_hash(
+    *,
+    event_id: str,
+    event_type: str,
+    resource_type: str | None,
+    resource_id: str | None,
+    outcome: str | None,
+    severity: str,
+    occurred_at: Any,
+    prev_hash: str,
+    sequence_number: int,
+) -> str:
+    return _compute_record_hash_v1(
+        event_id=event_id,
+        event_type=event_type,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        outcome=outcome,
+        severity=severity,
+        created_at=occurred_at,
+        prev_hash=prev_hash,
+        sequence_number=sequence_number,
+    )
+
+
+def _event_payload(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("payload_json")
+    if payload is None:
+        payload = event.get("payload")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _string_or_none(value: Any) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _governance_event_integrity_material(event: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "event_id": event.get("event_id"),
+        "project_id": _string_or_none(event.get("project_id")),
+        "project_name": event.get("project_name"),
+        "request_id": event.get("request_id"),
+        "permit_id": _string_or_none(event.get("permit_id")),
+        "category": event.get("category"),
+        "event_type": event.get("event_type"),
+        "severity": event.get("severity"),
+        "payload_json": _event_payload(event),
+        "source_stage": event.get("source_stage"),
+        "lineage_type": event.get("lineage_type"),
+        "provider": event.get("provider"),
+        "model": event.get("model"),
+        "operation": event.get("operation"),
+        "decision": event.get("decision"),
+        "surface": event.get("surface"),
+        "trace_id": event.get("trace_id"),
+        "span_id": event.get("span_id"),
+        "occurred_at": event.get("occurred_at"),
+        "schema_version": event.get("schema_version"),
+        "actor_id": event.get("actor_id"),
+        "actor_type": event.get("actor_type"),
+        "outcome": event.get("outcome"),
+        "resource_type": event.get("resource_type"),
+        "resource_id": event.get("resource_id"),
+    }
+
+
+def _compute_governance_event_integrity_hash(event: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        _canonical_json_bytes(_governance_event_integrity_material(event))
+    ).hexdigest()
+
+
+def _compute_integrity_batch_hash(covered_events: list[dict[str, str]]) -> str:
+    return hashlib.sha256(_canonical_json_bytes(covered_events)).hexdigest()
+
+
+def _normalize_authority_envelope_version(version: str | None) -> str:
+    normalized = str(version or "").strip()
+    return normalized or AUTHORITY_ENVELOPE_VERSION
+
+
+def _ensure_supported_authority_envelope_version(version: str | None) -> str:
+    normalized = _normalize_authority_envelope_version(version)
+    if normalized != AUTHORITY_ENVELOPE_VERSION:
+        raise UnsupportedAuthorityEnvelopeVersion(
+            f"Unsupported authority envelope version: {normalized}"
+        )
+    return normalized
+
+
+def _plain_authority_mapping(value: Any) -> dict[str, Any]:
+    if value is None:
+        raise AuthorityEnvelopeError("authority_envelope is required")
+    if not isinstance(value, dict):
+        raise AuthorityEnvelopeError("authority_envelope must be an object")
+    return dict(value)
+
+
+def _canonical_authority_set(raw: Any, *, field: str) -> list[str]:
+    if raw is None:
+        return []
+    if not isinstance(raw, (list, tuple, set, frozenset)):
+        raise AuthorityEnvelopeError(f"{field} must be a list of strings")
+    values: set[str] = set()
+    for item in raw:
+        if not isinstance(item, str):
+            raise AuthorityEnvelopeError(f"{field} members must be strings")
+        values.add(item)
+    return sorted(values)
+
+
+def _parse_authority_datetime(raw: Any, *, field: str) -> datetime | None:
+    if raw is None:
+        return None
+    if isinstance(raw, datetime):
+        parsed = raw
+    elif isinstance(raw, str):
+        normalized = raw.strip()
+        if not normalized:
+            return None
+        try:
+            parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise AuthorityEnvelopeError(
+                f"{field} must be an RFC 3339 timestamp"
+            ) from exc
+    else:
+        raise AuthorityEnvelopeError(f"{field} must be an RFC 3339 timestamp")
+    if parsed.tzinfo is None:
+        raise AuthorityEnvelopeError(f"{field} must include a timezone offset")
+    return parsed.astimezone(timezone.utc)
+
+
+def _rfc3339_utc(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        raise AuthorityEnvelopeError("timestamp must include a timezone offset")
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def canonical_authority_envelope(value: Any) -> dict[str, Any]:
+    raw = _plain_authority_mapping(value)
+    unknown_fields = sorted(set(raw) - set(AUTHORITY_ENVELOPE_FIELDS))
+    if unknown_fields:
+        raise AuthorityEnvelopeError(
+            "authority_envelope contains unsupported fields: "
+            + ", ".join(unknown_fields)
+        )
+    canonical: dict[str, Any] = {
+        field: _canonical_authority_set(raw.get(field), field=field)
+        for field in AUTHORITY_ENVELOPE_SET_FIELDS
+    }
+    canonical["expires_at"] = _rfc3339_utc(
+        _parse_authority_datetime(raw.get("expires_at"), field="expires_at")
+    )
+    return canonical
+
+
+def compare_authority_envelopes(
+    *,
+    parent: Any,
+    child: Any,
+    version: str | None,
+) -> AuthorityEnvelopeComparison:
+    _ensure_supported_authority_envelope_version(version)
+    parent_canonical = canonical_authority_envelope(parent)
+    child_canonical = canonical_authority_envelope(child)
+
+    failed: list[str] = []
+    details: dict[str, Any] = {}
+    for field in AUTHORITY_ENVELOPE_SET_FIELDS:
+        parent_set = set(parent_canonical[field])
+        child_set = set(child_canonical[field])
+        extra = sorted(child_set - parent_set)
+        if extra:
+            failed.append(field)
+            details[field] = {
+                "extra_child_members": extra,
+                "parent": parent_canonical[field],
+                "child": child_canonical[field],
+            }
+
+    parent_expires = _parse_authority_datetime(
+        parent_canonical["expires_at"], field="expires_at"
+    )
+    child_expires = _parse_authority_datetime(
+        child_canonical["expires_at"], field="expires_at"
+    )
+    if parent_expires is None or child_expires is None:
+        if parent_expires != child_expires:
+            failed.append("expires_at")
+            details["expires_at"] = {
+                "parent": parent_canonical["expires_at"],
+                "child": child_canonical["expires_at"],
+                "violation": "missing_comparable_timestamp",
+            }
+    elif child_expires > parent_expires:
+        failed.append("expires_at")
+        details["expires_at"] = {
+            "parent": parent_canonical["expires_at"],
+            "child": child_canonical["expires_at"],
+            "violation": "child_expires_after_parent",
+        }
+
+    return AuthorityEnvelopeComparison(
+        allowed=not failed,
+        failed_fields=tuple(failed),
+        parent=parent_canonical,
+        child=child_canonical,
+        details=details,
+    )
+
+
+def _json_result(
+    *,
+    status: str,
+    supported_checks: list[str] | None = None,
+    missing_requirements: list[str] | None = None,
+    errors: list[str] | None = None,
+    semantics: ResolvedSemantics | None = None,
+    include_semantics: bool = False,
+    **extra: Any,
+) -> dict[str, Any]:
+    result = {
+        "claim_type": "delegation_denied_correctly",
+        "status": status,
+        "supported_checks": supported_checks or [],
+        "missing_requirements": missing_requirements or [],
+        "errors": errors or [],
+        "supported_envelope_versions": [AUTHORITY_ENVELOPE_VERSION],
+        **extra,
+    }
+    if include_semantics and semantics is not None:
+        result["semantics"] = semantics.report_semantics()
+    return result
+
+
+def _load_json_evidence(path: str) -> Any:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _extract_events(evidence: Any) -> list[dict[str, Any]]:
+    if isinstance(evidence, list):
+        return [item for item in evidence if isinstance(item, dict)]
+    if not isinstance(evidence, dict):
+        return []
+    if isinstance(evidence.get("event_type"), str):
+        return [evidence]
+    for key in ("events", "records", "governance_events", "chain_entries"):
+        value = evidence.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    event = evidence.get("event")
+    if isinstance(event, dict):
+        return [event]
+    return []
+
+
+def _verify_supplied_chain(
+    events: list[dict[str, Any]],
+    semantics_dispatch: SemanticsDispatch,
+) -> tuple[str, str | None]:
+    if not events:
+        return "insufficient_evidence", "chain_events"
+
+    record_hash_v1 = semantics_dispatch.record_hashers.get("v1")
+    if record_hash_v1 is None:
+        return "insufficient_evidence", "record_hash_semantics"
+
+    required = {
+        "event_id",
+        "event_type",
+        "severity",
+        "occurred_at",
+        "sequence_number",
+        "record_hash",
+        "prev_hash",
+    }
+    for event in events:
+        missing = sorted(field for field in required if event.get(field) is None)
+        if missing:
+            return "insufficient_evidence", f"chain_field:{missing[0]}"
+
+    by_scope: dict[str, list[dict[str, Any]]] = {}
+    for event in events:
+        scope = str(event.get("chain_scope") or "project")
+        by_scope.setdefault(scope, []).append(event)
+
+    for scope_events in by_scope.values():
+        ordered = sorted(scope_events, key=lambda item: int(item["sequence_number"]))
+        expected_prev = _GENESIS_HASH
+        expected_sequence = 1
+        for event in ordered:
+            sequence = int(event["sequence_number"])
+            if sequence != expected_sequence:
+                return "insufficient_evidence", "contiguous_chain_prefix"
+            if event.get("prev_hash") != expected_prev:
+                return "disproved", "prev_hash_mismatch"
+            recomputed = record_hash_v1(
+                event_id=str(event["event_id"]),
+                event_type=str(event["event_type"]),
+                resource_type=event.get("resource_type"),
+                resource_id=event.get("resource_id"),
+                outcome=event.get("outcome"),
+                severity=str(event["severity"]),
+                created_at=event["occurred_at"],
+                prev_hash=str(event["prev_hash"]),
+                sequence_number=sequence,
+            )
+            if event.get("record_hash") != recomputed:
+                return "disproved", "record_hash_mismatch"
+            expected_prev = str(event["record_hash"])
+            expected_sequence += 1
+    return "supported", None
+
+
+def _verify_target_payload_integrity(
+    events: list[dict[str, Any]],
+    target: dict[str, Any],
+    semantics_dispatch: SemanticsDispatch,
+) -> tuple[str, str | None]:
+    target_event_id = str(target.get("event_id") or "").strip()
+    target_event_type = str(target.get("event_type") or "").strip()
+    if not target_event_id or not target_event_type:
+        return "insufficient_evidence", "payload_integrity_target"
+
+    event_integrity_hash = semantics_dispatch.governance_event_integrity_hash
+    integrity_batch_hash = semantics_dispatch.integrity_batch_hash
+    if event_integrity_hash is None or integrity_batch_hash is None:
+        return "insufficient_evidence", "governance_event_integrity_digest_semantics"
+
+    target_integrity_hash = event_integrity_hash(target)
+    for event in events:
+        if event.get("event_type") != "audit.integrity_digest":
+            continue
+
+        payload = _event_payload(event)
+        covered_raw = payload.get("covered_events")
+        if not isinstance(covered_raw, list):
+            continue
+
+        covered_events: list[dict[str, str]] = []
+        matching: list[dict[str, str]] = []
+        for covered in covered_raw:
+            if not isinstance(covered, dict):
+                return "insufficient_evidence", "integrity_digest_payload"
+            event_id = str(covered.get("event_id") or "").strip()
+            event_type = str(covered.get("event_type") or "").strip()
+            event_hash = str(covered.get("event_hash") or "").strip()
+            if not event_id or not event_type or not event_hash:
+                return "insufficient_evidence", "integrity_digest_payload"
+            entry = {
+                "event_id": event_id,
+                "event_type": event_type,
+                "event_hash": event_hash,
+            }
+            covered_events.append(entry)
+            if event_id == target_event_id:
+                matching.append(entry)
+
+        if not matching:
+            continue
+
+        expected_batch_hash = integrity_batch_hash(covered_events)
+        actual_batch_hash = str(payload.get("batch_hash") or "").strip()
+        if actual_batch_hash != expected_batch_hash:
+            return "disproved", "integrity_digest_batch_hash_mismatch"
+        resource_id = str(event.get("resource_id") or "").strip()
+        if resource_id and resource_id != expected_batch_hash[:32]:
+            return "disproved", "integrity_digest_resource_mismatch"
+        covered_event_count = payload.get("covered_event_count")
+        if covered_event_count is not None:
+            try:
+                count = int(covered_event_count)
+            except (TypeError, ValueError):
+                return "insufficient_evidence", "integrity_digest_payload"
+            if count != len(covered_events):
+                return "disproved", "integrity_digest_count_mismatch"
+
+        for entry in matching:
+            if entry["event_type"] != target_event_type:
+                return "disproved", "payload_integrity_event_type_mismatch"
+            if entry["event_hash"] != target_integrity_hash:
+                return "disproved", "payload_integrity_mismatch"
+        return "supported", None
+
+    return "insufficient_evidence", "payload_integrity_digest"
+
+
+def _resolve_delegation_denied_semantics(
+    evidence: Any,
+    *,
+    pack_root: Path | None,
+) -> ResolvedSemantics:
+    pack = evidence if isinstance(evidence, dict) else {}
+    return resolve_pack_semantics(
+        pack,
+        pack_root=pack_root,
+        default_claim_names=(DELEGATION_DENIED_CLAIM_NAME,),
+        allowlist=PERMANENT_ALLOWLIST,
+    )
+
+
+def _semantic_failure_json_result(
+    semantics: ResolvedSemantics,
+    *,
+    include_semantics: bool,
+) -> dict[str, Any]:
+    failure = semantics.failure
+    assert failure is not None
+    missing = [failure.reason_code] if failure.verdict == "insufficient_evidence" else []
+    errors = [failure.reason_code] if failure.verdict != "insufficient_evidence" else []
+    return _json_result(
+        status=failure.verdict,
+        missing_requirements=missing,
+        errors=errors,
+        reason_code=failure.reason_code,
+        message=failure.message,
+        semantics=semantics,
+        include_semantics=include_semantics,
+    )
+
+
+def verify_delegation_denied_correctly(
+    evidence: Any,
+    *,
+    event_id: str | None = None,
+    pack_root: Path | None = None,
+    include_semantics: bool = False,
+) -> dict[str, Any]:
+    semantics = _resolve_delegation_denied_semantics(evidence, pack_root=pack_root)
+    if not semantics.ok:
+        return _semantic_failure_json_result(
+            semantics,
+            include_semantics=include_semantics,
+        )
+    semantics_dispatch = semantics.dispatch()
+
+    def result(**kwargs: Any) -> dict[str, Any]:
+        return _json_result(
+            **kwargs,
+            semantics=semantics,
+            include_semantics=include_semantics,
+        )
+
+    events = _extract_events(evidence)
+    if not events:
+        return result(
+            status="insufficient_evidence",
+            missing_requirements=["governance_events"],
+        )
+
+    denied_events = [
+        event
+        for event in events
+        if event.get("event_type") == "permit.delegated_denied"
+        and (event_id is None or event.get("event_id") == event_id)
+    ]
+    if not denied_events:
+        return result(
+            status="insufficient_evidence",
+            missing_requirements=["permit.delegated_denied"],
+        )
+    if len(denied_events) > 1 and event_id is None:
+        return result(
+            status="insufficient_evidence",
+            missing_requirements=["event_id_for_ambiguous_claim"],
+        )
+
+    target = denied_events[0]
+    chain_status, chain_detail = _verify_supplied_chain(events, semantics_dispatch)
+    if chain_status != "supported":
+        missing = [chain_detail] if chain_status == "insufficient_evidence" else []
+        errors = [chain_detail] if chain_status == "disproved" else []
+        return result(
+            status=chain_status,
+            missing_requirements=missing,
+            errors=errors,
+        )
+
+    integrity_status, integrity_detail = _verify_target_payload_integrity(
+        events,
+        target,
+        semantics_dispatch,
+    )
+    if integrity_status != "supported":
+        missing = [integrity_detail] if integrity_status == "insufficient_evidence" else []
+        errors = [integrity_detail] if integrity_status == "disproved" else []
+        return result(
+            status=integrity_status,
+            supported_checks=["hash_chain_integrity"],
+            missing_requirements=missing,
+            errors=errors,
+        )
+
+    payload = _event_payload(target)
+    version = payload.get("authority_envelope_version")
+    if not isinstance(version, str) or not version.strip():
+        return result(
+            status="insufficient_evidence",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            missing_requirements=["authority_envelope_version"],
+        )
+    version = version.strip()
+    try:
+        _ensure_supported_authority_envelope_version(version)
+    except UnsupportedAuthorityEnvelopeVersion:
+        return result(
+            status="unverifiable_scope",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            errors=["unsupported_authority_envelope_version"],
+        )
+
+    authority_comparator = semantics_dispatch.authority_envelope_comparators.get(version)
+    if authority_comparator is None:
+        return result(
+            status="unverifiable_scope",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            errors=["unsupported_authority_envelope_version"],
+        )
+
+    child = payload.get("child_requested_authority_envelope")
+    parent = payload.get("parent_authority_envelope")
+    failed_fields = payload.get("failed_fields")
+    reason_code = payload.get("reason_code")
+    missing_requirements: list[str] = []
+    if child is None:
+        missing_requirements.append("child_requested_authority_envelope")
+    if failed_fields is None:
+        missing_requirements.append("failed_fields")
+    if not reason_code:
+        missing_requirements.append("reason_code")
+    if missing_requirements:
+        return result(
+            status="insufficient_evidence",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            missing_requirements=missing_requirements,
+        )
+
+    event_failed = {str(field) for field in failed_fields or []}
+    if parent is None:
+        if reason_code == "authority_envelope.parent_missing" and (
+            "authority_envelope" in event_failed
+        ):
+            try:
+                canonical_authority_envelope(child)
+            except Exception as exc:
+                return result(
+                    status="insufficient_evidence",
+                    supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+                    missing_requirements=["child_requested_authority_envelope"],
+                    errors=[str(exc)],
+                    event_id=target.get("event_id"),
+                )
+            return result(
+                status="supported",
+                supported_checks=[
+                    "hash_chain_integrity",
+                    "payload_integrity_digest",
+                    "child_requested_authority_envelope_present",
+                    "parent_authority_envelope_absent",
+                    "denial_reason_matches_parent_missing",
+                ],
+                event_id=target.get("event_id"),
+                failed_fields=sorted(event_failed),
+            )
+        return result(
+            status="insufficient_evidence",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            missing_requirements=["parent_authority_envelope"],
+        )
+
+    try:
+        comparison = authority_comparator(
+            parent=parent,
+            child=child,
+            version=version,
+        )
+    except UnsupportedAuthorityEnvelopeVersion:
+        return result(
+            status="unverifiable_scope",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            errors=["unsupported_authority_envelope_version"],
+        )
+    except Exception as exc:
+        return result(
+            status="insufficient_evidence",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            missing_requirements=["comparable_authority_envelopes"],
+            errors=[str(exc)],
+        )
+
+    if comparison.allowed:
+        return result(
+            status="disproved",
+            supported_checks=["hash_chain_integrity", "payload_integrity_digest"],
+            errors=["comparator_allows_child_authority"],
+            event_id=target.get("event_id"),
+        )
+
+    expected_failed = set(comparison.failed_fields)
+    if event_failed != expected_failed:
+        return result(
+            status="disproved",
+            supported_checks=[
+                "hash_chain_integrity",
+                "payload_integrity_digest",
+                "comparator_reran",
+            ],
+            errors=["failed_fields_mismatch"],
+            expected_failed_fields=sorted(expected_failed),
+            event_failed_fields=sorted(event_failed),
+            event_id=target.get("event_id"),
+        )
+
+    return result(
+        status="supported",
+        supported_checks=[
+            "hash_chain_integrity",
+            "payload_integrity_digest",
+            "parent_authority_envelope_present",
+            "child_requested_authority_envelope_present",
+            "comparator_reran",
+            "denial_was_correct",
+        ],
+        event_id=target.get("event_id"),
+        failed_fields=sorted(expected_failed),
+        comparison_details=comparison.details,
+    )
 
 
 def _compute_canonical_binding_hash(payload: dict[str, Any]) -> str:
@@ -1750,6 +2430,9 @@ PERMANENT_ALLOWLIST = make_permanent_allowlist(
     closure_v1=_verify_closure_v1,
     closure_v2=_verify_closure_v2,
     composite_hash=_composite_hash,
+    governance_event_integrity_hash=_compute_governance_event_integrity_hash,
+    integrity_batch_hash=_compute_integrity_batch_hash,
+    authority_envelope_v0=compare_authority_envelopes,
 )
 
 
