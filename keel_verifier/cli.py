@@ -135,6 +135,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("manifest_pos", nargs="?", metavar="MANIFEST")
     p_export.add_argument("--export-file", dest="export_file_flag")
     p_export.add_argument("--manifest", dest="manifest_flag")
+    p_export.add_argument("--json", action="store_true", dest="as_json")
     p_export.add_argument(
         "--walk-events",
         action="store_true",
@@ -167,6 +168,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_cp = sub.add_parser("checkpoint", help="Verify an integrity checkpoint JSON file.")
     p_cp.add_argument("checkpoint_file_pos", nargs="?", metavar="CHECKPOINT_FILE")
     p_cp.add_argument("--checkpoint-file", dest="checkpoint_file_flag")
+    p_cp.add_argument("--json", action="store_true", dest="as_json")
     _add_common_trust_args(p_cp)
     p_cp.add_argument(
         "--public-key-url",

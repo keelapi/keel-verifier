@@ -9,11 +9,21 @@ from keel_verifier.verifier import (
     verify_closure_record,
     verify_export_walk_events,
 )
+from keel_verifier.verdicts import (
+    ClaimVerdict,
+    VerificationReport,
+    VerdictSubject,
+    aggregate_subject_verdicts,
+)
 
 __all__ = [
     "CHAIN_FORMAT_HASHERS",
     "CLOSURE_FORMAT_VERIFIERS",
     "VerifyResult",
+    "ClaimVerdict",
+    "VerificationReport",
+    "VerdictSubject",
+    "aggregate_subject_verdicts",
     "verify",
     "verify_checkpoint",
     "verify_closure_record",

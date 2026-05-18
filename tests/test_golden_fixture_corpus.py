@@ -30,3 +30,5 @@ def test_public_verifier_matches_golden_fixture_corpus():
         result for result in report["results"] if result["status"] != "PASS"
     ]
     assert not mismatches, json.dumps(mismatches, indent=2, sort_keys=True)
+    assert all(result["used_structured_verdicts"] for result in report["results"])
+    assert all(not result["claim_mismatches"] for result in report["results"])
