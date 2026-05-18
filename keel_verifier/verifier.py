@@ -399,9 +399,6 @@ def _compute_record_hash_v1(
     return hashlib.sha256(parts.encode("utf-8")).hexdigest()
 
 
-CHAIN_FORMAT_HASHERS = {"v1": _compute_record_hash_v1}
-
-
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
@@ -1745,11 +1742,6 @@ def _verify_closure_v2(
             return failure
     return None
 
-
-CLOSURE_FORMAT_VERIFIERS = {
-    "closure_v1": _verify_closure_v1,
-    "closure_v2": _verify_closure_v2,
-}
 
 PERMANENT_ALLOWLIST = make_permanent_allowlist(
     record_hash_v1=_compute_record_hash_v1,

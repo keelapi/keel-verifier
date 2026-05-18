@@ -1,8 +1,6 @@
 """Standalone verifier for Keel governance evidence."""
 
 from keel_verifier.verifier import (
-    CHAIN_FORMAT_HASHERS,
-    CLOSURE_FORMAT_VERIFIERS,
     VerifyResult,
     verify,
     verify_checkpoint,
@@ -17,8 +15,6 @@ from keel_verifier.verdicts import (
 )
 
 __all__ = [
-    "CHAIN_FORMAT_HASHERS",
-    "CLOSURE_FORMAT_VERIFIERS",
     "VerifyResult",
     "ClaimVerdict",
     "VerificationReport",
