@@ -42,6 +42,50 @@ def _abs(corpus_root: Path, value: str) -> Path:
     return (corpus_root / value).resolve()
 
 
+def _record_pack_path(record: dict[str, Any], *, corpus_root: Path) -> Path:
+    pack = record.get("pack")
+    if not isinstance(pack, dict):
+        raise ValueError(f"{record.get('id')}: pack must be an object")
+
+    kind = record.get("kind")
+    if kind == "export":
+        manifest = pack.get("manifest")
+        if not isinstance(manifest, str):
+            raise ValueError(f"{record.get('id')}: export pack requires manifest")
+        return _abs(corpus_root, manifest)
+
+    if kind == "checkpoint":
+        checkpoint_file = pack.get("checkpoint_file")
+        if not isinstance(checkpoint_file, str):
+            raise ValueError(f"{record.get('id')}: checkpoint pack requires checkpoint_file")
+        return _abs(corpus_root, checkpoint_file)
+
+    raise ValueError(f"{record.get('id')}: unsupported kind {kind!r}")
+
+
+def _expected_semantics_mode(record: dict[str, Any], *, corpus_root: Path) -> str:
+    explicit = record.get("expected_mode")
+    if explicit in {"legacy_unpinned", "pinned"}:
+        return str(explicit)
+    if explicit is not None:
+        raise ValueError(
+            f"{record.get('id')}: expected_mode must be legacy_unpinned or pinned"
+        )
+
+    pack_path = _record_pack_path(record, corpus_root=corpus_root)
+    try:
+        pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ValueError(
+            f"{record.get('id')}: could not infer semantics mode from {pack_path}: {exc}"
+        ) from exc
+    if not isinstance(pack, dict):
+        raise ValueError(f"{record.get('id')}: pack JSON must be an object")
+    if "claim_set" in pack or "semantics_pins" in pack:
+        return "pinned"
+    return "legacy_unpinned"
+
+
 def _record_command_args(
     record: dict[str, Any],
     *,
@@ -215,6 +259,16 @@ def _actual_claim_verdicts(report: dict[str, Any] | None) -> dict[str, str]:
     return actual
 
 
+def _actual_semantics_mode(report: dict[str, Any] | None) -> str | None:
+    if report is None:
+        return None
+    semantics = report.get("semantics")
+    if not isinstance(semantics, dict):
+        return None
+    mode = semantics.get("mode")
+    return mode if isinstance(mode, str) else None
+
+
 def _run_record(
     record: dict[str, Any],
     *,
@@ -246,6 +300,8 @@ def _run_record(
     expected_outcome, expected_reasons = _expected_current(record)
     expected_claims = _expected_claim_verdicts(record)
     actual_claims = _actual_claim_verdicts(structured)
+    expected_mode = _expected_semantics_mode(record, corpus_root=corpus_root)
+    actual_mode = _actual_semantics_mode(structured)
     claim_mismatches = []
     if structured is not None:
         for name, expected_verdict in expected_claims.items():
@@ -264,9 +320,13 @@ def _run_record(
     outcome_mismatch = actual_outcome != expected_outcome
     reason_mismatch = actual_outcome == "FAIL" and bool(missing_reasons)
     claim_mismatch = structured is not None and bool(claim_mismatches)
+    mode_mismatch = structured is not None and actual_mode != expected_mode
     status = (
         "PASS"
-        if not outcome_mismatch and not reason_mismatch and not claim_mismatch
+        if not outcome_mismatch
+        and not reason_mismatch
+        and not claim_mismatch
+        and not mode_mismatch
         else "MISMATCH"
     )
 
@@ -283,6 +343,9 @@ def _run_record(
         "expected_reason_classes": expected_reasons,
         "actual_reason_classes": actual_reasons,
         "missing_reason_classes": missing_reasons,
+        "expected_semantics_mode": expected_mode,
+        "actual_semantics_mode": actual_mode,
+        "mode_mismatch": mode_mismatch,
         "used_structured_verdicts": structured is not None,
         "expected_claim_verdicts": expected_claims,
         "actual_claim_verdicts": actual_claims,
@@ -392,6 +455,11 @@ def _print_summary(report: dict[str, Any]) -> None:
         )
         if result.get("claim_mismatches"):
             print(f"  claim_mismatches: {result['claim_mismatches']}")
+        if result.get("mode_mismatch"):
+            print(
+                "  semantics_mode: expected {expected_semantics_mode}, got "
+                "{actual_semantics_mode}".format(**result)
+            )
 
 
 def main(argv: list[str] | None = None) -> int:
