@@ -180,7 +180,11 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_key_manifest_args(p_cp)
     p_cp.add_argument(
         "--tsa-ca-bundle",
-        help="Optional CA bundle for TSA trust-chain validation (note only).",
+        help=(
+            "Optional CA bundle for opt-in RFC 3161 TSA trust validation. "
+            "Verifies chain, signature, and timestamping purpose against this "
+            "bundle only; historical revocation is not checked."
+        ),
     )
     p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))
 
