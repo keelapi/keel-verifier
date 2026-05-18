@@ -62,7 +62,7 @@ import sys
 import urllib.request
 import zipfile
 from datetime import datetime, timezone
-from dataclasses import dataclass, field as dataclass_field
+from dataclasses import dataclass, field as dataclass_field, replace
 from pathlib import Path
 from typing import Any
 
@@ -73,6 +73,13 @@ from keel_verifier.verdicts import (
     VerdictSubject,
     legacy_semantics,
     verdict_value,
+)
+from keel_verifier.semantics import (
+    CLAIM_SEMANTICS,
+    SemanticsDispatch,
+    ResolvedSemantics,
+    make_permanent_allowlist,
+    resolve_pack_semantics,
 )
 
 try:
@@ -175,6 +182,71 @@ def _merge_claims(claims: list[ClaimVerdict]) -> list[ClaimVerdict]:
             diagnostics=[*existing.diagnostics, *claim.diagnostics],
         )
     return [merged[name] for name in order]
+
+
+def _apply_semantics_to_claims(
+    claims: list[ClaimVerdict],
+    semantics: ResolvedSemantics,
+) -> list[ClaimVerdict]:
+    applied: list[ClaimVerdict] = []
+    requested = semantics.requested_names()
+    for claim in claims:
+        required = (
+            semantics.required_for(claim.name)
+            if semantics.mode == "pinned" and claim.name in requested
+            else claim.required
+        )
+        applied.append(
+            replace(
+                claim,
+                required=required,
+                semantics=semantics.semantics_for_claim(claim.name),
+            )
+        )
+    return applied
+
+
+def _semantic_failure_claims(
+    semantics: ResolvedSemantics,
+    *,
+    default_claim_names: tuple[str, ...],
+    subject_type: str,
+    subject_id: str | None,
+    evidence: list[str],
+) -> list[ClaimVerdict]:
+    failure = semantics.failure
+    if failure is None:
+        return []
+    claim_names = failure.claim_names or default_claim_names
+    return _apply_semantics_to_claims(
+        [
+            _single_subject_claim(
+                name,
+                subject_type=subject_type,
+                subject_id=subject_id,
+                verdict=failure.verdict,
+                reason_code=failure.reason_code,
+                message=failure.message,
+                evidence=evidence,
+                required=semantics.required_for(name),
+            )
+            for name in claim_names
+            if name in CLAIM_SEMANTICS
+        ],
+        semantics,
+    )
+
+
+def _report_diagnostics(
+    diagnostics: list[str] | None,
+    semantics: ResolvedSemantics | None,
+) -> list[str]:
+    merged = list(diagnostics or [])
+    if semantics is not None:
+        for diagnostic in semantics.diagnostics:
+            if diagnostic not in merged:
+                merged.append(diagnostic)
+    return merged
 
 
 WALK_RECORD_HASH_MISMATCH = "WALK_RECORD_HASH_MISMATCH"
@@ -997,7 +1069,13 @@ def _governance_events_export_as_walk_bundle(
     }, None
 
 
-def _walk_export_events(export_data: bytes) -> int:
+def _walk_export_events(
+    export_data: bytes,
+    semantics_dispatch: SemanticsDispatch | None = None,
+) -> int:
+    if semantics_dispatch is None:
+        semantics_dispatch = _legacy_dispatch()
+    record_hashers = semantics_dispatch.record_hashers
     try:
         bundle = _load_export_json_document(export_data)
     except Exception as exc:
@@ -1046,7 +1124,7 @@ def _walk_export_events(export_data: bytes) -> int:
                     f"chain_entries[{entry_index}] must be an object",
                 )
             version = entry.get("chain_format_version")
-            if version not in CHAIN_FORMAT_HASHERS:
+            if version not in record_hashers:
                 return _walk_fail(
                     WALK_UNKNOWN_CHAIN_FORMAT,
                     (
@@ -1096,7 +1174,7 @@ def _walk_export_events(export_data: bytes) -> int:
                         "must be an object",
                     )
                 version = entry.get("chain_format_version")
-                if version not in CHAIN_FORMAT_HASHERS:
+                if version not in record_hashers:
                     return _walk_fail(
                         WALK_UNKNOWN_CHAIN_FORMAT,
                         (
@@ -1148,7 +1226,7 @@ def _walk_export_events(export_data: bytes) -> int:
                 sequence_number = _required_int(entry, "sequence_number")
                 record_hash = _required_str(entry, "record_hash")
                 prev_hash = _required_str(entry, "prev_hash")
-                hasher = CHAIN_FORMAT_HASHERS[entry["chain_format_version"]]
+                hasher = record_hashers[entry["chain_format_version"]]
                 expected_hash = hasher(
                     event_id=_required_str(entry, "event_id"),
                     event_type=_required_str(entry, "event_type"),
@@ -1673,8 +1751,37 @@ CLOSURE_FORMAT_VERIFIERS = {
     "closure_v2": _verify_closure_v2,
 }
 
+PERMANENT_ALLOWLIST = make_permanent_allowlist(
+    record_hash_v1=_compute_record_hash_v1,
+    closure_v1=_verify_closure_v1,
+    closure_v2=_verify_closure_v2,
+    composite_hash=_composite_hash,
+)
 
-def _verify_export_closures(export_data: bytes, args: argparse.Namespace) -> int:
+
+def _legacy_dispatch() -> SemanticsDispatch:
+    semantics = resolve_pack_semantics(
+        {},
+        pack_root=None,
+        default_claim_names=tuple(CLAIM_SEMANTICS),
+        allowlist=PERMANENT_ALLOWLIST,
+    )
+    if not semantics.ok:
+        failure = semantics.failure
+        raise RuntimeError(
+            failure.message if failure is not None else "legacy semantics unresolved"
+        )
+    return semantics.dispatch()
+
+
+def _verify_export_closures(
+    export_data: bytes,
+    args: argparse.Namespace,
+    semantics_dispatch: SemanticsDispatch | None = None,
+) -> int:
+    if semantics_dispatch is None:
+        semantics_dispatch = _legacy_dispatch()
+    closure_verifiers = semantics_dispatch.closure_verifiers
     bundle, bundle_result = _load_audit_export_bundle_for_optional_check(
         export_data,
         label="VERIFY-CLOSURE",
@@ -1699,7 +1806,7 @@ def _verify_export_closures(export_data: bytes, args: argparse.Namespace) -> int
             continue
         payload = _entry_payload(entry)
         binding_version = payload.get("binding_version")
-        verifier = CLOSURE_FORMAT_VERIFIERS.get(binding_version)
+        verifier = closure_verifiers.get(binding_version)
         if verifier is None:
             return _walk_fail(
                 WALK_UNKNOWN_CLOSURE_FORMAT,
@@ -2990,17 +3097,20 @@ def _export_report(
     exit_code: int,
     artifact: dict[str, Any],
     claims: list[ClaimVerdict],
+    semantics: ResolvedSemantics | None = None,
     error: str | None = None,
     diagnostics: list[str] | None = None,
 ) -> VerificationReport:
+    if semantics is not None:
+        claims = _apply_semantics_to_claims(claims, semantics)
     return VerificationReport(
         ok=ok,
         exit_code=exit_code,
         artifact=artifact,
         claims=_merge_claims(claims),
         error=error,
-        diagnostics=list(diagnostics or []),
-        semantics=legacy_semantics(),
+        diagnostics=_report_diagnostics(diagnostics, semantics),
+        semantics=semantics.report_semantics() if semantics is not None else legacy_semantics(),
     )
 
 
@@ -3545,6 +3655,33 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             error="manifest top-level JSON must be an object",
         )
 
+    semantics = resolve_pack_semantics(
+        manifest,
+        pack_root=manifest_path.parent,
+        default_claim_names=("export.integrity.v1",),
+        allowlist=PERMANENT_ALLOWLIST,
+    )
+    if not semantics.ok:
+        failure = semantics.failure
+        assert failure is not None
+        claims = _semantic_failure_claims(
+            semantics,
+            default_claim_names=("export.integrity.v1",),
+            subject_type="semantic_resolution",
+            subject_id=manifest_path.name,
+            evidence=["manifest.claim_set", "manifest.semantics_pins"],
+        )
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            semantics=semantics,
+            error=failure.top_level_error or failure.message,
+            diagnostics=[failure.diagnostic] if failure.diagnostic else None,
+        )
+    semantics_dispatch = semantics.dispatch()
+
     claims: list[ClaimVerdict] = []
     diagnostics: list[str] = []
     expected = manifest.get("content_hash")
@@ -3566,6 +3703,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     signature_message="signature was not evaluated after content hash mismatch",
                 )
             ],
+            semantics=semantics,
             error=message,
         )
 
@@ -3605,6 +3743,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 exit_code=0,
                 artifact=artifact,
                 claims=claims,
+                semantics=semantics,
                 diagnostics=diagnostics,
             )
         return _export_report(
@@ -3612,6 +3751,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             exit_code=1,
             artifact=artifact,
             claims=claims,
+            semantics=semantics,
             error=message,
             diagnostics=diagnostics,
         )
@@ -3643,6 +3783,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             exit_code=1,
             artifact=artifact,
             claims=claims,
+            semantics=semantics,
             error=message,
         )
 
@@ -3663,6 +3804,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             exit_code=1,
             artifact=artifact,
             claims=claims,
+            semantics=semantics,
             error=message,
         )
 
@@ -3683,6 +3825,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             exit_code=1,
             artifact=artifact,
             claims=claims,
+            semantics=semantics,
             error=message,
         )
 
@@ -3725,13 +3868,32 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             exit_code=workflow_result,
             artifact=artifact,
             claims=claims,
+            semantics=semantics,
             error=_failure_from_output(workflow_stdout, workflow_stderr)[1],
         )
 
-    if args.walk_events:
+    requested = semantics.requested_names()
+    should_walk_events = args.walk_events or (
+        semantics.mode == "pinned"
+        and "governance_chain.local_continuity.v1" in requested
+    )
+    should_verify_closure = args.verify_closure or (
+        semantics.mode == "pinned"
+        and bool(
+            requested
+            & {
+                "closure.signature.v1",
+                "closure.digest_consistency.v1",
+                "closure.dispatch_binding.v1",
+            }
+        )
+    )
+
+    if should_walk_events:
         walk_result, walk_stdout, walk_stderr = _captured_check(
             _walk_export_events,
             export_data,
+            semantics_dispatch,
         )
         assert walk_result is not None
         claims.append(
@@ -3747,13 +3909,15 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 exit_code=walk_result,
                 artifact=artifact,
                 claims=claims,
+                semantics=semantics,
                 error=_failure_from_output(walk_stdout, walk_stderr)[1],
             )
-    if args.verify_closure:
+    if should_verify_closure:
         closure_result, closure_stdout, closure_stderr = _captured_check(
             _verify_export_closures,
             export_data,
             args,
+            semantics_dispatch,
         )
         assert closure_result is not None
         claims.extend(
@@ -3769,6 +3933,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 exit_code=closure_result,
                 artifact=artifact,
                 claims=claims,
+                semantics=semantics,
                 error=_failure_from_output(closure_stdout, closure_stderr)[1],
             )
 
@@ -3777,6 +3942,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         exit_code=0,
         artifact=artifact,
         claims=claims,
+        semantics=semantics,
         diagnostics=diagnostics,
     )
 
@@ -4349,6 +4515,7 @@ def _checkpoint_base_result(
     error: str | None = None,
     artifact: dict[str, Any] | None = None,
     claims: list[ClaimVerdict] | None = None,
+    semantics: ResolvedSemantics | None = None,
     diagnostics: list[str] | None = None,
     composite_hash: str | None = None,
     chain_heads_count: int = 0,
@@ -4364,6 +4531,9 @@ def _checkpoint_base_result(
     tsa_requested_at: str | None = None,
     tsa_receipts: list[dict[str, Any]] | None = None,
 ) -> VerifyResult:
+    claim_list = list(claims or [])
+    if semantics is not None:
+        claim_list = _apply_semantics_to_claims(claim_list, semantics)
     return VerifyResult(
         ok=ok,
         error=error,
@@ -4392,8 +4562,9 @@ def _checkpoint_base_result(
         tsa_url=tsa_url,
         tsa_requested_at=tsa_requested_at,
         tsa_receipts=list(tsa_receipts or []),
-        diagnostics=list(diagnostics or []),
-        claims=_merge_claims(list(claims or [])),
+        diagnostics=_report_diagnostics(diagnostics, semantics),
+        semantics=semantics.report_semantics() if semantics is not None else legacy_semantics(),
+        claims=_merge_claims(claim_list),
     )
 
 
@@ -4432,6 +4603,33 @@ def _verify_checkpoint_core(
             artifact=artifact,
         )
 
+    default_claims = ("checkpoint.composite_hash.v1", "checkpoint.signature.v1")
+    semantics = resolve_pack_semantics(
+        body,
+        pack_root=path.parent,
+        default_claim_names=default_claims,
+        allowlist=PERMANENT_ALLOWLIST,
+    )
+    if not semantics.ok:
+        failure = semantics.failure
+        assert failure is not None
+        return _checkpoint_base_result(
+            body,
+            ok=False,
+            error=failure.top_level_error or failure.message,
+            artifact=artifact,
+            claims=_semantic_failure_claims(
+                semantics,
+                default_claim_names=default_claims,
+                subject_type="semantic_resolution",
+                subject_id=path.name,
+                evidence=["checkpoint.claim_set", "checkpoint.semantics_pins"],
+            ),
+            semantics=semantics,
+            diagnostics=[failure.diagnostic] if failure.diagnostic else None,
+        )
+    semantics_dispatch = semantics.dispatch()
+
     composite = body.get("composite_hash")
     signature = body.get("signature")
     embedded_pub = body.get("public_key")
@@ -4453,6 +4651,7 @@ def _verify_checkpoint_core(
                     checkpoint_id=checkpoint_id,
                 )
             ],
+            semantics=semantics,
         )
     if not isinstance(chain_heads_raw, dict):
         return _checkpoint_base_result(
@@ -4468,6 +4667,7 @@ def _verify_checkpoint_core(
                     checkpoint_id=checkpoint_id,
                 )
             ],
+            semantics=semantics,
             composite_hash=composite,
         )
 
@@ -4486,6 +4686,7 @@ def _verify_checkpoint_core(
                         checkpoint_id=checkpoint_id,
                     )
                 ],
+                semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
@@ -4503,6 +4704,7 @@ def _verify_checkpoint_core(
                         checkpoint_id=checkpoint_id,
                     )
                 ],
+                semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
@@ -4520,12 +4722,15 @@ def _verify_checkpoint_core(
                         checkpoint_id=checkpoint_id,
                     )
                 ],
+                semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
 
     try:
-        recomputed = _composite_hash(chain_heads_raw)
+        if semantics_dispatch.composite_hash is None:
+            raise ValueError("checkpoint composite-hash implementation was not resolved")
+        recomputed = semantics_dispatch.composite_hash(chain_heads_raw)
     except Exception as exc:
         return _checkpoint_base_result(
             body,
@@ -4540,6 +4745,7 @@ def _verify_checkpoint_core(
                     checkpoint_id=checkpoint_id,
                 )
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4561,6 +4767,7 @@ def _verify_checkpoint_core(
                     checkpoint_id=checkpoint_id,
                 )
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4585,6 +4792,7 @@ def _verify_checkpoint_core(
                     key_id=artifact_key_id,
                 ),
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4609,6 +4817,7 @@ def _verify_checkpoint_core(
                     key_id=artifact_key_id,
                 ),
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4645,6 +4854,7 @@ def _verify_checkpoint_core(
                     key_id=artifact_key_id,
                 ),
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4673,6 +4883,7 @@ def _verify_checkpoint_core(
                     key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
                 ),
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -4697,6 +4908,7 @@ def _verify_checkpoint_core(
                     key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
                 ),
             ],
+            semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
             public_key=trusted_pub,
@@ -4747,6 +4959,7 @@ def _verify_checkpoint_core(
                     ),
                     _checkpoint_tsa_claim(tsa_receipts),
                 ],
+                semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
                 public_key=trusted_pub,
@@ -4786,6 +4999,7 @@ def _verify_checkpoint_core(
                     ),
                     _checkpoint_tsa_claim(tsa_receipts),
                 ],
+                semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
                 public_key=trusted_pub,
@@ -4839,6 +5053,7 @@ def _verify_checkpoint_core(
         ok=True,
         artifact=artifact,
         claims=success_claims,
+        semantics=semantics,
         composite_hash=composite,
         chain_heads_count=len(chain_heads_raw),
         public_key=trusted_pub,

@@ -1,0 +1,86 @@
+{
+  "id": "keel.pre_pinning_default.v0",
+  "version": "v0",
+  "kind": "semantic_profile",
+  "status": "released",
+  "body": {
+    "mode": "legacy_unpinned",
+    "applies_when": "evidence pack manifest has no claim_set and no semantics_pins",
+    "warning": "pack has no semantics_pins; evaluated under the permanent pre-pinning v0 profile",
+    "components": [
+      {
+        "id": "keel.verifier_claim_registry.v0",
+        "hash": "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b",
+        "path": "claim_registry/v0.json"
+      },
+      {
+        "id": "keel.export_manifest.integrity.v1",
+        "hash": "sha256:d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76",
+        "path": "semantics/export_manifest/integrity_v1.json"
+      },
+      {
+        "id": "keel.governance_chain.record_hash.v1",
+        "hash": "sha256:a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707",
+        "path": "semantics/governance_chain/record_hash_v1.json"
+      },
+      {
+        "id": "keel.closure.format.v1",
+        "hash": "sha256:b208b82fbf8187ecdc85410630fbfa30f86f34c4da28d4b418c5788a8ec893ba",
+        "path": "semantics/closure/format_v1.json"
+      },
+      {
+        "id": "keel.closure.format.v2",
+        "hash": "sha256:476b9aaf8f1b3e0fd46b9cfae522062e803ecbb1c24fdbb6ec60775b979d59f1",
+        "path": "semantics/closure/format_v2.json"
+      },
+      {
+        "id": "keel.closure.digest_rules.v1",
+        "hash": "sha256:eca06d960a9e16468a622938a17b77244d487b58459be4dce3e55ef006f29454",
+        "path": "semantics/closure/digest_rules_v1.json"
+      },
+      {
+        "id": "keel.permit_binding.canonical_request.v1",
+        "hash": "sha256:59633003ed97b2a65e756007fddd6f525a8c056de57a1cd40971034fa044f0ac",
+        "path": "semantics/permit_binding/canonical_request_v1.json"
+      },
+      {
+        "id": "keel.workflow.canonicalization.v1",
+        "hash": "sha256:b7359ae11dc1d8cfad51bf3e6fec32a0209bf38097a01fa4f878e3a068184501",
+        "path": "semantics/workflow/canonicalization_v1.json"
+      },
+      {
+        "id": "keel.workflow_evidence.sibling_integrity.v1",
+        "hash": "sha256:c4e99745893e6c66afa89ad46602b0cf1931530f78875e18387381fca8c2a5aa",
+        "path": "semantics/workflow_evidence/sibling_integrity_v1.json"
+      },
+      {
+        "id": "keel.incident.bundle_manifest.v2",
+        "hash": "sha256:ed112e365985d79192a4cb7c3248625d8294d2d2c5210ce31960eb7d55f4b9eb",
+        "path": "semantics/incident/bundle_manifest_v2.json"
+      },
+      {
+        "id": "keel.checkpoint.composite_hash.v1",
+        "hash": "sha256:68aafa26d6f1c8cf5ba83c7596209888d8e529d81f1a2c58f31e2fc41fc136de",
+        "path": "semantics/checkpoint/composite_hash_v1.json"
+      },
+      {
+        "id": "keel.checkpoint.signature.v1",
+        "hash": "sha256:af16c66e8a0b295cd2e5e436169bf0e3d628c1fc4901b6eba6596e86e3ad256b",
+        "path": "semantics/checkpoint/signature_v1.json"
+      },
+      {
+        "id": "keel.checkpoint.tsa_imprint.v1",
+        "hash": "sha256:a4e02133537a190c3795737beb4bb2ddf823cd09d5b6dcba43c682fb9e37d79e",
+        "path": "semantics/checkpoint/tsa_imprint_v1.json"
+      }
+    ],
+    "conditional_components": [
+      {
+        "id": "authority-envelope.v0",
+        "hash": "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2",
+        "path": "comparator_registry/v0.json",
+        "required_when": "permit-chain claims request authority-envelope.v0 comparison semantics"
+      }
+    ]
+  }
+}

@@ -8,73 +8,23 @@ source checkouts prefer the sibling keel-permit registry.
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
-
-VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
-CLAIM_REGISTRY_VERSION = "verifier-claims.v0"
-LEGACY_PROFILE_ID = "keel.pre_pinning_default.v0"
-LEGACY_PROFILE_WARNING = (
-    "pack has no semantics_pins; evaluated under the permanent pre-pinning v0 profile"
+from keel_verifier.semantics import (
+    CLAIM_REGISTRY_VERSION,
+    CLAIM_SEMANTICS,
+    LEGACY_PROFILE_HASH,
+    LEGACY_PROFILE_ID,
+    LEGACY_PROFILE_WARNING,
+    RELEASED_ARTIFACT_HASHES,
+    candidate_registry_paths,
 )
 
-
-CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
-    "export.integrity.v1": ("keel.export_manifest.integrity.v1",),
-    "export.scope_identity.v1": ("keel.export_manifest.integrity.v1",),
-    "governance_chain.local_continuity.v1": (
-        "keel.governance_chain.record_hash.v1",
-    ),
-    "closure.signature.v1": (
-        "keel.closure.format.v1",
-        "keel.closure.format.v2",
-        "keel.permit_binding.canonical_request.v1",
-    ),
-    "closure.digest_consistency.v1": (
-        "keel.closure.format.v1",
-        "keel.closure.format.v2",
-        "keel.closure.digest_rules.v1",
-    ),
-    "closure.dispatch_binding.v1": (
-        "keel.closure.format.v2",
-        "keel.closure.digest_rules.v1",
-        "keel.permit_binding.canonical_request.v1",
-    ),
-    "workflow.declaration_signature.v1": (
-        "keel.workflow.canonicalization.v1",
-        "keel.permit_binding.canonical_request.v1",
-    ),
-    "workflow.amendment_signature.v1": (
-        "keel.workflow.canonicalization.v1",
-        "keel.permit_binding.canonical_request.v1",
-    ),
-    "workflow.effective_intent_hash.v1": (
-        "keel.workflow.canonicalization.v1",
-    ),
-    "workflow.permit_snapshot.v1": (
-        "keel.workflow.canonicalization.v1",
-    ),
-    "incident.bundle_manifest.v1": (
-        "keel.incident.bundle_manifest.v2",
-    ),
-    "checkpoint.composite_hash.v1": (
-        "keel.checkpoint.composite_hash.v1",
-    ),
-    "checkpoint.signature.v1": (
-        "keel.checkpoint.signature.v1",
-    ),
-    "checkpoint.tsa_imprint.v1": (
-        "keel.checkpoint.tsa_imprint.v1",
-    ),
-    "workflow_evidence.sibling_integrity.v1": (
-        "keel.workflow_evidence.sibling_integrity.v1",
-    ),
-}
+VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
 
 
 @dataclass(frozen=True)
@@ -107,20 +57,7 @@ class ClaimRegistry:
 
 
 def _candidate_registry_paths() -> list[Path]:
-    paths: list[Path] = []
-    env_path = os.getenv("KEEL_CLAIM_REGISTRY")
-    if env_path:
-        paths.append(Path(env_path).expanduser())
-
-    package_root = Path(__file__).resolve().parents[1]
-    product_root = Path(__file__).resolve().parents[2]
-    paths.extend(
-        [
-            product_root / "keel-permit" / "claim_registry" / "v0.json",
-            package_root / ".." / "keel-permit" / "claim_registry" / "v0.json",
-        ]
-    )
-    return paths
+    return candidate_registry_paths()
 
 
 def _load_registry_payload() -> tuple[dict[str, Any], str]:
@@ -206,14 +143,17 @@ def legacy_semantics() -> dict[str, Any]:
     return {
         "mode": "legacy_unpinned",
         "profile_id": LEGACY_PROFILE_ID,
-        "profile_hash": None,
+        "profile_hash": LEGACY_PROFILE_HASH,
         "warning": LEGACY_PROFILE_WARNING,
     }
 
 
 def claim_semantics(name: str) -> list[dict[str, Any]]:
     load_claim_registry().claim(name)
-    return [{"id": semantic_id, "hash": None} for semantic_id in CLAIM_SEMANTICS[name]]
+    return [
+        {"id": semantic_id, "hash": RELEASED_ARTIFACT_HASHES.get(semantic_id)}
+        for semantic_id in CLAIM_SEMANTICS[name]
+    ]
 
 
 @dataclass(frozen=True)

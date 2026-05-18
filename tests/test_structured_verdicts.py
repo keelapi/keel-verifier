@@ -9,6 +9,7 @@ from keel_verifier.verdicts import (
     LEGACY_PROFILE_WARNING,
     VERDICT_OUTPUT_JSON_SCHEMA,
 )
+from keel_verifier.semantics import LEGACY_PROFILE_HASH
 
 
 def _json_result(result):
@@ -50,12 +51,15 @@ def test_export_json_matches_verdict_schema_shape(tmp_path, run_cli):
     assert payload["ok"] is True
     assert payload["exit_code"] == 0
     assert isinstance(payload["diagnostics"], list)
-    assert payload["semantics"] == {
-        "mode": "legacy_unpinned",
-        "profile_id": "keel.pre_pinning_default.v0",
-        "profile_hash": None,
-        "warning": LEGACY_PROFILE_WARNING,
-    }
+    assert payload["semantics"]["mode"] == "legacy_unpinned"
+    assert payload["semantics"]["profile_id"] == "keel.pre_pinning_default.v0"
+    assert payload["semantics"]["profile_hash"] == LEGACY_PROFILE_HASH
+    assert payload["semantics"]["warning"] == LEGACY_PROFILE_WARNING
+    assert any(
+        pin["id"] == "keel.export_manifest.integrity.v1"
+        and pin["status"] == "allowlisted"
+        for pin in payload["semantics"]["pins"]
+    )
     verdicts = {claim["name"]: claim["verdict"] for claim in payload["claims"]}
     assert verdicts["export.integrity.v1"] == "supported"
 
