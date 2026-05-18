@@ -376,13 +376,30 @@ def _filter_by_active_window(
 ) -> list[dict[str, Any]]:
     """Keep entries whose [valid_from, valid_to] window covers signing_time.
 
-    Either bound being None means "open-ended" on that side. Entries
-    whose timestamp fields fail to parse are excluded conservatively.
+    An absent bound or explicit JSON null means "open-ended" on that
+    side. A present non-null bound that fails to parse makes the entry
+    malformed, so the entry is excluded conservatively.
     """
     matches: list[dict[str, Any]] = []
     for entry in entries:
-        valid_from = _parse_iso_or_none(entry.get("valid_from"))
-        valid_to = _parse_iso_or_none(entry.get("valid_to"))
+        valid_from = None
+        valid_to = None
+        malformed_window = False
+
+        for field in ("valid_from", "valid_to"):
+            if field not in entry or entry[field] is None:
+                continue
+            parsed = _parse_iso_or_none(entry[field])
+            if parsed is None:
+                malformed_window = True
+                break
+            if field == "valid_from":
+                valid_from = parsed
+            else:
+                valid_to = parsed
+
+        if malformed_window:
+            continue
         if valid_from is not None and signing_time < valid_from:
             continue
         if valid_to is not None and signing_time > valid_to:
