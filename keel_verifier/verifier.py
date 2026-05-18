@@ -52,9 +52,12 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import gzip
 import hashlib
+import io
 import json
+import re
 import sys
 import urllib.request
 import zipfile
@@ -62,6 +65,15 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
 from typing import Any
+
+from keel_verifier.verdicts import (
+    ClaimVerdict,
+    VERDICT_SCHEMA_ID,
+    VerificationReport,
+    VerdictSubject,
+    legacy_semantics,
+    verdict_value,
+)
 
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -92,6 +104,77 @@ REFRESH_KEYS_SOURCES: tuple[tuple[str, str, str], ...] = (
 
 def _content_hash(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _subject(
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> VerdictSubject:
+    return VerdictSubject(
+        type=subject_type,
+        id=subject_id,
+        verdict=verdict_value(verdict),
+        reason_code=reason_code,
+        message=message,
+        evidence=list(evidence or []),
+    )
+
+
+def _single_subject_claim(
+    name: str,
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+    required: bool = True,
+) -> ClaimVerdict:
+    return ClaimVerdict(
+        name=name,
+        required=required,
+        subjects=[
+            _subject(
+                subject_type=subject_type,
+                subject_id=subject_id,
+                verdict=verdict,
+                reason_code=reason_code,
+                message=message,
+                evidence=evidence,
+            )
+        ],
+        reason_code=reason_code,
+        message=message,
+        evidence=list(evidence or []),
+    )
+
+
+def _merge_claims(claims: list[ClaimVerdict]) -> list[ClaimVerdict]:
+    merged: dict[str, ClaimVerdict] = {}
+    order: list[str] = []
+    for claim in claims:
+        existing = merged.get(claim.name)
+        if existing is None:
+            merged[claim.name] = claim
+            order.append(claim.name)
+            continue
+        merged[claim.name] = ClaimVerdict(
+            name=claim.name,
+            subjects=[*existing.subjects, *claim.subjects],
+            required=existing.required or claim.required,
+            semantics=existing.semantics if existing.semantics is not None else claim.semantics,
+            evidence=[*existing.evidence, *claim.evidence],
+            reason_code=existing.reason_code or claim.reason_code,
+            message=existing.message or claim.message,
+            diagnostics=[*existing.diagnostics, *claim.diagnostics],
+        )
+    return [merged[name] for name in order]
 
 
 WALK_RECORD_HASH_MISMATCH = "WALK_RECORD_HASH_MISMATCH"
@@ -2839,6 +2922,848 @@ def _validate_manifest_payload(payload: dict[str, Any]) -> int:
     return len(keys)
 
 
+def _captured_check(callable_, *args, **kwargs) -> tuple[int | None, str, str]:
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+        result = callable_(*args, **kwargs)
+    return result, stdout.getvalue(), stderr.getvalue()
+
+
+def _failure_from_output(stdout: str, stderr: str) -> tuple[str, str]:
+    text = f"{stderr}\n{stdout}"
+    match = re.search(r"FAILED:\s+([A-Z][A-Z0-9_]+):\s*(.*)", text)
+    if match:
+        return match.group(1), match.group(2).strip()
+    lowered = text.lower()
+    if "content hash mismatch" in lowered:
+        return "CONTENT_HASH_MISMATCH", "content hash mismatch"
+    if "signature verification failed" in lowered:
+        return "SIGNATURE_VERIFICATION_FAILED", "signature verification failed"
+    if "export manifest is unsigned" in lowered:
+        return "MANIFEST_SIGNATURE_MISSING", "export manifest is unsigned"
+    if "export is not json" in lowered:
+        return "EXPORT_STRUCTURE_INVALID", "export is not JSON"
+    match = re.search(r"FAILED:\s*(.*)", text)
+    return "VERIFICATION_FAILED", (match.group(1).strip() if match else text.strip())
+
+
+def _export_artifact_dict(
+    *,
+    export_path: Path,
+    manifest_path: Path,
+    export_data: bytes | None = None,
+    manifest_data: bytes | None = None,
+) -> dict[str, Any]:
+    artifact: dict[str, Any] = {
+        "kind": "export",
+        "manifest_path": str(manifest_path),
+        "payload_path": str(export_path),
+    }
+    if manifest_data is not None:
+        artifact["manifest_hash"] = _content_hash(manifest_data)
+    if export_data is not None:
+        artifact["payload_hash"] = _content_hash(export_data)
+    return artifact
+
+
+def _export_report(
+    *,
+    ok: bool,
+    exit_code: int,
+    artifact: dict[str, Any],
+    claims: list[ClaimVerdict],
+    error: str | None = None,
+    diagnostics: list[str] | None = None,
+) -> VerificationReport:
+    return VerificationReport(
+        ok=ok,
+        exit_code=exit_code,
+        artifact=artifact,
+        claims=_merge_claims(claims),
+        error=error,
+        diagnostics=list(diagnostics or []),
+        semantics=legacy_semantics(),
+    )
+
+
+def _export_integrity_claim(
+    *,
+    export_path: Path,
+    manifest_path: Path,
+    content_verdict: str,
+    signature_verdict: str,
+    reason_code: str,
+    message: str,
+    signature_message: str | None = None,
+) -> ClaimVerdict:
+    return ClaimVerdict(
+        name="export.integrity.v1",
+        subjects=[
+            _subject(
+                subject_type="payload_content_hash",
+                subject_id=export_path.name,
+                verdict=content_verdict,
+                reason_code=(
+                    "CONTENT_HASH_MATCH"
+                    if content_verdict == "supported"
+                    else reason_code
+                ),
+                message=(
+                    "export bytes match manifest content_hash"
+                    if content_verdict == "supported"
+                    else message
+                ),
+                evidence=["manifest.content_hash", str(export_path)],
+            ),
+            _subject(
+                subject_type="manifest_signature",
+                subject_id=manifest_path.name,
+                verdict=signature_verdict,
+                reason_code=reason_code,
+                message=signature_message or message,
+                evidence=["manifest.signature", "manifest.public_key", "manifest.key_id"],
+            ),
+        ],
+        reason_code=reason_code,
+        message=message,
+        evidence=["manifest.content_hash", "manifest.signature", str(export_path)],
+    )
+
+
+def _payload_record_count(export_data: bytes) -> int | None:
+    try:
+        document = _load_export_json_document(export_data)
+    except Exception:
+        return None
+    if not isinstance(document, dict):
+        return None
+    records = document.get("records")
+    if isinstance(records, list):
+        return len(records)
+    return None
+
+
+def _evaluate_export_scope_identity(
+    *,
+    manifest: dict[str, Any],
+    export_data: bytes,
+) -> ClaimVerdict | None:
+    identity_fields = (
+        "export_id",
+        "project_id",
+        "export_type",
+        "format",
+        "compressed",
+        "record_count",
+    )
+    if not any(field in manifest for field in identity_fields):
+        return None
+    missing = [field for field in identity_fields if field not in manifest]
+    if missing:
+        return _single_subject_claim(
+            "export.scope_identity.v1",
+            subject_type="manifest_identity",
+            subject_id=str(manifest.get("export_id") or "<unknown>"),
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_IDENTITY_INCOMPLETE",
+            message=f"manifest identity fields missing: {', '.join(missing)}",
+            evidence=["manifest"],
+            required=False,
+        )
+
+    record_count = _payload_record_count(export_data)
+    if record_count is None:
+        return _single_subject_claim(
+            "export.scope_identity.v1",
+            subject_type="manifest_identity",
+            subject_id=str(manifest.get("export_id") or "<unknown>"),
+            verdict="unverifiable_scope",
+            reason_code="EXPORT_SCOPE_IDENTITY_UNVERIFIABLE",
+            message="export payload shape does not expose a verifiable record_count",
+            evidence=["manifest", "export.records"],
+            required=False,
+        )
+    if record_count != manifest.get("record_count"):
+        return _single_subject_claim(
+            "export.scope_identity.v1",
+            subject_type="manifest_identity",
+            subject_id=str(manifest.get("export_id") or "<unknown>"),
+            verdict="disproved",
+            reason_code="EXPORT_SCOPE_RECORD_COUNT_MISMATCH",
+            message=(
+                f"manifest record_count={manifest.get('record_count')} "
+                f"does not match payload records={record_count}"
+            ),
+            evidence=["manifest.record_count", "export.records"],
+            required=False,
+        )
+
+    try:
+        document = _load_export_json_document(export_data)
+    except Exception:
+        document = None
+    project_id = document.get("project_id") if isinstance(document, dict) else None
+    if (
+        isinstance(manifest.get("project_id"), str)
+        and isinstance(project_id, str)
+        and manifest["project_id"] != project_id
+    ):
+        return _single_subject_claim(
+            "export.scope_identity.v1",
+            subject_type="manifest_identity",
+            subject_id=str(manifest.get("export_id") or "<unknown>"),
+            verdict="disproved",
+            reason_code="EXPORT_SCOPE_PROJECT_ID_MISMATCH",
+            message="manifest project_id does not match payload project_id",
+            evidence=["manifest.project_id", "export.project_id"],
+            required=False,
+        )
+
+    return _single_subject_claim(
+        "export.scope_identity.v1",
+        subject_type="manifest_identity",
+        subject_id=str(manifest.get("export_id") or "<unknown>"),
+        verdict="supported",
+        reason_code="EXPORT_SCOPE_IDENTITY_SUPPORTED",
+        message="manifest identity fields match the export payload shape",
+        evidence=["manifest", "export.records"],
+        required=False,
+    )
+
+
+def _count_from_output(stdout: str, label: str) -> int | None:
+    match = re.search(rf"{re.escape(label)}:\s+(\d+)", stdout)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def _workflow_claims_from_output(
+    *,
+    manifest: dict[str, Any],
+    stdout: str,
+    stderr: str,
+    result: int | None,
+) -> list[ClaimVerdict]:
+    claims: list[ClaimVerdict] = []
+    sibling_artifacts = manifest.get("sibling_artifacts")
+    sibling_present = (
+        isinstance(sibling_artifacts, dict)
+        and isinstance(sibling_artifacts.get("workflow_evidence"), dict)
+    )
+    if sibling_present and "WORKFLOW-EVIDENCE: VERIFIED" in stdout:
+        claims.append(
+            _single_subject_claim(
+                "workflow_evidence.sibling_integrity.v1",
+                subject_type="workflow_evidence_sibling",
+                subject_id="workflow_evidence",
+                verdict="supported",
+                reason_code="WORKFLOW_SIBLING_INTEGRITY_SUPPORTED",
+                message="workflow evidence sibling content hash and signature are valid",
+                evidence=["manifest.sibling_artifacts.workflow_evidence"],
+            )
+        )
+
+    declarations = _count_from_output(stdout, "declarations_verified")
+    amendments = _count_from_output(stdout, "amendments_verified")
+    if declarations is not None and declarations > 0:
+        claims.extend(
+            [
+                _single_subject_claim(
+                    "workflow.declaration_signature.v1",
+                    subject_type="workflow_declarations",
+                    subject_id="declarations",
+                    verdict="supported",
+                    reason_code="WORKFLOW_DECLARATION_SIGNATURE_SUPPORTED",
+                    message=f"{declarations} workflow declaration signature(s) verified",
+                    evidence=["workflow_evidence.declarations"],
+                ),
+                _single_subject_claim(
+                    "workflow.effective_intent_hash.v1",
+                    subject_type="workflow_declarations",
+                    subject_id="declarations",
+                    verdict="supported",
+                    reason_code="WORKFLOW_EFFECTIVE_INTENT_HASH_SUPPORTED",
+                    message="workflow effective intent hash checks verified",
+                    evidence=["workflow_evidence.declarations", "workflow_evidence.amendments"],
+                ),
+            ]
+        )
+    if amendments is not None and amendments > 0:
+        claims.append(
+            _single_subject_claim(
+                "workflow.amendment_signature.v1",
+                subject_type="workflow_amendments",
+                subject_id="amendments",
+                verdict="supported",
+                reason_code="WORKFLOW_AMENDMENT_SIGNATURE_SUPPORTED",
+                message=f"{amendments} workflow amendment signature(s) verified",
+                evidence=["workflow_evidence.amendments"],
+            )
+        )
+    snapshot_checks = _count_from_output(stdout, "workflow_state_json checks")
+    if snapshot_checks is not None and snapshot_checks > 0:
+        claims.append(
+            _single_subject_claim(
+                "workflow.permit_snapshot.v1",
+                subject_type="permit_workflow_snapshot",
+                subject_id="workflow_state_json",
+                verdict="supported",
+                reason_code="WORKFLOW_PERMIT_SNAPSHOT_SUPPORTED",
+                message=f"{snapshot_checks} permit workflow snapshot(s) verified",
+                evidence=["export.records.workflow_state_json"],
+            )
+        )
+    if "INCIDENT-BUNDLE: VERIFIED" in stdout:
+        claims.append(
+            _single_subject_claim(
+                "incident.bundle_manifest.v1",
+                subject_type="incident_bundle",
+                subject_id="incident.zip",
+                verdict="supported",
+                reason_code="INCIDENT_BUNDLE_MANIFEST_SUPPORTED",
+                message="incident bundle manifest v2 file set and schemas verified",
+                evidence=["incident.zip", "manifest"],
+            )
+        )
+
+    if result is None:
+        return claims
+    if result == 0:
+        return claims
+
+    reason_code, message = _failure_from_output(stdout, stderr)
+    lowered = message.lower()
+    if reason_code == WORKFLOW_EVIDENCE_SCHEMA_INVALID:
+        if "workflow_evidence content_hash mismatch" in lowered:
+            claim_name = "workflow_evidence.sibling_integrity.v1"
+            verdict = "disproved"
+        elif "declaration_signed_at" in lowered or "declarations[" in lowered:
+            claim_name = "workflow.declaration_signature.v1"
+            verdict = "insufficient_evidence"
+        else:
+            claim_name = "workflow.effective_intent_hash.v1"
+            verdict = "insufficient_evidence"
+    elif reason_code == WORKFLOW_SIGNATURE_INVALID:
+        if "amendment" in lowered:
+            claim_name = "workflow.amendment_signature.v1"
+        elif "workflow_evidence" in lowered:
+            claim_name = "workflow_evidence.sibling_integrity.v1"
+        else:
+            claim_name = "workflow.declaration_signature.v1"
+        verdict = "disproved"
+    elif reason_code == WORKFLOW_AMENDMENT_ORDER_INVALID:
+        claim_name = "workflow.effective_intent_hash.v1"
+        verdict = "disproved"
+    elif reason_code == WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH:
+        claim_name = (
+            "workflow.permit_snapshot.v1"
+            if "permit_records[" in lowered
+            else "workflow.effective_intent_hash.v1"
+        )
+        verdict = "disproved"
+    elif reason_code in {INCIDENT_MANIFEST_SCHEMA_INVALID, INCIDENT_UNKNOWN_MANIFEST_VERSION}:
+        claim_name = "incident.bundle_manifest.v1"
+        verdict = "disproved"
+    else:
+        claim_name = "workflow.effective_intent_hash.v1"
+        verdict = "unverifiable_scope"
+    claims.append(
+        _single_subject_claim(
+            claim_name,
+            subject_type="workflow_or_incident",
+            subject_id=None,
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=["export", "manifest"],
+        )
+    )
+    return claims
+
+
+def _walk_claim_from_output(
+    *,
+    stdout: str,
+    stderr: str,
+    result: int,
+) -> ClaimVerdict:
+    if result == 0 and "WALK-EVENTS: VERIFIED" in stdout:
+        entries = _count_from_output(stdout, "entries_walked")
+        if entries is not None and entries == 0:
+            verdict = "insufficient_evidence"
+            reason_code = "WALK_NO_EVALUABLE_SUBJECTS"
+            message = "walk-events found zero evaluable chain entries"
+        else:
+            verdict = "supported"
+            reason_code = "WALK_EVENTS_SUPPORTED"
+            message = "governance chain local continuity verified"
+        return _single_subject_claim(
+            "governance_chain.local_continuity.v1",
+            subject_type="governance_chain",
+            subject_id="chain_entries",
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=["export.chain_entries", "export.records.chain_entries"],
+        )
+
+    reason_code, message = _failure_from_output(stdout, stderr)
+    verdict = (
+        "unverifiable_scope"
+        if reason_code in {"EXPORT_STRUCTURE_INVALID", WALK_UNKNOWN_CHAIN_FORMAT}
+        else "disproved"
+    )
+    return _single_subject_claim(
+        "governance_chain.local_continuity.v1",
+        subject_type="governance_chain",
+        subject_id="chain_entries",
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=["export.chain_entries", "export.records.chain_entries"],
+    )
+
+
+def _closure_claims_from_output(
+    *,
+    stdout: str,
+    stderr: str,
+    result: int,
+) -> list[ClaimVerdict]:
+    claims: list[ClaimVerdict] = []
+    if result == 0 and "VERIFY-CLOSURE: VERIFIED" in stdout:
+        closures = _count_from_output(stdout, "closures_verified") or 0
+        digest_checks = _count_from_output(stdout, "digest_checks") or 0
+        if closures > 0:
+            claims.append(
+                _single_subject_claim(
+                    "closure.signature.v1",
+                    subject_type="closure",
+                    subject_id="permit.closed",
+                    verdict="supported",
+                    reason_code="CLOSURE_SIGNATURE_SUPPORTED",
+                    message=f"{closures} closure signature(s) verified",
+                    evidence=["export.chain_entries[permit.closed]"],
+                )
+            )
+        else:
+            claims.append(
+                _single_subject_claim(
+                    "closure.signature.v1",
+                    subject_type="closure",
+                    subject_id="permit.closed",
+                    verdict="insufficient_evidence",
+                    reason_code="CLOSURE_NO_EVALUABLE_SUBJECTS",
+                    message="verify-closure found zero evaluable closure subjects",
+                    evidence=["export.chain_entries[permit.closed]"],
+                )
+            )
+        if digest_checks > 0:
+            claims.append(
+                _single_subject_claim(
+                    "closure.digest_consistency.v1",
+                    subject_type="closure_digest",
+                    subject_id="provider_client_response",
+                    verdict="supported",
+                    reason_code="CLOSURE_DIGEST_CONSISTENCY_SUPPORTED",
+                    message=f"{digest_checks} closure digest reference(s) verified",
+                    evidence=["export.chain_entries[permit.closed]"],
+                )
+            )
+        if "dispatch_digest_check: PASS" in stdout:
+            claims.append(
+                _single_subject_claim(
+                    "closure.dispatch_binding.v1",
+                    subject_type="closure_dispatch_digest",
+                    subject_id="dispatch_request_digest_v1",
+                    verdict="supported",
+                    reason_code="CLOSURE_DISPATCH_BINDING_SUPPORTED",
+                    message="closure dispatch request digest matches permit binding hash",
+                    evidence=[
+                        "export.records.permit.binding_request_hash",
+                        "export.chain_entries[permit.closed]",
+                    ],
+                )
+            )
+        return claims
+
+    reason_code, message = _failure_from_output(stdout, stderr)
+    if reason_code == WALK_CLOSURE_SIGNATURE_INVALID:
+        claim_name = "closure.signature.v1"
+        verdict = "disproved"
+    elif reason_code == WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH:
+        claims.append(
+            _single_subject_claim(
+                "closure.signature.v1",
+                subject_type="closure",
+                subject_id="permit.closed",
+                verdict="supported",
+                reason_code="CLOSURE_SIGNATURE_SUPPORTED",
+                message="closure signature checks passed before dispatch binding failure",
+                evidence=["export.chain_entries[permit.closed]"],
+            )
+        )
+        claim_name = "closure.dispatch_binding.v1"
+        verdict = "disproved"
+    elif reason_code == WALK_CLOSURE_DIGEST_MISSING:
+        claims.append(
+            _single_subject_claim(
+                "closure.signature.v1",
+                subject_type="closure",
+                subject_id="permit.closed",
+                verdict="supported",
+                reason_code="CLOSURE_SIGNATURE_SUPPORTED",
+                message="closure signature checks passed before digest evidence failure",
+                evidence=["export.chain_entries[permit.closed]"],
+            )
+        )
+        claim_name = (
+            "closure.dispatch_binding.v1"
+            if "dispatch_request_digest_v1" in message
+            else "closure.digest_consistency.v1"
+        )
+        verdict = "insufficient_evidence"
+    elif reason_code == WALK_CLOSURE_DIGEST_MISMATCH:
+        claims.append(
+            _single_subject_claim(
+                "closure.signature.v1",
+                subject_type="closure",
+                subject_id="permit.closed",
+                verdict="supported",
+                reason_code="CLOSURE_SIGNATURE_SUPPORTED",
+                message="closure signature checks passed before digest consistency failure",
+                evidence=["export.chain_entries[permit.closed]"],
+            )
+        )
+        claim_name = "closure.digest_consistency.v1"
+        verdict = "disproved"
+    else:
+        claim_name = "closure.signature.v1"
+        verdict = "unverifiable_scope"
+    claims.append(
+        _single_subject_claim(
+            claim_name,
+            subject_type="closure",
+            subject_id="permit.closed",
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=["export.chain_entries[permit.closed]"],
+        )
+    )
+    return claims
+
+
+def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
+    export_path = Path(args.export_file)
+    manifest_path = Path(args.manifest)
+    artifact = _export_artifact_dict(
+        export_path=export_path,
+        manifest_path=manifest_path,
+    )
+
+    if not export_path.exists():
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[],
+            error=f"Export file not found: {export_path}",
+        )
+    if not manifest_path.exists():
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[],
+            error=f"Manifest file not found: {manifest_path}",
+        )
+
+    manifest_data = manifest_path.read_bytes()
+    export_data = export_path.read_bytes()
+    artifact = _export_artifact_dict(
+        export_path=export_path,
+        manifest_path=manifest_path,
+        export_data=export_data,
+        manifest_data=manifest_data,
+    )
+    try:
+        manifest = json.loads(manifest_data.decode("utf-8"))
+    except Exception as exc:
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[
+                _single_subject_claim(
+                    "export.integrity.v1",
+                    subject_type="manifest",
+                    subject_id=manifest_path.name,
+                    verdict="insufficient_evidence",
+                    reason_code="MANIFEST_JSON_INVALID",
+                    message=f"manifest is not valid JSON: {exc}",
+                    evidence=[str(manifest_path)],
+                )
+            ],
+            error=f"manifest is not valid JSON: {exc}",
+        )
+    if not isinstance(manifest, dict):
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[
+                _single_subject_claim(
+                    "export.integrity.v1",
+                    subject_type="manifest",
+                    subject_id=manifest_path.name,
+                    verdict="insufficient_evidence",
+                    reason_code="MANIFEST_JSON_INVALID",
+                    message="manifest top-level JSON must be an object",
+                    evidence=[str(manifest_path)],
+                )
+            ],
+            error="manifest top-level JSON must be an object",
+        )
+
+    claims: list[ClaimVerdict] = []
+    diagnostics: list[str] = []
+    expected = manifest.get("content_hash")
+    actual = _content_hash(export_data)
+    if expected != actual:
+        message = f"content hash mismatch: expected={expected} actual={actual}"
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[
+                _export_integrity_claim(
+                    export_path=export_path,
+                    manifest_path=manifest_path,
+                    content_verdict="disproved",
+                    signature_verdict="insufficient_evidence",
+                    reason_code="CONTENT_HASH_MISMATCH",
+                    message=message,
+                    signature_message="signature was not evaluated after content hash mismatch",
+                )
+            ],
+            error=message,
+        )
+
+    sig = manifest.get("signature")
+    embedded_pub = manifest.get("public_key")
+    artifact_key_id = (
+        manifest.get("key_id") if isinstance(manifest.get("key_id"), str) else None
+    )
+
+    if not sig:
+        message = "Export manifest is unsigned (no signature in manifest)."
+        signature_verdict = "insufficient_evidence"
+        claims.append(
+            _export_integrity_claim(
+                export_path=export_path,
+                manifest_path=manifest_path,
+                content_verdict="supported",
+                signature_verdict=signature_verdict,
+                reason_code="MANIFEST_SIGNATURE_MISSING",
+                message=message,
+                signature_message=(
+                    "--allow-unsigned compatibility: manifest has no signature; "
+                    "content hash verified but signature evidence is missing"
+                    if getattr(args, "allow_unsigned", False)
+                    else message
+                ),
+            )
+        )
+        if getattr(args, "allow_unsigned", False):
+            diagnostics.append(
+                "--allow-unsigned compatibility mode: content hash verified, "
+                "but export.integrity.v1 remains insufficient_evidence because "
+                "the manifest signature is missing"
+            )
+            return _export_report(
+                ok=True,
+                exit_code=0,
+                artifact=artifact,
+                claims=claims,
+                diagnostics=diagnostics,
+            )
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            error=message,
+            diagnostics=diagnostics,
+        )
+
+    signing_time = _parse_iso_or_none(manifest.get("signed_at"))
+    trusted_pub, trust_source, err = _resolve_trust_key(
+        artifact_pub=embedded_pub if isinstance(embedded_pub, str) else None,
+        artifact_key_id=artifact_key_id,
+        purpose="export_signing",
+        expected_public_key=args.expected_public_key,
+        public_key_url=None,
+        key_manifest_source=_key_manifest_source_for_args(args),
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        message = str(err or "could not resolve trust root")
+        claims.append(
+            _export_integrity_claim(
+                export_path=export_path,
+                manifest_path=manifest_path,
+                content_verdict="supported",
+                signature_verdict="insufficient_evidence",
+                reason_code="TRUST_ROOT_UNRESOLVABLE",
+                message=message,
+            )
+        )
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            error=message,
+        )
+
+    if isinstance(embedded_pub, str) and embedded_pub != trusted_pub:
+        message = "Manifest public_key does not match trusted key."
+        claims.append(
+            _export_integrity_claim(
+                export_path=export_path,
+                manifest_path=manifest_path,
+                content_verdict="supported",
+                signature_verdict="disproved",
+                reason_code="MANIFEST_PUBLIC_KEY_MISMATCH",
+                message=message,
+            )
+        )
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            error=message,
+        )
+
+    if not _verify_ed25519(trusted_pub, expected.encode("utf-8"), sig):
+        message = "Signature verification failed."
+        claims.append(
+            _export_integrity_claim(
+                export_path=export_path,
+                manifest_path=manifest_path,
+                content_verdict="supported",
+                signature_verdict="disproved",
+                reason_code="SIGNATURE_VERIFICATION_FAILED",
+                message=message,
+            )
+        )
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            error=message,
+        )
+
+    claims.append(
+        _export_integrity_claim(
+            export_path=export_path,
+            manifest_path=manifest_path,
+            content_verdict="supported",
+            signature_verdict="supported",
+            reason_code="EXPORT_INTEGRITY_SUPPORTED",
+            message="export content hash and manifest signature verified",
+        )
+    )
+    scope_claim = _evaluate_export_scope_identity(
+        manifest=manifest,
+        export_data=export_data,
+    )
+    if scope_claim is not None:
+        claims.append(scope_claim)
+
+    workflow_result, workflow_stdout, workflow_stderr = _captured_check(
+        _verify_export_workflow_extensions,
+        export_data=export_data,
+        export_path=export_path,
+        manifest_path=manifest_path,
+        manifest=manifest,
+        args=args,
+    )
+    claims.extend(
+        _workflow_claims_from_output(
+            manifest=manifest,
+            stdout=workflow_stdout,
+            stderr=workflow_stderr,
+            result=workflow_result,
+        )
+    )
+    if workflow_result is not None:
+        return _export_report(
+            ok=False,
+            exit_code=workflow_result,
+            artifact=artifact,
+            claims=claims,
+            error=_failure_from_output(workflow_stdout, workflow_stderr)[1],
+        )
+
+    if args.walk_events:
+        walk_result, walk_stdout, walk_stderr = _captured_check(
+            _walk_export_events,
+            export_data,
+        )
+        assert walk_result is not None
+        claims.append(
+            _walk_claim_from_output(
+                stdout=walk_stdout,
+                stderr=walk_stderr,
+                result=walk_result,
+            )
+        )
+        if walk_result != 0:
+            return _export_report(
+                ok=False,
+                exit_code=walk_result,
+                artifact=artifact,
+                claims=claims,
+                error=_failure_from_output(walk_stdout, walk_stderr)[1],
+            )
+    if args.verify_closure:
+        closure_result, closure_stdout, closure_stderr = _captured_check(
+            _verify_export_closures,
+            export_data,
+            args,
+        )
+        assert closure_result is not None
+        claims.extend(
+            _closure_claims_from_output(
+                stdout=closure_stdout,
+                stderr=closure_stderr,
+                result=closure_result,
+            )
+        )
+        if closure_result != 0:
+            return _export_report(
+                ok=False,
+                exit_code=closure_result,
+                artifact=artifact,
+                claims=claims,
+                error=_failure_from_output(closure_stdout, closure_stderr)[1],
+            )
+
+    return _export_report(
+        ok=True,
+        exit_code=0,
+        artifact=artifact,
+        claims=claims,
+        diagnostics=diagnostics,
+    )
+
+
 def cmd_refresh_keys(args: argparse.Namespace) -> int:
     """Pull a fresh Keel public-key manifest into ``~/.keel-verifier/trust-root.json``.
 
@@ -2917,6 +3842,11 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
+    if getattr(args, "as_json", False):
+        report = verify_export_structured(args)
+        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        return report.exit_code
+
     export_path = Path(args.export_file)
     manifest_path = Path(args.manifest)
 
@@ -3185,6 +4115,10 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
         self_attested=getattr(args, "self_attested", False),
         check_tsa=True,
     )
+    result.exit_code = 0 if result.ok else 1
+    if getattr(args, "as_json", False):
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+        return result.exit_code
     if not result.ok:
         print(f"FAILED: {result.error}", file=sys.stderr)
         return 1
@@ -3232,6 +4166,8 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
 class VerifyResult:
     ok: bool
     error: str | None = None
+    exit_code: int | None = None
+    artifact: dict[str, Any] = dataclass_field(default_factory=lambda: {"kind": "checkpoint"})
 
     checkpoint_id: str | None = None
     computed_at: str | None = None
@@ -3252,11 +4188,20 @@ class VerifyResult:
     tsa_receipts: list[dict[str, Any]] = dataclass_field(default_factory=list)
 
     diagnostics: list[str] = dataclass_field(default_factory=list)
+    semantics: dict[str, Any] = dataclass_field(default_factory=legacy_semantics)
+    claims: list[ClaimVerdict] = dataclass_field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "schema": VERDICT_SCHEMA_ID,
             "ok": self.ok,
+            "exit_code": (
+                self.exit_code if self.exit_code is not None else 0 if self.ok else 1
+            ),
             "error": self.error,
+            "artifact": dict(self.artifact),
+            "semantics": dict(self.semantics),
+            "claims": [claim.to_dict() for claim in self.claims],
             "checkpoint_id": self.checkpoint_id,
             "computed_at": self.computed_at,
             "composite_hash": self.composite_hash,
@@ -3290,11 +4235,104 @@ def _fetch_single_public_key(url: str) -> tuple[str | None, str | None]:
     return pub, None
 
 
+def _checkpoint_artifact_dict(path: Path, data: bytes | None = None) -> dict[str, Any]:
+    artifact: dict[str, Any] = {
+        "kind": "checkpoint",
+        "checkpoint_path": str(path),
+    }
+    if data is not None:
+        artifact["checkpoint_hash"] = _content_hash(data)
+    return artifact
+
+
+def _checkpoint_composite_claim(
+    *,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    checkpoint_id: str | None = None,
+) -> ClaimVerdict:
+    return _single_subject_claim(
+        "checkpoint.composite_hash.v1",
+        subject_type="checkpoint",
+        subject_id=checkpoint_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=["checkpoint.chain_heads", "checkpoint.composite_hash"],
+    )
+
+
+def _checkpoint_signature_claim(
+    *,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    key_id: str | None = None,
+) -> ClaimVerdict:
+    return _single_subject_claim(
+        "checkpoint.signature.v1",
+        subject_type="checkpoint_signature",
+        subject_id=key_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=["checkpoint.signature", "checkpoint.public_key", "checkpoint.key_id"],
+    )
+
+
+def _checkpoint_tsa_claim(receipts: list[dict[str, Any]]) -> ClaimVerdict:
+    subjects: list[VerdictSubject] = []
+    for index, receipt in enumerate(receipts, start=1):
+        label = receipt.get("provider") or receipt.get("url") or f"receipt {index}"
+        ok = receipt.get("verified") is True
+        reason = str(receipt.get("reason") or "")
+        subjects.append(
+            _subject(
+                subject_type="tsa_receipt",
+                subject_id=str(label),
+                verdict="supported" if ok else "disproved",
+                reason_code=(
+                    "CHECKPOINT_TSA_IMPRINT_SUPPORTED"
+                    if ok
+                    else "CHECKPOINT_TSA_IMPRINT_MISMATCH"
+                ),
+                message=reason
+                or (
+                    "TSA receipt message imprint matches composite_hash"
+                    if ok
+                    else "TSA receipt message imprint does not match composite_hash"
+                ),
+                evidence=["checkpoint.tsa", "checkpoint.tsa_receipts"],
+            )
+        )
+    verdict = "supported" if all(subject.verdict == verdict_value("supported") for subject in subjects) else None
+    return ClaimVerdict(
+        name="checkpoint.tsa_imprint.v1",
+        subjects=subjects,
+        verdict=verdict,
+        reason_code=(
+            "CHECKPOINT_TSA_IMPRINT_SUPPORTED"
+            if verdict == "supported"
+            else "CHECKPOINT_TSA_IMPRINT_MISMATCH"
+        ),
+        message=(
+            "TSA receipt message imprint matches composite_hash"
+            if verdict == "supported"
+            else "one or more TSA receipt message imprints do not match composite_hash"
+        ),
+        evidence=["checkpoint.tsa", "checkpoint.tsa_receipts"],
+    )
+
+
 def _checkpoint_base_result(
     body: dict[str, Any] | None,
     *,
     ok: bool,
     error: str | None = None,
+    artifact: dict[str, Any] | None = None,
+    claims: list[ClaimVerdict] | None = None,
+    diagnostics: list[str] | None = None,
     composite_hash: str | None = None,
     chain_heads_count: int = 0,
     public_key: str | None = None,
@@ -3312,6 +4350,8 @@ def _checkpoint_base_result(
     return VerifyResult(
         ok=ok,
         error=error,
+        exit_code=0 if ok else 1,
+        artifact=artifact or {"kind": "checkpoint"},
         checkpoint_id=(
             str(body.get("checkpoint_id") or "") or None
             if isinstance(body, dict)
@@ -3335,6 +4375,8 @@ def _checkpoint_base_result(
         tsa_url=tsa_url,
         tsa_requested_at=tsa_requested_at,
         tsa_receipts=list(tsa_receipts or []),
+        diagnostics=list(diagnostics or []),
+        claims=_merge_claims(list(claims or [])),
     )
 
 
@@ -3353,36 +4395,62 @@ def _verify_checkpoint_core(
     check_tsa: bool = True,
 ) -> VerifyResult:
     path = Path(checkpoint_path)
+    artifact = _checkpoint_artifact_dict(path)
 
     try:
-        body = json.loads(path.read_text(encoding="utf-8"))
+        raw = path.read_bytes()
+        artifact = _checkpoint_artifact_dict(path, raw)
+        body = json.loads(raw.decode("utf-8"))
     except FileNotFoundError:
-        return VerifyResult(ok=False, error=f"file not found: {path}")
+        return VerifyResult(ok=False, error=f"file not found: {path}", artifact=artifact)
     except json.JSONDecodeError as exc:
-        return VerifyResult(ok=False, error=f"invalid JSON: {exc}")
+        return VerifyResult(ok=False, error=f"invalid JSON: {exc}", artifact=artifact)
     except Exception as exc:
-        return VerifyResult(ok=False, error=f"could not read {path}: {exc}")
+        return VerifyResult(ok=False, error=f"could not read {path}: {exc}", artifact=artifact)
 
     if not isinstance(body, dict):
-        return VerifyResult(ok=False, error="top-level JSON must be an object")
+        return VerifyResult(
+            ok=False,
+            error="top-level JSON must be an object",
+            artifact=artifact,
+        )
 
     composite = body.get("composite_hash")
     signature = body.get("signature")
     embedded_pub = body.get("public_key")
     chain_heads_raw = body.get("chain_heads") or {}
     artifact_key_id = body.get("key_id") if isinstance(body.get("key_id"), str) else None
+    checkpoint_id = str(body.get("checkpoint_id") or "") or None
 
     if not isinstance(composite, str) or not composite.startswith("sha256:"):
         return _checkpoint_base_result(
             body,
             ok=False,
             error="missing or malformed composite_hash",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_MISSING",
+                    message="missing or malformed composite_hash",
+                    checkpoint_id=checkpoint_id,
+                )
+            ],
         )
     if not isinstance(chain_heads_raw, dict):
         return _checkpoint_base_result(
             body,
             ok=False,
             error="chain_heads must be an object",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
+                    message="chain_heads must be an object",
+                    checkpoint_id=checkpoint_id,
+                )
+            ],
             composite_hash=composite,
         )
 
@@ -3392,6 +4460,15 @@ def _verify_checkpoint_core(
                 body,
                 ok=False,
                 error=f"chain_heads[{scope_key}] must be an object",
+                artifact=artifact,
+                claims=[
+                    _checkpoint_composite_claim(
+                        verdict="insufficient_evidence",
+                        reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
+                        message=f"chain_heads[{scope_key}] must be an object",
+                        checkpoint_id=checkpoint_id,
+                    )
+                ],
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
@@ -3400,6 +4477,15 @@ def _verify_checkpoint_core(
                 body,
                 ok=False,
                 error=f"chain_heads[{scope_key}].sequence_number must be an int",
+                artifact=artifact,
+                claims=[
+                    _checkpoint_composite_claim(
+                        verdict="insufficient_evidence",
+                        reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
+                        message=f"chain_heads[{scope_key}].sequence_number must be an int",
+                        checkpoint_id=checkpoint_id,
+                    )
+                ],
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
@@ -3408,6 +4494,15 @@ def _verify_checkpoint_core(
                 body,
                 ok=False,
                 error=f"chain_heads[{scope_key}].last_record_hash must be a string",
+                artifact=artifact,
+                claims=[
+                    _checkpoint_composite_claim(
+                        verdict="insufficient_evidence",
+                        reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
+                        message=f"chain_heads[{scope_key}].last_record_hash must be a string",
+                        checkpoint_id=checkpoint_id,
+                    )
+                ],
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
             )
@@ -3419,6 +4514,15 @@ def _verify_checkpoint_core(
             body,
             ok=False,
             error=f"could not recompute composite_hash: {exc}",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_RECOMPUTE_FAILED",
+                    message=f"could not recompute composite_hash: {exc}",
+                    checkpoint_id=checkpoint_id,
+                )
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3431,6 +4535,15 @@ def _verify_checkpoint_core(
                 f"  stored:     {composite}\n"
                 f"  recomputed: {recomputed}"
             ),
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="disproved",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_MISMATCH",
+                    message="composite_hash mismatch - chain_heads have been altered",
+                    checkpoint_id=checkpoint_id,
+                )
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3440,6 +4553,21 @@ def _verify_checkpoint_core(
             body,
             ok=False,
             error="export is unsigned (no signature field)",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="supported",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                    message="checkpoint composite_hash matches chain_heads",
+                    checkpoint_id=checkpoint_id,
+                ),
+                _checkpoint_signature_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_SIGNATURE_MISSING",
+                    message="checkpoint is unsigned (no signature field)",
+                    key_id=artifact_key_id,
+                ),
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3449,6 +4577,21 @@ def _verify_checkpoint_core(
             body,
             ok=False,
             error="--public-key must start with 'ed25519:'",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="supported",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                    message="checkpoint composite_hash matches chain_heads",
+                    checkpoint_id=checkpoint_id,
+                ),
+                _checkpoint_signature_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_PUBLIC_KEY_INVALID",
+                    message="--public-key must start with 'ed25519:'",
+                    key_id=artifact_key_id,
+                ),
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3470,6 +4613,21 @@ def _verify_checkpoint_core(
             body,
             ok=False,
             error=err or "could not resolve trust root",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="supported",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                    message="checkpoint composite_hash matches chain_heads",
+                    checkpoint_id=checkpoint_id,
+                ),
+                _checkpoint_signature_claim(
+                    verdict="insufficient_evidence",
+                    reason_code="TRUST_ROOT_UNRESOLVABLE",
+                    message=err or "could not resolve trust root",
+                    key_id=artifact_key_id,
+                ),
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3483,6 +4641,21 @@ def _verify_checkpoint_core(
                 f"  trust root: {trusted_pub}\n"
                 f"  embedded:   {embedded_pub}"
             ),
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="supported",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                    message="checkpoint composite_hash matches chain_heads",
+                    checkpoint_id=checkpoint_id,
+                ),
+                _checkpoint_signature_claim(
+                    verdict="disproved",
+                    reason_code="CHECKPOINT_PUBLIC_KEY_MISMATCH",
+                    message="embedded public_key does not match resolved trust root",
+                    key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                ),
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
         )
@@ -3492,6 +4665,21 @@ def _verify_checkpoint_core(
             body,
             ok=False,
             error="signature verification failed",
+            artifact=artifact,
+            claims=[
+                _checkpoint_composite_claim(
+                    verdict="supported",
+                    reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                    message="checkpoint composite_hash matches chain_heads",
+                    checkpoint_id=checkpoint_id,
+                ),
+                _checkpoint_signature_claim(
+                    verdict="disproved",
+                    reason_code="SIGNATURE_VERIFICATION_FAILED",
+                    message="signature verification failed",
+                    key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                ),
+            ],
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
             public_key=trusted_pub,
@@ -3526,6 +4714,22 @@ def _verify_checkpoint_core(
                 body,
                 ok=False,
                 error=f"TSA: {receipt_result['reason']}",
+                artifact=artifact,
+                claims=[
+                    _checkpoint_composite_claim(
+                        verdict="supported",
+                        reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                        message="checkpoint composite_hash matches chain_heads",
+                        checkpoint_id=checkpoint_id,
+                    ),
+                    _checkpoint_signature_claim(
+                        verdict="supported",
+                        reason_code="CHECKPOINT_SIGNATURE_SUPPORTED",
+                        message="checkpoint signature verified",
+                        key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                    ),
+                    _checkpoint_tsa_claim(tsa_receipts),
+                ],
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
                 public_key=trusted_pub,
@@ -3549,6 +4753,22 @@ def _verify_checkpoint_core(
                 body,
                 ok=False,
                 error=f"TSA: {label}: {reason}",
+                artifact=artifact,
+                claims=[
+                    _checkpoint_composite_claim(
+                        verdict="supported",
+                        reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+                        message="checkpoint composite_hash matches chain_heads",
+                        checkpoint_id=checkpoint_id,
+                    ),
+                    _checkpoint_signature_claim(
+                        verdict="supported",
+                        reason_code="CHECKPOINT_SIGNATURE_SUPPORTED",
+                        message="checkpoint signature verified",
+                        key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+                    ),
+                    _checkpoint_tsa_claim(tsa_receipts),
+                ],
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
                 public_key=trusted_pub,
@@ -3580,9 +4800,28 @@ def _verify_checkpoint_core(
             else str(first_receipt.get("reason"))
         )
 
+    success_claims = [
+        _checkpoint_composite_claim(
+            verdict="supported",
+            reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
+            message="checkpoint composite_hash matches chain_heads",
+            checkpoint_id=checkpoint_id,
+        ),
+        _checkpoint_signature_claim(
+            verdict="supported",
+            reason_code="CHECKPOINT_SIGNATURE_SUPPORTED",
+            message="checkpoint signature verified",
+            key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
+        ),
+    ]
+    if tsa_checked:
+        success_claims.append(_checkpoint_tsa_claim(tsa_receipts))
+
     return _checkpoint_base_result(
         body,
         ok=True,
+        artifact=artifact,
+        claims=success_claims,
         composite_hash=composite,
         chain_heads_count=len(chain_heads_raw),
         public_key=trusted_pub,
@@ -3718,6 +4957,7 @@ def main(argv: list[str] | None = None) -> int:
     p_export = sub.add_parser("export", help="Verify a signed compliance export.")
     p_export.add_argument("--export-file", required=True)
     p_export.add_argument("--manifest", required=True)
+    p_export.add_argument("--json", action="store_true", dest="as_json")
     p_export.add_argument(
         "--walk-events",
         action="store_true",
@@ -3754,6 +4994,7 @@ def main(argv: list[str] | None = None) -> int:
         "checkpoint", help="Verify an integrity checkpoint JSON file."
     )
     p_cp.add_argument("--checkpoint-file", required=True)
+    p_cp.add_argument("--json", action="store_true", dest="as_json")
     p_cp.add_argument(
         "--expected-public-key",
         help="ed25519:<base64> public key the checkpoint must be signed with.",

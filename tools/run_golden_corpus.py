@@ -46,6 +46,7 @@ def _record_command_args(
     record: dict[str, Any],
     *,
     corpus_root: Path,
+    as_json: bool = False,
 ) -> list[str]:
     pack = record.get("pack")
     if not isinstance(pack, dict):
@@ -75,6 +76,8 @@ def _record_command_args(
             args.append("--walk-events")
         if "verify_closure" in features:
             args.append("--verify-closure")
+        if as_json:
+            args.insert(1, "--json")
         return args
 
     if kind == "checkpoint":
@@ -89,6 +92,8 @@ def _record_command_args(
         key_manifest = pack.get("key_manifest")
         if isinstance(key_manifest, str) and key_manifest:
             args.extend(["--key-manifest", str(_abs(corpus_root, key_manifest))])
+        if as_json:
+            args.insert(1, "--json")
         return args
 
     raise ValueError(f"{record.get('id')}: unsupported kind {kind!r}")
@@ -129,6 +134,40 @@ def _reason_classes(stdout: str, stderr: str) -> list[str]:
     return sorted(classes)
 
 
+def _structured_report(stdout: str) -> dict[str, Any] | None:
+    try:
+        value = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(value, dict):
+        return None
+    if value.get("schema") != "keel.verifier.verdicts/v0":
+        return None
+    return value
+
+
+def _structured_reason_classes(report: dict[str, Any] | None) -> list[str]:
+    if report is None:
+        return []
+    classes: set[str] = set()
+    for claim in report.get("claims", []):
+        if not isinstance(claim, dict):
+            continue
+        reason_code = claim.get("reason_code")
+        if isinstance(reason_code, str) and reason_code:
+            classes.add(reason_code)
+        for subject in claim.get("subjects", []):
+            if not isinstance(subject, dict):
+                continue
+            subject_reason = subject.get("reason_code")
+            if isinstance(subject_reason, str) and subject_reason:
+                classes.add(subject_reason)
+    error = report.get("error")
+    if isinstance(error, str):
+        classes.update(_reason_classes("", error))
+    return sorted(classes)
+
+
 def _expected_current(record: dict[str, Any]) -> tuple[str, list[str]]:
     expected = record.get("expected_current")
     if not isinstance(expected, dict):
@@ -144,6 +183,38 @@ def _expected_current(record: dict[str, Any]) -> tuple[str, list[str]]:
     return outcome, list(reason_classes)
 
 
+def _expected_claim_verdicts(record: dict[str, Any]) -> dict[str, str]:
+    claims = record.get("claims") or []
+    if not isinstance(claims, list):
+        raise ValueError(f"{record.get('id')}: claims must be a list")
+    expected: dict[str, str] = {}
+    for claim in claims:
+        if not isinstance(claim, dict):
+            raise ValueError(f"{record.get('id')}: claims entries must be objects")
+        name = claim.get("name")
+        verdict = claim.get("expected_verdict")
+        if not isinstance(name, str) or not isinstance(verdict, str):
+            raise ValueError(
+                f"{record.get('id')}: claims entries require name and expected_verdict"
+            )
+        expected[name] = verdict
+    return expected
+
+
+def _actual_claim_verdicts(report: dict[str, Any] | None) -> dict[str, str]:
+    if report is None:
+        return {}
+    actual: dict[str, str] = {}
+    for claim in report.get("claims", []):
+        if not isinstance(claim, dict):
+            continue
+        name = claim.get("name")
+        verdict = claim.get("verdict")
+        if isinstance(name, str) and isinstance(verdict, str):
+            actual[name] = verdict
+    return actual
+
+
 def _run_record(
     record: dict[str, Any],
     *,
@@ -151,9 +222,11 @@ def _run_record(
     target: VerifierTarget,
     timeout_seconds: int,
 ) -> dict[str, Any]:
+    request_json = target.profile == "public"
     args = _record_command_args(
         record,
         corpus_root=corpus_root,
+        as_json=request_json,
     )
     command = [*target.command_prefix, *args]
     completed = subprocess.run(
@@ -164,15 +237,38 @@ def _run_record(
         check=False,
         timeout=timeout_seconds,
     )
+    structured = _structured_report(completed.stdout)
     actual_outcome = "PASS" if completed.returncode == 0 else "FAIL"
-    actual_reasons = _reason_classes(completed.stdout, completed.stderr)
+    actual_reasons = sorted(
+        set(_reason_classes(completed.stdout, completed.stderr))
+        | set(_structured_reason_classes(structured))
+    )
     expected_outcome, expected_reasons = _expected_current(record)
+    expected_claims = _expected_claim_verdicts(record)
+    actual_claims = _actual_claim_verdicts(structured)
+    claim_mismatches = []
+    if structured is not None:
+        for name, expected_verdict in expected_claims.items():
+            actual_verdict = actual_claims.get(name)
+            if actual_verdict != expected_verdict:
+                claim_mismatches.append(
+                    {
+                        "name": name,
+                        "expected_verdict": expected_verdict,
+                        "actual_verdict": actual_verdict,
+                    }
+                )
     missing_reasons = [
         reason for reason in expected_reasons if reason not in actual_reasons
     ]
     outcome_mismatch = actual_outcome != expected_outcome
     reason_mismatch = actual_outcome == "FAIL" and bool(missing_reasons)
-    status = "PASS" if not outcome_mismatch and not reason_mismatch else "MISMATCH"
+    claim_mismatch = structured is not None and bool(claim_mismatches)
+    status = (
+        "PASS"
+        if not outcome_mismatch and not reason_mismatch and not claim_mismatch
+        else "MISMATCH"
+    )
 
     return {
         "id": record.get("id"),
@@ -187,6 +283,10 @@ def _run_record(
         "expected_reason_classes": expected_reasons,
         "actual_reason_classes": actual_reasons,
         "missing_reason_classes": missing_reasons,
+        "used_structured_verdicts": structured is not None,
+        "expected_claim_verdicts": expected_claims,
+        "actual_claim_verdicts": actual_claims,
+        "claim_mismatches": claim_mismatches,
         "doctrine_claims": record.get("claims", []),
         "negative": record.get("negative"),
         "stdout": completed.stdout,
@@ -290,6 +390,8 @@ def _print_summary(report: dict[str, Any]) -> None:
             "MISMATCH {id}: expected {expected_outcome} {expected_reason_classes}, "
             "got {actual_outcome} {actual_reason_classes}".format(**result)
         )
+        if result.get("claim_mismatches"):
+            print(f"  claim_mismatches: {result['claim_mismatches']}")
 
 
 def main(argv: list[str] | None = None) -> int:
