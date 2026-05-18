@@ -28,4 +28,9 @@ where = ["."]
 include = ["keel_verifier*"]
 
 [tool.setuptools.package-data]
-keel_verifier = ["data/*.json", "data/semantics/profiles/*.json", "keys/*.json"]
+keel_verifier = [
+    "data/*.json",
+    "data/semantics/governance_event/*.json",
+    "data/semantics/profiles/*.json",
+    "keys/*.json",
+]

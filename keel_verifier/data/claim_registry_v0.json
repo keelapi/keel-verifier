@@ -45,6 +45,17 @@
       ]
     },
     {
+      "name": "permit_chain.delegation_denied_correctly.v1",
+      "assertion": "`permit.delegated_denied` was correctly denied because the requested child authority envelope exceeded, or lacked, the parent authority envelope under pinned authority-envelope.v0 semantics, with a strict supplied governance-chain prefix and audit.integrity_digest payload coverage.",
+      "required_evidence": "A `permit.delegated_denied` governance event, strict chain fields from genesis through the denied event and its covering `audit.integrity_digest`, pinned governance record-hash and governance-event integrity-digest semantics, pinned authority-envelope.v0 comparator semantics, parent and child authority envelope payload fields, failed_fields, reason_code, and optional event_id when multiple denied events are supplied.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "closure.signature.v1",
       "assertion": "`permit.closed` closure payload canonical hash and Ed25519 binding signature are valid.",
       "required_evidence": "Closure event payload, canonical hash, signature, permit-binding trust root.",

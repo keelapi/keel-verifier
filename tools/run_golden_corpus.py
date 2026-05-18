@@ -60,6 +60,12 @@ def _record_pack_path(record: dict[str, Any], *, corpus_root: Path) -> Path:
             raise ValueError(f"{record.get('id')}: checkpoint pack requires checkpoint_file")
         return _abs(corpus_root, checkpoint_file)
 
+    if kind == "claim":
+        evidence_file = pack.get("evidence_file")
+        if not isinstance(evidence_file, str):
+            raise ValueError(f"{record.get('id')}: claim pack requires evidence_file")
+        return _abs(corpus_root, evidence_file)
+
     raise ValueError(f"{record.get('id')}: unsupported kind {kind!r}")
 
 
@@ -140,6 +146,24 @@ def _record_command_args(
             args.insert(1, "--json")
         return args
 
+    if kind == "claim":
+        claim = record.get("claim")
+        if claim != "delegation_denied_correctly":
+            raise ValueError(f"{record.get('id')}: unsupported claim {claim!r}")
+        evidence_file = pack.get("evidence_file")
+        if not isinstance(evidence_file, str):
+            raise ValueError(f"{record.get('id')}: claim pack requires evidence_file")
+        args = [
+            "claim",
+            "delegation_denied_correctly",
+            "--evidence-file",
+            str(_abs(corpus_root, evidence_file)),
+        ]
+        event_id = pack.get("event_id")
+        if isinstance(event_id, str) and event_id:
+            args.extend(["--event-id", event_id])
+        return args
+
     raise ValueError(f"{record.get('id')}: unsupported kind {kind!r}")
 
 
@@ -186,6 +210,20 @@ def _structured_report(stdout: str) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
     if value.get("schema") != "keel.verifier.verdicts/v0":
+        return None
+    return value
+
+
+def _claim_result(stdout: str) -> dict[str, Any] | None:
+    try:
+        value = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(value, dict):
+        return None
+    if value.get("claim_type") != "delegation_denied_correctly":
+        return None
+    if not isinstance(value.get("status"), str):
         return None
     return value
 
@@ -245,7 +283,16 @@ def _expected_claim_verdicts(record: dict[str, Any]) -> dict[str, str]:
     return expected
 
 
-def _actual_claim_verdicts(report: dict[str, Any] | None) -> dict[str, str]:
+def _actual_claim_verdicts(
+    report: dict[str, Any] | None,
+    claim_result: dict[str, Any] | None = None,
+) -> dict[str, str]:
+    if claim_result is not None:
+        return {
+            "permit_chain.delegation_denied_correctly.v1": str(
+                claim_result["status"]
+            )
+        }
     if report is None:
         return {}
     actual: dict[str, str] = {}
@@ -259,10 +306,14 @@ def _actual_claim_verdicts(report: dict[str, Any] | None) -> dict[str, str]:
     return actual
 
 
-def _actual_semantics_mode(report: dict[str, Any] | None) -> str | None:
-    if report is None:
+def _actual_semantics_mode(
+    report: dict[str, Any] | None,
+    claim_result: dict[str, Any] | None = None,
+) -> str | None:
+    source = report if report is not None else claim_result
+    if source is None:
         return None
-    semantics = report.get("semantics")
+    semantics = source.get("semantics")
     if not isinstance(semantics, dict):
         return None
     mode = semantics.get("mode")
@@ -292,6 +343,7 @@ def _run_record(
         timeout=timeout_seconds,
     )
     structured = _structured_report(completed.stdout)
+    claim_result = _claim_result(completed.stdout)
     actual_outcome = "PASS" if completed.returncode == 0 else "FAIL"
     actual_reasons = sorted(
         set(_reason_classes(completed.stdout, completed.stderr))
@@ -299,11 +351,12 @@ def _run_record(
     )
     expected_outcome, expected_reasons = _expected_current(record)
     expected_claims = _expected_claim_verdicts(record)
-    actual_claims = _actual_claim_verdicts(structured)
+    actual_claims = _actual_claim_verdicts(structured, claim_result)
     expected_mode = _expected_semantics_mode(record, corpus_root=corpus_root)
-    actual_mode = _actual_semantics_mode(structured)
+    actual_mode = _actual_semantics_mode(structured, claim_result)
     claim_mismatches = []
-    if structured is not None:
+    machine_readable = structured is not None or claim_result is not None
+    if machine_readable:
         for name, expected_verdict in expected_claims.items():
             actual_verdict = actual_claims.get(name)
             if actual_verdict != expected_verdict:
@@ -319,8 +372,8 @@ def _run_record(
     ]
     outcome_mismatch = actual_outcome != expected_outcome
     reason_mismatch = actual_outcome == "FAIL" and bool(missing_reasons)
-    claim_mismatch = structured is not None and bool(claim_mismatches)
-    mode_mismatch = structured is not None and actual_mode != expected_mode
+    claim_mismatch = machine_readable and bool(claim_mismatches)
+    mode_mismatch = machine_readable and actual_mode != expected_mode
     status = (
         "PASS"
         if not outcome_mismatch
@@ -346,7 +399,7 @@ def _run_record(
         "expected_semantics_mode": expected_mode,
         "actual_semantics_mode": actual_mode,
         "mode_mismatch": mode_mismatch,
-        "used_structured_verdicts": structured is not None,
+        "used_structured_verdicts": machine_readable,
         "expected_claim_verdicts": expected_claims,
         "actual_claim_verdicts": actual_claims,
         "claim_mismatches": claim_mismatches,

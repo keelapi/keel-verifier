@@ -10,7 +10,7 @@
     "components": [
       {
         "id": "keel.verifier_claim_registry.v0",
-        "hash": "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b",
+        "hash": "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
         "path": "claim_registry/v0.json"
       },
       {
@@ -22,6 +22,11 @@
         "id": "keel.governance_chain.record_hash.v1",
         "hash": "sha256:a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707",
         "path": "semantics/governance_chain/record_hash_v1.json"
+      },
+      {
+        "id": "keel.governance_event.integrity_digest.v1",
+        "hash": "sha256:7d3f447e215ca53dd5add04b4a62b4223d28ad22210b5a3df8fcbc85f5dbe440",
+        "path": "semantics/governance_event/integrity_digest_v1.json"
       },
       {
         "id": "keel.closure.format.v1",
@@ -72,14 +77,11 @@
         "id": "keel.checkpoint.tsa_imprint.v1",
         "hash": "sha256:a4e02133537a190c3795737beb4bb2ddf823cd09d5b6dcba43c682fb9e37d79e",
         "path": "semantics/checkpoint/tsa_imprint_v1.json"
-      }
-    ],
-    "conditional_components": [
+      },
       {
         "id": "authority-envelope.v0",
         "hash": "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2",
-        "path": "comparator_registry/v0.json",
-        "required_when": "permit-chain claims request authority-envelope.v0 comparison semantics"
+        "path": "comparator_registry/v0.json"
       }
     ]
   }

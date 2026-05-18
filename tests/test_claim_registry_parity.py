@@ -25,6 +25,21 @@ SOURCE_PROFILE = (
     / "profiles"
     / "pre_pinning_default_v0.json"
 )
+BUNDLED_GOVERNANCE_EVENT_INTEGRITY = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "governance_event"
+    / "integrity_digest_v1.json"
+)
+SOURCE_GOVERNANCE_EVENT_INTEGRITY = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "governance_event"
+    / "integrity_digest_v1.json"
+)
 
 BUNDLED_ARTIFACT_COPIES = [
     pytest.param(
@@ -38,6 +53,12 @@ BUNDLED_ARTIFACT_COPIES = [
         SOURCE_PROFILE,
         "keel-permit pre-pinning semantics profile",
         id="pre-pinning-default-profile-v0",
+    ),
+    pytest.param(
+        BUNDLED_GOVERNANCE_EVENT_INTEGRITY,
+        SOURCE_GOVERNANCE_EVENT_INTEGRITY,
+        "keel-permit governance-event integrity digest semantics",
+        id="governance-event-integrity-digest-v1",
     ),
 ]
 

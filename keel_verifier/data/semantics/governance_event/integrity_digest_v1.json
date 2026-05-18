@@ -1,0 +1,67 @@
+{
+  "id": "keel.governance_event.integrity_digest.v1",
+  "version": "v1",
+  "kind": "governance_event_integrity_digest_recipe",
+  "status": "released",
+  "body": {
+    "event_integrity_hash": {
+      "algorithm": "sha256_hex_without_prefix",
+      "canonical_json": {
+        "encoding": "utf-8",
+        "ensure_ascii": false,
+        "separators": [
+          ",",
+          ":"
+        ],
+        "serializer": "python_json_dumps",
+        "sort_keys": true
+      },
+      "material_order": [
+        "event_id",
+        "project_id",
+        "project_name",
+        "request_id",
+        "permit_id",
+        "category",
+        "event_type",
+        "severity",
+        "payload_json",
+        "source_stage",
+        "lineage_type",
+        "provider",
+        "model",
+        "operation",
+        "decision",
+        "surface",
+        "trace_id",
+        "span_id",
+        "occurred_at",
+        "schema_version",
+        "actor_id",
+        "actor_type",
+        "outcome",
+        "resource_type",
+        "resource_id"
+      ],
+      "missing_fields": "included as JSON null except payload_json, which is {} when absent or non-object",
+      "payload_source": "payload_json when it is an object, else payload when it is an object, else empty object",
+      "string_or_none_fields": [
+        "project_id",
+        "permit_id"
+      ]
+    },
+    "audit_integrity_digest": {
+      "batch_hash": {
+        "algorithm": "sha256_hex_without_prefix",
+        "compare_to": "payload.batch_hash exact string equality",
+        "input": "canonical JSON bytes of the ordered covered_events list after reducing each entry to event_id, event_type, event_hash strings"
+      },
+      "covered_event_count_rule": "if payload.covered_event_count is present, int(value) must equal len(covered_events)",
+      "covered_events": "payload.covered_events must be a list of objects with non-empty event_id, event_type, and event_hash strings",
+      "event_type": "audit.integrity_digest",
+      "payload_source": "payload_json when object, else payload when object, else empty object",
+      "resource_id_rule": "if audit.integrity_digest.resource_id is present and non-empty, it must equal the first 32 hex characters of batch_hash",
+      "target_match_rule": "at least one covered_events entry with matching target event_id must have the target event_type and event_hash equal to the recomputed event_integrity_hash"
+    }
+  }
+}
