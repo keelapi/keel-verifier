@@ -1,10 +1,10 @@
 # Changelog
 
-## v2.0.0 (2026-05-19)
+## v2.0.0 (2026-05-18)
 
 - Add pack-pinned semantics: the verifier pins `(semantic_id, sha256)` and dispatches verification logic from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication: future verifier releases reach the same claim verdicts or explicitly decline, and never silently reinterpret a prior pinned claim.
-- Emit structured per-claim verdicts using the four-value enum `supported`, `disproved`, `insufficient_evidence`, and `unverifiable_scope`.
-- Enforce required claims: every claim a pack's `claim_set` marks `required` is adjudicated; a required claim with no evidence is `insufficient_evidence`; `ok` is true only when every required claim is `supported`.
+- Emit structured per-claim verdicts using the four-value enum `supported`, `disproved`, `insufficient_evidence`, and `unverifiable_scope`. `--json` output gains an additive `claims` array carrying these verdicts; existing top-level fields (`ok`, `self_attested`) are unchanged.
+- Enforce required claims: for a pinned pack, every claim its `claim_set` marks `required` is adjudicated; a required claim with no evidence is `insufficient_evidence`; `ok` is true only when every required claim is `supported`.
 - Add opt-in TSA-authenticity validation: `--tsa-ca-bundle` runs OpenSSL-backed RFC 3161 TSA trust-chain validation as a separate, opt-in trust extension. It does not check historical revocation.
 - Register and adjudicate the new `permit_chain.delegation_denied_correctly.v1` claim for `permit.delegated_denied` events correctly denied under `authority-envelope.v0` semantics.
 - Make the packaged verifier the single verification core. The wheel bundles the released verifier artifact set.
@@ -12,9 +12,12 @@
 
 ### Breaking changes
 
-- `--json` output is restructured around structured per-claim verdicts.
-- `ok` semantics changed: required-claim enforcement can fail a pack that previously passed.
-- CLI invocation surface is unchanged and backward-compatible.
+- For pinned packs (those carrying a `claim_set`), required-claim enforcement can fail a pack that previously passed. Legacy and unpinned exports are unaffected.
+
+### Compatibility
+
+- The CLI invocation surface is unchanged. Existing `export` and `checkpoint` invocations, including `python -m keel_verifier <artifact>`, work as before.
+- Evidence produced by v1.x — exports and checkpoints without pinned semantics — continues to verify, evaluated under the permanent pre-pinning profile.
 
 ## v1.1.0 (2026-05-13)
 
