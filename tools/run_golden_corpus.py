@@ -23,7 +23,7 @@ PRODUCT_ROOT = REPO_ROOT.parent
 DEFAULT_CORPUS = (
     PRODUCT_ROOT
     / "keel-permit"
-    / "test_vectors"
+    / "test-vectors"
     / "verifier_claims"
     / "v0"
     / "corpus.json"
