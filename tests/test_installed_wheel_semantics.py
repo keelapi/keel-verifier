@@ -233,13 +233,13 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
 
     venv = tmp_path / "venv"
     _run(
-        [sys.executable, "-m", "venv", "--system-site-packages", str(venv)],
+        [sys.executable, "-m", "venv", str(venv)],
         cwd=tmp_path,
         env=_clean_env(),
     )
     venv_python = _venv_python(venv)
     _run(
-        [str(venv_python), "-m", "pip", "install", "--no-deps", str(wheel)],
+        [str(venv_python), "-m", "pip", "install", str(wheel)],
         cwd=tmp_path,
         env=_clean_env(),
     )
