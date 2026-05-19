@@ -1,0 +1,101 @@
+{
+  "id": "keel.closure.format.v2",
+  "version": "v2",
+  "kind": "closure_format_recipe",
+  "status": "released",
+  "body": {
+    "canonical_json": {
+      "json_serializer": "python_json_dumps",
+      "sort_keys": true,
+      "separators": [
+        ",",
+        ":"
+      ],
+      "ensure_ascii": false,
+      "encoding": "utf-8",
+      "hash": "sha256_hex_without_prefix"
+    },
+    "canonical_hash_output": "lowercase sha256 hex without sha256: prefix",
+    "canonical_hash_fields": [
+      "closure_canonical_hash first if nonblank string",
+      "binding_canonical_hash if closure_canonical_hash absent or blank"
+    ],
+    "signature_fields": [
+      "closure_signature_b64 first if nonblank string",
+      "binding_signature if closure_signature_b64 absent or blank"
+    ],
+    "signed_message": "canonical hash string encoded as UTF-8",
+    "key_resolution": {
+      "purpose": "permit_binding_signing",
+      "artifact_public_key": "never accepted from closure or workflow records",
+      "signing_time_sources": {
+        "closure": "closure_signed_at",
+        "workflow_declaration": "declaration_signed_at",
+        "workflow_amendment": "created_at"
+      },
+      "artifact_key_id_sources": {
+        "closure": "none during trust-root resolution; binding_key_id is checked after public-key resolution",
+        "workflow": "record.binding_key_id if string else record.key_id if string else none"
+      },
+      "manifest_resolution": {
+        "source": "key_manifest_source_for_args(args): explicit key_manifest/key_manifest_url if supplied; none if self_attested is true; else cached ~/.keel-verifier/trust-root.json when present; else bundled keel_verifier/data/trust_root.json",
+        "priority": [
+          "expected_public_key is not supplied on current closure/workflow verifier paths",
+          "resolved key_manifest_source entries filtered by purpose, key_id when supplied, and signing_time active window"
+        ],
+        "public_key_url": "not supported for closure or workflow verifier paths",
+        "embedded_public_key": "not accepted; artifact_pub is always None for closure and workflow records",
+        "self_attested_effect": "self_attested disables key_manifest_source but provides no embedded artifact key, so current closure/workflow verification cannot resolve a trust key in that mode",
+        "manifest_key_id_rule": "if artifact key_id is present, select the first manifest key with matching purpose and key_id",
+        "legacy_no_key_id_rule": "if no key_id and signing time is parseable, require exactly one purpose-matching manifest entry active at signing time; if signing time is absent/unparseable, require exactly one purpose-matching entry total",
+        "active_window_rule": "An absent or null valid_from/valid_to is open-ended; a present non-null value that does not parse to a valid timestamp makes the manifest entry malformed and excludes it from matching any signing_time (fail-closed)."
+      }
+    },
+    "binding_key_id_check": "if signed payload binding_key_id is a non-empty string, it must equal sha256(raw trusted public key) first 16 lowercase hex chars",
+    "verification": {
+      "public_key_decode": "remove optional ed25519: prefix, base64-decode remaining text, Ed25519PublicKey.from_public_bytes",
+      "signature_decode": "remove optional ed25519: prefix, base64-decode remaining text",
+      "invalid_handling": "any exception means verification false"
+    },
+    "binding_version": "closure_v2",
+    "required_signed_fields": [
+      "binding_version",
+      "permit_id",
+      "execution_id",
+      "correlation_id",
+      "provider",
+      "model",
+      "dispatch_request_digest_v1",
+      "provider_response_digest_v1",
+      "client_response_digest_v1",
+      "closure_status",
+      "status_code",
+      "provider_response_id",
+      "dispatch_request_digest_semantics",
+      "provider_response_digest_semantics",
+      "client_response_digest_semantics",
+      "request_created_at",
+      "started_at",
+      "completed_at",
+      "provider_response_received_at",
+      "client_response_delivered_at",
+      "closure_signed_at",
+      "binding_key_id"
+    ],
+    "optional_signed_fields": [
+      "usage_reported_at"
+    ],
+    "signed_payload_construction": "require every required field key to be present; copy required fields with payload.get in listed order; append usage_reported_at only if the key is present",
+    "digest_semantics_fields": {
+      "dispatch_request_digest_semantics": "approved_request_body_bytes_at_dispatch_time",
+      "provider_response_digest_semantics": [
+        "provider_bytes_received_by_keel",
+        null
+      ],
+      "client_response_digest_semantics": [
+        "response_bytes_handed_to_asgi_not_tcp_receipt",
+        null
+      ]
+    }
+  }
+}

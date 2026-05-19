@@ -1,0 +1,22 @@
+{
+  "id": "keel.checkpoint.tsa_imprint.v1",
+  "version": "v1",
+  "kind": "checkpoint_tsa_imprint_recipe",
+  "status": "released",
+  "body": {
+    "receipt_selection": "if checkpoint.tsa_receipts is a list, convert each object entry to a receipt and each non-object to an invalid marker; if that yields any receipts, use them and ignore legacy tsa; otherwise if checkpoint.tsa is an object with string receipt_b64, use that single legacy receipt; otherwise no TSA claim is emitted",
+    "receipt_label": "receipt.provider if truthy else receipt.url if truthy else receipt N",
+    "check_tsa_false": "receipt is recorded checked=false, reason skipped, and no imprint parse is performed",
+    "receipt_b64_missing": "receipt without string receipt_b64 fails with the invalid marker or receipt_b64 missing",
+    "base64_decode": "base64.b64decode with default validation behavior",
+    "expected_imprint": "bytes.fromhex(checkpoint.composite_hash with sha256: prefix removed)",
+    "der_parser": {
+      "lengths": "DER definite lengths only; indefinite length, high-tag-number, non-minimal long-form length, truncated values, and child parse mismatch fail",
+      "path": "ContentInfo SEQUENCE -> second child explicit context -> signedData SEQUENCE -> third child encapContentInfo SEQUENCE -> context-specific constructed tag 0 from encap children after the content type -> explicit OCTET STRING -> TSTInfo SEQUENCE -> third child messageImprint SEQUENCE -> second child OCTET STRING hashedMessage",
+      "algorithm_oid": "not validated by current verifier",
+      "tsa_certificate_chain": "not validated by current verifier; --tsa-ca-bundle only prints an out-of-scope note in human CLI"
+    },
+    "success_rule": "hashedMessage bytes must equal expected_imprint bytes exactly",
+    "failure_rule": "parse failure or mismatch gives CHECKPOINT_TSA_IMPRINT_MISMATCH/disproved"
+  }
+}

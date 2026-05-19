@@ -1,0 +1,46 @@
+{
+  "id": "keel.closure.digest_rules.v1",
+  "version": "v1",
+  "kind": "closure_digest_rules_recipe",
+  "status": "released",
+  "body": {
+    "digest_value_normalization": "a value is present only if it is a string whose strip() is non-empty; the normalized value is strip()",
+    "closure_status_normalization": "str(payload.get(\"closure_status\") or \"\").strip().lower()",
+    "digest_semantics_constants": {
+      "dispatch_request_digest_semantics": "approved_request_body_bytes_at_dispatch_time",
+      "provider_response_digest_semantics": "provider_bytes_received_by_keel",
+      "client_response_digest_semantics": "response_bytes_handed_to_asgi_not_tcp_receipt"
+    },
+    "provider_client_digest_reference": {
+      "skip_status": "missing_closure",
+      "missing_digest_when_closed": "WALK_CLOSURE_DIGEST_MISSING",
+      "missing_digest_when_not_closed": "skip without failure",
+      "provider_field": "provider_response_digest_v1",
+      "provider_event_types": [
+        "provider.response.received",
+        "execution.completed"
+      ],
+      "client_field": "client_response_digest_v1",
+      "client_event_types": [
+        "client.response.delivered",
+        "execution.completed"
+      ],
+      "candidate_filter": "same permit id and event_type in accepted set",
+      "permit_id_resolution": "candidate payload.permit_id non-empty string else record_permit_id from flattened export context",
+      "success_rule": "closure digest normalized value must be one of the normalized present candidate payload values for the same field",
+      "no_candidates_or_no_present_values": "WALK_CLOSURE_DIGEST_MISSING",
+      "mismatch": "WALK_CLOSURE_DIGEST_MISMATCH"
+    },
+    "dispatch_digest_reference": {
+      "applies_to": "closure_v2 dispatch_request_digest_v1",
+      "skip_status": "missing_closure",
+      "missing_digest_when_closed": "WALK_CLOSURE_DIGEST_MISSING",
+      "missing_digest_when_abnormal": "stderr warning and no failure",
+      "record_digest_source": "flattened export context record_binding_request_hash, derived from records[].permit.binding_request_hash or bundle-level chain entry permit id lookup",
+      "record_digest_normalization": "same digest_value_normalization",
+      "success_rule": "normalized closure dispatch_request_digest_v1 equals normalized record_binding_request_hash",
+      "missing_record_digest": "WALK_CLOSURE_DIGEST_MISSING",
+      "mismatch": "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH"
+    }
+  }
+}

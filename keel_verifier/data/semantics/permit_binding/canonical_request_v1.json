@@ -1,0 +1,20 @@
+{
+  "id": "keel.permit_binding.canonical_request.v1",
+  "version": "v1",
+  "kind": "permit_binding_dispatch_request_recipe",
+  "status": "released",
+  "body": {
+    "current_verifier_scope": "The current keel-verifier does not recompute canonical provider wire-body bytes or binding_request_hash from a request body. It verifies dispatch binding by comparing exported digest fields as opaque normalized strings.",
+    "dispatch_digest_semantic_label": "closure_v2 payload.dispatch_request_digest_semantics must exactly equal approved_request_body_bytes_at_dispatch_time before dispatch binding is considered valid",
+    "closure_digest_source": "closure payload dispatch_request_digest_v1 normalized by string strip; blank or non-string is missing",
+    "permit_digest_source": "export record permit.binding_request_hash normalized by string strip; blank or non-string is missing",
+    "flattening_rules": {
+      "per_record_chain_entries": "records[].permit.binding_request_hash applies to every chain entry in that record",
+      "bundle_level_chain_entries": "build a permit_id -> binding_request_hash map from records[].permit, then use permit id resolved from the chain entry payload, top-level permit_id, or resource_id when resource_type is permit"
+    },
+    "comparison": "exact string equality after strip normalization",
+    "hash_algorithm_validation": "none in current verifier; values are not regex-checked as sha256 hex",
+    "missing_rules": "closed closure missing dispatch digest or permit binding digest fails WALK_CLOSURE_DIGEST_MISSING; missing_closure skips; abnormal non-closed missing dispatch digest warns but does not fail",
+    "mismatch_rule": "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH"
+  }
+}

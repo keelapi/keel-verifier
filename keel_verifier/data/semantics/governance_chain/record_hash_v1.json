@@ -1,0 +1,74 @@
+{
+  "id": "keel.governance_chain.record_hash.v1",
+  "version": "v1",
+  "kind": "governance_chain_record_hash_recipe",
+  "status": "released",
+  "body": {
+    "record_hash": {
+      "algorithm": "sha256_hex_without_prefix",
+      "timestamp": {
+        "input_type": "string_or_datetime",
+        "string_preprocess": [
+          "strip_outer_whitespace",
+          "replace_terminal_Z_with_+00:00"
+        ],
+        "parser": "datetime.fromisoformat",
+        "naive_policy": "assume_existing_naive_value",
+        "aware_policy": "drop_tzinfo_without_timezone_conversion",
+        "formatter": "%Y-%m-%dT%H:%M:%S.%f"
+      },
+      "input_order": [
+        "event_id",
+        "event_type",
+        "resource_type",
+        "resource_id",
+        "outcome",
+        "severity",
+        "created_at",
+        "prev_hash",
+        "sequence_number"
+      ],
+      "null_string_fields": [
+        "resource_type",
+        "resource_id",
+        "outcome"
+      ],
+      "joiner": "|",
+      "sequence_number_string": "str(sequence_number)",
+      "byte_encoding": "utf-8"
+    },
+    "accepted_chain_format_versions": {
+      "v1": "record_hash recipe in this artifact"
+    },
+    "entry_sources": {
+      "audit_export_bundle_v2": [
+        "top-level chain_entries list",
+        "records[].chain_entries lists"
+      ],
+      "governance_events_export": "schema keel.governance_events/v1 is converted into bundle v2 entries with chain_format_version defaulting to v1, created_at from occurred_at or created_at, payload_json from payload when absent, and chain_scope from project_id when absent",
+      "payload_decoding": "gzip decompress only if export bytes start with magic bytes 1f8b; JSON document parse first, JSONL fallback skips blank lines and requires each nonblank line to be a JSON object"
+    },
+    "walk_rules": {
+      "group_by": "entry.chain_scope, preserving None as a scope",
+      "array_order_check": "within each original bundle-level or per-record chain_entries array, if two adjacent entries both have sequence_number and current < previous, fail WALK_SEQUENCE_INVERSION",
+      "duplicate_sequence_check": "within each chain_scope, duplicate non-null sequence_number fails WALK_SEQUENCE_INVERSION",
+      "sort_for_walk": "sort entries per scope by (sequence_number is None, sequence_number or 0)",
+      "required_fields_for_hash": [
+        "sequence_number int and not bool",
+        "record_hash non-empty string",
+        "prev_hash non-empty string",
+        "event_id non-empty string",
+        "event_type non-empty string",
+        "severity non-empty string"
+      ],
+      "optional_fields_for_hash": [
+        "resource_type string or null",
+        "resource_id string or null",
+        "outcome string or null"
+      ],
+      "first_entry_prev_hash": "not verified against chain state outside the supplied bundle window",
+      "subsequent_prev_hash": "must equal immediately previous walked entry record_hash",
+      "subsequent_sequence": "must be strictly greater than previous walked sequence_number"
+    }
+  }
+}

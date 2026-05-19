@@ -1,0 +1,93 @@
+{
+  "id": "keel.workflow.canonicalization.v1",
+  "version": "v1",
+  "kind": "workflow_canonicalization_recipe",
+  "status": "released",
+  "body": {
+    "canonical_json": {
+      "json_serializer": "python_json_dumps",
+      "sort_keys": true,
+      "separators": [
+        ",",
+        ":"
+      ],
+      "ensure_ascii": false,
+      "encoding": "utf-8",
+      "hash": "sha256_hex_without_prefix",
+      "preprocess": "strip_none recursively before json serialization"
+    },
+    "strip_none": "for dicts, coerce keys to str and omit items whose value is None; for lists, recursively process each item and keep list positions; for scalars, keep value unchanged",
+    "hash_output": "lowercase sha256 hex without sha256: prefix",
+    "hash_field_normalization": "if a string starts with sha256:, remove that prefix; strip outer whitespace; blank or non-string is missing",
+    "workflow_declaration_id": "workflow_declaration_id if nonblank string else id if nonblank string",
+    "workflow_amendment_id": "workflow_amendment_id if nonblank string else id if nonblank string",
+    "project_id": "project_id required non-empty string stripped",
+    "intent_extraction": {
+      "first": "intent_json if it is an object, stripped of None recursively",
+      "second": "intent if it is an object, stripped of None recursively",
+      "fallback_fields": [
+        "expected_calls",
+        "max_calls",
+        "expected_model",
+        "expected_input_tokens_per_call",
+        "expected_output_tokens_per_call",
+        "max_duration_seconds"
+      ],
+      "validation": "expected_calls, max_calls, expected_input_tokens_per_call, expected_output_tokens_per_call, max_duration_seconds are optional non-negative ints excluding bool; expected_calls or max_calls is required; expected_calls must be <= max_calls when both present; expected_model must be string or null"
+    },
+    "principal_payload": "if principal object has type api_key or dashboard_session and string id, emit api_key_id or dashboard_session_id; otherwise emit non-null api_key_id/dashboard_session_id fallback fields",
+    "projected_cost_payload": "projected_cost dict stripped of None if present; else amount_micros from projection_amount_micros, currency from projection_currency default USD, methodology from projection_methodology, stripped of None",
+    "issued_at_candidates": "include raw stripped timestamp string if nonblank; also include parse_iso_or_none(value).astimezone(UTC).isoformat() if parseable and distinct",
+    "declaration_signature_payload_candidates": [
+      "record.signed_payload copied with binding_key_id setdefault to resolved key id when signed_payload is an object",
+      "for each issued_at candidate from declaration_signed_at or declared_at or created_at: binding_version workflow_declaration.v1, project_id, workflow_id, intent, budget_envelope_id, declared_by, projected_cost, status, issued_at, binding_key_id"
+    ],
+    "amendment_delta": "record.delta dict stripped of None if present; else fields applied_against_version, previous_max_calls, new_max_calls, previous_expected_calls, new_expected_calls, reason_provided stripped of None",
+    "amendment_signature_payload_candidates": [
+      "record.signed_payload copied with binding_key_id setdefault to resolved key id when signed_payload is an object",
+      "for each issued_at candidate from amendment_signed_at or created_at, emit base plus delta under delta",
+      "base plus workflow_amendment_id and delta under delta",
+      "base plus flattened delta fields",
+      "base plus workflow_amendment_id and flattened delta fields"
+    ],
+    "signature_verification": {
+      "key_resolution": {
+        "purpose": "permit_binding_signing",
+        "artifact_public_key": "never accepted from closure or workflow records",
+        "signing_time_sources": {
+          "closure": "closure_signed_at",
+          "workflow_declaration": "declaration_signed_at",
+          "workflow_amendment": "created_at"
+        },
+        "artifact_key_id_sources": {
+          "closure": "none during trust-root resolution; binding_key_id is checked after public-key resolution",
+          "workflow": "record.binding_key_id if string else record.key_id if string else none"
+        },
+        "manifest_resolution": {
+          "source": "key_manifest_source_for_args(args): explicit key_manifest/key_manifest_url if supplied; none if self_attested is true; else cached ~/.keel-verifier/trust-root.json when present; else bundled keel_verifier/data/trust_root.json",
+          "priority": [
+            "expected_public_key is not supplied on current closure/workflow verifier paths",
+            "resolved key_manifest_source entries filtered by purpose, key_id when supplied, and signing_time active window"
+          ],
+          "public_key_url": "not supported for closure or workflow verifier paths",
+          "embedded_public_key": "not accepted; artifact_pub is always None for closure and workflow records",
+          "self_attested_effect": "self_attested disables key_manifest_source but provides no embedded artifact key, so current closure/workflow verification cannot resolve a trust key in that mode",
+          "manifest_key_id_rule": "if artifact key_id is present, select the first manifest key with matching purpose and key_id",
+          "legacy_no_key_id_rule": "if no key_id and signing time is parseable, require exactly one purpose-matching manifest entry active at signing time; if signing time is absent/unparseable, require exactly one purpose-matching entry total",
+          "active_window_rule": "An absent or null valid_from/valid_to is open-ended; a present non-null value that does not parse to a valid timestamp makes the manifest entry malformed and excludes it from matching any signing_time (fail-closed)."
+        }
+      },
+      "canonical_hash_match": "record canonical hash must equal one of the candidate payload hashes",
+      "signed_message": "canonical hash string encoded as UTF-8",
+      "verification": {
+        "public_key_decode": "remove optional ed25519: prefix, base64-decode remaining text, Ed25519PublicKey.from_public_bytes",
+        "signature_decode": "remove optional ed25519: prefix, base64-decode remaining text",
+        "invalid_handling": "any exception means verification false"
+      }
+    },
+    "amendment_order": "for each declaration id in sorted order, amendments are evaluated in input order and must be nondecreasing by (created_at parsed, amendment id); applied_against_version must count from 1; declaration.version must equal final expected version",
+    "effective_intent_hash": "sha256 over concatenated UTF-8 canonical workflow JSON chunks: declaration intent first, then amendment deltas ordered by (created_at parsed, amendment id); when before_created_at is supplied, exclude amendments whose created_at >= cutoff; no delimiter is inserted between chunks",
+    "permit_snapshot": "extract workflow_state_json or workflow_state from record first then nested permit; permit time is first parseable of created_at, timestamp, permit_created_at on record then permit; if snapshot admission_state is unknown_or_inactive and declaration id is missing, skip; otherwise snapshot effective_intent_hash and declaration_version_at_decision must match declaration/amendments before permit time",
+    "workflow_evidence_document": "schema must equal keel.vanta.workflow_evidence/v1; declarations and amendments must be lists; declaration_count and amendment_count must exactly equal their list lengths"
+  }
+}

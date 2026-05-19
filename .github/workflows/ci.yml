@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install -e . pytest build
+          pip install -e . pytest build setuptools wheel
 
       - name: Run pytest
         run: pytest -q
