@@ -434,6 +434,7 @@ def test_delegation_denied_correctly_cli_claim_command(tmp_path, run_cli) -> Non
         "delegation_denied_correctly",
         "--evidence-file",
         str(evidence_file),
+        "--json",
     )
     payload = json.loads(result.stdout)
 

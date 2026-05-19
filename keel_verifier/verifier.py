@@ -21,9 +21,9 @@ Three modes:
            [--expected-public-key ed25519:...] \\
            [--public-key-url https://api.keelapi.com/v1/integrity/checkpoint-public-key]
 
-     If neither --expected-public-key, --public-key-url, nor --key-manifest is
-     given, the verifier uses the public_key embedded in the artifact and
-     reports this as a self-attested verification only.
+     If no explicit trust-root flag is given, the verifier uses the cached
+     trust-root manifest when present, otherwise the bundled production trust
+     root. Embedded public keys are used only in explicit self-attested mode.
 
   3. TSA receipt embedded in a checkpoint:
      Performed automatically inside ``checkpoint`` mode whenever the
@@ -37,7 +37,9 @@ Key resolution order (when verifying signatures):
   1. ``--expected-public-key`` (explicit pin) — highest priority.
   2. ``--public-key-url`` (single-key fetch, checkpoint mode only).
   3. ``--key-manifest`` / ``--key-manifest-url`` resolved by ``key_id``.
-  4. Embedded ``public_key`` in the artifact (self-attested).
+  4. Cached ``~/.keel-verifier/trust-root.json`` when available.
+  5. Bundled ``keel_verifier/data/trust_root.json``.
+  6. Embedded ``public_key`` in the artifact only in explicit self-attested mode.
 
 If the artifact carries a ``key_id`` and a key manifest is supplied, the
 verifier requires the manifest to contain a matching entry with the correct

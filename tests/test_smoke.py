@@ -17,6 +17,7 @@ def test_import_version_and_public_api():
     assert callable(keel_verifier.verify_checkpoint)
     assert callable(keel_verifier.verify_export_walk_events)
     assert callable(keel_verifier.verify_closure_record)
+    assert callable(keel_verifier.verify_delegation_denied_correctly)
 
 
 def test_module_help_shows_phase_flags(run_cli):

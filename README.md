@@ -1,5 +1,10 @@
 # keel-verifier
 
+[![PyPI](https://img.shields.io/pypi/v/keel-verifier.svg)](https://pypi.org/project/keel-verifier/)
+[![Python](https://img.shields.io/pypi/pyversions/keel-verifier.svg)](https://pypi.org/project/keel-verifier/)
+[![CI](https://github.com/keelapi/keel-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/keelapi/keel-verifier/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Independent verifier for Permit-spec governance evidence and Keel audit exports.
 
 ## Why this exists
@@ -45,9 +50,20 @@ The v0.2.0 invocation pattern still works:
 python -m keel_verifier sample/export.json --self-attested
 ```
 
+## Common Commands
+
+| Task | Command |
+| --- | --- |
+| Verify a signed export | `keel-verify export export.json manifest.json` |
+| Walk lifecycle chain entries | `keel-verify export export.json manifest.json --walk-events` |
+| Verify closure records | `keel-verify export export.json manifest.json --walk-events --verify-closure` |
+| Verify a checkpoint | `keel-verify checkpoint checkpoint.json` |
+| Verify a registered claim | `keel-verify claim delegation_denied_correctly --evidence-file evidence.json` |
+| Refresh cached trust roots | `keel-verify refresh-keys` |
+
 ## What It Verifies
 
-`keel-verify export` verifies a signed compliance export in three layers:
+`keel-verify export` verifies a signed compliance export in four layers:
 
 1. The export bytes match the signed manifest `content_hash`.
 2. The manifest Ed25519 signature verifies against a trusted key.
@@ -136,6 +152,9 @@ v2.0.0 adds **pack-pinned semantic verification**: an evidence pack can declare 
 keel-verify claim delegation_denied_correctly --evidence-file evidence.json
 ```
 
+Claim output is JSON by default. `--json` is accepted for consistency with the
+export and checkpoint commands.
+
 A pack carries two manifest blocks:
 
 - `claim_set` — which claims the pack asserts, each marked `required: true|false`.
@@ -161,6 +180,21 @@ For a pinned pack, every claim the `claim_set` marks `required` must receive `su
 - [`spec/verifier-pack-pinning-v0.md`](https://github.com/keelapi/keel-permit/blob/main/spec/verifier-pack-pinning-v0.md) — pack-pinning mechanism.
 - [`spec/verifier-claims-v0.md`](https://github.com/keelapi/keel-permit/blob/main/spec/verifier-claims-v0.md) — claim registry and verdict semantics.
 - [`spec/permit-chain-v1.md`](https://github.com/keelapi/keel-permit/blob/main/spec/permit-chain-v1.md) — the `permit_chain.delegation_denied_correctly.v1` claim.
+
+## TSA Trust Validation
+
+Checkpoint verification checks embedded RFC 3161 timestamp receipts by confirming
+the TSA MessageImprint matches the checkpoint `composite_hash`.
+
+For opt-in TSA authenticity validation, pass a CA bundle:
+
+```bash
+keel-verify checkpoint checkpoint.json --tsa-ca-bundle tsa-ca-bundle.pem
+```
+
+This uses OpenSSL 3.x to verify the CMS signature, certificate chain, and
+timestamping purpose against the supplied CA bundle. It does not check
+historical revocation status at the timestamp issuance time.
 
 ## Tampering Matrix
 
@@ -238,18 +272,34 @@ Exit code `0` means verified. Exit code `1` means verification failed. Exit code
 
 ## Network Behavior
 
-The verifier does not phone home. It reaches the network only when you pass `--public-key-url` or `--key-manifest-url`.
+Normal verification does not phone home. Network fetches happen only when you
+run `keel-verify refresh-keys` or pass an explicit URL trust-root flag such as
+`--public-key-url` or `--key-manifest-url`.
+
+The repository CI workflows also contact live Keel endpoints to detect bundled
+trust-root drift.
 
 There is no telemetry.
 
 ## Library Use
 
 ```python
-from keel_verifier import verify, verify_export_walk_events, verify_closure_record
+import json
+from pathlib import Path
+
+from keel_verifier import (
+    verify,
+    verify_delegation_denied_correctly,
+)
 
 result = verify("sample/export.json", self_attested=True)
 if not result.ok:
     raise SystemExit(result.error)
+
+evidence = json.loads(Path("evidence.json").read_text())
+claim = verify_delegation_denied_correctly(evidence, include_semantics=True)
+if claim["status"] != "supported":
+    raise SystemExit(claim)
 ```
 
 ## Versioning
