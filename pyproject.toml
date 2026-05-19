@@ -15,6 +15,16 @@ dependencies = [
     "cryptography>=42",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "build",
+    "pytest",
+    "ruff",
+    "setuptools",
+    "twine",
+    "wheel",
+]
+
 [project.scripts]
 keel-verify = "keel_verifier.cli:main"
 
@@ -34,3 +44,14 @@ keel_verifier = [
     "data/**/*.json",
     "keys/*.json",
 ]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]

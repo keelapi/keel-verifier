@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add public security reporting policy, README badges, compact common commands, TSA trust-validation docs, and clearer network-behavior wording.
+- Accept `--json` on `keel-verify claim delegation_denied_correctly` for documented CLI compatibility; claim output remains JSON by default.
+- Add Ruff configuration and CI linting.
+- Add an explicit source-distribution manifest so tests, fixtures, samples, tools, and public metadata are included consistently.
+- Ignore local `.claude/` workspace settings at the repository level.
+
 ## v2.0.0 (2026-05-19)
 
 - Add pack-pinned semantics: the verifier pins `(semantic_id, sha256)` and dispatches verification logic from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication: future verifier releases reach the same claim verdicts or explicitly decline, and never silently reinterpret a prior pinned claim.

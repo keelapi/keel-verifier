@@ -5,6 +5,7 @@ from keel_verifier.verifier import (
     verify,
     verify_checkpoint,
     verify_closure_record,
+    verify_delegation_denied_correctly,
     verify_export_walk_events,
 )
 from keel_verifier.verdicts import (
@@ -23,6 +24,7 @@ __all__ = [
     "verify",
     "verify_checkpoint",
     "verify_closure_record",
+    "verify_delegation_denied_correctly",
     "verify_export_walk_events",
     "__version__",
 ]

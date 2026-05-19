@@ -237,6 +237,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_delegation.add_argument("--evidence-file", required=True)
     p_delegation.add_argument("--event-id")
+    p_delegation.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Accepted for consistency; claim output is JSON by default.",
+    )
     p_delegation.set_defaults(
         func=lambda args: _cmd_claim_delegation_denied_correctly(
             p_delegation,
@@ -286,7 +292,8 @@ def _build_legacy_parser() -> argparse.ArgumentParser:
 
 
 def _print_human(result: VerifyResult, export_path: str, stream) -> None:
-    p = lambda s="": print(s, file=stream)
+    def p(s: str = "") -> None:
+        print(s, file=stream)
 
     if result.ok:
         p(f"VERIFIED: {export_path}")
