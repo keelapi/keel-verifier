@@ -6,6 +6,7 @@
 - Accept `--json` on `keel-verify claim delegation_denied_correctly` for documented CLI compatibility; claim output remains JSON by default.
 - Add Ruff configuration and CI linting.
 - Add an explicit source-distribution manifest so tests, fixtures, samples, tools, and public metadata are included consistently.
+- Add Python version classifiers to PyPI metadata so the Python versions badge resolves correctly.
 - Ignore local `.claude/` workspace settings at the repository level.
 
 ## v2.0.0 (2026-05-19)
