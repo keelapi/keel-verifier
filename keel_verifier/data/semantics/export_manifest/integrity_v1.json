@@ -1,0 +1,63 @@
+{
+  "id": "keel.export_manifest.integrity.v1",
+  "version": "v1",
+  "kind": "export_manifest_integrity_recipe",
+  "status": "released",
+  "body": {
+    "payload_content_hash": {
+      "input": "exact export file bytes as read from disk; do not decompress or parse before hashing",
+      "algorithm": "sha256",
+      "output": "sha256:<lowercase hex digest>",
+      "compare_to": "manifest.content_hash exact string equality",
+      "on_mismatch": "content hash is disproved and manifest signature is not evaluated"
+    },
+    "manifest_parse": {
+      "input": "exact manifest file bytes decoded as UTF-8 JSON",
+      "required_top_level_type": "object"
+    },
+    "manifest_signature": {
+      "signature_field": "manifest.signature; any falsey value is treated as missing",
+      "embedded_public_key_field": "manifest.public_key",
+      "artifact_key_id_field": "manifest.key_id if it is a string",
+      "signed_message": "manifest.content_hash encoded as UTF-8",
+      "key_resolution": {
+        "purpose": "export_signing",
+        "signing_time_source": "manifest.signed_at parsed by parse_iso_or_none",
+        "priority": [
+          "expected_public_key argument",
+          "key_manifest or key_manifest_url argument resolved by key_id/purpose/signing_time",
+          "cached ~/.keel-verifier/trust-root.json when no explicit trust override and not self_attested",
+          "bundled keel_verifier/data/trust_root.json when no cached manifest",
+          "embedded manifest.public_key"
+        ],
+        "public_key_url": "not supported for export manifests",
+        "manifest_key_id_rule": "if artifact key_id is present, select the first manifest key with matching purpose and key_id",
+        "legacy_no_key_id_rule": "if no key_id and signing time is parseable, require exactly one purpose-matching manifest entry active at signing time; if signing time is absent/unparseable, require exactly one purpose-matching entry total",
+        "active_window_rule": "An absent or null valid_from/valid_to is open-ended; a present non-null value that does not parse to a valid timestamp makes the manifest entry malformed and excludes it from matching any signing_time (fail-closed)."
+      },
+      "embedded_public_key_must_match_trusted_key": true,
+      "verification": {
+        "public_key_decode": "remove optional ed25519: prefix, base64-decode remaining text, Ed25519PublicKey.from_public_bytes",
+        "signature_decode": "remove optional ed25519: prefix, base64-decode remaining text",
+        "invalid_handling": "any exception means verification false"
+      },
+      "allow_unsigned_mode": {
+        "human_cli": "if --allow-unsigned is true, missing signature exits 0 after content hash passes",
+        "structured_claim": "signature subject remains insufficient_evidence with MANIFEST_SIGNATURE_MISSING"
+      }
+    },
+    "scope_identity_side_check": {
+      "fields": [
+        "export_id",
+        "project_id",
+        "export_type",
+        "format",
+        "compressed",
+        "record_count"
+      ],
+      "runs_when_any_field_present": true,
+      "record_count_source": "decoded JSON document records length, or JSONL nonblank object line count wrapped as records",
+      "project_id_compare": "if both manifest.project_id and payload.project_id are strings, require equality"
+    }
+  }
+}

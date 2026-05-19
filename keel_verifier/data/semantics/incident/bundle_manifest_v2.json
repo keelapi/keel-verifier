@@ -1,0 +1,31 @@
+{
+  "id": "keel.incident.bundle_manifest.v2",
+  "version": "v2",
+  "kind": "incident_bundle_manifest_recipe",
+  "status": "released",
+  "body": {
+    "activation": "runs during export workflow extension verification; if export payload is not a zip and manifest.export_type is incident_evidence, fail; if not zip and not incident_evidence, no-op",
+    "manifest_source": "if export manifest object contains manifest_version use it as bundle manifest; else read first JSON object among manifest.json then bundle_manifest.json from zip; absent bundle manifest is no-op",
+    "version_rules": {
+      "manifest_version_1": "no-op/backward compatible",
+      "manifest_version_2": "apply this recipe",
+      "other": "INCIDENT_UNKNOWN_MANIFEST_VERSION"
+    },
+    "files_list": "bundle_manifest.files must be a list of objects; each entry.name is non-empty string; entry.schema is string or null; duplicate names overwrite earlier schemas in current verifier map",
+    "required_files": {
+      "admin_actions.jsonl": "keel.admin_actions/v1",
+      "bracket_checkpoints.json": "keel.bracket_checkpoints/v1",
+      "governance_events.jsonl": "keel.governance_events/v1",
+      "incident_metadata.json": "keel.incident_metadata/v1",
+      "permits.jsonl": "keel.permits/v1",
+      "workflow_declarations.jsonl": "keel.workflow_declarations/v1",
+      "workflow_amendments.jsonl": "keel.workflow_amendments/v1",
+      "mcp_tool_decisions.jsonl": "keel.mcp_tool_decisions/v1"
+    },
+    "required_file_rule": "each required file must have exact schema in files map and the name must exist in the zip; permits.jsonl is also checked explicitly",
+    "incident_metadata": "incident_metadata.json must parse as JSON object with schema exactly keel.incident_evidence/v1",
+    "jsonl_read_rules": "workflow_declarations.jsonl, workflow_amendments.jsonl, permits.jsonl, and mcp_tool_decisions.jsonl are decoded as UTF-8; blank lines skipped; every nonblank line must parse as JSON object",
+    "ignored_content": "admin_actions.jsonl, bracket_checkpoints.json, and governance_events.jsonl are required by manifest/name/schema but not parsed by current verifier recipe",
+    "workflow_rules": "workflow declarations and amendments are verified using keel.workflow.canonicalization.v1 with declaration effective hash not required; permits.jsonl workflow snapshots are cross-checked when present"
+  }
+}

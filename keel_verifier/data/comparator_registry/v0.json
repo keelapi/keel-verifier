@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json",
+  "title": "Authority Envelope Comparator Registry — v0",
+  "version": "authority-envelope.v0",
+  "description": "Versioned semantics for authority_envelope field comparators. See spec/permit-chain-v1.md §3-§4.",
+  "fields": {
+    "actions": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "tools": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "providers": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "models": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "data_classes": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "regions": {
+      "type": "set<string>",
+      "order": "subset",
+      "canonicalization": "sorted_unique_strings"
+    },
+    "expires_at": {
+      "type": "timestamp",
+      "order": "less_than_or_equal",
+      "canonicalization": "rfc_3339_utc"
+    }
+  }
+}

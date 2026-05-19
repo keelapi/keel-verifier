@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v0.json",
+  "title": "Verifier Claim Registry - v0",
+  "version": "verifier-claims.v0",
+  "description": "Stable definitions for verifier claim names and required evidence. This artifact defines claims; it does not declare implementation support in any verifier build.",
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "export.integrity.v1",
+      "assertion": "Export bytes match manifest `content_hash`; manifest signature is valid for the trusted export-signing key at signing time.",
+      "required_evidence": "Export bytes, manifest, public key or key manifest/trust root, signature metadata.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "export.scope_identity.v1",
+      "assertion": "Manifest identity fields describe the signed artifact: export_id, project_id, export_type, format, compressed, record_count.",
+      "required_evidence": "Manifest plus export payload shape/count.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "governance_chain.local_continuity.v1",
+      "assertion": "Supplied chain entries are locally untampered for declared chain scope: record hash, prev_hash continuity, sequence order, duplicate detection, known chain format.",
+      "required_evidence": "ChainEntry list or governance_events records with chain fields.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit_chain.delegation_denied_correctly.v1",
+      "assertion": "`permit.delegated_denied` was correctly denied because the requested child authority envelope exceeded, or lacked, the parent authority envelope under pinned authority-envelope.v0 semantics, with a strict supplied governance-chain prefix and audit.integrity_digest payload coverage.",
+      "required_evidence": "A `permit.delegated_denied` governance event, strict chain fields from genesis through the denied event and its covering `audit.integrity_digest`, pinned governance record-hash and governance-event integrity-digest semantics, pinned authority-envelope.v0 comparator semantics, parent and child authority envelope payload fields, failed_fields, reason_code, and optional event_id when multiple denied events are supplied.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "closure.signature.v1",
+      "assertion": "`permit.closed` closure payload canonical hash and Ed25519 binding signature are valid.",
+      "required_evidence": "Closure event payload, canonical hash, signature, permit-binding trust root.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "closure.digest_consistency.v1",
+      "assertion": "Closure provider/client response digests match catalog-approved evidence events.",
+      "required_evidence": "Closure event plus provider.response.received/client.response.delivered digest events, or execution.completed carrying the corresponding provider_response_digest_v1 and client_response_digest_v1 fields.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "closure.dispatch_binding.v1",
+      "assertion": "`closure_v2.dispatch_request_digest_v1` equals the permit's frozen `binding_request_hash`.",
+      "required_evidence": "Closure event plus permit record/export record carrying `binding_request_hash`.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "workflow.declaration_signature.v1",
+      "assertion": "Workflow declaration canonical hash and signature are valid for the permit-binding key.",
+      "required_evidence": "Workflow declaration record, canonical hash, signature, signing time, trust root.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "workflow.amendment_signature.v1",
+      "assertion": "Workflow amendment canonical hash and signature are valid for the permit-binding key.",
+      "required_evidence": "Workflow amendment record, canonical hash, signature, signing time, trust root.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "workflow.effective_intent_hash.v1",
+      "assertion": "Declaration effective intent hash equals the hash of declaration intent plus ordered amendments under the pinned workflow canonicalization profile.",
+      "required_evidence": "Declaration records, amendment records, canonical workflow JSON profile.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "workflow.permit_snapshot.v1",
+      "assertion": "Permit/MCP workflow snapshot is consistent with workflow declaration/amendment history at decision time.",
+      "required_evidence": "Permit/MCP record workflow_state_json, declaration/amendment records.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "incident.bundle_manifest.v1",
+      "assertion": "Incident evidence ZIP contains the catalog-required file set and schemas for manifest v2.",
+      "required_evidence": "Signed ZIP, manifest v2 file list.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "checkpoint.composite_hash.v1",
+      "assertion": "Checkpoint composite_hash equals deterministic hash of sorted chain_heads.",
+      "required_evidence": "Checkpoint JSON chain_heads and composite_hash.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "checkpoint.signature.v1",
+      "assertion": "Checkpoint signature is valid for trusted integrity-checkpoint key at computed_at.",
+      "required_evidence": "Checkpoint JSON, signature, public key/key_id, trust root.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "checkpoint.tsa_imprint.v1",
+      "assertion": "TSA receipt message imprint equals checkpoint composite hash.",
+      "required_evidence": "Checkpoint JSON, TSA receipt(s).",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "workflow_evidence.sibling_integrity.v1",
+      "assertion": "Vanta workflow evidence sibling bytes match sibling descriptor content_hash and signature.",
+      "required_evidence": "Main manifest sibling descriptor, workflow evidence file, trust root.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    }
+  ]
+}

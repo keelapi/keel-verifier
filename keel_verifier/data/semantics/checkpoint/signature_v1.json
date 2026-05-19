@@ -1,0 +1,35 @@
+{
+  "id": "keel.checkpoint.signature.v1",
+  "version": "v1",
+  "kind": "checkpoint_signature_recipe",
+  "status": "released",
+  "body": {
+    "precondition": "keel.checkpoint.composite_hash.v1 must have supported composite_hash",
+    "signature_field": "checkpoint.signature must be a string",
+    "artifact_key_id_field": "checkpoint.key_id if it is a string",
+    "embedded_public_key_field": "checkpoint.public_key; accepted only when self_attested mode is true, but if present it must match the resolved trusted key",
+    "expected_public_key_validation": "when supplied, expected_public_key must start with ed25519:",
+    "signed_message": "checkpoint.composite_hash string encoded as UTF-8",
+    "key_resolution": {
+      "purpose": "integrity_checkpoint",
+      "signing_time_source": "checkpoint.computed_at parsed by parse_iso_or_none",
+      "priority": [
+        "expected_public_key argument",
+        "public_key_url argument returning JSON object with ed25519 public_key",
+        "key_manifest or key_manifest_url argument resolved by key_id/purpose/signing_time",
+        "cached ~/.keel-verifier/trust-root.json when no explicit trust override and not self_attested",
+        "bundled keel_verifier/data/trust_root.json when no cached manifest",
+        "embedded checkpoint.public_key only when self_attested is true"
+      ],
+      "manifest_key_id_rule": "if artifact key_id is present, select the first manifest key with matching purpose and key_id",
+      "legacy_no_key_id_rule": "if no key_id and signing time is parseable, require exactly one purpose-matching manifest entry active at signing time; if signing time is absent/unparseable, require exactly one purpose-matching entry total",
+      "active_window_rule": "An absent or null valid_from/valid_to is open-ended; a present non-null value that does not parse to a valid timestamp makes the manifest entry malformed and excludes it from matching any signing_time (fail-closed)."
+    },
+    "verification": {
+      "public_key_decode": "remove optional ed25519: prefix, base64-decode remaining text, Ed25519PublicKey.from_public_bytes",
+      "signature_decode": "remove optional ed25519: prefix, base64-decode remaining text",
+      "invalid_handling": "any exception means verification false"
+    },
+    "reported_key_id_fallback": "artifact key_id else sha256(raw trusted public key) first 32 lowercase hex chars prefixed sha256:"
+  }
+}

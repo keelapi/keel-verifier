@@ -1,0 +1,25 @@
+{
+  "id": "keel.checkpoint.composite_hash.v1",
+  "version": "v1",
+  "kind": "checkpoint_composite_hash_recipe",
+  "status": "released",
+  "body": {
+    "composite_hash_field": "checkpoint.composite_hash must be a string starting with sha256:",
+    "chain_heads_source": "checkpoint.chain_heads or {} when missing/null/falsey",
+    "chain_heads_type": "object required after defaulting",
+    "head_validation": {
+      "head": "each value must be an object",
+      "sequence_number": "must satisfy Python isinstance(value, int); bool is not excluded by current verifier",
+      "last_record_hash": "must be a string; no hex/prefix validation"
+    },
+    "algorithm": {
+      "sort": "sort chain_heads keys lexicographically by Python sorted(keys)",
+      "line_format": "<scope_key>:<sequence_number>:<last_record_hash>",
+      "joiner": "\n",
+      "empty_input": "sha256 of empty byte string with sha256: prefix",
+      "encoding": "utf-8",
+      "output": "sha256:<lowercase hex digest>"
+    },
+    "compare": "recomputed composite hash must equal checkpoint.composite_hash exact string"
+  }
+}
