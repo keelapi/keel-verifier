@@ -56,6 +56,8 @@ python -m keel_verifier sample/export.json --self-attested
 
 `keel-verify checkpoint` verifies integrity checkpoint JSON artifacts: the `chain_heads` composite hash, the Ed25519 checkpoint signature, and an embedded RFC 3161 timestamp MessageImprint when present.
 
+`keel-verify claim` adjudicates pack-pinned evidence packs against the verifier's claim registry — see [Claim Verification](#claim-verification-pack-pinned-semantics) below.
+
 ## Obtaining a Signed Export
 
 Request an audit export from the Keel compliance export API and include chain entries when you want full lifecycle walking:
@@ -126,6 +128,40 @@ The bundled trust root lives at `keel_verifier/data/trust_root.json`. It include
 
 Incident evidence zip bundles remain backward compatible. Manifest version 1 bundles without workflow files verify as before. Manifest version 2 bundles must include `workflow_declarations.jsonl` and `workflow_amendments.jsonl`; the verifier validates those files and fails gracefully on unknown manifest versions.
 
+## Claim Verification (Pack-Pinned Semantics)
+
+v2.0.0 adds **pack-pinned semantic verification**: an evidence pack can declare which semantic artifacts it was emitted under (by `(id, sha256)`), and the verifier reproduces those exact semantics from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication — any future verifier release must resolve those exact pinned semantics and reach the same claim verdicts, or explicitly decline. It never silently reinterprets a prior pinned claim.
+
+```bash
+keel-verify claim delegation_denied_correctly --evidence-file evidence.json
+```
+
+A pack carries two manifest blocks:
+
+- `claim_set` — which claims the pack asserts, each marked `required: true|false`.
+- `semantics_pins` — which semantic artifacts (by `(id, sha256)`) the verifier should resolve.
+
+The verifier resolves and validates each pin against the permanent allowlist, then adjudicates each declared claim.
+
+### Structured per-claim verdicts
+
+`--json` output gains a `claims` array with per-claim verdicts using a four-value enum:
+
+| verdict | meaning |
+| --- | --- |
+| `supported` | The claim is positively established by the evidence. |
+| `disproved` | The evidence contradicts the claim. |
+| `insufficient_evidence` | The pack doesn't carry enough to decide. |
+| `unverifiable_scope` | The claim falls outside what the verifier is in scope to decide. |
+
+For a pinned pack, every claim the `claim_set` marks `required` must receive `supported` for the pack's overall `ok` to be true. Legacy un-pinned evidence (no `claim_set` / `semantics_pins`) is evaluated under the permanent `keel.pre_pinning_default.v0` profile and is not subject to required-claim enforcement — v1.x exports continue to verify unchanged.
+
+### Specs
+
+- [`spec/verifier-pack-pinning-v0.md`](https://github.com/keelapi/keel-permit/blob/main/spec/verifier-pack-pinning-v0.md) — pack-pinning mechanism.
+- [`spec/verifier-claims-v0.md`](https://github.com/keelapi/keel-permit/blob/main/spec/verifier-claims-v0.md) — claim registry and verdict semantics.
+- [`spec/permit-chain-v1.md`](https://github.com/keelapi/keel-permit/blob/main/spec/permit-chain-v1.md) — the `permit_chain.delegation_denied_correctly.v1` claim.
+
 ## Tampering Matrix
 
 The verifier emits stable `WALK_*` failure codes, including:
@@ -190,6 +226,8 @@ keel-verify export export.json manifest.json --walk-events
 keel-verify export export.json manifest.json --walk-events --verify-closure
 keel-verify export export.json manifest.json --allow-unsigned
 keel-verify checkpoint checkpoint.json
+keel-verify claim delegation_denied_correctly --evidence-file evidence.json
+keel-verify claim delegation_denied_correctly --evidence-file evidence.json --json
 keel-verify refresh-keys
 keel-verify refresh-keys --source github
 python -m keel_verifier sample/export.json --self-attested
