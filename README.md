@@ -8,7 +8,7 @@ Most AI platforms can tell you what they logged.
 
 This verifier detects post-signing tampering of exported governance evidence. An auditor, customer, regulator, or security team can independently verify decisions, dispatched requests, returned responses, and lifecycle evidence integrity.
 
-Verification runs locally and does not require access to Keel systems.
+Verification runs locally and does not require access to Keel's systems.
 
 ## What this verifier can and cannot prove
 
@@ -216,7 +216,8 @@ if not result.ok:
 
 ## Versioning
 
-v1.0.0 syncs the public verifier with the Phase A/B/C/D internal verifier. v0.2.0 users can keep using `python -m keel_verifier <artifact>`.
+v2.0.0 introduces pack-pinned semantics and structured claim verdicts.
+The documented CLI invocation patterns still work, including `python -m keel_verifier <artifact>`.
 
 ## Related Projects
 
