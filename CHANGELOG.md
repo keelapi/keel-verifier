@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.0.0 (2026-05-18)
+## v2.0.0 (2026-05-19)
 
 - Add pack-pinned semantics: the verifier pins `(semantic_id, sha256)` and dispatches verification logic from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication: future verifier releases reach the same claim verdicts or explicitly decline, and never silently reinterpret a prior pinned claim.
 - Emit structured per-claim verdicts using the four-value enum `supported`, `disproved`, `insufficient_evidence`, and `unverifiable_scope`. `--json` output gains an additive `claims` array carrying these verdicts; existing top-level fields (`ok`, `self_attested`) are unchanged.
