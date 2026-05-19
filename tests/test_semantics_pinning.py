@@ -11,10 +11,22 @@ import pytest
 
 from conftest import keypair, write_json, write_signed_export
 from keel_verifier.semantics import (
+    AUTHORITY_ENVELOPE_V0_HASH,
+    AUTHORITY_ENVELOPE_V0_ID,
+    CHECKPOINT_COMPOSITE_HASH_HASH,
+    CHECKPOINT_COMPOSITE_HASH_ID,
+    CHECKPOINT_SIGNATURE_HASH,
+    CHECKPOINT_SIGNATURE_ID,
+    CHECKPOINT_TSA_IMPRINT_HASH,
+    CHECKPOINT_TSA_IMPRINT_ID,
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
     EXPORT_MANIFEST_INTEGRITY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID,
+    GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
+    GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
+    GOVERNANCE_RECORD_HASH_HASH,
+    GOVERNANCE_RECORD_HASH_ID,
     RELEASED_ARTIFACT_PATHS,
 )
 from keel_verifier.verifier import PERMANENT_ALLOWLIST
@@ -32,6 +44,14 @@ def _json_result(result):
 
 def _sha256(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _artifact_pin(artifact_id: str, artifact_hash: str) -> dict[str, str]:
+    return {
+        "id": artifact_id,
+        "hash": artifact_hash,
+        "path": RELEASED_ARTIFACT_PATHS[artifact_id],
+    }
 
 
 def _add_pins(
@@ -65,6 +85,30 @@ def _add_pins(
     write_json(manifest_path, manifest)
 
 
+def _add_checkpoint_pins(
+    checkpoint_path: Path,
+    *,
+    artifacts: list[dict[str, Any]],
+    claims: list[dict[str, Any]],
+) -> None:
+    checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    checkpoint["claim_set"] = {
+        "version": "verifier-claims.v0",
+        "registry": {
+            "id": CLAIM_REGISTRY_ID,
+            "hash": CLAIM_REGISTRY_HASH,
+            "path": RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_ID],
+        },
+        "claims": claims,
+    }
+    checkpoint["semantics_pins"] = {
+        "version": "keel-semantics-pins.v0",
+        "mode": "pinned",
+        "artifacts": artifacts,
+    }
+    write_json(checkpoint_path, checkpoint)
+
+
 def _signed_export_with_manifest(tmp_path: Path):
     export_private, export_public, export_key_id = keypair()
     return write_signed_export(
@@ -74,6 +118,13 @@ def _signed_export_with_manifest(tmp_path: Path):
         export_public_key=export_public,
         export_key_id=export_key_id,
     )
+
+
+def _sample_checkpoint_without_tsa(tmp_path: Path) -> Path:
+    checkpoint = json.loads((REPO_ROOT / "sample" / "export.json").read_text())
+    checkpoint.pop("tsa", None)
+    checkpoint.pop("tsa_receipts", None)
+    return write_json(tmp_path / "checkpoint.json", checkpoint)
 
 
 def test_pinned_pack_resolves_and_dispatches_from_allowlist(tmp_path, run_cli):
@@ -216,6 +267,98 @@ def test_hash_mismatch_is_insufficient_with_top_level_integrity_error(
     )
     assert integrity["verdict"] == "insufficient_evidence"
     assert integrity["reason_code"] == "SEMANTIC_PIN_HASH_MISMATCH"
+
+
+def test_required_export_claim_without_adjudication_fails_closed(
+    tmp_path,
+    run_cli,
+):
+    export_file, manifest = _signed_export_with_manifest(tmp_path)
+    _add_pins(
+        manifest,
+        artifacts=[
+            _artifact_pin(GOVERNANCE_RECORD_HASH_ID, GOVERNANCE_RECORD_HASH_HASH),
+            _artifact_pin(
+                GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
+                GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
+            ),
+            _artifact_pin(AUTHORITY_ENVELOPE_V0_ID, AUTHORITY_ENVELOPE_V0_HASH),
+        ],
+        claims=[
+            {
+                "name": "permit_chain.delegation_denied_correctly.v1",
+                "required": True,
+            }
+        ],
+    )
+
+    result = run_cli(
+        "export",
+        "--json",
+        str(export_file),
+        str(manifest),
+        "--self-attested",
+    )
+    payload = _json_result(result)
+
+    assert result.returncode == 1
+    assert payload["ok"] is False
+    claim = next(
+        claim
+        for claim in payload["claims"]
+        if claim["name"] == "permit_chain.delegation_denied_correctly.v1"
+    )
+    assert claim["required"] is True
+    assert claim["verdict"] == "insufficient_evidence"
+    assert claim["reason_code"] == "REQUIRED_CLAIM_NOT_ADJUDICATED"
+
+
+def test_required_checkpoint_tsa_claim_without_receipt_fails_closed(
+    tmp_path,
+    run_cli,
+):
+    checkpoint = _sample_checkpoint_without_tsa(tmp_path)
+    _add_checkpoint_pins(
+        checkpoint,
+        artifacts=[
+            _artifact_pin(CHECKPOINT_COMPOSITE_HASH_ID, CHECKPOINT_COMPOSITE_HASH_HASH),
+            _artifact_pin(CHECKPOINT_SIGNATURE_ID, CHECKPOINT_SIGNATURE_HASH),
+            _artifact_pin(CHECKPOINT_TSA_IMPRINT_ID, CHECKPOINT_TSA_IMPRINT_HASH),
+        ],
+        claims=[
+            {
+                "name": "checkpoint.composite_hash.v1",
+                "required": True,
+            },
+            {
+                "name": "checkpoint.signature.v1",
+                "required": True,
+            },
+            {
+                "name": "checkpoint.tsa_imprint.v1",
+                "required": True,
+            },
+        ],
+    )
+
+    result = run_cli(
+        "checkpoint",
+        "--json",
+        str(checkpoint),
+        "--self-attested",
+    )
+    payload = _json_result(result)
+
+    assert result.returncode == 1
+    assert payload["ok"] is False
+    claim = next(
+        claim
+        for claim in payload["claims"]
+        if claim["name"] == "checkpoint.tsa_imprint.v1"
+    )
+    assert claim["required"] is True
+    assert claim["verdict"] == "insufficient_evidence"
+    assert claim["reason_code"] == "REQUIRED_CLAIM_NOT_ADJUDICATED"
 
 
 def test_permanent_allowlist_matches_released_keel_permit_artifacts():

@@ -251,6 +251,103 @@ def _report_diagnostics(
     return merged
 
 
+def _missing_required_claim(
+    name: str,
+    *,
+    semantics: ResolvedSemantics,
+    subject_type: str,
+    subject_id: str | None,
+    evidence: list[str],
+) -> ClaimVerdict:
+    if name in CLAIM_SEMANTICS:
+        verdict = "insufficient_evidence"
+        reason_code = "REQUIRED_CLAIM_NOT_ADJUDICATED"
+        message = (
+            "claim_set declared this claim required, but no evidence or verifier "
+            "path produced an adjudication"
+        )
+    else:
+        verdict = "unverifiable_scope"
+        reason_code = "REQUIRED_CLAIM_UNVERIFIABLE_SCOPE"
+        message = (
+            "claim_set declared this claim required, but this verifier cannot "
+            "resolve an adjudication path for the claim"
+        )
+    return ClaimVerdict(
+        name=name,
+        required=True,
+        verdict=verdict,
+        semantics=semantics.semantics_for_claim(name),
+        subjects=[
+            _subject(
+                subject_type=subject_type,
+                subject_id=subject_id,
+                verdict=verdict,
+                reason_code=reason_code,
+                message=message,
+                evidence=evidence,
+            )
+        ],
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+    )
+
+
+def _enforce_required_claims(
+    *,
+    claims: list[ClaimVerdict],
+    semantics: ResolvedSemantics | None,
+    ok: bool,
+    exit_code: int | None,
+    error: str | None,
+    subject_type: str,
+    subject_id: str | None,
+    evidence: list[str],
+) -> tuple[list[ClaimVerdict], bool, int | None, str | None]:
+    if semantics is not None:
+        claims = _apply_semantics_to_claims(claims, semantics)
+    merged = _merge_claims(claims)
+    if semantics is None or semantics.mode != "pinned":
+        return merged, ok, exit_code, error
+
+    required_names = [
+        request.name for request in semantics.requested_claims if request.required
+    ]
+    if not required_names:
+        return merged, ok, exit_code, error
+
+    emitted = {claim.name for claim in merged}
+    missing = [
+        _missing_required_claim(
+            name,
+            semantics=semantics,
+            subject_type=subject_type,
+            subject_id=subject_id,
+            evidence=evidence,
+        )
+        for name in required_names
+        if name not in emitted
+    ]
+    if missing:
+        merged = _merge_claims([*merged, *missing])
+
+    unsupported = [
+        claim.name
+        for claim in merged
+        if claim.name in required_names
+        and claim.required
+        and claim.aggregate_verdict != verdict_value("supported")
+    ]
+    if unsupported:
+        ok = False
+        if exit_code in (None, 0):
+            exit_code = 1
+        if error is None:
+            error = "required claims not supported: " + ", ".join(sorted(unsupported))
+    return merged, ok, exit_code, error
+
+
 WALK_RECORD_HASH_MISMATCH = "WALK_RECORD_HASH_MISMATCH"
 WALK_PREV_HASH_DISCONTINUITY = "WALK_PREV_HASH_DISCONTINUITY"
 WALK_SEQUENCE_INVERSION = "WALK_SEQUENCE_INVERSION"
@@ -3778,13 +3875,21 @@ def _export_report(
     error: str | None = None,
     diagnostics: list[str] | None = None,
 ) -> VerificationReport:
-    if semantics is not None:
-        claims = _apply_semantics_to_claims(claims, semantics)
-    return VerificationReport(
+    claims, ok, enforced_exit_code, error = _enforce_required_claims(
+        claims=claims,
+        semantics=semantics,
         ok=ok,
         exit_code=exit_code,
+        error=error,
+        subject_type="claim_set_requirement",
+        subject_id=artifact.get("manifest_path"),
+        evidence=["manifest.claim_set"],
+    )
+    return VerificationReport(
+        ok=ok,
+        exit_code=enforced_exit_code if enforced_exit_code is not None else exit_code,
         artifact=artifact,
-        claims=_merge_claims(claims),
+        claims=claims,
         error=error,
         diagnostics=_report_diagnostics(diagnostics, semantics),
         semantics=semantics.report_semantics() if semantics is not None else legacy_semantics(),
@@ -5663,8 +5768,16 @@ def _checkpoint_base_result(
     tsa_trust: dict[str, Any] | None = None,
 ) -> VerifyResult:
     claim_list = list(claims or [])
-    if semantics is not None:
-        claim_list = _apply_semantics_to_claims(claim_list, semantics)
+    claim_list, ok, exit_code, error = _enforce_required_claims(
+        claims=claim_list,
+        semantics=semantics,
+        ok=ok,
+        exit_code=0 if ok else 1,
+        error=error,
+        subject_type="claim_set_requirement",
+        subject_id=artifact.get("checkpoint_path") if artifact else None,
+        evidence=["checkpoint.claim_set"],
+    )
     content_hash_hex = (
         composite_hash.removeprefix("sha256:")
         if isinstance(composite_hash, str) and composite_hash.startswith("sha256:")
@@ -5678,7 +5791,7 @@ def _checkpoint_base_result(
     return VerifyResult(
         ok=ok,
         error=error,
-        exit_code=0 if ok else 1,
+        exit_code=exit_code if exit_code is not None else 0 if ok else 1,
         artifact=artifact or {"kind": "checkpoint"},
         checkpoint_id=(
             str(body.get("checkpoint_id") or "") or None
@@ -5706,7 +5819,7 @@ def _checkpoint_base_result(
         tsa_trust=tsa_trust if tsa_trust is not None else default_tsa_trust,
         diagnostics=_report_diagnostics(diagnostics, semantics),
         semantics=semantics.report_semantics() if semantics is not None else legacy_semantics(),
-        claims=_merge_claims(claim_list),
+        claims=claim_list,
     )
 
 
