@@ -21,12 +21,15 @@ from keel_verifier.semantics import (
     CHECKPOINT_TSA_IMPRINT_ID,
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
+    CLAIM_SEMANTICS,
     EXPORT_MANIFEST_INTEGRITY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
     GOVERNANCE_RECORD_HASH_HASH,
     GOVERNANCE_RECORD_HASH_ID,
+    LEGACY_PROFILE_ID,
+    RELEASED_ARTIFACT_HASHES,
     RELEASED_ARTIFACT_PATHS,
 )
 from keel_verifier.verifier import PERMANENT_ALLOWLIST
@@ -381,3 +384,53 @@ def test_permanent_allowlist_matches_released_keel_permit_artifacts():
         artifact_path = SOURCE_PERMIT / relative_path
         assert artifact_path.exists(), artifact_path
         assert allowlist_hashes[artifact_id] == _sha256(artifact_path.read_bytes())
+
+
+def test_claim_semantics_and_permanent_allowlist_are_closed():
+    registry_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_ID]
+    )
+    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    registry_claims = {
+        claim["name"]
+        for claim in registry.get("claims", [])
+        if isinstance(claim, dict) and isinstance(claim.get("name"), str)
+    }
+    claim_semantics = {
+        claim_name: tuple(semantic_ids)
+        for claim_name, semantic_ids in CLAIM_SEMANTICS.items()
+    }
+
+    assert registry_claims == set(claim_semantics)
+    assert all(claim_semantics[claim_name] for claim_name in registry_claims)
+
+    referenced_semantics = {
+        semantic_id
+        for semantic_ids in claim_semantics.values()
+        for semantic_id in semantic_ids
+    }
+    reachable_artifacts = {
+        CLAIM_REGISTRY_ID,
+        LEGACY_PROFILE_ID,
+        *referenced_semantics,
+    }
+    allowlist_hashes = {
+        artifact_id: artifact_hash
+        for artifact_id, artifact_hash in PERMANENT_ALLOWLIST
+    }
+
+    assert len(allowlist_hashes) == len(PERMANENT_ALLOWLIST)
+    assert set(RELEASED_ARTIFACT_HASHES) == reachable_artifacts
+    assert set(allowlist_hashes) == reachable_artifacts
+
+    for artifact_id, artifact_hash in RELEASED_ARTIFACT_HASHES.items():
+        assert allowlist_hashes[artifact_id] == artifact_hash
+        assert (artifact_id, artifact_hash) in PERMANENT_ALLOWLIST
+
+    for claim_name, semantic_ids in claim_semantics.items():
+        for semantic_id in semantic_ids:
+            semantic_hash = RELEASED_ARTIFACT_HASHES[semantic_id]
+            assert (semantic_id, semantic_hash) in PERMANENT_ALLOWLIST, claim_name
