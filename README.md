@@ -148,6 +148,8 @@ Incident evidence zip bundles remain backward compatible. Manifest version 1 bun
 
 v2.0.0 adds **pack-pinned semantic verification**: an evidence pack can declare which semantic artifacts it was emitted under (by `(id, sha256)`), and the verifier reproduces those exact semantics from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication — any future verifier release must resolve those exact pinned semantics and reach the same claim verdicts, or explicitly decline. It never silently reinterprets a prior pinned claim.
 
+For `closure.dispatch_binding.v1`, streaming dispatch paths emit separate `provider.response.received` and `client.response.delivered` events as digest carriers; non-streaming dispatch paths emit `execution.completed` as the accepted digest carrier. Both shapes carry `provider_response_digest_v1` and `client_response_digest_v1` and are equivalently adjudicated by the verifier.
+
 ```bash
 keel-verify claim delegation_denied_correctly --evidence-file evidence.json
 ```
