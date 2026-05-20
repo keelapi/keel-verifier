@@ -22,6 +22,7 @@ from keel_verifier.semantics import (
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
     CLAIM_SEMANTICS,
+    EXPORT_SCOPE_FAITHFULNESS_ID,
     EXPORT_MANIFEST_INTEGRITY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
@@ -31,6 +32,8 @@ from keel_verifier.semantics import (
     LEGACY_PROFILE_ID,
     RELEASED_ARTIFACT_HASHES,
     RELEASED_ARTIFACT_PATHS,
+    SCOPE_STATE_MERKLE_ID,
+    SCOPE_STATE_SIDECAR_FORMAT_ID,
 )
 from keel_verifier.verifier import PERMANENT_ALLOWLIST
 
@@ -38,6 +41,11 @@ from keel_verifier.verifier import PERMANENT_ALLOWLIST
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_ROOT = REPO_ROOT.parent
 SOURCE_PERMIT = PRODUCT_ROOT / "keel-permit"
+CANONICAL_SOURCE_ARTIFACTS = {
+    EXPORT_SCOPE_FAITHFULNESS_ID,
+    SCOPE_STATE_MERKLE_ID,
+    SCOPE_STATE_SIDECAR_FORMAT_ID,
+}
 
 
 def _json_result(result):
@@ -47,6 +55,18 @@ def _json_result(result):
 
 def _sha256(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _artifact_source_bytes(artifact_id: str, artifact_path: Path) -> bytes:
+    raw = artifact_path.read_bytes()
+    if artifact_id not in CANONICAL_SOURCE_ARTIFACTS:
+        return raw
+    return json.dumps(
+        json.loads(raw.decode("utf-8")),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
 
 
 def _artifact_pin(artifact_id: str, artifact_hash: str) -> dict[str, str]:
@@ -374,16 +394,15 @@ def test_permanent_allowlist_matches_released_keel_permit_artifacts():
             raise FileNotFoundError(message)
         pytest.skip(message)
 
-    allowlist_hashes = {
-        artifact_id: artifact_hash
-        for artifact_id, artifact_hash in PERMANENT_ALLOWLIST
-    }
+    allowlist_hashes: dict[str, set[str]] = {}
+    for artifact_id, artifact_hash in PERMANENT_ALLOWLIST:
+        allowlist_hashes.setdefault(artifact_id, set()).add(artifact_hash)
 
     assert set(allowlist_hashes) == set(RELEASED_ARTIFACT_PATHS)
     for artifact_id, relative_path in RELEASED_ARTIFACT_PATHS.items():
         artifact_path = SOURCE_PERMIT / relative_path
         assert artifact_path.exists(), artifact_path
-        assert allowlist_hashes[artifact_id] == _sha256(artifact_path.read_bytes())
+        assert _sha256(_artifact_source_bytes(artifact_id, artifact_path)) in allowlist_hashes[artifact_id]
 
 
 def test_claim_semantics_and_permanent_allowlist_are_closed():
@@ -417,17 +436,15 @@ def test_claim_semantics_and_permanent_allowlist_are_closed():
         LEGACY_PROFILE_ID,
         *referenced_semantics,
     }
-    allowlist_hashes = {
-        artifact_id: artifact_hash
-        for artifact_id, artifact_hash in PERMANENT_ALLOWLIST
-    }
+    allowlist_hashes: dict[str, set[str]] = {}
+    for artifact_id, artifact_hash in PERMANENT_ALLOWLIST:
+        allowlist_hashes.setdefault(artifact_id, set()).add(artifact_hash)
 
-    assert len(allowlist_hashes) == len(PERMANENT_ALLOWLIST)
     assert set(RELEASED_ARTIFACT_HASHES) == reachable_artifacts
     assert set(allowlist_hashes) == reachable_artifacts
 
     for artifact_id, artifact_hash in RELEASED_ARTIFACT_HASHES.items():
-        assert allowlist_hashes[artifact_id] == artifact_hash
+        assert artifact_hash in allowlist_hashes[artifact_id]
         assert (artifact_id, artifact_hash) in PERMANENT_ALLOWLIST
 
     for claim_name, semantic_ids in claim_semantics.items():

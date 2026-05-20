@@ -32,12 +32,18 @@ INCIDENT_BUNDLE_MANIFEST_ID = "keel.incident.bundle_manifest.v2"
 CHECKPOINT_COMPOSITE_HASH_ID = "keel.checkpoint.composite_hash.v1"
 CHECKPOINT_SIGNATURE_ID = "keel.checkpoint.signature.v1"
 CHECKPOINT_TSA_IMPRINT_ID = "keel.checkpoint.tsa_imprint.v1"
+SCOPE_STATE_MERKLE_ID = "keel.scope_state.merkle.v1"
+SCOPE_STATE_SIDECAR_FORMAT_ID = "keel.scope_state.sidecar_format.v1"
+EXPORT_SCOPE_FAITHFULNESS_ID = "keel.export.scope_faithfulness.v1"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
     "keel.governance_event.integrity_digest.v1"
 )
 
 CLAIM_REGISTRY_HASH = (
+    "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235"
+)
+CLAIM_REGISTRY_PREVIOUS_HASH = (
     "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8"
 )
 EXPORT_MANIFEST_INTEGRITY_HASH = (
@@ -75,6 +81,15 @@ CHECKPOINT_SIGNATURE_HASH = (
 )
 CHECKPOINT_TSA_IMPRINT_HASH = (
     "sha256:a4e02133537a190c3795737beb4bb2ddf823cd09d5b6dcba43c682fb9e37d79e"
+)
+SCOPE_STATE_MERKLE_HASH = (
+    "sha256:0c79a9ae2e7f4b6e4f8cb6b2d619748731fdee7d5e36a895aff08fecba2ae5b8"
+)
+SCOPE_STATE_SIDECAR_FORMAT_HASH = (
+    "sha256:64c3329255bd0e1c4df5c902362d04b3b0fb5f767254e03e08708f8fd94b6c36"
+)
+EXPORT_SCOPE_FAITHFULNESS_HASH = (
+    "sha256:75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1"
 )
 LEGACY_PROFILE_HASH = (
     "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
@@ -133,6 +148,20 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "checkpoint.composite_hash.v1": (CHECKPOINT_COMPOSITE_HASH_ID,),
     "checkpoint.signature.v1": (CHECKPOINT_SIGNATURE_ID,),
     "checkpoint.tsa_imprint.v1": (CHECKPOINT_TSA_IMPRINT_ID,),
+    "checkpoint.scope_state.v1": (
+        SCOPE_STATE_SIDECAR_FORMAT_ID,
+        SCOPE_STATE_MERKLE_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
+    "export.scope_faithfulness.v1": (
+        EXPORT_MANIFEST_INTEGRITY_ID,
+        EXPORT_SCOPE_FAITHFULNESS_ID,
+        SCOPE_STATE_MERKLE_ID,
+        GOVERNANCE_RECORD_HASH_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
     "workflow_evidence.sibling_integrity.v1": (
         WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,
     ),
@@ -159,6 +188,9 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CHECKPOINT_COMPOSITE_HASH_ID: "semantics/checkpoint/composite_hash_v1.json",
     CHECKPOINT_SIGNATURE_ID: "semantics/checkpoint/signature_v1.json",
     CHECKPOINT_TSA_IMPRINT_ID: "semantics/checkpoint/tsa_imprint_v1.json",
+    SCOPE_STATE_MERKLE_ID: "semantics/scope_state/merkle_v1.json",
+    SCOPE_STATE_SIDECAR_FORMAT_ID: "semantics/scope_state/sidecar_format_v1.json",
+    EXPORT_SCOPE_FAITHFULNESS_ID: "semantics/export/scope_faithfulness_v1.json",
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
 }
@@ -178,6 +210,9 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CHECKPOINT_COMPOSITE_HASH_ID: CHECKPOINT_COMPOSITE_HASH_HASH,
     CHECKPOINT_SIGNATURE_ID: CHECKPOINT_SIGNATURE_HASH,
     CHECKPOINT_TSA_IMPRINT_ID: CHECKPOINT_TSA_IMPRINT_HASH,
+    SCOPE_STATE_MERKLE_ID: SCOPE_STATE_MERKLE_HASH,
+    SCOPE_STATE_SIDECAR_FORMAT_ID: SCOPE_STATE_SIDECAR_FORMAT_HASH,
+    EXPORT_SCOPE_FAITHFULNESS_ID: EXPORT_SCOPE_FAITHFULNESS_HASH,
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
 }
@@ -1093,6 +1128,11 @@ def make_permanent_allowlist(
             "claim_registry",
         ),
         SemanticImplementation(
+            CLAIM_REGISTRY_ID,
+            CLAIM_REGISTRY_PREVIOUS_HASH,
+            "claim_registry",
+        ),
+        SemanticImplementation(
             EXPORT_MANIFEST_INTEGRITY_ID,
             EXPORT_MANIFEST_INTEGRITY_HASH,
             "export_manifest_integrity",
@@ -1162,6 +1202,21 @@ def make_permanent_allowlist(
             CHECKPOINT_TSA_IMPRINT_ID,
             CHECKPOINT_TSA_IMPRINT_HASH,
             "checkpoint_tsa_imprint",
+        ),
+        SemanticImplementation(
+            SCOPE_STATE_MERKLE_ID,
+            SCOPE_STATE_MERKLE_HASH,
+            "scope_state_merkle",
+        ),
+        SemanticImplementation(
+            SCOPE_STATE_SIDECAR_FORMAT_ID,
+            SCOPE_STATE_SIDECAR_FORMAT_HASH,
+            "scope_state_sidecar_format",
+        ),
+        SemanticImplementation(
+            EXPORT_SCOPE_FAITHFULNESS_ID,
+            EXPORT_SCOPE_FAITHFULNESS_HASH,
+            "export_scope_faithfulness",
         ),
         SemanticImplementation(
             LEGACY_PROFILE_ID,

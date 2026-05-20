@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 
 import pytest
@@ -40,37 +41,116 @@ SOURCE_GOVERNANCE_EVENT_INTEGRITY = (
     / "governance_event"
     / "integrity_digest_v1.json"
 )
+BUNDLED_SCOPE_STATE_MERKLE = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "scope_state"
+    / "merkle_v1.json"
+)
+SOURCE_SCOPE_STATE_MERKLE = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "scope_state"
+    / "merkle_v1.json"
+)
+BUNDLED_SCOPE_STATE_SIDECAR_FORMAT = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "scope_state"
+    / "sidecar_format_v1.json"
+)
+SOURCE_SCOPE_STATE_SIDECAR_FORMAT = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "scope_state"
+    / "sidecar_format_v1.json"
+)
+BUNDLED_EXPORT_SCOPE_FAITHFULNESS = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "export"
+    / "scope_faithfulness_v1.json"
+)
+SOURCE_EXPORT_SCOPE_FAITHFULNESS = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "export"
+    / "scope_faithfulness_v1.json"
+)
+
+
+def _canonical_json_bytes(path: Path) -> bytes:
+    return json.dumps(
+        json.loads(path.read_text(encoding="utf-8")),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
 
 BUNDLED_ARTIFACT_COPIES = [
     pytest.param(
         BUNDLED_REGISTRY,
         SOURCE_REGISTRY,
         "keel-permit claim registry",
+        False,
         id="claim-registry-v0",
     ),
     pytest.param(
         BUNDLED_PROFILE,
         SOURCE_PROFILE,
         "keel-permit pre-pinning semantics profile",
+        False,
         id="pre-pinning-default-profile-v0",
     ),
     pytest.param(
         BUNDLED_GOVERNANCE_EVENT_INTEGRITY,
         SOURCE_GOVERNANCE_EVENT_INTEGRITY,
         "keel-permit governance-event integrity digest semantics",
+        False,
         id="governance-event-integrity-digest-v1",
+    ),
+    pytest.param(
+        BUNDLED_SCOPE_STATE_MERKLE,
+        SOURCE_SCOPE_STATE_MERKLE,
+        "keel-permit scope-state Merkle semantics",
+        True,
+        id="scope-state-merkle-v1",
+    ),
+    pytest.param(
+        BUNDLED_SCOPE_STATE_SIDECAR_FORMAT,
+        SOURCE_SCOPE_STATE_SIDECAR_FORMAT,
+        "keel-permit scope-state sidecar format semantics",
+        True,
+        id="scope-state-sidecar-format-v1",
+    ),
+    pytest.param(
+        BUNDLED_EXPORT_SCOPE_FAITHFULNESS,
+        SOURCE_EXPORT_SCOPE_FAITHFULNESS,
+        "keel-permit export scope-faithfulness semantics",
+        True,
+        id="export-scope-faithfulness-v1",
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    ("bundled_artifact", "source_artifact", "description"),
+    ("bundled_artifact", "source_artifact", "description", "canonical_source"),
     BUNDLED_ARTIFACT_COPIES,
 )
 def test_bundled_artifact_matches_keel_permit_source_bytes(
     bundled_artifact: Path,
     source_artifact: Path,
     description: str,
+    canonical_source: bool,
 ):
     if not source_artifact.exists():
         message = (
@@ -81,4 +161,9 @@ def test_bundled_artifact_matches_keel_permit_source_bytes(
             raise FileNotFoundError(message)
         pytest.skip(message)
 
-    assert bundled_artifact.read_bytes() == source_artifact.read_bytes()
+    expected = (
+        _canonical_json_bytes(source_artifact)
+        if canonical_source
+        else source_artifact.read_bytes()
+    )
+    assert bundled_artifact.read_bytes() == expected
