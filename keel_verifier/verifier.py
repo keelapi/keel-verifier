@@ -81,8 +81,6 @@ from keel_verifier.verdicts import (
 )
 from keel_verifier.semantics import (
     CLAIM_SEMANTICS,
-    EXPORT_SCOPE_FAITHFULNESS_ID,
-    EXPORT_SCOPE_FAITHFULNESS_HASH,
     SemanticsDispatch,
     ResolvedSemantics,
     SCOPE_STATE_MERKLE_ID,
