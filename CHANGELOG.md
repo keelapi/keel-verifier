@@ -9,6 +9,25 @@
 - Add Python version classifiers to PyPI metadata so the Python versions badge resolves correctly.
 - Ignore local `.claude/` workspace settings at the repository level.
 
+## v2.1.0 — scope-faithful export adjudication (2026-05-20)
+
+### Added
+
+- Add `checkpoint.scope_state.v1` and `export.scope_faithfulness.v1` adjudication for checkpoint-bound scope-state sidecars and signed scope-faithful export packs.
+- Add capability inventory entries for the new claims, the `checkpoint_scope_state_v1` artifact format, the Step 2 failure-code subset, and the newly pinned scope-state/export semantics.
+- Add the scope-faithfulness CLI verification surface for export segments backed by scope-state sidecars.
+- Add vendored pinned semantics for `keel.scope_state.merkle.v1`, `keel.scope_state.sidecar_format.v1`, and `keel.export.scope_faithfulness.v1`.
+
+### Changed
+
+- Clarify the `export.scope_identity.v1` capability description wording only; pinned semantics and verifier behavior are unchanged.
+
+### Compatibility
+
+- Existing v1.x packs continue to verify under the permanent pre-pinning profile.
+- Existing v2.0.x packs are unchanged.
+- Scope-faithfulness corpus discovery now consumes the public `keel-permit/test-vectors/verifier_claims/v0` path.
+
 ## v2.0.0 (2026-05-19)
 
 - Add pack-pinned semantics: the verifier pins `(semantic_id, sha256)` and dispatches verification logic from a permanent, append-only allowlist. A version-pinned pack receives reproducible adjudication: future verifier releases reach the same claim verdicts or explicitly decline, and never silently reinterpret a prior pinned claim.
