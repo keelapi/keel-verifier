@@ -67,6 +67,7 @@ import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field, replace
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -80,8 +81,12 @@ from keel_verifier.verdicts import (
 )
 from keel_verifier.semantics import (
     CLAIM_SEMANTICS,
+    EXPORT_SCOPE_FAITHFULNESS_ID,
+    EXPORT_SCOPE_FAITHFULNESS_HASH,
     SemanticsDispatch,
     ResolvedSemantics,
+    SCOPE_STATE_MERKLE_ID,
+    SCOPE_STATE_MERKLE_HASH,
     make_permanent_allowlist,
     resolve_pack_semantics,
 )
@@ -4043,6 +4048,1464 @@ def _evaluate_export_scope_identity(
     )
 
 
+SCOPE_FAITHFULNESS_VERSION = "keel.export_scope_faithfulness.v1"
+SCOPE_STATE_SIDECAR_VERSION = "checkpoint_scope_state.v1"
+SCOPE_PREDICATE_VERSION = "keel.scope_predicate.v1"
+SCOPE_DECLARATION_VERSION = "keel.scope_declaration.v1"
+PRESENTATION_POLICY_VERSION = "keel.presentation_policy.v1"
+SCOPE_EMPTY_TREE_HASH = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+SCOPE_STATE_SIDECAR_FILE = "checkpoint-scope-state-v1.json"
+SCOPE_SUPPORTED_PREDICATE_KINDS = {
+    "project_id",
+    "permit_id",
+    "request_id",
+    "event_type",
+    "category",
+    "severity",
+    "decision_type",
+    "policy_id",
+    "provider",
+    "sequence_number",
+    "created_at",
+    "occurred_at",
+    "section",
+    "export_type",
+}
+SCOPE_RESERVED_PREDICATE_KINDS = {
+    "subject_id",
+    "model",
+    "requested_by",
+    "incident_id",
+}
+
+
+@dataclass(frozen=True)
+class ScopeClaimResult:
+    claim: ClaimVerdict
+    sidecar: dict[str, Any] | None = None
+    sidecar_bytes: bytes | None = None
+
+
+def _scope_claim(
+    name: str,
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+    subjects: list[VerdictSubject] | None = None,
+) -> ClaimVerdict:
+    if subjects is not None:
+        return ClaimVerdict(
+            name=name,
+            subjects=subjects,
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=list(evidence or []),
+        )
+    return _single_subject_claim(
+        name,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or [],
+    )
+
+
+def _scope_state_claim(
+    *,
+    sidecar: dict[str, Any] | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    sidecar_id = None
+    if isinstance(sidecar, dict):
+        value = sidecar.get("scope_state_id")
+        sidecar_id = value if isinstance(value, str) else None
+    return _scope_claim(
+        "checkpoint.scope_state.v1",
+        subject_type="checkpoint_scope_state",
+        subject_id=sidecar_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["checkpoint_scope_state"],
+    )
+
+
+def _export_scope_claim(
+    *,
+    segment_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _scope_claim(
+        "export.scope_faithfulness.v1",
+        subject_type="scope_faithfulness_segment",
+        subject_id=segment_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["export.scope_faithfulness"],
+    )
+
+
+def _prefixed_sha256(data: bytes) -> str:
+    return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _hash_bytes(value: str) -> bytes:
+    text = value.removeprefix("sha256:")
+    return bytes.fromhex(text)
+
+
+def _is_hash(value: Any) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value) is not None
+
+
+def _is_nonempty_str(value: Any) -> bool:
+    return isinstance(value, str) and bool(value)
+
+
+def _is_nonbool_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _exact_keys(value: Any, keys: set[str]) -> bool:
+    return isinstance(value, dict) and set(value.keys()) == keys
+
+
+def _load_bundled_semantic(relative_path: str) -> dict[str, Any]:
+    path = Path(relative_path)
+    raw = resources.files("keel_verifier").joinpath("data", *path.parts).read_bytes()
+    value = json.loads(raw.decode("utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{relative_path} must be a JSON object")
+    return value
+
+
+def _scope_merkle_semantic() -> dict[str, Any]:
+    return _load_bundled_semantic("semantics/scope_state/merkle_v1.json")
+
+
+def _lookup_hierarchy_from_merkle_semantic() -> dict[str, list[tuple[str, str | None]]]:
+    semantic = _scope_merkle_semantic()
+    body = semantic.get("body")
+    raw = body.get("predicate_field_lookup_hierarchy") if isinstance(body, dict) else None
+    if not isinstance(raw, list):
+        raise ValueError("keel.scope_state.merkle.v1 has no predicate lookup hierarchy")
+    hierarchy: dict[str, list[tuple[str, str | None]]] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        kind = item.get("kind")
+        text = item.get("ordered_lookup_chain")
+        if not isinstance(kind, str) or not isinstance(text, str):
+            continue
+        paths: list[tuple[str, str | None]] = []
+        for segment in text.split("; "):
+            match = re.match(r'\d+\. `([^`]+)`(?: when `([^`]+)`)?$', segment)
+            if match is None:
+                raise ValueError(f"cannot parse lookup segment {segment!r}")
+            paths.append((match.group(1), match.group(2)))
+        hierarchy[kind] = paths
+    return hierarchy
+
+
+def _get_entry_path(entry: dict[str, Any], path: str) -> Any:
+    if not path.startswith("entry."):
+        return None
+    current: Any = entry
+    for part in path.removeprefix("entry.").split("."):
+        if not isinstance(current, dict):
+            return None
+        if part not in current:
+            if part == "payload_json" and isinstance(current.get("payload"), dict):
+                current = current["payload"]
+                continue
+            return None
+        current = current[part]
+    return current
+
+
+def _lookup_condition_matches(entry: dict[str, Any], condition: str | None) -> bool:
+    if condition is None:
+        return True
+    if condition == 'entry.resource_type == "permit"':
+        return _get_entry_path(entry, "entry.resource_type") == "permit"
+    return False
+
+
+def _resolve_scope_predicate_value(entry: dict[str, Any], kind: str) -> Any:
+    hierarchy = _lookup_hierarchy_from_merkle_semantic()
+    for path, condition in hierarchy.get(kind, []):
+        if not _lookup_condition_matches(entry, condition):
+            continue
+        value = _get_entry_path(entry, path)
+        if isinstance(value, (str, int, float, bool)) and not isinstance(value, bool):
+            return value
+        if isinstance(value, bool):
+            return value
+    return None
+
+
+def _predicate_hash(predicate: dict[str, Any]) -> str:
+    return _prefixed_sha256(_canonical_json_bytes(predicate))
+
+
+def _validate_scope_predicate(
+    predicate: Any,
+    *,
+    sidecar_context: bool = False,
+) -> tuple[str | None, str | None]:
+    if not isinstance(predicate, dict):
+        return "EXPORT_SCOPE_PREDICATE_MALFORMED", "predicate must be an object"
+    required = {"version", "operator", "equals", "ranges"}
+    if set(predicate.keys()) != required:
+        return "EXPORT_SCOPE_PREDICATE_MALFORMED", "predicate must contain version, operator, equals, and ranges"
+    if predicate.get("version") != SCOPE_PREDICATE_VERSION:
+        return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", "predicate grammar version is unsupported"
+    if predicate.get("operator") != "and":
+        return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", "predicate operator is unsupported"
+    equals = predicate.get("equals")
+    ranges = predicate.get("ranges")
+    if not isinstance(equals, dict) or not isinstance(ranges, dict):
+        return "EXPORT_SCOPE_PREDICATE_MALFORMED", "predicate equals and ranges must be objects"
+    for kind, value in equals.items():
+        if kind in SCOPE_RESERVED_PREDICATE_KINDS or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS:
+            return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", f"predicate kind {kind!r} is unsupported"
+        if kind in {"sequence_number", "created_at", "occurred_at"}:
+            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate kind {kind!r} must use ranges"
+        if isinstance(value, (dict, list)):
+            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate equals value for {kind!r} must be scalar"
+    for kind, value in ranges.items():
+        if kind in SCOPE_RESERVED_PREDICATE_KINDS or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS:
+            return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", f"predicate range kind {kind!r} is unsupported"
+        if kind not in {"sequence_number", "created_at", "occurred_at"}:
+            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate kind {kind!r} must use equals"
+        if not isinstance(value, dict):
+            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate range for {kind!r} must be an object"
+        if kind == "sequence_number":
+            if set(value.keys()) != {"gte", "lte"} or not _is_nonbool_int(value.get("gte")) or not _is_nonbool_int(value.get("lte")):
+                return "EXPORT_SCOPE_PREDICATE_MALFORMED", "sequence_number range must contain integer gte and lte"
+            if int(value["gte"]) > int(value["lte"]):
+                return "EXPORT_SCOPE_PREDICATE_MALFORMED", "sequence_number range has gte after lte"
+        else:
+            if set(value.keys()) != {"gte", "lt"} or not isinstance(value.get("gte"), str) or not isinstance(value.get("lt"), str):
+                return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"{kind} range must contain timestamp gte and lt"
+            if _parse_iso_or_none(value["gte"]) is None or _parse_iso_or_none(value["lt"]) is None:
+                return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"{kind} range timestamps are invalid"
+    if sidecar_context:
+        return None, None
+    return None, None
+
+
+def _scope_predicate_matches(entry: dict[str, Any], predicate: dict[str, Any]) -> bool:
+    for kind, expected in predicate["equals"].items():
+        actual = _resolve_scope_predicate_value(entry, kind)
+        if actual != expected:
+            return False
+    for kind, range_value in predicate["ranges"].items():
+        actual = _resolve_scope_predicate_value(entry, kind)
+        if actual is None:
+            return False
+        if kind == "sequence_number":
+            try:
+                actual_int = int(actual)
+            except (TypeError, ValueError):
+                return False
+            if actual_int < int(range_value["gte"]) or actual_int > int(range_value["lte"]):
+                return False
+            continue
+        actual_time = _parse_iso_or_none(str(actual))
+        lower = _parse_iso_or_none(str(range_value["gte"]))
+        upper = _parse_iso_or_none(str(range_value["lt"]))
+        if actual_time is None or lower is None or upper is None:
+            return False
+        if actual_time < lower or actual_time >= upper:
+            return False
+    return True
+
+
+def _scope_merkle_root(
+    disclosure_records: list[dict[str, Any]],
+    predicate_value_hash: str,
+) -> str:
+    if not disclosure_records:
+        return SCOPE_EMPTY_TREE_HASH
+    leaves: list[bytes] = []
+    for record in sorted(
+        disclosure_records,
+        key=lambda item: (
+            int(item["sequence_number"]),
+            str(item["event_id"]),
+            str(item["record_hash"]),
+        ),
+    ):
+        leaf_object = {
+            "canonical_predicate_value_hash": predicate_value_hash,
+            "event_id": record["event_id"],
+            "record_hash": record["record_hash"],
+            "sequence_number": record["sequence_number"],
+        }
+        leaves.append(hashlib.sha256(b"\x00" + _canonical_json_bytes(leaf_object)).digest())
+
+    def merkle_hash(nodes: list[bytes]) -> bytes:
+        if len(nodes) == 1:
+            return nodes[0]
+        split = 1 << ((len(nodes) - 1).bit_length() - 1)
+        left = merkle_hash(nodes[:split])
+        right = merkle_hash(nodes[split:])
+        return hashlib.sha256(b"\x01" + left + right).digest()
+
+    return f"sha256:{merkle_hash(leaves).hex()}"
+
+
+def _scope_sidecar_signed_bytes(sidecar: dict[str, Any]) -> bytes:
+    signed = json.loads(_canonical_json(sidecar))
+    del signed["signature"]["signature"]
+    return _canonical_json_bytes(signed)
+
+
+def _scope_sidecar_schema_error(sidecar: Any) -> str | None:
+    if not _exact_keys(
+        sidecar,
+        {
+            "artifact_type",
+            "version",
+            "scope_state_id",
+            "checkpoint_id",
+            "chain_scope",
+            "predicate_grammar_version",
+            "predicate_basis",
+            "commitment_profile",
+            "scope_commitments",
+            "tree_size",
+            "signed_at",
+            "signature",
+            "trust_root_reference",
+        },
+    ):
+        return "sidecar top-level fields do not match checkpoint_scope_state.v1"
+    if sidecar.get("artifact_type") != "checkpoint_scope_state":
+        return "artifact_type must be checkpoint_scope_state"
+    if sidecar.get("version") != SCOPE_STATE_SIDECAR_VERSION:
+        return "version must be checkpoint_scope_state.v1"
+    for field in ("scope_state_id", "checkpoint_id", "chain_scope", "predicate_grammar_version", "commitment_profile", "signed_at"):
+        if not _is_nonempty_str(sidecar.get(field)):
+            return f"{field} must be a non-empty string"
+    if not _is_nonbool_int(sidecar.get("tree_size")) or int(sidecar["tree_size"]) < 0:
+        return "tree_size must be a non-negative integer"
+
+    basis = sidecar.get("predicate_basis")
+    if not _exact_keys(basis, {"canonicalization_profile", "supported_predicate_kinds", "reserved_namespaces"}):
+        return "predicate_basis must contain canonicalization_profile, supported_predicate_kinds, and reserved_namespaces"
+    if basis.get("canonicalization_profile") != "keel.canonical_json.payload.v1":
+        return "predicate_basis canonicalization_profile is unsupported"
+    supported = basis.get("supported_predicate_kinds")
+    if not isinstance(supported, list) or len(set(supported)) != len(supported):
+        return "supported_predicate_kinds must be a unique array"
+    if any(not isinstance(kind, str) or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS for kind in supported):
+        return "supported_predicate_kinds contains an unsupported kind"
+    reserved = basis.get("reserved_namespaces")
+    if not isinstance(reserved, list) or len(set(reserved)) != len(reserved) or any(not isinstance(item, str) or not item.startswith("keel.") for item in reserved):
+        return "reserved_namespaces must be a unique keel.* string array"
+
+    signature = sidecar.get("signature")
+    if not _exact_keys(signature, {"algorithm", "key_id", "signature"}):
+        return "signature block must contain algorithm, key_id, and signature"
+    if signature.get("algorithm") != "Ed25519":
+        return "signature algorithm must be Ed25519"
+    if not _is_nonempty_str(signature.get("key_id")):
+        return "signature.key_id must be a non-empty string"
+    if not _is_nonempty_str(signature.get("signature")) or not str(signature["signature"]).startswith("ed25519:"):
+        return "signature.signature must be ed25519:<base64>"
+
+    trust = sidecar.get("trust_root_reference")
+    if not _exact_keys(trust, {"manifest_version", "purpose", "key_id"}):
+        return "trust_root_reference must contain manifest_version, purpose, and key_id"
+    if trust.get("manifest_version") != "keel.public_key_manifest.v1":
+        return "trust_root_reference.manifest_version is unsupported"
+    if trust.get("purpose") not in {"scope_state", "integrity_checkpoint"}:
+        return "trust_root_reference.purpose is unsupported"
+    if not _is_nonempty_str(trust.get("key_id")):
+        return "trust_root_reference.key_id must be a non-empty string"
+
+    commitments = sidecar.get("scope_commitments")
+    if not isinstance(commitments, list) or not commitments:
+        return "scope_commitments must be a non-empty array"
+    for index, commitment in enumerate(commitments):
+        if not _exact_keys(
+            commitment,
+            {
+                "predicate_value",
+                "predicate_value_hash",
+                "first_matching_sequence",
+                "last_matching_sequence",
+                "matching_count",
+                "membership_root_hash",
+            },
+        ):
+            return f"scope_commitments[{index}] fields do not match v1"
+        if not _is_hash(commitment.get("predicate_value_hash")):
+            return f"scope_commitments[{index}].predicate_value_hash must be sha256:<hex>"
+        if not _is_hash(commitment.get("membership_root_hash")):
+            return f"scope_commitments[{index}].membership_root_hash must be sha256:<hex>"
+        count = commitment.get("matching_count")
+        if not _is_nonbool_int(count) or int(count) < 0:
+            return f"scope_commitments[{index}].matching_count must be a non-negative integer"
+        for field in ("first_matching_sequence", "last_matching_sequence"):
+            value = commitment.get(field)
+            if value is not None and (not _is_nonbool_int(value) or int(value) < 1):
+                return f"scope_commitments[{index}].{field} must be a positive integer or null"
+        predicate_error, _message = _validate_scope_predicate(
+            commitment.get("predicate_value"),
+            sidecar_context=True,
+        )
+        if predicate_error == "EXPORT_SCOPE_PREDICATE_MALFORMED":
+            return f"scope_commitments[{index}].predicate_value is malformed"
+    return None
+
+
+def _resolve_scope_trust_key(
+    *,
+    key_id: str,
+    purpose: str,
+    signing_time: datetime | None,
+    key_manifest_source: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    source = key_manifest_source or _cached_key_manifest_source() or _bundled_key_manifest_source()
+    if source is None:
+        return None, None, "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED"
+    try:
+        entries = _load_key_manifest(source)
+    except Exception:
+        return None, None, "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED"
+    purpose_entries = [entry for entry in entries if entry.get("purpose") == purpose]
+    matches = [entry for entry in purpose_entries if entry.get("key_id") == key_id]
+    if not matches:
+        return None, None, "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED"
+    if signing_time is not None:
+        active = _filter_by_active_window(matches, signing_time)
+        if not active:
+            return None, None, "CHECKPOINT_SCOPE_STATE_KEY_NOT_ACTIVE"
+        matches = active
+    if len(matches) != 1:
+        return None, None, "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED"
+    pub = matches[0].get("public_key")
+    if not isinstance(pub, str):
+        return None, None, "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED"
+    return pub, f"key manifest ({source}) purpose={purpose!r} key_id={key_id!r}", None
+
+
+def _verify_checkpoint_for_scope_state(
+    *,
+    sidecar: dict[str, Any],
+    checkpoint: dict[str, Any] | None,
+    key_manifest_source: str | None,
+    semantics_dispatch: SemanticsDispatch | None,
+) -> tuple[str | None, str | None]:
+    if checkpoint is None:
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING", "referenced checkpoint artifact is absent"
+    if not isinstance(checkpoint, dict):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint artifact must be a JSON object"
+    if checkpoint.get("checkpoint_id") != sidecar.get("checkpoint_id"):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "sidecar checkpoint_id does not match checkpoint artifact"
+    chain_heads = checkpoint.get("chain_heads")
+    if not isinstance(chain_heads, dict):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint chain_heads are missing or malformed"
+    composite = checkpoint.get("composite_hash")
+    if not isinstance(composite, str) or not composite.startswith("sha256:"):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint composite_hash is missing or malformed"
+    try:
+        hasher = semantics_dispatch.composite_hash if semantics_dispatch else _composite_hash
+        if hasher is None:
+            hasher = _composite_hash
+        recomputed = hasher(chain_heads)
+    except Exception as exc:
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", f"could not recompute checkpoint composite_hash: {exc}"
+    if recomputed != composite:
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint composite_hash does not match chain_heads"
+
+    signature = checkpoint.get("signature")
+    if not isinstance(signature, str):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint signature is missing"
+    key_id = checkpoint.get("key_id") if isinstance(checkpoint.get("key_id"), str) else None
+    signing_time = _parse_iso_or_none(checkpoint.get("computed_at"))
+    trusted_pub, _trust_source, err = _resolve_trust_key(
+        artifact_pub=checkpoint.get("public_key") if isinstance(checkpoint.get("public_key"), str) else None,
+        artifact_key_id=key_id,
+        purpose="integrity_checkpoint",
+        expected_public_key=None,
+        public_key_url=None,
+        key_manifest_source=key_manifest_source or _cached_key_manifest_source() or _bundled_key_manifest_source(),
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", err or "checkpoint trust key could not be resolved"
+    if isinstance(checkpoint.get("public_key"), str) and checkpoint["public_key"] != trusted_pub:
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint public_key does not match trust root"
+    if not _verify_ed25519(trusted_pub, composite.encode("utf-8"), signature):
+        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint signature does not verify"
+    return None, None
+
+
+def _adjudicate_checkpoint_scope_state_v1(
+    sidecar: dict[str, Any] | None,
+    *,
+    checkpoint: dict[str, Any] | None,
+    key_manifest_source: str | None = None,
+    semantics_dispatch: SemanticsDispatch | None = None,
+) -> ScopeClaimResult:
+    if sidecar is None:
+        claim = _scope_state_claim(
+            sidecar=None,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_SCOPE_STATE_MISSING",
+            message="required scope-state sidecar artifact is absent",
+        )
+        return ScopeClaimResult(claim=claim)
+    if not isinstance(sidecar, dict):
+        claim = _scope_state_claim(
+            sidecar=None,
+            verdict="disproved",
+            reason_code="CHECKPOINT_SCOPE_STATE_SCHEMA_INVALID",
+            message="scope-state sidecar must be a JSON object",
+        )
+        return ScopeClaimResult(claim=claim)
+
+    signature = sidecar.get("signature")
+    signature_value = signature.get("signature") if isinstance(signature, dict) else None
+    if not isinstance(signature, dict) or not _is_nonempty_str(signature_value):
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_SCOPE_STATE_SIGNATURE_MISSING",
+            message="scope-state sidecar signature block or signature value is absent",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    schema_error = _scope_sidecar_schema_error(sidecar)
+    if schema_error is not None:
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="disproved",
+            reason_code="CHECKPOINT_SCOPE_STATE_SCHEMA_INVALID",
+            message=schema_error,
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    signing_time = _parse_iso_or_none(sidecar.get("signed_at"))
+    trust = sidecar["trust_root_reference"]
+    trusted_pub, _trust_source, key_error = _resolve_scope_trust_key(
+        key_id=sidecar["signature"]["key_id"],
+        purpose=str(trust["purpose"]),
+        signing_time=signing_time,
+        key_manifest_source=key_manifest_source,
+    )
+    if key_error is not None or trusted_pub is None:
+        verdict = "disproved" if key_error == "CHECKPOINT_SCOPE_STATE_KEY_NOT_ACTIVE" else "insufficient_evidence"
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict=verdict,
+            reason_code=key_error or "CHECKPOINT_SCOPE_STATE_KEY_UNRESOLVED",
+            message="scope-state signing key could not be resolved in an active trust-root window",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+    if not _verify_ed25519(
+        trusted_pub,
+        _scope_sidecar_signed_bytes(sidecar),
+        sidecar["signature"]["signature"],
+    ):
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="disproved",
+            reason_code="CHECKPOINT_SCOPE_STATE_SIGNATURE_INVALID",
+            message="scope-state sidecar signature does not verify over the signed v1 field set",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    checkpoint_error, checkpoint_message = _verify_checkpoint_for_scope_state(
+        sidecar=sidecar,
+        checkpoint=checkpoint,
+        key_manifest_source=key_manifest_source,
+        semantics_dispatch=semantics_dispatch,
+    )
+    if checkpoint_error is not None:
+        verdict = "insufficient_evidence" if checkpoint_error == "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING" else "disproved"
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict=verdict,
+            reason_code=checkpoint_error,
+            message=checkpoint_message or "referenced checkpoint did not verify",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    chain_heads = checkpoint.get("chain_heads") if isinstance(checkpoint, dict) else {}
+    if sidecar["chain_scope"] not in chain_heads:
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="disproved",
+            reason_code="CHECKPOINT_SCOPE_STATE_CHAIN_SCOPE_NOT_IN_CHECKPOINT",
+            message="checkpoint chain_heads do not contain the sidecar chain_scope",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+    head = chain_heads[sidecar["chain_scope"]]
+    head_sequence = head.get("sequence_number") if isinstance(head, dict) else None
+    if not _is_nonbool_int(head_sequence):
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="disproved",
+            reason_code="CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            message="checkpoint head sequence_number is malformed",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    for commitment in sidecar["scope_commitments"]:
+        count = commitment["matching_count"]
+        first = commitment["first_matching_sequence"]
+        last = commitment["last_matching_sequence"]
+        if count == 0:
+            if first is not None or last is not None:
+                claim = _scope_state_claim(
+                    sidecar=sidecar,
+                    verdict="disproved",
+                    reason_code="CHECKPOINT_SCOPE_STATE_LAST_SEQUENCE_AFTER_CHECKPOINT",
+                    message="zero-count scope commitments must have null matching range",
+                )
+                return ScopeClaimResult(claim=claim, sidecar=sidecar)
+        elif not isinstance(last, int) or last > int(head_sequence):
+            claim = _scope_state_claim(
+                sidecar=sidecar,
+                verdict="disproved",
+                reason_code="CHECKPOINT_SCOPE_STATE_LAST_SEQUENCE_AFTER_CHECKPOINT",
+                message="scope commitment range exceeds checkpoint head sequence",
+            )
+            return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    if sidecar.get("predicate_grammar_version") != SCOPE_PREDICATE_VERSION:
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="unverifiable_scope",
+            reason_code="CHECKPOINT_SCOPE_STATE_GRAMMAR_UNSUPPORTED",
+            message="scope-state sidecar names an unsupported predicate grammar",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    if (
+        sidecar.get("commitment_profile") != SCOPE_STATE_MERKLE_ID
+        or (SCOPE_STATE_MERKLE_ID, SCOPE_STATE_MERKLE_HASH) not in PERMANENT_ALLOWLIST
+    ):
+        claim = _scope_state_claim(
+            sidecar=sidecar,
+            verdict="unverifiable_scope",
+            reason_code="CHECKPOINT_SCOPE_STATE_COMMITMENT_PROFILE_UNKNOWN",
+            message="scope-state sidecar names an unknown commitment profile",
+        )
+        return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+    seen_hashes: set[str] = set()
+    for commitment in sidecar["scope_commitments"]:
+        actual_hash = _predicate_hash(commitment["predicate_value"])
+        if actual_hash != commitment["predicate_value_hash"]:
+            claim = _scope_state_claim(
+                sidecar=sidecar,
+                verdict="disproved",
+                reason_code="CHECKPOINT_SCOPE_STATE_PREDICATE_HASH_MISMATCH",
+                message="scope commitment predicate_value_hash does not match predicate_value",
+            )
+            return ScopeClaimResult(claim=claim, sidecar=sidecar)
+        if actual_hash in seen_hashes:
+            claim = _scope_state_claim(
+                sidecar=sidecar,
+                verdict="disproved",
+                reason_code="CHECKPOINT_SCOPE_STATE_COMMITMENT_PREDICATE_DUPLICATE",
+                message="scope-state sidecar has duplicate predicate commitments",
+            )
+            return ScopeClaimResult(claim=claim, sidecar=sidecar)
+        seen_hashes.add(actual_hash)
+
+    claim = _scope_state_claim(
+        sidecar=sidecar,
+        verdict="supported",
+        reason_code="CHECKPOINT_SCOPE_STATE_SUPPORTED",
+        message="scope-state sidecar signature, checkpoint binding, predicate grammar, and commitment profile are supported",
+    )
+    return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+
+def _load_json_file_if_present(path: Path) -> tuple[dict[str, Any] | None, bytes | None]:
+    try:
+        raw = path.read_bytes()
+        value = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None, None
+    return (value if isinstance(value, dict) else None), raw
+
+
+def _resolve_scope_checkpoint(
+    *,
+    manifest_path: Path,
+    explicit_checkpoint: str | None = None,
+) -> dict[str, Any] | None:
+    candidates: list[Path] = []
+    if explicit_checkpoint:
+        candidates.append(Path(explicit_checkpoint))
+    candidates.extend(
+        [
+            manifest_path.parent / "checkpoint.json",
+            manifest_path.parent.parent / "checkpoint.json",
+            manifest_path.parent.parent / "pack" / "checkpoint.json",
+        ]
+    )
+    for candidate in candidates:
+        value, _raw = _load_json_file_if_present(candidate)
+        if value is not None:
+            return value
+    return None
+
+
+def _sidecar_candidate_paths(
+    *,
+    manifest_path: Path,
+    reference: dict[str, Any],
+    explicit_sidecar: str | None = None,
+) -> list[Path]:
+    candidates: list[Path] = []
+    if explicit_sidecar:
+        candidates.append(Path(explicit_sidecar))
+    storage_uri = reference.get("storage_uri")
+    if isinstance(storage_uri, str) and storage_uri:
+        storage_path = Path(storage_uri)
+        if storage_path.is_absolute():
+            candidates.append(storage_path)
+        else:
+            candidates.append(manifest_path.parent / storage_path)
+            candidates.append(manifest_path.parent.parent / storage_path)
+    candidates.extend(
+        [
+            manifest_path.parent / "sidecars" / SCOPE_STATE_SIDECAR_FILE,
+            manifest_path.parent.parent / "sidecars" / SCOPE_STATE_SIDECAR_FILE,
+            manifest_path.parent / SCOPE_STATE_SIDECAR_FILE,
+        ]
+    )
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            unique.append(candidate)
+            seen.add(key)
+    return unique
+
+
+def _resolve_scope_sidecar(
+    *,
+    manifest_path: Path,
+    reference: dict[str, Any],
+    explicit_sidecar: str | None = None,
+) -> tuple[dict[str, Any] | None, bytes | None]:
+    for candidate in _sidecar_candidate_paths(
+        manifest_path=manifest_path,
+        reference=reference,
+        explicit_sidecar=explicit_sidecar,
+    ):
+        value, raw = _load_json_file_if_present(candidate)
+        if value is not None and raw is not None:
+            return value, raw
+    return None, None
+
+
+def _scope_export_declaration_present(export_data: bytes) -> bool:
+    try:
+        document = _load_export_json_document(export_data)
+    except Exception:
+        return False
+    return (
+        isinstance(document, dict)
+        and isinstance(document.get("scope_faithfulness"), dict)
+        and document["scope_faithfulness"].get("version") == SCOPE_FAITHFULNESS_VERSION
+    )
+
+
+def _scope_segment_schema_error(segment: Any) -> str | None:
+    if not _exact_keys(
+        segment,
+        {
+            "segment_id",
+            "declared_scope",
+            "declared_start",
+            "declared_end",
+            "scope_state_reference",
+            "canonical_filters",
+            "chain_evidence",
+        },
+    ):
+        return "scope_faithfulness segment fields do not match v1"
+    if not _is_nonempty_str(segment.get("segment_id")):
+        return "segment_id must be a non-empty string"
+    scope = segment.get("declared_scope")
+    if not _exact_keys(scope, {"version", "scope_kind", "chain_scope", "population_label", "predicate", "presentation_policy"}):
+        return "declared_scope fields do not match v1"
+    if scope.get("version") != SCOPE_DECLARATION_VERSION or scope.get("scope_kind") not in {"declared_population", "declared_sample"}:
+        return "declared_scope version or scope_kind is unsupported"
+    if not _is_nonempty_str(scope.get("chain_scope")) or not _is_nonempty_str(scope.get("population_label")):
+        return "declared_scope chain_scope and population_label must be non-empty strings"
+    policy = scope.get("presentation_policy")
+    if not _exact_keys(policy, {"version", "policy_kind", "policy_parameters"}):
+        return "presentation_policy fields do not match v1"
+    if policy.get("version") != PRESENTATION_POLICY_VERSION or policy.get("policy_kind") not in {"none", "plan_tier", "section", "field_redaction"}:
+        return "presentation_policy is unsupported"
+    if not isinstance(policy.get("policy_parameters"), dict):
+        return "presentation_policy.policy_parameters must be an object"
+
+    start = segment.get("declared_start")
+    if not isinstance(start, dict) or not _is_nonempty_str(start.get("kind")):
+        return "declared_start must be an object with a kind"
+    if start["kind"] == "genesis":
+        if not _exact_keys(start, {"kind", "chain_scope", "sequence_number", "genesis_prev_hash"}) or start.get("sequence_number") != 1:
+            return "genesis declared_start fields do not match v1"
+    elif start["kind"] == "predecessor_proof":
+        if not _exact_keys(start, {"kind", "chain_scope", "predecessor_sequence_number", "predecessor_record_hash", "first_evidence_sequence_number"}):
+            return "predecessor_proof declared_start fields do not match v1"
+    elif start["kind"] == "checkpoint_anchor":
+        if not _exact_keys(start, {"kind", "checkpoint_id", "chain_scope", "sequence_number", "last_record_hash"}):
+            return "checkpoint_anchor declared_start fields do not match v1"
+    else:
+        return "declared_start kind is unsupported"
+    if not _is_nonempty_str(start.get("chain_scope")):
+        return "declared_start.chain_scope must be a non-empty string"
+
+    end = segment.get("declared_end")
+    if not _exact_keys(end, {"checkpoint_id", "chain_scope", "sequence_number", "last_record_hash", "boundary_policy"}):
+        return "declared_end fields do not match v1"
+    if not _is_nonempty_str(end.get("checkpoint_id")) or not _is_nonempty_str(end.get("chain_scope")) or not _is_nonempty_str(end.get("last_record_hash")):
+        return "declared_end checkpoint_id, chain_scope, and last_record_hash must be non-empty strings"
+    if not _is_nonbool_int(end.get("sequence_number")) or end["sequence_number"] < 0:
+        return "declared_end.sequence_number must be a non-negative integer"
+    if end.get("boundary_policy") not in {"explicit_checkpoint", "latest_checkpoint_at_export"}:
+        return "declared_end.boundary_policy is unsupported"
+
+    reference = segment.get("scope_state_reference")
+    if not _exact_keys(reference, {"artifact_type", "scope_state_id", "checkpoint_id", "chain_scope", "artifact_hash"}) and not _exact_keys(reference, {"artifact_type", "scope_state_id", "checkpoint_id", "chain_scope", "artifact_hash", "storage_uri"}):
+        return "scope_state_reference fields do not match v1"
+    if reference.get("artifact_type") != "checkpoint_scope_state":
+        return "scope_state_reference.artifact_type must be checkpoint_scope_state"
+    for field in ("scope_state_id", "checkpoint_id", "chain_scope"):
+        if not _is_nonempty_str(reference.get(field)):
+            return f"scope_state_reference.{field} must be a non-empty string"
+    if not _is_hash(reference.get("artifact_hash")):
+        return "scope_state_reference.artifact_hash must be sha256:<hex>"
+
+    filters = segment.get("canonical_filters")
+    if not _exact_keys(filters, {"canonicalization_profile", "raw_filters", "filters_hash"}):
+        return "canonical_filters fields do not match v1"
+    if filters.get("canonicalization_profile") != "keel.canonical_json.payload.v1":
+        return "canonical_filters canonicalization_profile is unsupported"
+    if not isinstance(filters.get("raw_filters"), dict) or not _is_hash(filters.get("filters_hash")):
+        return "canonical_filters raw_filters and filters_hash are malformed"
+
+    evidence = segment.get("chain_evidence")
+    if not _exact_keys(evidence, {"disclosure_records", "proof_bridge_records"}):
+        return "chain_evidence fields do not match v1"
+    for list_name in ("disclosure_records", "proof_bridge_records"):
+        records = evidence.get(list_name)
+        if not isinstance(records, list):
+            return f"chain_evidence.{list_name} must be an array"
+        for index, record in enumerate(records):
+            if not _exact_keys(record, {"event_id", "event_type", "chain_scope", "sequence_number", "record_hash", "prev_hash", "created_at", "chain_format_version", "payload_json"}):
+                return f"{list_name}[{index}] fields do not match v1"
+            if not _is_nonempty_str(record.get("event_id")) or not _is_nonempty_str(record.get("event_type")) or not _is_nonempty_str(record.get("chain_scope")):
+                return f"{list_name}[{index}] identity fields must be non-empty strings"
+            if not _is_nonbool_int(record.get("sequence_number")) or int(record["sequence_number"]) < 1:
+                return f"{list_name}[{index}].sequence_number must be a positive integer"
+            if not _is_nonempty_str(record.get("record_hash")) or not _is_nonempty_str(record.get("prev_hash")):
+                return f"{list_name}[{index}] hash fields must be non-empty strings"
+            if not _is_nonempty_str(record.get("created_at")) or not _is_nonempty_str(record.get("chain_format_version")):
+                return f"{list_name}[{index}] created_at and chain_format_version must be non-empty strings"
+            if not isinstance(record.get("payload_json"), dict):
+                return f"{list_name}[{index}].payload_json must be an object"
+    return None
+
+
+def _declared_start_sequence(start: dict[str, Any]) -> int:
+    if start["kind"] == "genesis":
+        return 1
+    if start["kind"] == "predecessor_proof":
+        return int(start["first_evidence_sequence_number"])
+    return int(start["sequence_number"]) + 1
+
+
+def _ordered_scope_evidence(segment: dict[str, Any]) -> list[dict[str, Any]]:
+    evidence = segment["chain_evidence"]
+    return sorted(
+        [*evidence["disclosure_records"], *evidence["proof_bridge_records"]],
+        key=lambda item: (int(item["sequence_number"]), str(item["event_id"]), str(item["record_hash"])),
+    )
+
+
+def _check_scope_start(segment: dict[str, Any]) -> tuple[str | None, str | None]:
+    start = segment["declared_start"]
+    records = _ordered_scope_evidence(segment)
+    if not records:
+        if segment["declared_scope"]["predicate"] and not segment["chain_evidence"]["disclosure_records"]:
+            return None, None
+        return "EXPORT_CHAIN_PROOF_MISSING", "scope-faithfulness segment has no chain evidence"
+    first = records[0]
+    if start["kind"] == "genesis":
+        if first["sequence_number"] != 1 or first["prev_hash"] != start["genesis_prev_hash"]:
+            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not match declared genesis start"
+        return None, None
+    if start["kind"] == "predecessor_proof":
+        if first["sequence_number"] != start["first_evidence_sequence_number"] or first["prev_hash"] != start["predecessor_record_hash"]:
+            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not chain from declared predecessor proof"
+        for bridge in segment["chain_evidence"]["proof_bridge_records"]:
+            if bridge["sequence_number"] == start["predecessor_sequence_number"] and bridge["record_hash"] != start["predecessor_record_hash"]:
+                return "EXPORT_BOUNDARY_START_MISMATCH", "supplied predecessor bridge record hash does not match declared predecessor"
+        return None, None
+    if start["kind"] == "checkpoint_anchor":
+        if first["sequence_number"] != start["sequence_number"] + 1 or first["prev_hash"] != start["last_record_hash"]:
+            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not extend declared checkpoint anchor"
+        return None, None
+    return "EXPORT_BOUNDARY_START_MISMATCH", "declared_start kind is unsupported"
+
+
+def _check_scope_continuity(segment: dict[str, Any]) -> tuple[str | None, str | None]:
+    records = _ordered_scope_evidence(segment)
+    seen_sequences: set[int] = set()
+    previous: dict[str, Any] | None = None
+    for record in records:
+        seq = int(record["sequence_number"])
+        if seq in seen_sequences:
+            return "EXPORT_CHAIN_PROOF_DISCONTINUITY", "duplicate sequence_number in chain evidence"
+        seen_sequences.add(seq)
+        if previous is not None:
+            if seq <= int(previous["sequence_number"]):
+                return "EXPORT_CHAIN_PROOF_DISCONTINUITY", "chain evidence sequence numbers are not increasing"
+            if record["prev_hash"] != previous["record_hash"]:
+                return "EXPORT_CHAIN_PROOF_DISCONTINUITY", "chain evidence prev_hash does not match previous record_hash"
+        previous = record
+    return None, None
+
+
+def _latest_freshness_evidence(export_document: dict[str, Any], manifest: dict[str, Any], segment: dict[str, Any]) -> Any:
+    segment_id = segment.get("segment_id")
+    for source in (
+        export_document.get("scope_faithfulness_freshness"),
+        manifest.get("scope_faithfulness_freshness"),
+        export_document.get("checkpoint_selection_evidence"),
+        manifest.get("checkpoint_selection_evidence"),
+    ):
+        if isinstance(source, dict):
+            if isinstance(source.get(str(segment_id)), dict):
+                return source[str(segment_id)]
+            return source
+    return None
+
+
+def _check_latest_checkpoint_policy(
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    segment: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    end = segment["declared_end"]
+    if end.get("boundary_policy") != "latest_checkpoint_at_export":
+        return None, None
+    evidence = _latest_freshness_evidence(export_document, manifest, segment)
+    if evidence is None:
+        return "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING", "latest-at-export boundary policy lacks signed freshness evidence"
+    later_items: list[Any] = []
+    if isinstance(evidence, dict):
+        if isinstance(evidence.get("later_checkpoints"), list):
+            later_items.extend(evidence["later_checkpoints"])
+        if isinstance(evidence.get("observed_checkpoints"), list):
+            later_items.extend(evidence["observed_checkpoints"])
+        if "sequence_number" in evidence:
+            later_items.append(evidence)
+    elif isinstance(evidence, list):
+        later_items.extend(evidence)
+    for item in later_items:
+        if not isinstance(item, dict):
+            continue
+        if item.get("chain_scope") not in {None, end["chain_scope"]}:
+            continue
+        sequence = item.get("sequence_number")
+        if _is_nonbool_int(sequence) and int(sequence) > int(end["sequence_number"]):
+            return "EXPORT_BOUNDARY_STALE_CHECKPOINT", "freshness evidence shows a later checkpoint was available at export time"
+        checkpoint_id = item.get("checkpoint_id")
+        if isinstance(checkpoint_id, str) and checkpoint_id and checkpoint_id != end["checkpoint_id"] and _is_nonbool_int(sequence):
+            return "EXPORT_BOUNDARY_STALE_CHECKPOINT", "freshness evidence names a later checkpoint"
+    return None, None
+
+
+def _adjudicate_export_scope_faithfulness_v1(
+    *,
+    export_data: bytes,
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    key_manifest_source: str | None,
+    semantics_dispatch: SemanticsDispatch | None = None,
+    explicit_sidecar: str | None = None,
+    explicit_checkpoint: str | None = None,
+) -> list[ClaimVerdict]:
+    try:
+        export_document = _load_export_json_document(export_data)
+    except Exception as exc:
+        return [
+            _export_scope_claim(
+                segment_id=None,
+                verdict="disproved",
+                reason_code="EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
+                message=f"export payload is not JSON: {exc}",
+            )
+        ]
+    if not isinstance(export_document, dict):
+        return [
+            _export_scope_claim(
+                segment_id=None,
+                verdict="disproved",
+                reason_code="EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
+                message="export payload must be a JSON object",
+            )
+        ]
+    block = export_document.get("scope_faithfulness")
+    if not isinstance(block, dict):
+        return [
+            _export_scope_claim(
+                segment_id=None,
+                verdict="insufficient_evidence",
+                reason_code="EXPORT_SCOPE_DECLARATION_MISSING",
+                message="signed export payload has no scope_faithfulness block",
+            )
+        ]
+    if set(block.keys()) != {"version", "segments"} or block.get("version") != SCOPE_FAITHFULNESS_VERSION or not isinstance(block.get("segments"), list) or not block["segments"]:
+        return [
+            _export_scope_claim(
+                segment_id=None,
+                verdict="disproved",
+                reason_code="EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
+                message="scope_faithfulness block violates v1 schema",
+            )
+        ]
+
+    checkpoint = _resolve_scope_checkpoint(
+        manifest_path=manifest_path,
+        explicit_checkpoint=explicit_checkpoint,
+    )
+    sidecar_claims: list[ClaimVerdict] = []
+    export_subjects: list[VerdictSubject] = []
+    export_failure: tuple[str, str, str] | None = None
+    for segment in block["segments"]:
+        segment_id = segment.get("segment_id") if isinstance(segment, dict) and isinstance(segment.get("segment_id"), str) else None
+        schema_error = _scope_segment_schema_error(segment)
+        if schema_error is not None:
+            export_failure = ("disproved", "EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID", schema_error)
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
+                    message=schema_error,
+                    evidence=["export.scope_faithfulness.segments"],
+                )
+            )
+            break
+
+        predicate_error, predicate_message = _validate_scope_predicate(segment["declared_scope"]["predicate"])
+        if predicate_error is not None:
+            verdict = "unverifiable_scope" if predicate_error == "EXPORT_SCOPE_PREDICATE_UNSUPPORTED" else "disproved"
+            export_failure = (verdict, predicate_error, predicate_message or "declared predicate is unsupported or malformed")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict=verdict,
+                    reason_code=predicate_error,
+                    message=predicate_message,
+                    evidence=["export.scope_faithfulness.declared_scope.predicate"],
+                )
+            )
+            break
+
+        start_sequence = _declared_start_sequence(segment["declared_start"])
+        if start_sequence > int(segment["declared_end"]["sequence_number"]):
+            export_failure = ("disproved", "EXPORT_BOUNDARY_START_AFTER_END", "declared_start sequence is after declared_end sequence")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_BOUNDARY_START_AFTER_END",
+                    message="declared_start sequence is after declared_end sequence",
+                    evidence=["export.scope_faithfulness.declared_start", "export.scope_faithfulness.declared_end"],
+                )
+            )
+            break
+
+        filters = segment["canonical_filters"]
+        actual_filters_hash = _prefixed_sha256(_canonical_json_bytes(filters["raw_filters"]))
+        if actual_filters_hash != filters["filters_hash"]:
+            export_failure = ("disproved", "EXPORT_RAW_FILTERS_HASH_MISMATCH", "canonical_filters.raw_filters do not hash to filters_hash")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_RAW_FILTERS_HASH_MISMATCH",
+                    message="canonical_filters.raw_filters do not hash to filters_hash",
+                    evidence=["export.scope_faithfulness.canonical_filters"],
+                )
+            )
+            break
+
+        reference = segment["scope_state_reference"]
+        sidecar, sidecar_bytes = _resolve_scope_sidecar(
+            manifest_path=manifest_path,
+            reference=reference,
+            explicit_sidecar=explicit_sidecar,
+        )
+        if sidecar is None or sidecar_bytes is None:
+            scope_state_claim = _scope_state_claim(
+                sidecar=None,
+                verdict="insufficient_evidence",
+                reason_code="CHECKPOINT_SCOPE_STATE_MISSING",
+                message="export references an absent scope-state sidecar",
+            )
+            sidecar_claims.append(scope_state_claim)
+            export_failure = ("insufficient_evidence", "CHECKPOINT_SCOPE_STATE_MISSING", "export references an absent scope-state sidecar")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_SCOPE_STATE_MISSING",
+                    message="export references an absent scope-state sidecar",
+                    evidence=["export.scope_faithfulness.scope_state_reference"],
+                )
+            )
+            break
+        if _prefixed_sha256(sidecar_bytes) != reference["artifact_hash"]:
+            export_failure = ("disproved", "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH", "scope_state_reference artifact_hash does not match resolved sidecar bytes")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_STATE_REFERENCE_MISMATCH",
+                    message="scope_state_reference artifact_hash does not match resolved sidecar bytes",
+                    evidence=["export.scope_faithfulness.scope_state_reference"],
+                )
+            )
+            break
+        for field in ("artifact_type", "scope_state_id", "checkpoint_id", "chain_scope"):
+            if sidecar.get(field) != reference.get(field):
+                export_failure = ("disproved", "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH", f"scope_state_reference.{field} does not match resolved sidecar")
+                export_subjects.append(
+                    _subject(
+                        subject_type="scope_faithfulness_segment",
+                        subject_id=segment_id,
+                        verdict="disproved",
+                        reason_code="EXPORT_SCOPE_STATE_REFERENCE_MISMATCH",
+                        message=f"scope_state_reference.{field} does not match resolved sidecar",
+                        evidence=["export.scope_faithfulness.scope_state_reference"],
+                    )
+                )
+                break
+        if export_failure is not None:
+            break
+
+        scope_state_result = _adjudicate_checkpoint_scope_state_v1(
+            sidecar,
+            checkpoint=checkpoint,
+            key_manifest_source=key_manifest_source,
+            semantics_dispatch=semantics_dispatch,
+        )
+        sidecar_claims.append(scope_state_result.claim)
+        if scope_state_result.claim.aggregate_verdict != verdict_value("supported"):
+            verdict = scope_state_result.claim.aggregate_verdict
+            reason = scope_state_result.claim.reason_code or "CHECKPOINT_SCOPE_STATE_MISSING"
+            message = scope_state_result.claim.message or "scope-state sidecar did not support this segment"
+            export_failure = (verdict, reason, message)
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict=verdict,
+                    reason_code=reason,
+                    message=message,
+                    evidence=["export.scope_faithfulness.scope_state_reference", "checkpoint_scope_state"],
+                )
+            )
+            break
+
+        chain_scope_fields = {
+            segment["declared_scope"]["chain_scope"],
+            segment["declared_start"]["chain_scope"],
+            segment["declared_end"]["chain_scope"],
+            reference["chain_scope"],
+            sidecar["chain_scope"],
+        }
+        for record in _ordered_scope_evidence(segment):
+            chain_scope_fields.add(record["chain_scope"])
+        if len(chain_scope_fields) != 1:
+            export_failure = ("disproved", "EXPORT_SCOPE_CHAIN_SCOPE_MISMATCH", "segment fields or records disagree on chain_scope")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_CHAIN_SCOPE_MISMATCH",
+                    message="segment fields or records disagree on chain_scope",
+                    evidence=["export.scope_faithfulness.segments[].chain_scope"],
+                )
+            )
+            break
+
+        if checkpoint is None or not isinstance(checkpoint.get("chain_heads"), dict):
+            export_failure = ("insufficient_evidence", "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING", "referenced checkpoint artifact is absent")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="insufficient_evidence",
+                    reason_code="CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING",
+                    message="referenced checkpoint artifact is absent",
+                    evidence=["checkpoint"],
+                )
+            )
+            break
+        head = checkpoint["chain_heads"].get(sidecar["chain_scope"])
+        end = segment["declared_end"]
+        if not isinstance(head, dict):
+            export_failure = ("disproved", "EXPORT_BOUNDARY_END_NOT_CHECKPOINT", "declared_end does not name a checkpoint chain head")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_BOUNDARY_END_NOT_CHECKPOINT",
+                    message="declared_end does not name a checkpoint chain head",
+                    evidence=["export.scope_faithfulness.declared_end", "checkpoint.chain_heads"],
+                )
+            )
+            break
+        if (
+            end["checkpoint_id"] != sidecar["checkpoint_id"]
+            or end["chain_scope"] != sidecar["chain_scope"]
+            or end["sequence_number"] != head.get("sequence_number")
+            or end["last_record_hash"] != head.get("last_record_hash")
+        ):
+            export_failure = ("disproved", "EXPORT_BOUNDARY_CHECKPOINT_MISMATCH", "declared_end differs from the sidecar checkpoint head")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_BOUNDARY_CHECKPOINT_MISMATCH",
+                    message="declared_end differs from the sidecar checkpoint head",
+                    evidence=["export.scope_faithfulness.declared_end", "checkpoint.chain_heads"],
+                )
+            )
+            break
+
+        boundary_error, boundary_message = _check_latest_checkpoint_policy(export_document, manifest, segment)
+        if boundary_error is not None:
+            verdict = "insufficient_evidence" if boundary_error == "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING" else "disproved"
+            export_failure = (verdict, boundary_error, boundary_message or "latest checkpoint policy failed")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict=verdict,
+                    reason_code=boundary_error,
+                    message=boundary_message,
+                    evidence=["export.scope_faithfulness.declared_end.boundary_policy"],
+                )
+            )
+            break
+
+        start_error, start_message = _check_scope_start(segment)
+        if start_error is not None:
+            verdict = "insufficient_evidence" if start_error == "EXPORT_CHAIN_PROOF_MISSING" else "disproved"
+            export_failure = (verdict, start_error, start_message or "declared_start does not match supplied evidence")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict=verdict,
+                    reason_code=start_error,
+                    message=start_message,
+                    evidence=["export.scope_faithfulness.declared_start", "export.scope_faithfulness.chain_evidence"],
+                )
+            )
+            break
+
+        continuity_error, continuity_message = _check_scope_continuity(segment)
+        if continuity_error is not None:
+            export_failure = ("disproved", continuity_error, continuity_message or "chain evidence is discontinuous")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code=continuity_error,
+                    message=continuity_message,
+                    evidence=["export.scope_faithfulness.chain_evidence"],
+                )
+            )
+            break
+
+        predicate = segment["declared_scope"]["predicate"]
+        disclosures = segment["chain_evidence"]["disclosure_records"]
+        bridges = segment["chain_evidence"]["proof_bridge_records"]
+        for record in disclosures:
+            if not _scope_predicate_matches(record, predicate):
+                export_failure = ("disproved", "EXPORT_SCOPE_PREDICATE_VIOLATED", "a disclosure record does not satisfy the declared predicate")
+                export_subjects.append(
+                    _subject(
+                        subject_type="scope_faithfulness_segment",
+                        subject_id=segment_id,
+                        verdict="disproved",
+                        reason_code="EXPORT_SCOPE_PREDICATE_VIOLATED",
+                        message="a disclosure record does not satisfy the declared predicate",
+                        evidence=["export.scope_faithfulness.chain_evidence.disclosure_records"],
+                    )
+                )
+                break
+        if export_failure is not None:
+            break
+        for record in bridges:
+            if _scope_predicate_matches(record, predicate):
+                export_failure = ("disproved", "EXPORT_PROOF_BRIDGE_MISCLASSIFIED", "a proof bridge record satisfies the declared predicate and is misclassified")
+                export_subjects.append(
+                    _subject(
+                        subject_type="scope_faithfulness_segment",
+                        subject_id=segment_id,
+                        verdict="disproved",
+                        reason_code="EXPORT_PROOF_BRIDGE_MISCLASSIFIED",
+                        message="a proof bridge record satisfies the declared predicate and is misclassified",
+                        evidence=["export.scope_faithfulness.chain_evidence.proof_bridge_records"],
+                    )
+                )
+                break
+        if export_failure is not None:
+            break
+
+        predicate_value_hash = _predicate_hash(predicate)
+        commitment = next(
+            (
+                item
+                for item in sidecar["scope_commitments"]
+                if item.get("predicate_value_hash") == predicate_value_hash
+            ),
+            None,
+        )
+        if commitment is None:
+            export_failure = ("insufficient_evidence", "EXPORT_SCOPE_COMMITMENT_MISSING", "sidecar has no commitment for the declared predicate")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="insufficient_evidence",
+                    reason_code="EXPORT_SCOPE_COMMITMENT_MISSING",
+                    message="sidecar has no commitment for the declared predicate",
+                    evidence=["checkpoint_scope_state.scope_commitments"],
+                )
+            )
+            break
+
+        if commitment["matching_count"] != len(disclosures):
+            export_failure = ("disproved", "EXPORT_SCOPE_CARDINALITY_MISMATCH", "signed matching_count differs from disclosure record count")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_CARDINALITY_MISMATCH",
+                    message="signed matching_count differs from disclosure record count",
+                    evidence=["checkpoint_scope_state.scope_commitments.matching_count", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                )
+            )
+            break
+
+        recomputed_root = _scope_merkle_root(disclosures, predicate_value_hash)
+        if recomputed_root != commitment["membership_root_hash"]:
+            export_failure = ("disproved", "EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH", "recomputed membership root differs from signed sidecar root")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH",
+                    message="recomputed membership root differs from signed sidecar root",
+                    evidence=["checkpoint_scope_state.scope_commitments.membership_root_hash", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                )
+            )
+            break
+
+        if not disclosures:
+            first = last = None
+        else:
+            sequences = [int(record["sequence_number"]) for record in disclosures]
+            first = min(sequences)
+            last = max(sequences)
+        if commitment["first_matching_sequence"] != first or commitment["last_matching_sequence"] != last:
+            export_failure = ("disproved", "EXPORT_SCOPE_RANGE_MISMATCH", "signed matching range differs from disclosure record sequence range")
+            export_subjects.append(
+                _subject(
+                    subject_type="scope_faithfulness_segment",
+                    subject_id=segment_id,
+                    verdict="disproved",
+                    reason_code="EXPORT_SCOPE_RANGE_MISMATCH",
+                    message="signed matching range differs from disclosure record sequence range",
+                    evidence=["checkpoint_scope_state.scope_commitments.matching_range", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                )
+            )
+            break
+
+        export_subjects.append(
+            _subject(
+                subject_type="scope_faithfulness_segment",
+                subject_id=segment_id,
+                verdict="supported",
+                reason_code="EXPORT_SCOPE_FAITHFULNESS_SUPPORTED",
+                message="scope-faithfulness segment reconciles against the signed scope-state sidecar",
+                evidence=["export.scope_faithfulness", "checkpoint_scope_state"],
+            )
+        )
+
+    if export_failure is None:
+        export_claim = ClaimVerdict(
+            name="export.scope_faithfulness.v1",
+            subjects=export_subjects,
+            verdict="supported",
+            reason_code="EXPORT_SCOPE_FAITHFULNESS_SUPPORTED",
+            message="all scope-faithfulness segments are supported",
+            evidence=["export.scope_faithfulness", "checkpoint_scope_state"],
+        )
+    else:
+        verdict, reason_code, message = export_failure
+        export_claim = ClaimVerdict(
+            name="export.scope_faithfulness.v1",
+            subjects=export_subjects,
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=["export.scope_faithfulness", "checkpoint_scope_state"],
+        )
+    return [*sidecar_claims, export_claim]
+
+
 def _count_from_output(stdout: str, label: str) -> int | None:
     match = re.search(rf"{re.escape(label)}:\s+(\d+)", stdout)
     if not match:
@@ -4630,6 +6093,45 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     if scope_claim is not None:
         claims.append(scope_claim)
 
+    requested = semantics.requested_names()
+    should_verify_scope_faithfulness = _scope_export_declaration_present(export_data) or (
+        semantics.mode == "pinned"
+        and bool(
+            requested
+            & {
+                "checkpoint.scope_state.v1",
+                "export.scope_faithfulness.v1",
+            }
+        )
+    )
+    if should_verify_scope_faithfulness:
+        scope_claims = _adjudicate_export_scope_faithfulness_v1(
+            export_data=export_data,
+            manifest=manifest,
+            manifest_path=manifest_path,
+            key_manifest_source=_key_manifest_source_for_args(args),
+            semantics_dispatch=semantics_dispatch,
+            explicit_sidecar=getattr(args, "sidecar", None),
+            explicit_checkpoint=getattr(args, "checkpoint", None),
+        )
+        claims.extend(scope_claims)
+        unsupported_scope = [
+            claim
+            for claim in scope_claims
+            if claim.aggregate_verdict != verdict_value("supported")
+        ]
+        if unsupported_scope:
+            first = unsupported_scope[0]
+            return _export_report(
+                ok=False,
+                exit_code=1,
+                artifact=artifact,
+                claims=claims,
+                semantics=semantics,
+                error=first.message or first.reason_code,
+                diagnostics=diagnostics,
+            )
+
     workflow_result, workflow_stdout, workflow_stderr = _captured_check(
         _verify_export_workflow_extensions,
         export_data=export_data,
@@ -4656,7 +6158,6 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             error=_failure_from_output(workflow_stdout, workflow_stderr)[1],
         )
 
-    requested = semantics.requested_names()
     should_walk_events = args.walk_events or (
         semantics.mode == "pinned"
         and "governance_chain.local_continuity.v1" in requested
@@ -4729,6 +6230,64 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         semantics=semantics,
         diagnostics=diagnostics,
     )
+
+
+def verify_scope_faithfulness_claim(
+    *,
+    export_file: str,
+    manifest: str,
+    sidecar: str | None = None,
+    checkpoint: str | None = None,
+    key_manifest: str | None = None,
+) -> dict[str, Any]:
+    args = argparse.Namespace(
+        export_file=export_file,
+        manifest=manifest,
+        sidecar=sidecar,
+        checkpoint=checkpoint,
+        key_manifest=key_manifest,
+        key_manifest_url=None,
+        expected_public_key=None,
+        public_key=None,
+        self_attested=False,
+        offline=False,
+        allow_unsigned=False,
+        walk_events=False,
+        verify_closure=False,
+        as_json=True,
+    )
+    report = verify_export_structured(args)
+    scope_claims = [
+        claim.to_dict()
+        for claim in report.claims
+        if claim.name
+        in {
+            "checkpoint.scope_state.v1",
+            "export.scope_faithfulness.v1",
+        }
+    ]
+    export_claim = next(
+        (
+            claim
+            for claim in report.claims
+            if claim.name == "export.scope_faithfulness.v1"
+        ),
+        None,
+    )
+    status = (
+        export_claim.aggregate_verdict
+        if export_claim is not None
+        else ("supported" if report.ok else "insufficient_evidence")
+    )
+    return {
+        "claim_type": "scope_faithfulness",
+        "status": status,
+        "ok": report.ok and status == "supported",
+        "reason_code": export_claim.reason_code if export_claim is not None else None,
+        "message": export_claim.message if export_claim is not None else report.error,
+        "claims": scope_claims,
+        "report": report.to_dict(),
+    }
 
 
 def cmd_refresh_keys(args: argparse.Namespace) -> int:
@@ -4893,6 +6452,29 @@ def cmd_export(args: argparse.Namespace) -> int:
     print(f"  Public key:   {trusted_pub}")
     print(f"  Key id:       {artifact_key_id or _public_key_fingerprint(trusted_pub)}")
     print(f"  Trust source: {trust_source}")
+    if _scope_export_declaration_present(export_data):
+        scope_claims = _adjudicate_export_scope_faithfulness_v1(
+            export_data=export_data,
+            manifest=manifest,
+            manifest_path=manifest_path,
+            key_manifest_source=_key_manifest_source_for_args(args),
+            semantics_dispatch=_legacy_dispatch(),
+            explicit_sidecar=getattr(args, "sidecar", None),
+            explicit_checkpoint=getattr(args, "checkpoint", None),
+        )
+        unsupported_scope = [
+            claim
+            for claim in scope_claims
+            if claim.aggregate_verdict != verdict_value("supported")
+        ]
+        if unsupported_scope:
+            first = unsupported_scope[0]
+            print(
+                f"FAILED: {first.reason_code}: {first.message}",
+                file=sys.stderr,
+            )
+            return 1
+        print("  Scope:        scope-faithful slice verified")
     workflow_result = _verify_export_workflow_extensions(
         export_data=export_data,
         export_path=export_path,
