@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from pathlib import Path
 
@@ -108,3 +109,21 @@ def test_scope_state_duplicate_commitment_rejected_when_signature_valid() -> Non
     claim = _claim(sidecar)
     assert claim.aggregate_verdict == "disproved"
     assert claim.reason_code == "CHECKPOINT_SCOPE_STATE_COMMITMENT_PREDICATE_DUPLICATE"
+
+
+def test_scope_state_reserved_predicate_kind_is_unverifiable_scope() -> None:
+    sidecar = _load(SIDECAR)
+    predicate = {
+        "version": "keel.scope_predicate.v1",
+        "operator": "and",
+        "equals": {"subject_id": "opaque-subject"},
+        "ranges": {},
+    }
+    sidecar["scope_commitments"][0]["predicate_value"] = predicate
+    sidecar["scope_commitments"][0]["predicate_value_hash"] = (
+        "sha256:" + hashlib.sha256(_canonical_json_bytes(predicate)).hexdigest()
+    )
+    _resign_sidecar(sidecar)
+    claim = _claim(sidecar)
+    assert claim.aggregate_verdict == "unverifiable_scope"
+    assert claim.reason_code == "CHECKPOINT_SCOPE_STATE_GRAMMAR_UNSUPPORTED"

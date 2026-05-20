@@ -4,7 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from keel_verifier.verifier import verify_export_structured
+from keel_verifier.verifier import (
+    _adjudicate_export_scope_faithfulness_v1,
+    _legacy_dispatch,
+    verify_export_structured,
+)
 
 
 ROOT = Path(__file__).resolve().parent / "fixtures" / "scope_faithfulness_corpus"
@@ -119,3 +123,25 @@ def test_manifest_auto_require_only_when_scope_block_present(tmp_path: Path) -> 
     claim_names = {claim.name for claim in report.claims}
     assert "export.scope_faithfulness.v1" not in claim_names
     assert report.ok is True
+
+
+def test_export_scope_reserved_predicate_kind_is_unverifiable_scope() -> None:
+    fixture = ROOT / "fixtures" / "scope-faithfulness-edge-bridge-records-not-members"
+    pack = fixture / "pack"
+    export_payload = json.loads((pack / "export.json").read_text(encoding="utf-8"))
+    export_payload["scope_faithfulness"]["segments"][0]["declared_scope"]["predicate"] = {
+        "version": "keel.scope_predicate.v1",
+        "operator": "and",
+        "equals": {"subject_id": "opaque-subject"},
+        "ranges": {},
+    }
+    claims = _adjudicate_export_scope_faithfulness_v1(
+        export_data=json.dumps(export_payload, sort_keys=True).encode("utf-8"),
+        manifest=json.loads((pack / "manifest.json").read_text(encoding="utf-8")),
+        manifest_path=pack / "manifest.json",
+        key_manifest_source=str(ROOT / "trust_roots" / "step2-scope-faithfulness-trust-root.json"),
+        semantics_dispatch=_legacy_dispatch(),
+    )
+    claim = next(claim for claim in claims if claim.name == "export.scope_faithfulness.v1")
+    assert claim.aggregate_verdict == "unverifiable_scope"
+    assert claim.reason_code == "EXPORT_SCOPE_PREDICATE_UNSUPPORTED"
