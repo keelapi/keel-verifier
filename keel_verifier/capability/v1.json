@@ -1,0 +1,234 @@
+{
+  "capability_schema_version": "1.0",
+  "verifier": {
+    "name": "keel-verifier",
+    "version": "2.0.0",
+    "pypi": "https://pypi.org/project/keel-verifier/",
+    "source": "https://github.com/keelapi/keel-verifier",
+    "license": "MIT"
+  },
+  "spec_compatibility": {
+    "permit_spec_version": "1.2.0",
+    "permit_spec_source": "https://github.com/keelapi/keel-permit",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v0.json",
+    "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
+  },
+  "claims": [
+    {
+      "name": "export.integrity.v1",
+      "status": "implemented",
+      "description": "Verifies signed export-manifest integrity: content hash, signature, sibling artifacts.",
+      "depends_on_semantics": ["keel.export_manifest.integrity.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "export.scope_identity.v1",
+      "status": "implemented",
+      "description": "Verifies the export's declared scope identity against the signed manifest.",
+      "depends_on_semantics": ["keel.export_manifest.integrity.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "governance_chain.local_continuity.v1",
+      "status": "implemented",
+      "description": "Recomputes each chain entry's record_hash and verifies prev_hash continuity within the bundled chain window.",
+      "depends_on_semantics": ["keel.governance_chain.record_hash.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit_chain.delegation_denied_correctly.v1",
+      "status": "implemented",
+      "description": "Adjudicates that a permit.delegated_denied event correctly denied delegation under pinned authority-envelope.v0 comparator semantics.",
+      "depends_on_semantics": [
+        "keel.governance_chain.record_hash.v1",
+        "keel.governance_event.integrity_digest.v1",
+        "authority-envelope.v0"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "closure.signature.v1",
+      "status": "implemented",
+      "description": "Verifies closure-record Ed25519 signature against the permit_binding_signing key purpose.",
+      "depends_on_semantics": [
+        "keel.closure.format.v1",
+        "keel.closure.format.v2",
+        "keel.permit_binding.canonical_request.v1"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "closure.digest_consistency.v1",
+      "status": "implemented",
+      "description": "Verifies provider_response_digest_v1 / client_response_digest_v1 against bundled lifecycle events.",
+      "depends_on_semantics": [
+        "keel.closure.format.v1",
+        "keel.closure.format.v2",
+        "keel.closure.digest_rules.v1"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "closure.dispatch_binding.v1",
+      "status": "implemented",
+      "description": "For closure_v2, verifies dispatch_request_digest_v1 against the permit's binding_request_hash.",
+      "depends_on_semantics": [
+        "keel.closure.format.v2",
+        "keel.closure.digest_rules.v1",
+        "keel.permit_binding.canonical_request.v1"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "workflow.declaration_signature.v1",
+      "status": "implemented",
+      "description": "Verifies workflow-declaration Ed25519 signatures emitted alongside Vanta evidence exports.",
+      "depends_on_semantics": [
+        "keel.workflow.canonicalization.v1",
+        "keel.permit_binding.canonical_request.v1"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "workflow.amendment_signature.v1",
+      "status": "implemented",
+      "description": "Verifies workflow-amendment signatures and amendment-version ordering.",
+      "depends_on_semantics": [
+        "keel.workflow.canonicalization.v1",
+        "keel.permit_binding.canonical_request.v1"
+      ],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "workflow.effective_intent_hash.v1",
+      "status": "implemented",
+      "description": "Re-derives effective_intent_hash = SHA-256(declaration.intent_json ‖ ordered amendments at decision time) and matches against permit.workflow_state_json.",
+      "depends_on_semantics": ["keel.workflow.canonicalization.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "workflow.permit_snapshot.v1",
+      "status": "implemented",
+      "description": "Verifies workflow_state_json snapshots carried on permits.",
+      "depends_on_semantics": ["keel.workflow.canonicalization.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "incident.bundle_manifest.v1",
+      "status": "implemented",
+      "description": "Verifies incident bundle manifest_version 2 file-set (workflow_declarations.jsonl, workflow_amendments.jsonl) and fails closed on unknown manifest versions.",
+      "depends_on_semantics": ["keel.incident.bundle_manifest.v2"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "checkpoint.composite_hash.v1",
+      "status": "implemented",
+      "description": "Recomputes the integrity checkpoint chain_heads composite hash.",
+      "depends_on_semantics": ["keel.checkpoint.composite_hash.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "checkpoint.signature.v1",
+      "status": "implemented",
+      "description": "Verifies the integrity checkpoint Ed25519 signature.",
+      "depends_on_semantics": ["keel.checkpoint.signature.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "checkpoint.tsa_imprint.v1",
+      "status": "implemented",
+      "description": "Verifies the embedded RFC 3161 timestamp MessageImprint when present. TSA chain authenticity is a separate opt-in (--tsa-ca-bundle).",
+      "depends_on_semantics": ["keel.checkpoint.tsa_imprint.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "workflow_evidence.sibling_integrity.v1",
+      "status": "implemented",
+      "description": "Verifies the sibling workflow_evidence file hash matches the signed export manifest's sibling_artifacts.workflow_evidence entry.",
+      "depends_on_semantics": ["keel.workflow_evidence.sibling_integrity.v1"],
+      "verdicts": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    }
+  ],
+  "artifact_formats": [
+    {"name": "permit_v1", "status": "supported", "permit_spec": "spec/permit-v1.md"},
+    {"name": "closure_v1", "status": "supported", "permit_spec": "spec/closure-v2.md"},
+    {"name": "closure_v2", "status": "supported", "permit_spec": "spec/closure-v2.md"},
+    {"name": "chain_entry_v1", "status": "supported", "permit_spec": "spec/chain-entry.md"},
+    {"name": "audit_export_bundle_v1", "status": "supported", "permit_spec": "spec/audit-export-bundle.md"},
+    {"name": "audit_export_bundle_v2", "status": "supported", "permit_spec": "spec/audit-export-bundle.md"},
+    {"name": "checkpoint_v1", "status": "supported", "permit_spec": null, "note": "Checkpoint artifact verified against bundled checkpoint signing keys."},
+    {"name": "incident_bundle_v1", "status": "supported", "permit_spec": null, "note": "Incident evidence artifact; manifest_version 1 (legacy)."},
+    {"name": "incident_bundle_v2", "status": "supported", "permit_spec": null, "note": "Incident evidence artifact; manifest_version 2 with workflow files."},
+    {"name": "workflow_evidence_v1", "status": "supported", "permit_spec": null, "note": "Workflow evidence artifact emitted as a sibling of audit-export bundles."}
+  ],
+  "failure_codes": {
+    "normative_registry": "https://github.com/keelapi/keel-permit/blob/main/spec/failure-codes.md",
+    "implemented_subset": [
+      "WALK_RECORD_HASH_MISMATCH",
+      "WALK_PREV_HASH_DISCONTINUITY",
+      "WALK_SEQUENCE_INVERSION",
+      "WALK_UNKNOWN_CHAIN_FORMAT",
+      "WALK_CLOSURE_SIGNATURE_INVALID",
+      "WALK_CLOSURE_DIGEST_MISMATCH",
+      "WALK_CLOSURE_DIGEST_MISSING",
+      "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH",
+      "WALK_UNKNOWN_CLOSURE_FORMAT",
+      "SEMANTIC_PIN_UNRESOLVED",
+      "SEMANTIC_PIN_HASH_MISMATCH",
+      "SEMANTIC_PIN_NOT_ALLOWLISTED",
+      "SEMANTIC_PIN_MISSING",
+      "SEMANTIC_PROFILE_UNRESOLVED",
+      "CLAIM_REGISTRY_UNRESOLVED"
+    ],
+    "note": "This subset is hand-curated for capability_schema_version 1.0; a future schema version may extract programmatically from tests/code."
+  },
+  "trust_boundary": {
+    "proves": [
+      "Post-signing tampering of any element in the permit lifecycle (input, dispatch, provider response, client response, closure record) is detected.",
+      "Signature validity against bundled or supplied public keys (Ed25519).",
+      "Record-hash chain continuity within bundled chain entries; sequence-inversion detection.",
+      "Closure-binding consistency for dispatched executions (closure_v2 dispatch_request_digest_v1 cross-reference).",
+      "Workflow declaration and amendment signature validity (workflow_intent_v1).",
+      "Pack-pinned semantic integrity: declared semantic artifacts resolve and validate against a permanent, append-only allowlist."
+    ],
+    "does_not_prove": [
+      "Pre-signing manipulation by a privileged Keel operator at evidence-creation time.",
+      "Historical TSA certificate revocation status — TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
+      "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
+      "Provider or tool actually performing the action correctly in the real world — the verifier validates recorded evidence."
+    ],
+    "requires_for_strong_assurance": [
+      "Hardware-backed signing (TEE/HSM) for pre-signing protection — a separate capability tier above this verifier.",
+      "Live trust-root anchoring via --public-key-url against the production endpoint.",
+      "Trust-root rotation via the refresh-keys subcommand."
+    ]
+  },
+  "out_of_scope": [
+    {
+      "category": "Identity & authentication",
+      "items": ["Subject identity verification", "API caller authentication", "Token issuance correctness"],
+      "reason": "Permit attests that a decision was made by the runtime. Identity authentication occurs upstream of the verifier."
+    },
+    {
+      "category": "Runtime execution side-effects",
+      "items": ["Provider/tool API correctness", "Side effects beyond the recorded request/response"],
+      "reason": "The verifier validates recorded evidence; it cannot validate world-state outside the recorded artifacts."
+    },
+    {
+      "category": "Wire-format extensions",
+      "items": ["Permit v2+ (not yet defined)", "closure_v3+ (not yet defined)", "Chain entry hash format v2+ (not yet defined)"],
+      "reason": "Future wire-format versions; this verifier covers the v1 family. New formats require new spec versions and verifier support."
+    },
+    {
+      "category": "Policy evaluation",
+      "items": ["Policy-engine correctness", "Re-evaluation of input policy logic"],
+      "reason": "Permit records a decision; verifier validates the record. Policy logic is implementation-defined per Permit spec."
+    }
+  ],
+  "verdict_durability": {
+    "guarantee": "A version-pinned evidence pack receives reproducible adjudication: any future verifier release must resolve the exact pinned semantics by (id, sha256) and reproduce the same claim verdicts for that pack, or explicitly decline. It must never silently reinterpret a prior pinned claim.",
+    "not_guaranteed": "Verdicts are not asserted to be 'correct for all time'. A pinned semantic later found flawed is corrected by issuing a new versioned semantic, never by editing a released artifact.",
+    "approved_phrasing": ["version-pinned", "reproducible adjudication", "no silent reinterpretation"],
+    "banned_as_keel_claim": ["verifies forever", "permanent proof", "the verdict is true forever"]
+  }
+}
