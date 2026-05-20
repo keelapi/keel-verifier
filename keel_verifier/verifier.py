@@ -4701,6 +4701,20 @@ def _adjudicate_checkpoint_scope_state_v1(
         )
         return ScopeClaimResult(claim=claim, sidecar=sidecar)
 
+    for commitment in sidecar["scope_commitments"]:
+        predicate_error, predicate_message = _validate_scope_predicate(
+            commitment["predicate_value"],
+            sidecar_context=True,
+        )
+        if predicate_error == "EXPORT_SCOPE_PREDICATE_UNSUPPORTED":
+            claim = _scope_state_claim(
+                sidecar=sidecar,
+                verdict="unverifiable_scope",
+                reason_code="CHECKPOINT_SCOPE_STATE_GRAMMAR_UNSUPPORTED",
+                message=predicate_message or "scope-state sidecar names an unsupported predicate grammar",
+            )
+            return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
     if (
         sidecar.get("commitment_profile") != SCOPE_STATE_MERKLE_ID
         or (SCOPE_STATE_MERKLE_ID, SCOPE_STATE_MERKLE_HASH) not in PERMANENT_ALLOWLIST
