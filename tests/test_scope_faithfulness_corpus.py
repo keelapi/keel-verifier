@@ -2,12 +2,24 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
+import pytest
+
+from scope_faithfulness_public import (
+    PROMOTED_SCOPE_FAITHFULNESS_IDS,
+    PUBLIC_CORPUS_AVAILABLE,
+    PUBLIC_CORPUS_ROOT,
+    PUBLIC_CORPUS_SKIP_REASON,
+)
 from keel_verifier.verifier import verify_export_structured
 
 
-CORPUS_ROOT = Path(__file__).resolve().parent / "fixtures" / "scope_faithfulness_corpus"
+pytestmark = pytest.mark.skipif(
+    not PUBLIC_CORPUS_AVAILABLE,
+    reason=PUBLIC_CORPUS_SKIP_REASON,
+)
+
+CORPUS_ROOT = PUBLIC_CORPUS_ROOT
 
 
 def _args(record: dict) -> argparse.Namespace:
@@ -35,11 +47,21 @@ def _claim(report, name: str) -> dict:
     raise AssertionError(f"missing claim {name}")
 
 
-def test_scope_faithfulness_local_corpus_matches_spec_expectations() -> None:
+def _promoted_records() -> list[dict]:
     corpus = json.loads((CORPUS_ROOT / "corpus.json").read_text(encoding="utf-8"))
-    records = corpus["records"]
+    assert len(corpus["records"]) == 76
+    records = [
+        record
+        for record in corpus["records"]
+        if record["id"] in PROMOTED_SCOPE_FAITHFULNESS_IDS
+    ]
     assert len(records) == 19
+    assert {record["id"] for record in records} == PROMOTED_SCOPE_FAITHFULNESS_IDS
+    return records
 
+
+def test_scope_faithfulness_public_corpus_matches_spec_expectations() -> None:
+    records = _promoted_records()
     for record in records:
         report = verify_export_structured(_args(record))
         expected_exit = 0 if record["expected_verdict"] == "supported" else 1
@@ -51,7 +73,7 @@ def test_scope_faithfulness_local_corpus_matches_spec_expectations() -> None:
 
 
 def test_soundness_predictions_for_three_attack_shapes_are_recorded_before_execution() -> None:
-    corpus = json.loads((CORPUS_ROOT / "corpus.json").read_text(encoding="utf-8"))
+    records = _promoted_records()
     expected = {
         "scope-faithfulness-neg-head-truncate": (
             "disproved",
@@ -66,7 +88,7 @@ def test_soundness_predictions_for_three_attack_shapes_are_recorded_before_execu
             None,
         ),
     }
-    by_id = {record["id"]: record for record in corpus["records"]}
+    by_id = {record["id"]: record for record in records}
     for fixture_id, (verdict, code) in expected.items():
         record = by_id[fixture_id]
         assert record["expected_verdict"] == verdict
