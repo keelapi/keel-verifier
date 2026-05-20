@@ -5,8 +5,14 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from scope_faithfulness_public import (
+    PUBLIC_CORPUS_AVAILABLE,
+    PUBLIC_CORPUS_ROOT,
+    PUBLIC_CORPUS_SKIP_REASON,
+)
 from keel_verifier.verifier import (
     _adjudicate_checkpoint_scope_state_v1,
     _canonical_json_bytes,
@@ -14,7 +20,12 @@ from keel_verifier.verifier import (
 )
 
 
-ROOT = Path(__file__).resolve().parent / "fixtures" / "scope_faithfulness_corpus"
+pytestmark = pytest.mark.skipif(
+    not PUBLIC_CORPUS_AVAILABLE,
+    reason=PUBLIC_CORPUS_SKIP_REASON,
+)
+
+ROOT = PUBLIC_CORPUS_ROOT
 FIXTURE = ROOT / "fixtures" / "scope-faithfulness-edge-bridge-records-not-members"
 SIDECAR = FIXTURE / "sidecars" / "scope-faithfulness-edge-bridge-records-not-members-checkpoint-scope-state-v1.json"
 CHECKPOINT = FIXTURE / "pack" / "checkpoint.json"

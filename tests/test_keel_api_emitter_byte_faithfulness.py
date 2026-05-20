@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 
+import pytest
+
+from scope_faithfulness_public import (
+    PUBLIC_CORPUS_AVAILABLE,
+    PUBLIC_CORPUS_ROOT,
+    PUBLIC_CORPUS_SKIP_REASON,
+)
 from keel_verifier.verifier import verify_export_structured
 
 
-ROOT = Path(__file__).resolve().parent / "fixtures" / "scope_faithfulness_corpus"
+pytestmark = pytest.mark.skipif(
+    not PUBLIC_CORPUS_AVAILABLE,
+    reason=PUBLIC_CORPUS_SKIP_REASON,
+)
+
+ROOT = PUBLIC_CORPUS_ROOT
 
 
 def test_pr2_emitter_shape_fixture_adjudicates_through_verifier() -> None:
