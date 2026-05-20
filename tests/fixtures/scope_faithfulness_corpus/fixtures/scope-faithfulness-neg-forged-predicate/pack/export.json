@@ -1,0 +1,224 @@
+{
+  "scope_faithfulness": {
+    "segments": [
+      {
+        "canonical_filters": {
+          "canonicalization_profile": "keel.canonical_json.payload.v1",
+          "filters_hash": "sha256:06c13f1d93450067905dfb193ef7ee75951b1c77931429b2b412c7e290e55d0d",
+          "raw_filters": {
+            "permit_id": "permit-alpha"
+          }
+        },
+        "chain_evidence": {
+          "disclosure_records": [
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:01.000000Z",
+              "event_id": "evt_step2_001",
+              "event_type": "permit.created",
+              "payload_json": {
+                "category": "security",
+                "details": "Sensitive prompt context redacted in restricted fixture.",
+                "execution": {
+                  "provider": "openai"
+                },
+                "permit_id": "permit-forged",
+                "project_id": "00000000-0000-0000-0000-000000000001"
+              },
+              "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+              "record_hash": "52133336f85174ce746fea6761bbce249c7cb5b624b3c85c6b8c7487ea76ef1b",
+              "sequence_number": 1
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:02.000000Z",
+              "event_id": "evt_step2_002",
+              "event_type": "policy.evaluated",
+              "payload_json": {
+                "category": "security",
+                "decision": {
+                  "type": "allow"
+                },
+                "details": "Policy inputs redacted in restricted fixture.",
+                "execution": {
+                  "provider": "openai"
+                },
+                "permit_id": "permit-alpha",
+                "policy": {
+                  "id": "pol-prod"
+                },
+                "project_id": "00000000-0000-0000-0000-000000000001"
+              },
+              "prev_hash": "52133336f85174ce746fea6761bbce249c7cb5b624b3c85c6b8c7487ea76ef1b",
+              "record_hash": "a8598d2a0545878f40c2cbe25546e9667f2f600d639d191780c0356b68e4c660",
+              "sequence_number": 2
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:03.000000Z",
+              "event_id": "evt_step2_003",
+              "event_type": "execution.requested",
+              "payload_json": {
+                "category": "security",
+                "details": "Execution request body redacted in restricted fixture.",
+                "execution": {
+                  "provider": "openai"
+                },
+                "permit_id": "permit-alpha",
+                "project_id": "00000000-0000-0000-0000-000000000001",
+                "request_id": "req-alpha"
+              },
+              "prev_hash": "a8598d2a0545878f40c2cbe25546e9667f2f600d639d191780c0356b68e4c660",
+              "record_hash": "2b77035a1cade31bfcda1220499bbcaa374a3014ca6ba805896bad438a383ba5",
+              "sequence_number": 3
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:05.000000Z",
+              "event_id": "evt_step2_005",
+              "event_type": "provider.response.received",
+              "payload_json": {
+                "category": "security",
+                "details": "Provider response details redacted in restricted fixture.",
+                "execution": {
+                  "provider": "openai"
+                },
+                "permit_id": "permit-alpha",
+                "project_id": "00000000-0000-0000-0000-000000000001",
+                "provider_response_digest_v1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "request_id": "req-alpha"
+              },
+              "prev_hash": "8468a4cae751bfe5d1d428eeb77c0668c633c489d88f093ec8022d3871f28127",
+              "record_hash": "0169abae420a4d05386dde441a06c02f21156d52e16a73296f4f0c1cde3c035b",
+              "sequence_number": 5
+            }
+          ],
+          "proof_bridge_records": [
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:04.000000Z",
+              "event_id": "evt_step2_004",
+              "event_type": "permit.created",
+              "payload_json": {
+                "category": "finance",
+                "details": "Finance permit details.",
+                "execution": {
+                  "provider": "anthropic"
+                },
+                "permit_id": "permit-beta",
+                "project_id": "00000000-0000-0000-0000-000000000001"
+              },
+              "prev_hash": "2b77035a1cade31bfcda1220499bbcaa374a3014ca6ba805896bad438a383ba5",
+              "record_hash": "8468a4cae751bfe5d1d428eeb77c0668c633c489d88f093ec8022d3871f28127",
+              "sequence_number": 4
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:06.000000Z",
+              "event_id": "evt_step2_006",
+              "event_type": "execution.completed",
+              "payload_json": {
+                "category": "finance",
+                "client_response_digest_v1": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "details": "Finance execution result.",
+                "execution": {
+                  "provider": "anthropic"
+                },
+                "permit_id": "permit-beta",
+                "project_id": "00000000-0000-0000-0000-000000000001",
+                "request_id": "req-beta"
+              },
+              "prev_hash": "0169abae420a4d05386dde441a06c02f21156d52e16a73296f4f0c1cde3c035b",
+              "record_hash": "2ef54d68fb0cb8d432d33fd5d1b4286f15cb5e557ed2affa1f215f848dd0de66",
+              "sequence_number": 6
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:07.000000Z",
+              "event_id": "evt_step2_007",
+              "event_type": "permit.closed",
+              "payload_json": {
+                "category": "security",
+                "details": "Closure notes redacted in restricted fixture.",
+                "execution": {
+                  "provider": "anthropic"
+                },
+                "permit_id": "permit-gamma",
+                "project_id": "00000000-0000-0000-0000-000000000001",
+                "request_id": "req-gamma"
+              },
+              "prev_hash": "2ef54d68fb0cb8d432d33fd5d1b4286f15cb5e557ed2affa1f215f848dd0de66",
+              "record_hash": "686f1a50572d5c25910960f7708d95ca6bb02b72bdd9315c27a3c82ed2d69fd2",
+              "sequence_number": 7
+            },
+            {
+              "chain_format_version": "v1",
+              "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+              "created_at": "2026-05-19T10:00:08.000000Z",
+              "event_id": "evt_step2_008",
+              "event_type": "audit.integrity_digest",
+              "payload_json": {
+                "category": "security",
+                "details": "Integrity digest details redacted in restricted fixture.",
+                "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "project_id": "00000000-0000-0000-0000-000000000001"
+              },
+              "prev_hash": "686f1a50572d5c25910960f7708d95ca6bb02b72bdd9315c27a3c82ed2d69fd2",
+              "record_hash": "351272992fdaf0fa2f728d370bb98d587a71b0a1be70825982475de382e780ca",
+              "sequence_number": 8
+            }
+          ]
+        },
+        "declared_end": {
+          "boundary_policy": "explicit_checkpoint",
+          "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+          "checkpoint_id": "22222222-3333-4444-5555-666666666666",
+          "last_record_hash": "351272992fdaf0fa2f728d370bb98d587a71b0a1be70825982475de382e780ca",
+          "sequence_number": 8
+        },
+        "declared_scope": {
+          "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+          "population_label": "Verifier-local Step 2 fixture",
+          "predicate": {
+            "equals": {
+              "permit_id": "permit-alpha"
+            },
+            "operator": "and",
+            "ranges": {},
+            "version": "keel.scope_predicate.v1"
+          },
+          "presentation_policy": {
+            "policy_kind": "none",
+            "policy_parameters": {},
+            "version": "keel.presentation_policy.v1"
+          },
+          "scope_kind": "declared_sample",
+          "version": "keel.scope_declaration.v1"
+        },
+        "declared_start": {
+          "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+          "genesis_prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "kind": "genesis",
+          "sequence_number": 1
+        },
+        "scope_state_reference": {
+          "artifact_hash": "sha256:e10ae0930354e0ffd3fa55a5e7583c806b35510db811a580aaecc380d7b16a46",
+          "artifact_type": "checkpoint_scope_state",
+          "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+          "checkpoint_id": "22222222-3333-4444-5555-666666666666",
+          "scope_state_id": "keel.scope_state.v1:35612394ae89957223f13fe8cf637283e3d592001e7e503cd08aeb35ebbceb6a:22222222-3333-4444-5555-666666666666",
+          "storage_uri": "sidecars/scope-faithfulness-neg-forged-predicate-checkpoint-scope-state-v1.json"
+        },
+        "segment_id": "scope-faithfulness-neg-forged-predicate"
+      }
+    ],
+    "version": "keel.export_scope_faithfulness.v1"
+  }
+}

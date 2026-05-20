@@ -1,0 +1,60 @@
+{
+  "artifact_type": "checkpoint_scope_state",
+  "chain_scope": "project:00000000-0000-0000-0000-000000000001",
+  "checkpoint_id": "22222222-3333-4444-5555-666666666666",
+  "commitment_profile": "keel.scope_state.merkle.v1",
+  "predicate_basis": {
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "reserved_namespaces": [
+      "keel.scope_predicate.reserved.v1"
+    ],
+    "supported_predicate_kinds": [
+      "project_id",
+      "permit_id",
+      "request_id",
+      "event_type",
+      "category",
+      "severity",
+      "decision_type",
+      "policy_id",
+      "provider",
+      "sequence_number",
+      "created_at",
+      "occurred_at",
+      "section",
+      "export_type"
+    ]
+  },
+  "predicate_grammar_version": "keel.scope_predicate.v1",
+  "scope_commitments": [
+    {
+      "first_matching_sequence": null,
+      "last_matching_sequence": null,
+      "matching_count": 0,
+      "membership_root_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "predicate_value": {
+        "equals": {
+          "category": "nonexistent"
+        },
+        "operator": "and",
+        "ranges": {},
+        "version": "keel.scope_predicate.v1"
+      },
+      "predicate_value_hash": "sha256:221ae052e7fdad30f0f603a1819cfc5d1118b71365c329331ba45c7500857028"
+    }
+  ],
+  "scope_state_id": "keel.scope_state.v1:35612394ae89957223f13fe8cf637283e3d592001e7e503cd08aeb35ebbceb6a:22222222-3333-4444-5555-666666666666",
+  "signature": {
+    "algorithm": "Ed25519",
+    "key_id": "sha256:1325b850c2871916eae203f0efc3c898",
+    "signature": "ed25519:QncRD8iVjZNtJT3zNvdW7aTwkz1aQsrjUNsY9nBYUXFLlpgOIKnPGlcOofQEUZAGZDKQ5SRAjFM+HV/ScfiHDw=="
+  },
+  "signed_at": "2026-05-19T12:00:00Z",
+  "tree_size": 8,
+  "trust_root_reference": {
+    "key_id": "sha256:1325b850c2871916eae203f0efc3c898",
+    "manifest_version": "keel.public_key_manifest.v1",
+    "purpose": "scope_state"
+  },
+  "version": "checkpoint_scope_state.v1"
+}
