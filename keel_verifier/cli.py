@@ -19,6 +19,7 @@ from keel_verifier.verifier import (
     cmd_refresh_keys,
     verify,
     verify_delegation_denied_correctly,
+    verify_scope_faithfulness_claim,
 )
 
 LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim"}
@@ -138,6 +139,25 @@ def _cmd_claim_delegation_denied_correctly(
     return 0 if result["status"] == "supported" else 1
 
 
+def _cmd_claim_scope_faithfulness(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+) -> int:
+    if not args.export_file:
+        parser.error("scope_faithfulness requires --export-file")
+    if not args.manifest:
+        parser.error("scope_faithfulness requires --manifest")
+    result = verify_scope_faithfulness_claim(
+        export_file=args.export_file,
+        manifest=args.manifest,
+        sidecar=args.sidecar,
+        checkpoint=args.checkpoint,
+        key_manifest=args.key_manifest,
+    )
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0 if result["status"] == "supported" else 1
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="keel-verify",
@@ -246,6 +266,28 @@ def _build_parser() -> argparse.ArgumentParser:
     p_delegation.set_defaults(
         func=lambda args: _cmd_claim_delegation_denied_correctly(
             p_delegation,
+            args,
+        )
+    )
+
+    p_scope = claim_sub.add_parser(
+        "scope_faithfulness",
+        help="Verify a scope-faithfulness export segment against its scope-state sidecar.",
+    )
+    p_scope.add_argument("--export-file", required=True)
+    p_scope.add_argument("--manifest", required=True)
+    p_scope.add_argument("--sidecar")
+    p_scope.add_argument("--checkpoint")
+    p_scope.add_argument("--key-manifest")
+    p_scope.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Accepted for consistency; claim output is JSON by default.",
+    )
+    p_scope.set_defaults(
+        func=lambda args: _cmd_claim_scope_faithfulness(
+            p_scope,
             args,
         )
     )
