@@ -50,6 +50,8 @@ keel_verifier = [
     "data/*.json",
     "data/**/*.json",
     "keys/*.json",
+    "capability/*.json",
+    "capability/*.md",
 ]
 
 [tool.ruff]
