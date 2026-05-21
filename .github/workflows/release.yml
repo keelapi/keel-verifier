@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  release:
+    name: Build and sign release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build twine cyclonedx-bom
+          python -m pip install -e ".[dev]"
+
+      - name: Generate embedded release manifest
+        run: python scripts/generate_release_manifest.py embedded --tag "${GITHUB_REF_NAME}"
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Check distributions
+        run: python -m twine check dist/*
+
+      - name: Generate CycloneDX SBOM
+        run: cyclonedx-py environment --output-format JSON --output-file sbom.cyclonedx.json
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Capture cosign version
+        run: |
+          COSIGN_VERSION="$(
+            cosign version --json | python -c 'import json, sys; data = json.load(sys.stdin); print(data.get("gitVersion") or data.get("GitVersion") or data.get("version") or "unknown")'
+          )"
+          echo "COSIGN_VERSION=${COSIGN_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Sign wheel and source distribution
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          WHEEL="keel_verifier-${VERSION}-py3-none-any.whl"
+          SDIST="keel_verifier-${VERSION}.tar.gz"
+          cosign sign-blob --yes --bundle "dist/${WHEEL}.sigstore" "dist/${WHEEL}"
+          cosign sign-blob --yes --bundle "dist/${SDIST}.sigstore" "dist/${SDIST}"
+
+      - name: Attest CycloneDX SBOM against wheel
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          WHEEL="keel_verifier-${VERSION}-py3-none-any.whl"
+          cosign attest-blob \
+            --yes \
+            --predicate sbom.cyclonedx.json \
+            --type cyclonedx \
+            --bundle "dist/keel_verifier-${VERSION}-sbom.intoto.jsonl" \
+            "dist/${WHEEL}"
+
+      - name: Generate release manifest
+        run: |
+          python scripts/generate_release_manifest.py release \
+            --tag "${GITHUB_REF_NAME}" \
+            --python-version "$(python -c 'import platform; print(platform.python_version())')" \
+            --cosign-version "${COSIGN_VERSION}"
+
+      - name: Sign release manifest
+        run: cosign sign-blob --yes --bundle manifest.json.sigstore manifest.json
+
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.sigstore
+            dist/*.intoto.jsonl
+            sbom.cyclonedx.json
+            manifest.json
+            manifest.json.sigstore
+
+      - name: PyPI publication remains manual
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Release artifacts are ready. Maintainer may publish manually with:"
+          echo "python -m twine upload dist/keel_verifier-${VERSION}*"
