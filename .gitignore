@@ -10,3 +10,7 @@ venv/
 .DS_Store
 build/
 dist/
+manifest.json
+manifest.json.sigstore
+sbom.cyclonedx.json
+keel_verifier/_release_manifest.json
