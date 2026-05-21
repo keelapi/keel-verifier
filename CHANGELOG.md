@@ -9,6 +9,14 @@
 - Add Python version classifiers to PyPI metadata so the Python versions badge resolves correctly.
 - Ignore local `.claude/` workspace settings at the repository level.
 
+## v2.2.0 — release provenance spine (2026-05-21)
+
+- Release artifacts are now Sigstore-signed through GitHub Actions OIDC and logged to the public Rekor transparency log.
+- Add a signed `manifest.json` release manifest covering the wheel, source distribution, SBOM, Sigstore bundles, Rekor log indices, and build-environment metadata.
+- Add a release-time CycloneDX SBOM attestation for the wheel.
+- Every wheel now carries `keel_verifier/_release_manifest.json` with per-file digests and release-manifest URLs for future installed-package self-verification.
+- No new verifier adjudication functionality is included in v2.2.0; the friendly `keel-verify --self-check` wrapper follows in v2.3.0.
+
 ## v2.1.0 — scope-faithful export adjudication (2026-05-20)
 
 ### Added
