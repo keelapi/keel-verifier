@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "keel-verifier"
-version = "2.1.0"
+version = "2.2.0"
 description = "Independent verifier for Keel governance evidence"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -47,6 +47,7 @@ include = ["keel_verifier*"]
 
 [tool.setuptools.package-data]
 keel_verifier = [
+    "_release_manifest.json",
     "data/*.json",
     "data/**/*.json",
     "keys/*.json",
