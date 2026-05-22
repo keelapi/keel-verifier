@@ -2879,6 +2879,13 @@ def _absence_predicate_matches_revocation(
     )
 
 
+def _absence_bridge_record_matches_predicate(
+    record: dict[str, Any],
+    predicate: dict[str, Any],
+) -> bool:
+    return _scope_predicate_matches(record, predicate)
+
+
 def _adjudicate_permit_dispatch_absence_after_revocation_v1(
     *,
     export_document: dict[str, Any],
@@ -3068,7 +3075,7 @@ def _adjudicate_permit_dispatch_absence_after_revocation_v1(
                 evidence=["export.scope_faithfulness.chain_evidence.disclosure_records"],
             )
     for record in bridges:
-        if isinstance(record, dict) and _scope_predicate_matches(record, predicate):
+        if isinstance(record, dict) and _absence_bridge_record_matches_predicate(record, predicate):
             return _absence_claim(
                 segment_id=segment_id,
                 verdict="disproved",
