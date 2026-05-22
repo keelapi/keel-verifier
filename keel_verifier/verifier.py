@@ -64,6 +64,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+import uuid
 import zipfile
 from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field, replace
@@ -439,6 +440,51 @@ _SIGNED_CLOSURE_V2_REQUIRED_KEYS = (
     "binding_key_id",
 )
 _SIGNED_CLOSURE_V2_OPTIONAL_KEYS = ("usage_reported_at",)
+PERMIT_DECISION_CLAIM_NAME = "permit.decision.v1"
+PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
+PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
+    "permit.dispatch_absence_after_revocation.v1"
+)
+PERMIT_DECISION_ARTIFACT_TYPE = "permit_decision_binding"
+PERMIT_DECISION_ARTIFACT_VERSION = "permit.decision.v1"
+PERMIT_REVOKED_EVENT_TYPE = "permit.revoked"
+DISPATCH_EGRESS_BOUND_EVENT_TYPE = "dispatch.egress_bound"
+_PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
+    "binding_version",
+    "permit_id",
+    "project_id",
+    "parent_permit_id",
+    "decision",
+    "reason",
+    "provider",
+    "model",
+    "operation",
+    "action_name",
+    "request_fingerprint",
+    "constraints",
+    "routing",
+    "policy_id",
+    "policy_version",
+    "policy_snapshot_hash",
+    "issued_at",
+    "expires_at",
+    "is_dry_run",
+    "binding_key_id",
+    "final_request_hash",
+)
+_PERMIT_REVOKED_REQUIRED_FIELDS = (
+    "permit_id",
+    "project_id",
+    "actor_id",
+    "actor_kind",
+    "reason_code",
+    "revoked_at",
+    "effective_at",
+    "signature",
+)
+_PERMIT_REVOKED_ACTOR_KINDS = {"user", "service_account", "system", "api_key"}
+_REASON_CODE_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$")
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _verify_ed25519(pub_b64: str, signed_message: bytes, sig_b64: str) -> bool:
@@ -2244,6 +2290,818 @@ def _verify_closure_v2_signature(
             f"permit_id={permit_id} Ed25519 signature invalid ({trust_source})",
         )
     return True, trust_source
+
+
+def _permit_claim(
+    name: str,
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _single_subject_claim(
+        name,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["export"],
+    )
+
+
+def _entry_payload_any(entry: dict[str, Any]) -> dict[str, Any]:
+    payload = entry.get("payload_json")
+    if isinstance(payload, dict):
+        return payload
+    payload = entry.get("payload")
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+def _iter_export_entries(document: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    bundle_entries = document.get("chain_entries")
+    if isinstance(bundle_entries, list):
+        entries.extend(entry for entry in bundle_entries if isinstance(entry, dict))
+    records = document.get("records")
+    if isinstance(records, list):
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            chain_entries = record.get("chain_entries")
+            if isinstance(chain_entries, list):
+                entries.extend(
+                    entry for entry in chain_entries if isinstance(entry, dict)
+                )
+            else:
+                entries.append(record)
+    return entries
+
+
+def _string_field(*values: Any) -> str | None:
+    for value in values:
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _is_uuid_text(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        uuid.UUID(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _actor_id_has_pii_shape(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    if not text:
+        return False
+    return (
+        _EMAIL_RE.fullmatch(text) is not None
+        or "@" in text
+        or bool(re.search(r"\s", text))
+    )
+
+
+def _raw_ed25519_signature_b64(value: Any) -> bool:
+    if not isinstance(value, str) or value.startswith("ed25519:"):
+        return False
+    try:
+        return len(base64.b64decode(value, validate=True)) == 64
+    except Exception:
+        return False
+
+
+def _permit_binding_key_candidates(
+    *,
+    key_manifest_source: str | None,
+    signing_time: datetime | None,
+) -> tuple[list[dict[str, Any]], str | None]:
+    source = key_manifest_source or _cached_key_manifest_source() or _bundled_key_manifest_source()
+    if source is None:
+        return [], "no permit-binding trust root available"
+    try:
+        entries = _load_key_manifest(source)
+    except Exception as exc:
+        return [], f"could not load key manifest: {exc}"
+    candidates = [
+        entry
+        for entry in entries
+        if entry.get("purpose") == PERMIT_BINDING_SIGNING_PURPOSE
+        and isinstance(entry.get("public_key"), str)
+    ]
+    if signing_time is not None:
+        candidates = _filter_by_active_window(candidates, signing_time)
+    if not candidates:
+        return [], "no active permit-binding key found in trust root"
+    return candidates, None
+
+
+def _find_permit_decision_evidence(
+    document: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str]:
+    top_level = document.get("permit_decision")
+    if isinstance(top_level, dict):
+        return top_level, "export.permit_decision"
+    top_level = document.get("permit_decision_binding")
+    if isinstance(top_level, dict):
+        return top_level, "export.permit_decision_binding"
+    if document.get("artifact_type") == PERMIT_DECISION_ARTIFACT_TYPE:
+        return document, "export"
+
+    for entry in _iter_export_entries(document):
+        payload = _entry_payload_any(entry)
+        for key in (
+            "permit_decision",
+            "permit_decision_binding",
+            "decision_binding",
+        ):
+            nested = payload.get(key)
+            if isinstance(nested, dict):
+                return nested, f"payload_json.{key}"
+        if payload.get("artifact_type") == PERMIT_DECISION_ARTIFACT_TYPE:
+            return payload, "payload_json"
+        if entry.get("artifact_type") == PERMIT_DECISION_ARTIFACT_TYPE:
+            return entry, "chain_entry"
+    return None, "export.permit_decision"
+
+
+def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
+    if evidence.get("artifact_type") != PERMIT_DECISION_ARTIFACT_TYPE:
+        return "artifact_type must be permit_decision_binding"
+    if evidence.get("artifact_version") != PERMIT_DECISION_ARTIFACT_VERSION:
+        return "artifact_version must be permit.decision.v1"
+    canonical_payload = evidence.get("canonical_payload")
+    if not isinstance(canonical_payload, dict):
+        return "canonical_payload must be an object"
+    required = set(_PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS)
+    if set(canonical_payload.keys()) != required:
+        missing = sorted(required - set(canonical_payload.keys()))
+        extra = sorted(set(canonical_payload.keys()) - required)
+        if missing:
+            return "canonical_payload missing signed field(s): " + ", ".join(missing)
+        return "canonical_payload has unsupported signed field(s): " + ", ".join(extra)
+    if canonical_payload.get("binding_version") != "v1":
+        return "binding_version must be v1"
+    if canonical_payload.get("decision") not in {"allow", "deny", "challenge"}:
+        return "decision must be allow, deny, or challenge"
+    for field in ("permit_id", "project_id", "issued_at", "binding_key_id"):
+        if not _is_nonempty_str(canonical_payload.get(field)):
+            return f"canonical_payload.{field} must be a non-empty string"
+    if not _is_nonempty_str(evidence.get("binding_canonical_hash")):
+        return "binding_canonical_hash must be a non-empty string"
+    signature = evidence.get("binding_signature")
+    if not _is_nonempty_str(signature) or not str(signature).startswith("ed25519:"):
+        return "binding_signature must be ed25519:<base64>"
+    if not _is_nonempty_str(evidence.get("binding_issued_at")):
+        return "binding_issued_at must be a non-empty string"
+    return None
+
+
+def _adjudicate_permit_decision_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    evidence, evidence_path = _find_permit_decision_evidence(export_document)
+    if evidence is None:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=None,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_DECISION_EVIDENCE_MISSING",
+            message="permit decision binding evidence is absent",
+            evidence=[evidence_path],
+        )
+
+    canonical_payload = evidence.get("canonical_payload")
+    permit_id = (
+        canonical_payload.get("permit_id")
+        if isinstance(canonical_payload, dict)
+        and isinstance(canonical_payload.get("permit_id"), str)
+        else None
+    )
+    schema_error = _permit_decision_schema_error(evidence)
+    if schema_error is not None:
+        verdict = (
+            "unverifiable_scope"
+            if "binding_version" in schema_error
+            else "insufficient_evidence"
+            if "missing" in schema_error or "must be a non-empty" in schema_error
+            else "disproved"
+        )
+        reason = (
+            "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION"
+            if "binding_version" in schema_error
+            else "PERMIT_DECISION_EVIDENCE_MISSING"
+            if verdict == "insufficient_evidence"
+            else "PERMIT_DECISION_SCHEMA_INVALID"
+        )
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict=verdict,
+            reason_code=reason,
+            message=schema_error,
+            evidence=[evidence_path],
+        )
+    assert isinstance(canonical_payload, dict)
+
+    canonical_hash = str(evidence["binding_canonical_hash"])
+    recomputed = _compute_canonical_binding_hash(canonical_payload)
+    if recomputed != canonical_hash:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+            message="binding_canonical_hash does not match the canonical payload",
+            evidence=[evidence_path, "canonical_payload"],
+        )
+
+    expected_decision = evidence.get("expected_decision")
+    if isinstance(expected_decision, str) and expected_decision != canonical_payload.get("decision"):
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+            message="canonical_payload.decision does not match the requested decision evidence",
+            evidence=[evidence_path, "canonical_payload.decision"],
+        )
+
+    signing_time = _parse_iso_or_none(evidence.get("binding_issued_at")) or _parse_iso_or_none(
+        canonical_payload.get("issued_at")
+    )
+    trusted_pub, _trust_source, err = _resolve_trust_key(
+        artifact_pub=None,
+        artifact_key_id=str(canonical_payload["binding_key_id"]),
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+        expected_public_key=None,
+        public_key_url=None,
+        key_manifest_source=key_manifest_source,
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        reason = (
+            "PERMIT_DECISION_UNTRUSTED_KEY"
+            if "not found" in str(err) or "contains no entry" in str(err)
+            else "PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE"
+        )
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code=reason,
+            message=str(err or "permit-binding key could not be resolved"),
+            evidence=[evidence_path, "trust_root"],
+        )
+    try:
+        actual_key_id = _binding_key_id_from_public_key(trusted_pub)
+    except Exception as exc:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE",
+            message=f"trusted permit-binding key is malformed: {exc}",
+            evidence=[evidence_path, "trust_root"],
+        )
+    if actual_key_id != canonical_payload["binding_key_id"]:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_DECISION_KEY_ID_MISMATCH",
+            message="canonical payload binding_key_id does not match the trusted public key",
+            evidence=[evidence_path, "trust_root"],
+        )
+    if not _verify_ed25519(
+        trusted_pub,
+        canonical_hash.encode("utf-8"),
+        str(evidence["binding_signature"]),
+    ):
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_DECISION_SIGNATURE_INVALID",
+            message="permit decision signature does not verify over the canonical hash",
+            evidence=[evidence_path, "binding_signature"],
+        )
+    return _permit_claim(
+        PERMIT_DECISION_CLAIM_NAME,
+        subject_type="permit_decision",
+        subject_id=permit_id,
+        verdict="supported",
+        reason_code="PERMIT_DECISION_SUPPORTED",
+        message="permit decision canonical hash and signature are supported",
+        evidence=[evidence_path, "trust_root"],
+    )
+
+
+def _find_revocation_evidence(
+    document: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str | None, str]:
+    top_level = document.get("revocation_event")
+    if isinstance(top_level, dict):
+        event = top_level.get("event")
+        if isinstance(event, dict):
+            canonical_hash = top_level.get("canonical_hash")
+            return (
+                event,
+                canonical_hash if isinstance(canonical_hash, str) else None,
+                "export.revocation_event.event",
+            )
+        return top_level, None, "export.revocation_event"
+    if document.get("event_type") == PERMIT_REVOKED_EVENT_TYPE and "signature" in document:
+        return document, None, "export"
+
+    for entry in _iter_export_entries(document):
+        payload = _entry_payload_any(entry)
+        nested = payload.get("revocation_event")
+        if isinstance(nested, dict):
+            canonical_hash = payload.get("revocation_canonical_hash")
+            return (
+                nested,
+                canonical_hash if isinstance(canonical_hash, str) else None,
+                "payload_json.revocation_event",
+            )
+        if (
+            entry.get("event_type") == PERMIT_REVOKED_EVENT_TYPE
+            and "signature" in payload
+        ):
+            return payload, None, "payload_json"
+        if entry.get("event_type") == PERMIT_REVOKED_EVENT_TYPE and "signature" in entry:
+            return entry, None, "chain_entry"
+    return None, None, "export.revocation_event"
+
+
+def _permit_revoked_schema_error(event: dict[str, Any]) -> tuple[str | None, str | None]:
+    keys = set(event.keys())
+    required = set(_PERMIT_REVOKED_REQUIRED_FIELDS)
+    missing = sorted(required - keys)
+    if missing:
+        return "PERMIT_REVOKED_EVIDENCE_MISSING", "revocation event missing required field(s): " + ", ".join(missing)
+    extra = sorted(keys - required)
+    if extra:
+        return "PERMIT_REVOKED_SCHEMA_INVALID", "revocation event has unsupported field(s): " + ", ".join(extra)
+    for field in ("permit_id", "project_id", "actor_id"):
+        if not isinstance(event.get(field), str) or not event[field]:
+            return "PERMIT_REVOKED_SCHEMA_INVALID", f"{field} must be a non-empty string"
+    if _actor_id_has_pii_shape(event.get("actor_id")):
+        return "PERMIT_REVOKED_ACTOR_PII_DETECTED", "actor_id appears to contain PII rather than an opaque UUID"
+    for field in ("permit_id", "project_id", "actor_id"):
+        if not _is_uuid_text(event.get(field)):
+            return "PERMIT_REVOKED_SCHEMA_INVALID", f"{field} must be a UUID string"
+    if event.get("actor_kind") not in _PERMIT_REVOKED_ACTOR_KINDS:
+        return "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED", "actor_kind is outside the v1 taxonomy"
+    reason_code = event.get("reason_code")
+    if not isinstance(reason_code, str) or not _REASON_CODE_RE.fullmatch(reason_code):
+        return "PERMIT_REVOKED_SCHEMA_INVALID", "reason_code must be a taxonomy code"
+    for field in ("revoked_at", "effective_at"):
+        if _parse_iso_or_none(event.get(field)) is None:
+            return "PERMIT_REVOKED_SCHEMA_INVALID", f"{field} must be an RFC 3339 timestamp"
+    if not _raw_ed25519_signature_b64(event.get("signature")):
+        return "PERMIT_REVOKED_SCHEMA_INVALID", "signature must be raw base64 Ed25519 bytes"
+    return None, None
+
+
+def _adjudicate_permit_revoked_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    event, declared_canonical_hash, evidence_path = _find_revocation_evidence(export_document)
+    if event is None:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=None,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_REVOKED_EVIDENCE_MISSING",
+            message="permit.revoked event evidence is absent",
+            evidence=[evidence_path],
+        )
+    permit_id = event.get("permit_id") if isinstance(event.get("permit_id"), str) else None
+    reason, schema_message = _permit_revoked_schema_error(event)
+    if reason is not None:
+        verdict = (
+            "insufficient_evidence"
+            if reason == "PERMIT_REVOKED_EVIDENCE_MISSING"
+            else "unverifiable_scope"
+            if reason == "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED"
+            else "disproved"
+        )
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict=verdict,
+            reason_code=reason,
+            message=schema_message or "revocation event schema validation failed",
+            evidence=[evidence_path],
+        )
+
+    declared_project_id = _string_field(export_document.get("project_id"), manifest.get("project_id"))
+    declared_permit_id = _string_field(export_document.get("permit_id"))
+    if declared_project_id is not None and event["project_id"] != declared_project_id:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVOKED_PROJECT_ID_MISMATCH",
+            message="revocation project_id does not match the declared project scope",
+            evidence=[evidence_path, "project_id"],
+        )
+    if declared_permit_id is not None and event["permit_id"] != declared_permit_id:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVOKED_PERMIT_ID_MISMATCH",
+            message="revocation permit_id does not match the declared permit scope",
+            evidence=[evidence_path, "permit_id"],
+        )
+    if event["effective_at"] != event["revoked_at"]:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
+            message="v1 revocation requires effective_at to equal revoked_at",
+            evidence=[evidence_path, "effective_at", "revoked_at"],
+        )
+
+    signed_payload = {key: event[key] for key in _PERMIT_REVOKED_REQUIRED_FIELDS if key != "signature"}
+    canonical_hash = _compute_canonical_binding_hash(signed_payload)
+    if declared_canonical_hash is not None and declared_canonical_hash != canonical_hash:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVOKED_SIGNATURE_INVALID",
+            message="declared revocation canonical hash does not match the signed payload",
+            evidence=[evidence_path, "revocation_canonical_hash"],
+        )
+
+    candidates, key_error = _permit_binding_key_candidates(
+        key_manifest_source=key_manifest_source,
+        signing_time=_parse_iso_or_none(event["revoked_at"]),
+    )
+    if key_error is not None:
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_REVOKED_TRUST_ROOT_UNRESOLVABLE",
+            message=key_error,
+            evidence=[evidence_path, "trust_root"],
+        )
+    signature = str(event["signature"])
+    if not any(
+        _verify_ed25519(
+            str(candidate["public_key"]),
+            canonical_hash.encode("utf-8"),
+            signature,
+        )
+        for candidate in candidates
+    ):
+        return _permit_claim(
+            PERMIT_REVOKED_CLAIM_NAME,
+            subject_type="permit_revocation",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVOKED_SIGNATURE_INVALID",
+            message="permit.revoked signature does not verify under an active permit-binding key",
+            evidence=[evidence_path, "signature", "trust_root"],
+        )
+
+    return _permit_claim(
+        PERMIT_REVOKED_CLAIM_NAME,
+        subject_type="permit_revocation",
+        subject_id=permit_id,
+        verdict="supported",
+        reason_code="PERMIT_REVOKED_SUPPORTED",
+        message="permit.revoked event schema, identity binding, temporal rule, and signature are supported",
+        evidence=[evidence_path, "trust_root"],
+    )
+
+
+def _revocation_event_from_supported_claim(
+    export_document: dict[str, Any],
+) -> dict[str, Any] | None:
+    event, _declared_hash, _path = _find_revocation_evidence(export_document)
+    return event
+
+
+def _absence_claim(
+    *,
+    segment_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _permit_claim(
+        PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
+        subject_type="permit_dispatch_absence_after_revocation",
+        subject_id=segment_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["export.scope_faithfulness", "checkpoint_scope_state"],
+    )
+
+
+def _absence_predicate_out_of_grammar(predicate: Any) -> bool:
+    if not isinstance(predicate, dict):
+        return True
+    if set(predicate.keys()) != {"version", "operator", "equals", "ranges"}:
+        return True
+    if predicate.get("version") != SCOPE_PREDICATE_VERSION or predicate.get("operator") != "and":
+        return True
+    equals = predicate.get("equals")
+    ranges = predicate.get("ranges")
+    if not isinstance(equals, dict) or not isinstance(ranges, dict):
+        return True
+    if set(equals.keys()) != {"project_id", "permit_id", "event_type"}:
+        return True
+    if set(ranges.keys()) != {"occurred_at"}:
+        return True
+    occurred = ranges.get("occurred_at")
+    return not (
+        isinstance(occurred, dict)
+        and set(occurred.keys()) == {"gte", "lt"}
+        and isinstance(occurred.get("gte"), str)
+        and isinstance(occurred.get("lt"), str)
+    )
+
+
+def _absence_predicate_matches_revocation(
+    *,
+    predicate: dict[str, Any],
+    revocation_event: dict[str, Any],
+    checkpoint: dict[str, Any],
+) -> bool:
+    equals = predicate["equals"]
+    occurred = predicate["ranges"]["occurred_at"]
+    return (
+        equals.get("project_id") == revocation_event.get("project_id")
+        and equals.get("permit_id") == revocation_event.get("permit_id")
+        and equals.get("event_type") == DISPATCH_EGRESS_BOUND_EVENT_TYPE
+        and occurred.get("gte") == revocation_event.get("effective_at")
+        and occurred.get("lt") == checkpoint.get("computed_at")
+    )
+
+
+def _adjudicate_permit_dispatch_absence_after_revocation_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    key_manifest_source: str | None,
+    semantics_dispatch: SemanticsDispatch | None = None,
+    explicit_sidecar: str | None = None,
+    explicit_checkpoint: str | None = None,
+    scope_claims: list[ClaimVerdict] | None = None,
+    revocation_claim: ClaimVerdict | None = None,
+) -> ClaimVerdict:
+    if revocation_claim is None:
+        revocation_claim = _adjudicate_permit_revoked_v1(
+            export_document=export_document,
+            manifest=manifest,
+            key_manifest_source=key_manifest_source,
+        )
+    if revocation_claim.aggregate_verdict != verdict_value("supported"):
+        reason = revocation_claim.reason_code or "PERMIT_REVOKED_EVIDENCE_MISSING"
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code=reason,
+            message="permit.revoked.v1 evidence is required before absence can be adjudicated",
+            evidence=["permit.revoked.v1"],
+        )
+    revocation_event = _revocation_event_from_supported_claim(export_document)
+    if revocation_event is None:
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_REVOKED_EVIDENCE_MISSING",
+            message="supported revocation claim did not expose revocation event evidence",
+            evidence=["permit.revoked.v1"],
+        )
+
+    checkpoint = _resolve_scope_checkpoint(
+        manifest_path=manifest_path,
+        explicit_checkpoint=explicit_checkpoint,
+    )
+    if checkpoint is None:
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING",
+            message="referenced checkpoint artifact is absent",
+            evidence=["checkpoint"],
+        )
+    if scope_claims is None:
+        scope_claims = _adjudicate_export_scope_faithfulness_v1(
+            export_data=_canonical_json_bytes(export_document),
+            manifest=manifest,
+            manifest_path=manifest_path,
+            key_manifest_source=key_manifest_source,
+            semantics_dispatch=semantics_dispatch,
+            explicit_sidecar=explicit_sidecar,
+            explicit_checkpoint=explicit_checkpoint,
+        )
+    blocking_scope = [
+        claim
+        for claim in scope_claims
+        if claim.name in {"checkpoint.scope_state.v1", "export.scope_faithfulness.v1"}
+        and claim.aggregate_verdict != verdict_value("supported")
+        and claim.reason_code != "EXPORT_PROOF_BRIDGE_MISCLASSIFIED"
+    ]
+    if blocking_scope:
+        first = blocking_scope[0]
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code=first.reason_code or "EXPORT_SCOPE_DECLARATION_MISSING",
+            message=first.message or "scope dependency is not supported",
+            evidence=[first.name],
+        )
+
+    block = export_document.get("scope_faithfulness")
+    segments = block.get("segments") if isinstance(block, dict) else None
+    if not isinstance(segments, list):
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_DECLARATION_MISSING",
+            message="absence claim requires a scope_faithfulness segment",
+            evidence=["export.scope_faithfulness"],
+        )
+
+    matching_segment: dict[str, Any] | None = None
+    for segment in segments:
+        if not isinstance(segment, dict):
+            continue
+        declared_scope = segment.get("declared_scope")
+        predicate = declared_scope.get("predicate") if isinstance(declared_scope, dict) else None
+        if _absence_predicate_out_of_grammar(predicate):
+            return _absence_claim(
+                segment_id=segment.get("segment_id") if isinstance(segment.get("segment_id"), str) else None,
+                verdict="unverifiable_scope",
+                reason_code="EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
+                message="absence predicate must use v1 equality on project_id, permit_id, event_type and a bounded occurred_at range",
+                evidence=["export.scope_faithfulness.declared_scope.predicate"],
+            )
+        assert isinstance(predicate, dict)
+        if _absence_predicate_matches_revocation(
+            predicate=predicate,
+            revocation_event=revocation_event,
+            checkpoint=checkpoint,
+        ):
+            matching_segment = segment
+            break
+
+    if matching_segment is None:
+        return _absence_claim(
+            segment_id=None,
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_COMMITMENT_MISSING",
+            message="no scope-faithfulness segment declares the required post-revocation dispatch predicate",
+            evidence=["export.scope_faithfulness.segments"],
+        )
+
+    segment_id = (
+        matching_segment.get("segment_id")
+        if isinstance(matching_segment.get("segment_id"), str)
+        else None
+    )
+    reference = matching_segment.get("scope_state_reference")
+    if not isinstance(reference, dict):
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_SCOPE_STATE_MISSING",
+            message="absence segment has no scope-state reference",
+            evidence=["export.scope_faithfulness.scope_state_reference"],
+        )
+    sidecar, _sidecar_bytes = _resolve_scope_sidecar(
+        manifest_path=manifest_path,
+        reference=reference,
+        explicit_sidecar=explicit_sidecar,
+    )
+    if sidecar is None:
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_SCOPE_STATE_MISSING",
+            message="absence segment references an absent scope-state sidecar",
+            evidence=["checkpoint_scope_state"],
+        )
+
+    predicate = matching_segment["declared_scope"]["predicate"]
+    predicate_value_hash = _predicate_hash(predicate)
+    commitments = sidecar.get("scope_commitments")
+    commitment = next(
+        (
+            item
+            for item in commitments
+            if isinstance(item, dict)
+            and item.get("predicate_value_hash") == predicate_value_hash
+        ),
+        None,
+    ) if isinstance(commitments, list) else None
+    if commitment is None:
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_COMMITMENT_MISSING",
+            message="sidecar has no commitment for the absence predicate",
+            evidence=["checkpoint_scope_state.scope_commitments"],
+        )
+
+    evidence = matching_segment.get("chain_evidence")
+    disclosures = evidence.get("disclosure_records") if isinstance(evidence, dict) else []
+    bridges = evidence.get("proof_bridge_records") if isinstance(evidence, dict) else []
+    if not isinstance(disclosures, list) or not isinstance(bridges, list):
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
+            message="absence segment chain_evidence is malformed",
+            evidence=["export.scope_faithfulness.chain_evidence"],
+        )
+    for record in disclosures:
+        if isinstance(record, dict) and _scope_predicate_matches(record, predicate):
+            return _absence_claim(
+                segment_id=segment_id,
+                verdict="disproved",
+                reason_code="EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
+                message="a disclosed dispatch.egress_bound record is at or after revocation effective_at",
+                evidence=["export.scope_faithfulness.chain_evidence.disclosure_records"],
+            )
+    for record in bridges:
+        if isinstance(record, dict) and _scope_predicate_matches(record, predicate):
+            return _absence_claim(
+                segment_id=segment_id,
+                verdict="disproved",
+                reason_code="EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE",
+                message="a bridge or proof record satisfies the post-revocation dispatch predicate",
+                evidence=["export.scope_faithfulness.chain_evidence.proof_bridge_records"],
+            )
+
+    matching_count = commitment.get("matching_count")
+    if not _is_nonbool_int(matching_count):
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="insufficient_evidence",
+            reason_code="EXPORT_SCOPE_COMMITMENT_MISSING",
+            message="sidecar matching_count is missing or malformed for the absence predicate",
+            evidence=["checkpoint_scope_state.scope_commitments.matching_count"],
+        )
+    if int(matching_count) > 0:
+        return _absence_claim(
+            segment_id=segment_id,
+            verdict="disproved",
+            reason_code="EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
+            message="sidecar matching_count reports one or more post-revocation dispatch records",
+            evidence=["checkpoint_scope_state.scope_commitments.matching_count"],
+        )
+
+    return _absence_claim(
+        segment_id=segment_id,
+        verdict="supported",
+        reason_code="PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_SUPPORTED",
+        message="scope-faithful absence adjudication found no matching post-revocation dispatch initiation",
+        evidence=["permit.revoked.v1", "checkpoint.scope_state.v1", "export.scope_faithfulness.v1"],
+    )
 
 
 def _entry_permit_id(context: dict[str, Any]) -> str | None:
@@ -6106,6 +6964,25 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         claims.append(scope_claim)
 
     requested = semantics.requested_names()
+    permit_decision_requested = (
+        semantics.mode == "pinned" and PERMIT_DECISION_CLAIM_NAME in requested
+    )
+    permit_revoked_requested = (
+        semantics.mode == "pinned" and PERMIT_REVOKED_CLAIM_NAME in requested
+    )
+    permit_absence_requested = (
+        semantics.mode == "pinned" and PERMIT_DISPATCH_ABSENCE_CLAIM_NAME in requested
+    )
+    export_document_for_claims: dict[str, Any] | None = None
+    if permit_decision_requested or permit_revoked_requested or permit_absence_requested:
+        try:
+            loaded_export_document = _load_export_json_document(export_data)
+        except Exception as exc:
+            loaded_export_document = None
+            diagnostics.append(f"permit claim evidence is not JSON: {exc}")
+        if isinstance(loaded_export_document, dict):
+            export_document_for_claims = loaded_export_document
+
     should_verify_scope_faithfulness = _scope_export_declaration_present(export_data) or (
         semantics.mode == "pinned"
         and bool(
@@ -6115,7 +6992,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 "export.scope_faithfulness.v1",
             }
         )
-    )
+    ) or permit_absence_requested
+    scope_claims: list[ClaimVerdict] = []
     if should_verify_scope_faithfulness:
         scope_claims = _adjudicate_export_scope_faithfulness_v1(
             export_data=export_data,
@@ -6131,6 +7009,109 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             claim
             for claim in scope_claims
             if claim.aggregate_verdict != verdict_value("supported")
+        ]
+        if unsupported_scope and not permit_absence_requested:
+            first = unsupported_scope[0]
+            return _export_report(
+                ok=False,
+                exit_code=1,
+                artifact=artifact,
+                claims=claims,
+                semantics=semantics,
+                error=first.message or first.reason_code,
+                diagnostics=diagnostics,
+            )
+
+    permit_claims: list[ClaimVerdict] = []
+    revocation_claim: ClaimVerdict | None = None
+    if permit_decision_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_claim(
+                    PERMIT_DECISION_CLAIM_NAME,
+                    subject_type="permit_decision",
+                    subject_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_DECISION_EVIDENCE_MISSING",
+                    message="permit decision claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_decision_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if permit_revoked_requested or permit_absence_requested:
+        if export_document_for_claims is None:
+            revocation_claim = _permit_claim(
+                PERMIT_REVOKED_CLAIM_NAME,
+                subject_type="permit_revocation",
+                subject_id=None,
+                verdict="insufficient_evidence",
+                reason_code="PERMIT_REVOKED_EVIDENCE_MISSING",
+                message="permit revocation claim requires a JSON export payload",
+                evidence=["export"],
+            )
+        else:
+            revocation_claim = _adjudicate_permit_revoked_v1(
+                export_document=export_document_for_claims,
+                manifest=manifest,
+                key_manifest_source=_key_manifest_source_for_args(args),
+            )
+        permit_claims.append(revocation_claim)
+    if permit_absence_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _absence_claim(
+                    segment_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="EXPORT_SCOPE_DECLARATION_MISSING",
+                    message="absence claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_dispatch_absence_after_revocation_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    manifest_path=manifest_path,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                    semantics_dispatch=semantics_dispatch,
+                    explicit_sidecar=getattr(args, "sidecar", None),
+                    explicit_checkpoint=getattr(args, "checkpoint", None),
+                    scope_claims=scope_claims,
+                    revocation_claim=revocation_claim,
+                )
+            )
+    claims.extend(permit_claims)
+    unsupported_permit_claims = [
+        claim
+        for claim in permit_claims
+        if claim.name in requested
+        and claim.aggregate_verdict != verdict_value("supported")
+    ]
+    if unsupported_permit_claims:
+        first = unsupported_permit_claims[0]
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            semantics=semantics,
+            error=first.message or first.reason_code,
+            diagnostics=diagnostics,
+        )
+
+    if permit_absence_requested:
+        unsupported_scope = [
+            claim
+            for claim in scope_claims
+            if claim.name in requested
+            and claim.aggregate_verdict != verdict_value("supported")
         ]
         if unsupported_scope:
             first = unsupported_scope[0]

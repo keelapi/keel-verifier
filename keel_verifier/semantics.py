@@ -95,11 +95,20 @@ CHECKPOINT_TSA_IMPRINT_HASH = (
 SCOPE_STATE_MERKLE_HASH = (
     "sha256:0c79a9ae2e7f4b6e4f8cb6b2d619748731fdee7d5e36a895aff08fecba2ae5b8"
 )
+SCOPE_STATE_MERKLE_SOURCE_HASH = (
+    "sha256:7fc40790b6d8552b8bff63bbfa69cdd53f744a98be97c217e832ea3299e7b528"
+)
 SCOPE_STATE_SIDECAR_FORMAT_HASH = (
     "sha256:64c3329255bd0e1c4df5c902362d04b3b0fb5f767254e03e08708f8fd94b6c36"
 )
+SCOPE_STATE_SIDECAR_FORMAT_SOURCE_HASH = (
+    "sha256:f54ac8a8a0c9fb26ee5870e9aded865376af9dde4899026542e97df5d9f454fd"
+)
 EXPORT_SCOPE_FAITHFULNESS_HASH = (
     "sha256:75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1"
+)
+EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
+    "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = (
     "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c"
@@ -1271,13 +1280,28 @@ def make_permanent_allowlist(
             "scope_state_merkle",
         ),
         SemanticImplementation(
+            SCOPE_STATE_MERKLE_ID,
+            SCOPE_STATE_MERKLE_SOURCE_HASH,
+            "scope_state_merkle",
+        ),
+        SemanticImplementation(
             SCOPE_STATE_SIDECAR_FORMAT_ID,
             SCOPE_STATE_SIDECAR_FORMAT_HASH,
             "scope_state_sidecar_format",
         ),
         SemanticImplementation(
+            SCOPE_STATE_SIDECAR_FORMAT_ID,
+            SCOPE_STATE_SIDECAR_FORMAT_SOURCE_HASH,
+            "scope_state_sidecar_format",
+        ),
+        SemanticImplementation(
             EXPORT_SCOPE_FAITHFULNESS_ID,
             EXPORT_SCOPE_FAITHFULNESS_HASH,
+            "export_scope_faithfulness",
+        ),
+        SemanticImplementation(
+            EXPORT_SCOPE_FAITHFULNESS_ID,
+            EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH,
             "export_scope_faithfulness",
         ),
         SemanticImplementation(
