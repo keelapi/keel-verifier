@@ -1,0 +1,61 @@
+{
+  "id": "keel.permit.decision.v1",
+  "version": "v1",
+  "kind": "permit_decision_signature_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.decision.v1",
+    "artifact_type": "permit_decision_binding",
+    "artifact_version": "permit.decision.v1",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "binding_version": "v1",
+    "scope": "issuance_only",
+    "issuer_key_purpose": "permit_binding_signing",
+    "canonical_payload": {
+      "source": "The issuance-time v1 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
+      "required_fields": [
+        "binding_version",
+        "permit_id",
+        "project_id",
+        "parent_permit_id",
+        "decision",
+        "reason",
+        "provider",
+        "model",
+        "operation",
+        "action_name",
+        "request_fingerprint",
+        "constraints",
+        "routing",
+        "policy_id",
+        "policy_version",
+        "policy_snapshot_hash",
+        "issued_at",
+        "expires_at",
+        "is_dry_run",
+        "binding_key_id",
+        "final_request_hash"
+      ],
+      "decision_rule": "canonical_payload.decision is the only decision adjudicated by this claim and must be one of allow, deny, or challenge after issuer v1 normalization.",
+      "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project.",
+      "row_state_rule": "Verifiers MUST NOT adjudicate a later mutable permit row as the issuance decision unless the pack supplies evidence that the reconstructed payload is the original issuance-time signed payload."
+    },
+    "hash_rule": {
+      "canonical_hash": "lowercase hex SHA-256 of canonical_json(canonical_payload)",
+      "signature_message": "UTF-8 bytes of binding_canonical_hash"
+    },
+    "signature": {
+      "algorithm": "Ed25519",
+      "signature_field": "binding_signature",
+      "signature_encoding": "ed25519:<base64>",
+      "key_id_field": "binding_key_id",
+      "key_resolution": "Resolve a permit_binding_signing key from the supplied trust root at binding_issued_at or issued_at; the key id must match the signed payload binding_key_id."
+    },
+    "verdicts": {
+      "supported": "canonical payload is present or reconstructable as issuance-time evidence, binding_canonical_hash matches, signature verifies under a trusted permit-binding key, and decision matches the claim request.",
+      "disproved": "canonical bytes or decision disagree with binding_canonical_hash, or a supplied signature fails under the resolved trusted key.",
+      "insufficient_evidence": "canonical payload fields, binding_canonical_hash, binding_signature, signing time, or trust-root evidence are missing.",
+      "unverifiable_scope": "binding version, canonicalization profile, or trust-root profile is unsupported."
+    }
+  }
+}

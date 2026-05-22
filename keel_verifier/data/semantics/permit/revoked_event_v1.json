@@ -1,0 +1,46 @@
+{
+  "id": "keel.permit.revoked_event.v1",
+  "version": "v1",
+  "kind": "permit_revoked_event_signature_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.revoked.v1",
+    "artifact_type": "permit.revoked",
+    "artifact_version": "permit.revoked.v1",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "issuer_key_purpose": "permit_binding_signing",
+    "cutover_rule": "This claim applies only to new post-cutover permit.revoked events. Pre-cutover revoked status is a legacy revocation status snapshot and is not revocation evidence for this claim.",
+    "canonical_payload": {
+      "required_fields": [
+        "permit_id",
+        "project_id",
+        "actor_id",
+        "actor_kind",
+        "reason_code",
+        "revoked_at",
+        "effective_at"
+      ],
+      "signature_exclusion": "The signature field is excluded before canonicalization.",
+      "identity_binding": "permit_id and project_id are both signed to prevent cross-project replay.",
+      "actor_rule": "actor_id is an opaque UUID. actor_kind is one of user, service_account, system, or api_key. The payload carries no email, name, or display field.",
+      "reason_rule": "reason_code is a taxonomy code, not free text.",
+      "temporal_rule": "revoked_at and effective_at are RFC 3339 timestamps. In v1, effective_at MUST equal revoked_at."
+    },
+    "hash_rule": {
+      "canonical_hash": "lowercase hex SHA-256 of canonical_json(payload_without_signature)",
+      "signature_message": "UTF-8 bytes of canonical_hash"
+    },
+    "signature": {
+      "algorithm": "Ed25519",
+      "signature_field": "signature",
+      "signature_encoding": "base64",
+      "key_resolution": "Verify against a permit_binding_signing key from the supplied trust root active at revoked_at. If multiple active keys are supplied and no key id is carried by the event payload, any active trusted key may support the signature."
+    },
+    "verdicts": {
+      "supported": "strict event payload is present, effective_at equals revoked_at, permit_id and project_id match the requested scope, and signature verifies under a trusted permit-binding key.",
+      "disproved": "signature verification fails, project_id does not match the requested scope, effective_at differs from revoked_at, or actor identity violates the opaque UUID rule.",
+      "insufficient_evidence": "required payload, signature, trust-root evidence, or referenced permit/project identity is missing.",
+      "unverifiable_scope": "canonicalization profile, trust-root profile, or actor_kind taxonomy is unsupported."
+    }
+  }
+}

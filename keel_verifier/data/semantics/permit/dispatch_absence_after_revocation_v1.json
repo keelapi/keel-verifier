@@ -1,0 +1,61 @@
+{
+  "id": "keel.permit.dispatch_absence_after_revocation.v1",
+  "version": "v1",
+  "kind": "permit_dispatch_absence_after_revocation_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.dispatch_absence_after_revocation.v1",
+    "artifact_type": "permit.dispatch_absence_after_revocation",
+    "artifact_version": "permit.dispatch_absence_after_revocation.v1",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "doctrine": "scope-faithful absence adjudication",
+    "trust_model": "The verifier's trust model is falsifiability-oriented, not omniscience-oriented: an auditor with chain access can falsify a dishonest sidecar by independently re-walking the chain and recomputing the matching set against the declared predicate.",
+    "preconditions": [
+      "permit.revoked.v1 evidence is supported for the same permit_id and project_id.",
+      "checkpoint.scope_state.v1 evidence is supported for the declared chain_scope and checkpoint boundary.",
+      "export.scope_faithfulness.v1 evidence is supported for the declared absence segment."
+    ],
+    "primary_predicate": {
+      "grammar_version": "keel.scope_predicate.v1",
+      "operator": "and",
+      "required_equals": {
+        "project_id": "<revocation.project_id>",
+        "permit_id": "<revocation.permit_id>",
+        "event_type": "dispatch.egress_bound"
+      },
+      "required_ranges": {
+        "occurred_at": {
+          "gte": "<revocation.effective_at>",
+          "lt": "<checkpoint_boundary>"
+        }
+      },
+      "range_rule": "Both occurred_at bounds are required. Open-ended ranges are not valid in v1.",
+      "grammar_rule": "v1 uses AND-of-equality plus bounded ranges only. IN, OR, and multi-event-type segments are out of grammar."
+    },
+    "event_scope": {
+      "primary_disproof_event_type": "dispatch.egress_bound",
+      "corroborating_event_types": [
+        "execution.completed",
+        "provider.response.received",
+        "client.response.delivered"
+      ],
+      "corroborating_rule": "Downstream completion events can corroborate timeline analysis but are not primary disproof because post-revocation completion can be legitimate for a pre-revocation dispatch."
+    },
+    "sidecar_commitment": {
+      "commitment_profile": "keel.scope_state.merkle.v1",
+      "matching_count_rule": "supported requires the signed commitment for the declared predicate to have matching_count equal to zero and no disclosure records satisfying the predicate.",
+      "bridge_record_rule": "If a bridge, proof, or continuity record satisfies the declared predicate, the verifier returns disproved or EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE; it does not return unverifiable_scope."
+    },
+    "reserved_future_namespace": {
+      "name": "non_membership_profile",
+      "status": "reserved",
+      "rule": "Reserved for future SMT, NMT, or accumulator-backed native non-membership semantics. It is not implemented by v1 and MUST NOT be evaluated as current Step 4 behavior."
+    },
+    "verdicts": {
+      "supported": "scope is valid, evidence dependencies are supported, the declared predicate is in grammar, and matching_count is zero.",
+      "disproved": "a matching post-revocation dispatch.egress_bound record exists in the declared scope, a predicate-satisfying bridge/proof record is present, or the signed commitment contradicts disclosed evidence.",
+      "insufficient_evidence": "required revocation, checkpoint, sidecar, export, trust-root, or pinned-semantic evidence is missing.",
+      "unverifiable_scope": "scope predicate, grammar version, range shape, or commitment profile is unsupported."
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/schemas/permit-revoked-event.schema.json",
+  "title": "Permit Revoked Event v1",
+  "description": "Strict payload shape for a post-cutover signed permit.revoked event. The normative v1 rule effective_at == revoked_at is specified in spec/permit-revoked-event-v1.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "permit_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the revoked permit."
+    },
+    "project_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the project that owns the revoked permit. Signed to prevent cross-project replay."
+    },
+    "actor_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Opaque actor UUID. Email, name, display labels, and customer-controlled identifiers are not valid actor_id values."
+    },
+    "actor_kind": {
+      "type": "string",
+      "enum": [
+        "user",
+        "service_account",
+        "system",
+        "api_key"
+      ],
+      "description": "Opaque actor class for the revocation actor."
+    },
+    "reason_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$",
+      "description": "Machine-readable taxonomy code. Free-text reasons are not part of the signed v1 payload."
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Governance event time for the revocation."
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Effective revocation time. v1 requires this value to equal revoked_at."
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9+/]{86}==$",
+      "description": "Base64 Ed25519 signature over the revocation event canonical hash using a permit-binding key."
+    }
+  },
+  "required": [
+    "permit_id",
+    "project_id",
+    "actor_id",
+    "actor_kind",
+    "reason_code",
+    "revoked_at",
+    "effective_at",
+    "signature"
+  ]
+}
