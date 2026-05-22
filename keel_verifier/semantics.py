@@ -35,16 +35,26 @@ CHECKPOINT_TSA_IMPRINT_ID = "keel.checkpoint.tsa_imprint.v1"
 SCOPE_STATE_MERKLE_ID = "keel.scope_state.merkle.v1"
 SCOPE_STATE_SIDECAR_FORMAT_ID = "keel.scope_state.sidecar_format.v1"
 EXPORT_SCOPE_FAITHFULNESS_ID = "keel.export.scope_faithfulness.v1"
+PERMIT_DECISION_ID = "keel.permit.decision.v1"
+PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
+PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
+    "keel.permit.dispatch_absence_after_revocation.v1"
+)
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
     "keel.governance_event.integrity_digest.v1"
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235"
+    "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8"
+    "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235"
+)
+CLAIM_REGISTRY_HISTORICAL_HASHES = (
+    CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
+    "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b",
 )
 EXPORT_MANIFEST_INTEGRITY_HASH = (
     "sha256:d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76"
@@ -90,6 +100,15 @@ SCOPE_STATE_SIDECAR_FORMAT_HASH = (
 )
 EXPORT_SCOPE_FAITHFULNESS_HASH = (
     "sha256:75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1"
+)
+PERMIT_DECISION_HASH = (
+    "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c"
+)
+PERMIT_REVOKED_EVENT_HASH = (
+    "sha256:5b7416b11a4a94a2f9f876b2337e118267ab5eb928165cc15f01abaff8639229"
+)
+PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH = (
+    "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4"
 )
 LEGACY_PROFILE_HASH = (
     "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
@@ -162,6 +181,11 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
         CHECKPOINT_COMPOSITE_HASH_ID,
         CHECKPOINT_SIGNATURE_ID,
     ),
+    "permit.decision.v1": (PERMIT_DECISION_ID,),
+    "permit.revoked.v1": (PERMIT_REVOKED_EVENT_ID,),
+    "permit.dispatch_absence_after_revocation.v1": (
+        PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+    ),
     "workflow_evidence.sibling_integrity.v1": (
         WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,
     ),
@@ -191,6 +215,11 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     SCOPE_STATE_MERKLE_ID: "semantics/scope_state/merkle_v1.json",
     SCOPE_STATE_SIDECAR_FORMAT_ID: "semantics/scope_state/sidecar_format_v1.json",
     EXPORT_SCOPE_FAITHFULNESS_ID: "semantics/export/scope_faithfulness_v1.json",
+    PERMIT_DECISION_ID: "semantics/permit/decision_v1.json",
+    PERMIT_REVOKED_EVENT_ID: "semantics/permit/revoked_event_v1.json",
+    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
+        "semantics/permit/dispatch_absence_after_revocation_v1.json"
+    ),
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
 }
@@ -213,6 +242,11 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     SCOPE_STATE_MERKLE_ID: SCOPE_STATE_MERKLE_HASH,
     SCOPE_STATE_SIDECAR_FORMAT_ID: SCOPE_STATE_SIDECAR_FORMAT_HASH,
     EXPORT_SCOPE_FAITHFULNESS_ID: EXPORT_SCOPE_FAITHFULNESS_HASH,
+    PERMIT_DECISION_ID: PERMIT_DECISION_HASH,
+    PERMIT_REVOKED_EVENT_ID: PERMIT_REVOKED_EVENT_HASH,
+    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
+        PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH
+    ),
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
 }
@@ -405,14 +439,26 @@ def _candidate_local_paths(relative_path: str, *, pack_root: Path | None) -> lis
     return paths
 
 
-def _read_bundled_claim_registry() -> bytes | None:
-    try:
-        bundled = resources.files("keel_verifier").joinpath(
-            "data/claim_registry_v0.json"
-        )
-        return bundled.read_bytes()
-    except Exception:
-        return None
+def _read_bundled_claim_registry(declared_hash: str | None = None) -> bytes | None:
+    candidates: list[str] = []
+    if isinstance(declared_hash, str) and declared_hash.startswith("sha256:"):
+        digest = declared_hash.removeprefix("sha256:")
+        candidates.append(f"data/claim_registry/historical/v0-sha256-{digest}.json")
+    candidates.extend(
+        [
+            "data/claim_registry_v0.json",
+            "data/claim_registry/v0.json",
+        ]
+    )
+    for relative_path in candidates:
+        try:
+            bundled = resources.files("keel_verifier").joinpath(relative_path)
+            raw = bundled.read_bytes()
+        except Exception:
+            continue
+        if declared_hash is None or _content_hash(raw) == declared_hash:
+            return raw
+    return None
 
 
 def _read_bundled_legacy_profile() -> bytes | None:
@@ -449,18 +495,31 @@ def _resolve_artifact_bytes(
         except Exception as exc:
             return None, None, f"invalid content_b64 for {ref.get('id')!r}: {exc}"
 
+    declared_hash = _reference_hash(ref)
     if isinstance(path_value, str) and path_value:
         errors: list[str] = []
+        registry_mismatch: bytes | None = None
+        registry_mismatch_source: str | None = None
         for path in _candidate_local_paths(path_value, pack_root=pack_root):
             try:
                 if path.exists():
-                    return path.read_bytes(), str(path), None
+                    raw = path.read_bytes()
+                    if ref.get("id") == CLAIM_REGISTRY_ID:
+                        if declared_hash is None or _content_hash(raw) == declared_hash:
+                            return raw, str(path), None
+                        if registry_mismatch is None:
+                            registry_mismatch = raw
+                            registry_mismatch_source = str(path)
+                        continue
+                    return raw, str(path), None
             except OSError as exc:
                 errors.append(f"{path}: {exc}")
         if ref.get("id") == CLAIM_REGISTRY_ID:
-            bundled = _read_bundled_claim_registry()
+            bundled = _read_bundled_claim_registry(declared_hash)
             if bundled is not None:
-                return bundled, "bundled keel_verifier/data/claim_registry_v0.json", None
+                return bundled, "bundled keel_verifier/data/claim_registry", None
+            if registry_mismatch is not None and registry_mismatch_source is not None:
+                return registry_mismatch, registry_mismatch_source, None
         if ref.get("id") == LEGACY_PROFILE_ID:
             bundled = _read_bundled_legacy_profile()
             if bundled is not None:
@@ -1127,10 +1186,13 @@ def make_permanent_allowlist(
             CLAIM_REGISTRY_HASH,
             "claim_registry",
         ),
-        SemanticImplementation(
-            CLAIM_REGISTRY_ID,
-            CLAIM_REGISTRY_PREVIOUS_HASH,
-            "claim_registry",
+        *(
+            SemanticImplementation(
+                CLAIM_REGISTRY_ID,
+                historical_hash,
+                "claim_registry",
+            )
+            for historical_hash in CLAIM_REGISTRY_HISTORICAL_HASHES
         ),
         SemanticImplementation(
             EXPORT_MANIFEST_INTEGRITY_ID,
@@ -1217,6 +1279,21 @@ def make_permanent_allowlist(
             EXPORT_SCOPE_FAITHFULNESS_ID,
             EXPORT_SCOPE_FAITHFULNESS_HASH,
             "export_scope_faithfulness",
+        ),
+        SemanticImplementation(
+            PERMIT_DECISION_ID,
+            PERMIT_DECISION_HASH,
+            "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_REVOKED_EVENT_ID,
+            PERMIT_REVOKED_EVENT_HASH,
+            "permit_revoked_event",
+        ),
+        SemanticImplementation(
+            PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+            PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH,
+            "permit_dispatch_absence_after_revocation",
         ),
         SemanticImplementation(
             LEGACY_PROFILE_ID,
