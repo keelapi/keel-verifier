@@ -32,6 +32,29 @@ def test_verifier_version_matches_package() -> None:
     assert inv["verifier"]["version"] == keel_verifier.__version__
 
 
+def test_step4_capability_versions() -> None:
+    inv = _load_inventory()
+    assert inv["verifier"]["version"] == "2.3.0"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.0"
+
+
+def test_step4_claims_and_failure_codes_advertised() -> None:
+    inv = _load_inventory()
+    implemented = _claim_names_with_status(inv, "implemented")
+    assert {
+        "permit.decision.v1",
+        "permit.revoked.v1",
+        "permit.dispatch_absence_after_revocation.v1",
+    } <= implemented
+    codes = set(inv["failure_codes"]["implemented_subset"])
+    assert {
+        "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+        "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
+        "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
+        "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE",
+    } <= codes
+
+
 def test_every_code_claim_is_implemented_in_inventory() -> None:
     """Every CLAIM_SEMANTICS key must be marked 'implemented' in the inventory."""
     inv = _load_inventory()
