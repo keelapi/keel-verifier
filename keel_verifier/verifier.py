@@ -2886,6 +2886,14 @@ def _absence_bridge_record_matches_predicate(
     return _scope_predicate_matches(record, predicate)
 
 
+def _pinned_claim_requested(
+    semantics: ResolvedSemantics,
+    requested: set[str],
+    claim_name: str,
+) -> bool:
+    return semantics.mode == "pinned" and claim_name in requested
+
+
 def _adjudicate_permit_dispatch_absence_after_revocation_v1(
     *,
     export_document: dict[str, Any],
@@ -7091,14 +7099,23 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         claims.append(scope_claim)
 
     requested = semantics.requested_names()
-    permit_decision_requested = (
-        semantics.mode == "pinned" and PERMIT_DECISION_CLAIM_NAME in requested
+    permit_decision_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_DECISION_CLAIM_NAME,
     )
-    permit_revoked_requested = (
-        semantics.mode == "pinned" and PERMIT_REVOKED_CLAIM_NAME in requested
+    permit_revoked_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_REVOKED_CLAIM_NAME,
     )
-    permit_absence_requested = (
-        semantics.mode == "pinned" and PERMIT_DISPATCH_ABSENCE_CLAIM_NAME in requested
+    permit_absence_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
+    )
+    permit_revocation_dependency_requested = (
+        permit_revoked_requested or permit_absence_requested
     )
     export_document_for_claims: dict[str, Any] | None = None
     if permit_decision_requested or permit_revoked_requested or permit_absence_requested:
@@ -7171,7 +7188,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
-    if permit_revoked_requested or permit_absence_requested:
+    if permit_revocation_dependency_requested:
         if export_document_for_claims is None:
             revocation_claim = _permit_claim(
                 PERMIT_REVOKED_CLAIM_NAME,
