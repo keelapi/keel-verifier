@@ -2851,6 +2851,11 @@ def _absence_predicate_out_of_grammar(predicate: Any) -> bool:
         return True
     if set(equals.keys()) != {"project_id", "permit_id", "event_type"}:
         return True
+    if any(
+        not isinstance(equals.get(field), str)
+        for field in ("project_id", "permit_id", "event_type")
+    ):
+        return True
     if set(ranges.keys()) != {"occurred_at"}:
         return True
     occurred = ranges.get("occurred_at")
