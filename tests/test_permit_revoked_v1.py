@@ -8,7 +8,10 @@ from step4_permit_helpers import (
     revocation_event,
     write_permit_trust_root,
 )
-from keel_verifier.verifier import _adjudicate_permit_revoked_v1
+from keel_verifier.verifier import (
+    _adjudicate_permit_revoked_v1,
+    _compute_canonical_binding_hash,
+)
 
 
 def _claim(event: dict, trust_root: Path, *, project_id: str = PROJECT_ID):
@@ -27,6 +30,38 @@ def test_permit_revoked_supported(tmp_path: Path) -> None:
     trust_root = write_permit_trust_root(tmp_path, public_key)
 
     claim = _claim(revocation_event(private_key), trust_root)
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_REVOKED_SUPPORTED"
+
+
+def test_permit_revoked_nested_governance_payload_wrapper_supported(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"h" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    event = revocation_event(private_key)
+    canonical_hash = _compute_canonical_binding_hash(
+        {key: value for key, value in event.items() if key != "signature"}
+    )
+
+    claim = _adjudicate_permit_revoked_v1(
+        export_document={
+            "records": [
+                {
+                    "event_type": "permit.revoked",
+                    "payload_json": {
+                        "revocation_event": {
+                            "event": event,
+                            "canonical_hash": canonical_hash,
+                        }
+                    },
+                }
+            ]
+        },
+        manifest={"project_id": PROJECT_ID},
+        key_manifest_source=str(trust_root),
+    )
 
     assert claim.aggregate_verdict == "supported"
     assert claim.reason_code == "PERMIT_REVOKED_SUPPORTED"
