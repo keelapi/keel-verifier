@@ -8,6 +8,8 @@ Pre-flight:
 - Confirm `pyproject.toml` and `keel_verifier/__init__.py` carry the same version.
 - Confirm the bundled trust root, pinned semantics, capability inventory, and tests match
   the intended release.
+- Confirm every historical `claim_registry` artifact remains bundled, and no pinned
+  semantics or trust-root artifacts were pruned from the distribution package.
 - Confirm CI is green on `main`.
 
 Create and push the release tag:

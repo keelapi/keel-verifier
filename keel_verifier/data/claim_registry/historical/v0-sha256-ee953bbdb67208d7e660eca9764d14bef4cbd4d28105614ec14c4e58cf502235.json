@@ -208,39 +208,6 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
-    },
-    {
-      "name": "permit.decision.v1",
-      "assertion": "The issuance-time permit decision is validly signed by the permit-binding key through the v1 binding canonical payload, including the canonical `decision`; this claim adjudicates the signed issuance decision only and never mutated row state.",
-      "required_evidence": "Permit decision evidence carrying the v1 binding canonical payload or fields sufficient to reconstruct it, binding_canonical_hash, binding_signature, binding_key_id, binding_issued_at, permit-binding trust root, and pinned permit decision semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.revoked.v1",
-      "assertion": "A new-only post-cutover `permit.revoked` event is validly signed by the permit-binding key, is bound to both `permit_id` and `project_id`, and uses v1 immediate-effect semantics where `effective_at` equals `revoked_at`.",
-      "required_evidence": "Strict permit.revoked event payload, signature, permit-binding trust root, referenced permit/project identity, signing time or event time for key-window resolution, and pinned revoked-event semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.dispatch_absence_after_revocation.v1",
-      "assertion": "Scope-faithful absence adjudication shows that no `dispatch.egress_bound` event appears for the revoked permit and project in the declared scope where `occurred_at` is greater than or equal to the revocation `effective_at` and less than the checkpoint boundary.",
-      "required_evidence": "supported permit.revoked.v1 evidence; signed export scope-faithfulness segment using scope-predicate v1 equality on project_id, permit_id, and event_type=dispatch.egress_bound plus bounded occurred_at range; checkpoint.scope_state.v1 sidecar; referenced checkpoint JSON; bridge/proof records; pinned absence, export scope-faithfulness, scope-state, and governance-chain semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
     }
   ]
 }

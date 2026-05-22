@@ -2,13 +2,13 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.3.1",
+    "permit_spec_version": "1.4.0",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
     "claim_registry": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v0.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
@@ -283,6 +283,48 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
+    },
+    {
+      "name": "permit.decision.v1",
+      "status": "implemented",
+      "description": "Verifies the issuance-time permit decision canonical payload, canonical hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.revoked.v1",
+      "status": "implemented",
+      "description": "Verifies a strict post-cutover permit.revoked event signature, permit/project identity binding, opaque actor identity, and v1 immediate-effect semantics where effective_at equals revoked_at.",
+      "depends_on_semantics": [
+        "keel.permit.revoked_event.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.dispatch_absence_after_revocation.v1",
+      "status": "implemented",
+      "description": "Performs scope-faithful absence adjudication for post-revocation dispatch.egress_bound events within a declared export scope anchored to supported revocation, scope-state, and export scope-faithfulness evidence.",
+      "depends_on_semantics": [
+        "keel.permit.dispatch_absence_after_revocation.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
     }
   ],
   "artifact_formats": [
@@ -404,7 +446,28 @@
       "EXPORT_SCOPE_COMMITMENT_MISSING",
       "EXPORT_SCOPE_CARDINALITY_MISMATCH",
       "EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH",
-      "EXPORT_SCOPE_RANGE_MISMATCH"
+      "EXPORT_SCOPE_RANGE_MISMATCH",
+      "PERMIT_DECISION_EVIDENCE_MISSING",
+      "PERMIT_DECISION_SCHEMA_INVALID",
+      "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+      "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "PERMIT_DECISION_SIGNATURE_INVALID",
+      "PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE",
+      "PERMIT_DECISION_KEY_ID_MISMATCH",
+      "PERMIT_DECISION_UNTRUSTED_KEY",
+      "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION",
+      "PERMIT_REVOKED_EVIDENCE_MISSING",
+      "PERMIT_REVOKED_SCHEMA_INVALID",
+      "PERMIT_REVOKED_SIGNATURE_INVALID",
+      "PERMIT_REVOKED_TRUST_ROOT_UNRESOLVABLE",
+      "PERMIT_REVOKED_PROJECT_ID_MISMATCH",
+      "PERMIT_REVOKED_PERMIT_ID_MISMATCH",
+      "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
+      "PERMIT_REVOKED_ACTOR_PII_DETECTED",
+      "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED",
+      "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
+      "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
+      "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE"
     ],
     "note": "This subset is hand-curated for capability_schema_version 1.0; a future schema version may extract programmatically from tests/code."
   },
@@ -493,6 +556,21 @@
     {
       "id": "keel.export.scope_faithfulness.v1",
       "hash": "sha256:75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.decision.v1",
+      "hash": "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.revoked_event.v1",
+      "hash": "sha256:5b7416b11a4a94a2f9f876b2337e118267ab5eb928165cc15f01abaff8639229",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.dispatch_absence_after_revocation.v1",
+      "hash": "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4",
       "status": "allowlisted"
     }
   ]

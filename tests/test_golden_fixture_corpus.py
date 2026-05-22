@@ -25,7 +25,7 @@ def test_public_verifier_matches_golden_fixture_corpus():
         python_executable=sys.executable,
         verifier_root=REPO_ROOT,
     )
-    assert report["total"] == 76
+    assert report["total"] == 82
 
     mismatches = [
         result for result in report["results"] if result["status"] != "PASS"

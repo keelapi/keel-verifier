@@ -79,6 +79,64 @@ BUNDLED_EXPORT_SCOPE_FAITHFULNESS = (
     / "export"
     / "scope_faithfulness_v1.json"
 )
+BUNDLED_PERMIT_DECISION = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "decision_v1.json"
+)
+SOURCE_PERMIT_DECISION = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "decision_v1.json"
+)
+BUNDLED_PERMIT_REVOKED_EVENT = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "revoked_event_v1.json"
+)
+SOURCE_PERMIT_REVOKED_EVENT = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "revoked_event_v1.json"
+)
+BUNDLED_PERMIT_DISPATCH_ABSENCE = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "dispatch_absence_after_revocation_v1.json"
+)
+SOURCE_PERMIT_DISPATCH_ABSENCE = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "dispatch_absence_after_revocation_v1.json"
+)
+BUNDLED_PERMIT_REVOKED_SCHEMA = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "schemas"
+    / "permit-revoked-event.schema.json"
+)
+SOURCE_PERMIT_REVOKED_SCHEMA = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "schemas"
+    / "permit-revoked-event.schema.json"
+)
 SOURCE_EXPORT_SCOPE_FAITHFULNESS = (
     PRODUCT_ROOT
     / "keel-permit"
@@ -138,6 +196,34 @@ BUNDLED_ARTIFACT_COPIES = [
         "keel-permit export scope-faithfulness semantics",
         True,
         id="export-scope-faithfulness-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_DECISION,
+        SOURCE_PERMIT_DECISION,
+        "keel-permit permit decision semantics",
+        False,
+        id="permit-decision-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_REVOKED_EVENT,
+        SOURCE_PERMIT_REVOKED_EVENT,
+        "keel-permit permit revoked-event semantics",
+        False,
+        id="permit-revoked-event-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_DISPATCH_ABSENCE,
+        SOURCE_PERMIT_DISPATCH_ABSENCE,
+        "keel-permit permit dispatch absence semantics",
+        False,
+        id="permit-dispatch-absence-after-revocation-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_REVOKED_SCHEMA,
+        SOURCE_PERMIT_REVOKED_SCHEMA,
+        "keel-permit permit revoked-event schema",
+        False,
+        id="permit-revoked-event-schema",
     ),
 ]
 
