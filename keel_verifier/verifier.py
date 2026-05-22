@@ -2974,7 +2974,8 @@ def _adjudicate_permit_dispatch_absence_after_revocation_v1(
         )
 
     matching_segment: dict[str, Any] | None = None
-    for segment in segments:
+    for raw_segment in segments:
+        segment = _normalize_scope_segment(raw_segment)
         if not isinstance(segment, dict):
             continue
         declared_scope = segment.get("declared_scope")
@@ -4940,6 +4941,32 @@ SCOPE_RESERVED_PREDICATE_KINDS = {
     "requested_by",
     "incident_id",
 }
+SCOPE_ALLOWED_RESERVED_NAMESPACES = {"non_membership_profile"}
+_SCOPE_RECORD_FIELDS = {
+    "event_id",
+    "event_type",
+    "chain_scope",
+    "sequence_number",
+    "record_hash",
+    "prev_hash",
+    "created_at",
+    "chain_format_version",
+}
+_SCOPE_RECORD_PAYLOAD_FALLBACK_FIELDS = {
+    "project_id",
+    "permit_id",
+    "resource_type",
+    "resource_id",
+    "outcome",
+    "severity",
+    "category",
+    "occurred_at",
+    "request_id",
+    "policy_id",
+    "provider",
+    "section",
+    "export_type",
+}
 
 
 @dataclass(frozen=True)
@@ -5284,8 +5311,16 @@ def _scope_sidecar_schema_error(sidecar: Any) -> str | None:
     if any(not isinstance(kind, str) or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS for kind in supported):
         return "supported_predicate_kinds contains an unsupported kind"
     reserved = basis.get("reserved_namespaces")
-    if not isinstance(reserved, list) or len(set(reserved)) != len(reserved) or any(not isinstance(item, str) or not item.startswith("keel.") for item in reserved):
-        return "reserved_namespaces must be a unique keel.* string array"
+    if (
+        not isinstance(reserved, list)
+        or len(set(reserved)) != len(reserved)
+        or any(
+            not isinstance(item, str)
+            or not (item.startswith("keel.") or item in SCOPE_ALLOWED_RESERVED_NAMESPACES)
+            for item in reserved
+        )
+    ):
+        return "reserved_namespaces must be unique supported namespace strings"
 
     signature = sidecar.get("signature")
     if not _exact_keys(signature, {"algorithm", "key_id", "signature"}):
@@ -5718,6 +5753,86 @@ def _scope_export_declaration_present(export_data: bytes) -> bool:
     )
 
 
+def _first_present(mapping: dict[str, Any], *keys: str) -> Any:
+    for key in keys:
+        if key in mapping:
+            return mapping[key]
+    return None
+
+
+def _normalize_scope_record(record: Any) -> Any:
+    if not isinstance(record, dict):
+        return record
+    source = record.get("chain_entry_ref")
+    if not isinstance(source, dict):
+        source = record
+
+    payload: dict[str, Any] = {}
+    for candidate in (
+        record.get("payload_json"),
+        source.get("payload_json"),
+        record.get("payload"),
+        source.get("payload"),
+    ):
+        if isinstance(candidate, dict):
+            payload.update(candidate)
+    for field in _SCOPE_RECORD_PAYLOAD_FALLBACK_FIELDS:
+        if field not in payload and field in record:
+            payload[field] = record[field]
+        if field not in payload and field in source:
+            payload[field] = source[field]
+    if "event_type" not in payload:
+        event_type = _first_present(record, "event_type")
+        if event_type is None:
+            event_type = _first_present(source, "event_type")
+        if isinstance(event_type, str):
+            payload["event_type"] = event_type
+
+    normalized: dict[str, Any] = {}
+    aliases = {
+        "record_hash": ("record_hash", "chain_entry_hash"),
+        "prev_hash": ("prev_hash", "previous_record_hash"),
+        "chain_format_version": ("chain_format_version", "format_version"),
+    }
+    for field in _SCOPE_RECORD_FIELDS:
+        keys = aliases.get(field, (field,))
+        value = _first_present(record, *keys)
+        if value is None:
+            value = _first_present(source, *keys)
+        normalized[field] = value
+    normalized["payload_json"] = payload
+    return normalized
+
+
+def _normalize_scope_segment(segment: Any) -> Any:
+    if not isinstance(segment, dict):
+        return segment
+    normalized = dict(segment)
+    end = normalized.get("declared_end")
+    if isinstance(end, dict):
+        normalized["declared_end"] = {
+            key: end.get(key)
+            for key in (
+                "checkpoint_id",
+                "chain_scope",
+                "sequence_number",
+                "last_record_hash",
+                "boundary_policy",
+            )
+        }
+    evidence = normalized.get("chain_evidence")
+    if isinstance(evidence, dict):
+        normalized_evidence = dict(evidence)
+        for list_name in ("disclosure_records", "proof_bridge_records"):
+            records = evidence.get(list_name)
+            if isinstance(records, list):
+                normalized_evidence[list_name] = [
+                    _normalize_scope_record(record) for record in records
+                ]
+        normalized["chain_evidence"] = normalized_evidence
+    return normalized
+
+
 def _scope_segment_schema_error(segment: Any) -> str | None:
     if not _exact_keys(
         segment,
@@ -5985,7 +6100,8 @@ def _adjudicate_export_scope_faithfulness_v1(
     sidecar_claims: list[ClaimVerdict] = []
     export_subjects: list[VerdictSubject] = []
     export_failure: tuple[str, str, str] | None = None
-    for segment in block["segments"]:
+    for raw_segment in block["segments"]:
+        segment = _normalize_scope_segment(raw_segment)
         segment_id = segment.get("segment_id") if isinstance(segment, dict) and isinstance(segment.get("segment_id"), str) else None
         schema_error = _scope_segment_schema_error(segment)
         if schema_error is not None:
