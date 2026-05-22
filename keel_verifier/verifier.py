@@ -2639,7 +2639,16 @@ def _find_revocation_evidence(
         payload = _entry_payload_any(entry)
         nested = payload.get("revocation_event")
         if isinstance(nested, dict):
-            canonical_hash = payload.get("revocation_canonical_hash")
+            wrapped_event = nested.get("event")
+            canonical_hash = nested.get("canonical_hash")
+            if not isinstance(canonical_hash, str):
+                canonical_hash = payload.get("revocation_canonical_hash")
+            if isinstance(wrapped_event, dict):
+                return (
+                    wrapped_event,
+                    canonical_hash if isinstance(canonical_hash, str) else None,
+                    "payload_json.revocation_event.event",
+                )
             return (
                 nested,
                 canonical_hash if isinstance(canonical_hash, str) else None,
