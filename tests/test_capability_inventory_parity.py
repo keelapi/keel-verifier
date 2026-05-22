@@ -46,7 +46,7 @@ def test_step4_claims_and_failure_codes_advertised() -> None:
         "permit.revoked.v1",
         "permit.dispatch_absence_after_revocation.v1",
     } <= implemented
-    codes = set(inv["failure_codes"]["codes"])
+    codes = set(inv["failure_codes"]["implemented_subset"])
     assert {
         "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
         "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
