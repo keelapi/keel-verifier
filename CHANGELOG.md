@@ -9,6 +9,14 @@
 - Add Python version classifiers to PyPI metadata so the Python versions badge resolves correctly.
 - Ignore local `.claude/` workspace settings at the repository level.
 
+## v2.3.0 — Step 4 permit adjudication (2026-05-22)
+
+- Add verifier-side adjudicators for `permit.decision.v1`, `permit.revoked.v1`, and `permit.dispatch_absence_after_revocation.v1`.
+- Add scope-faithful absence adjudication for post-revocation `dispatch.egress_bound` evidence, including the strict lower-bound timestamp rule and the `EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT` failure code.
+- Add `EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE` for bridge/proof records that satisfy the absence predicate while preserving `EXPORT_PROOF_BRIDGE_MISCLASSIFIED` for generic scope-faithfulness bridge validation.
+- Bundle Permit v1.4.0 pinned semantics, the permit-revoked event schema, and all historical claim-registry bytes needed to resolve pinned registry references.
+- Update the capability inventory and test coverage for the new permit claim family.
+
 ## v2.2.0 — release provenance spine (2026-05-21)
 
 - Release artifacts are now Sigstore-signed through GitHub Actions OIDC and logged to the public Rekor transparency log.
