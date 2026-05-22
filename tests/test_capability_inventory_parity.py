@@ -8,9 +8,37 @@ from __future__ import annotations
 
 import json
 from importlib import resources
+from pathlib import Path
 
 import keel_verifier
-from keel_verifier.semantics import CLAIM_SEMANTICS
+from keel_verifier.semantics import CLAIM_SEMANTICS, RELEASED_ARTIFACT_HASHES
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+CLAIM_REGISTRY = REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
+STEP4_FAILURE_CODES = {
+    "PERMIT_DECISION_EVIDENCE_MISSING",
+    "PERMIT_DECISION_SCHEMA_INVALID",
+    "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+    "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+    "PERMIT_DECISION_SIGNATURE_INVALID",
+    "PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE",
+    "PERMIT_DECISION_KEY_ID_MISMATCH",
+    "PERMIT_DECISION_UNTRUSTED_KEY",
+    "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION",
+    "PERMIT_REVOKED_EVIDENCE_MISSING",
+    "PERMIT_REVOKED_SCHEMA_INVALID",
+    "PERMIT_REVOKED_SIGNATURE_INVALID",
+    "PERMIT_REVOKED_TRUST_ROOT_UNRESOLVABLE",
+    "PERMIT_REVOKED_PROJECT_ID_MISMATCH",
+    "PERMIT_REVOKED_PERMIT_ID_MISMATCH",
+    "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
+    "PERMIT_REVOKED_ACTOR_PII_DETECTED",
+    "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED",
+    "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
+    "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
+    "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE",
+}
 
 
 def _load_inventory() -> dict:
@@ -35,7 +63,7 @@ def test_verifier_version_matches_package() -> None:
 def test_step4_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == "2.3.0"
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.0"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.1"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:
@@ -47,12 +75,33 @@ def test_step4_claims_and_failure_codes_advertised() -> None:
         "permit.dispatch_absence_after_revocation.v1",
     } <= implemented
     codes = set(inv["failure_codes"]["implemented_subset"])
-    assert {
-        "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
-        "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
-        "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
-        "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE",
-    } <= codes
+    assert STEP4_FAILURE_CODES <= codes
+
+
+def test_inventory_claims_match_claim_registry() -> None:
+    inv = _load_inventory()
+    registry = json.loads(CLAIM_REGISTRY.read_text(encoding="utf-8"))
+    inventory_claims = {claim["name"] for claim in inv["claims"]}
+    registry_claims = {claim["name"] for claim in registry["claims"]}
+    assert inventory_claims == registry_claims
+
+
+def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
+    inv = _load_inventory()
+    inventory_pins = {pin["id"]: pin["hash"] for pin in inv["pinned_semantics"]}
+    referenced = {
+        semantic_id
+        for claim in inv["claims"]
+        for semantic_id in claim["depends_on_semantics"]
+        if semantic_id.startswith("keel.permit.")
+        or semantic_id.startswith("keel.scope_state.")
+        or semantic_id == "keel.export.scope_faithfulness.v1"
+    }
+    assert set(inventory_pins) == referenced
+    assert inventory_pins == {
+        semantic_id: RELEASED_ARTIFACT_HASHES[semantic_id]
+        for semantic_id in sorted(referenced)
+    }
 
 
 def test_every_code_claim_is_implemented_in_inventory() -> None:
