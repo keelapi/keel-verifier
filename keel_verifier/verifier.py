@@ -5121,6 +5121,15 @@ def _resolve_scope_predicate_value(entry: dict[str, Any], kind: str) -> Any:
     return None
 
 
+def _scope_timestamp_in_half_open_range(actual: Any, range_value: dict[str, Any]) -> bool:
+    actual_time = _parse_iso_or_none(str(actual))
+    lower = _parse_iso_or_none(str(range_value["gte"]))
+    upper = _parse_iso_or_none(str(range_value["lt"]))
+    if actual_time is None or lower is None or upper is None:
+        return False
+    return lower <= actual_time < upper
+
+
 def _predicate_hash(predicate: dict[str, Any]) -> str:
     return _prefixed_sha256(_canonical_json_bytes(predicate))
 
@@ -5189,12 +5198,7 @@ def _scope_predicate_matches(entry: dict[str, Any], predicate: dict[str, Any]) -
             if actual_int < int(range_value["gte"]) or actual_int > int(range_value["lte"]):
                 return False
             continue
-        actual_time = _parse_iso_or_none(str(actual))
-        lower = _parse_iso_or_none(str(range_value["gte"]))
-        upper = _parse_iso_or_none(str(range_value["lt"]))
-        if actual_time is None or lower is None or upper is None:
-            return False
-        if actual_time < lower or actual_time >= upper:
+        if not _scope_timestamp_in_half_open_range(actual, range_value):
             return False
     return True
 
