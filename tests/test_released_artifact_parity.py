@@ -8,6 +8,10 @@ import pytest
 
 from keel_verifier.semantics import (
     EXPORT_SCOPE_FAITHFULNESS_ID,
+    PERMIT_DECISION_ID,
+    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+    PERMIT_REVOKED_EVENT_ID,
+    RELEASED_ARTIFACT_HASHES,
     RELEASED_ARTIFACT_PATHS,
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
@@ -24,9 +28,12 @@ CANONICAL_SOURCE_ARTIFACTS = {
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
 }
-STEP2_CLOSING_ARTIFACTS = {
+VERIFIER_ADDITIVE_ARTIFACTS = {
     "keel.verifier_claim_registry.v0",
     EXPORT_SCOPE_FAITHFULNESS_ID,
+    PERMIT_DECISION_ID,
+    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+    PERMIT_REVOKED_EVENT_ID,
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
 }
@@ -44,8 +51,8 @@ def _expected_source_bytes(artifact_id: str, source_artifact: Path) -> bytes:
     ).encode("utf-8")
 
 
-def test_released_artifact_paths_cover_step2_closing_artifacts() -> None:
-    missing = STEP2_CLOSING_ARTIFACTS - set(RELEASED_ARTIFACT_PATHS)
+def test_released_artifact_paths_cover_verifier_additive_artifacts() -> None:
+    missing = VERIFIER_ADDITIVE_ARTIFACTS - set(RELEASED_ARTIFACT_PATHS)
     assert not missing
 
 
@@ -82,7 +89,7 @@ def test_released_artifact_matches_keel_permit_source_bytes(
     ("artifact_id", "relative_path"),
     [
         (artifact_id, RELEASED_ARTIFACT_PATHS[artifact_id])
-        for artifact_id in sorted(STEP2_CLOSING_ARTIFACTS)
+        for artifact_id in sorted(VERIFIER_ADDITIVE_ARTIFACTS)
     ],
 )
 def test_keel_api_verifier_additive_artifact_matches_keel_permit_source_bytes(
@@ -114,3 +121,19 @@ def test_keel_api_verifier_additive_artifact_matches_keel_permit_source_bytes(
         f"keel-api/app/verifier_additive_artifacts/{relative_path}"
     )
     assert api_artifact.read_bytes() == source_artifact.read_bytes()
+
+
+def test_keel_api_verifier_additive_pin_constants_match_released_artifacts() -> None:
+    pins_source = SOURCE_API / "app" / "services" / "verifier_pins.py"
+    if not pins_source.exists():
+        pytest.skip(
+            "keel-api verifier_pins.py is not checked out next to "
+            f"keel-verifier: {pins_source}"
+        )
+
+    text = pins_source.read_text(encoding="utf-8")
+    for artifact_id in VERIFIER_ADDITIVE_ARTIFACTS:
+        if artifact_id != "keel.verifier_claim_registry.v0":
+            assert artifact_id in text
+        assert RELEASED_ARTIFACT_HASHES[artifact_id] in text
+        assert RELEASED_ARTIFACT_PATHS[artifact_id] in text

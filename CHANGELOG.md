@@ -15,7 +15,9 @@
 - Add scope-faithful absence adjudication for post-revocation `dispatch.egress_bound` evidence, including the strict lower-bound timestamp rule and the `EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT` failure code.
 - Add `EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE` for bridge/proof records that satisfy the absence predicate while preserving `EXPORT_PROOF_BRIDGE_MISCLASSIFIED` for generic scope-faithfulness bridge validation.
 - Bundle Permit v1.4.0 pinned semantics, the permit-revoked event schema, and all historical claim-registry bytes needed to resolve pinned registry references.
-- Update the capability inventory and test coverage for the new permit claim family.
+- Consume the promoted `keel-permit` v1.4.1 public corpus for the Step 4 permit-claim negative and edge fixtures; local generated unit fixtures remain implementation tests only.
+- Finalize the 2.3.0 capability inventory against the claim registry, permit semantics pins, and complete Step 4 failure-code subset.
+- Verify wheel package data includes the permit semantics, permit-revoked event schema, and historical claim-registry byte bundle needed by clean installs.
 
 ## v2.2.0 — release provenance spine (2026-05-21)
 

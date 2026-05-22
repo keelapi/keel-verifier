@@ -8,7 +8,7 @@
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.4.0",
+    "permit_spec_version": "1.4.1",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
     "claim_registry": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v0.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
@@ -315,7 +315,7 @@
     {
       "name": "permit.dispatch_absence_after_revocation.v1",
       "status": "implemented",
-      "description": "Performs scope-faithful absence adjudication for post-revocation dispatch.egress_bound events within a declared export scope anchored to supported revocation, scope-state, and export scope-faithfulness evidence.",
+      "description": "Performs scope-faithful absence adjudication for post-revocation dispatch.egress_bound events within a declared export scope anchored to supported revocation, scope-state, and export scope-faithfulness evidence; it is falsifiability-oriented scoped adjudication, not a global completeness claim over all history.",
       "depends_on_semantics": [
         "keel.permit.dispatch_absence_after_revocation.v1"
       ],

@@ -10,6 +10,9 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_ROOT = REPO_ROOT.parent
 BUNDLED_REGISTRY = REPO_ROOT / "keel_verifier" / "data" / "claim_registry_v0.json"
+BUNDLED_REGISTRY_TREE = (
+    REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
+)
 SOURCE_REGISTRY = PRODUCT_ROOT / "keel-permit" / "claim_registry" / "v0.json"
 BUNDLED_PROFILE = (
     REPO_ROOT
@@ -158,7 +161,14 @@ BUNDLED_ARTIFACT_COPIES = [
     pytest.param(
         BUNDLED_REGISTRY,
         SOURCE_REGISTRY,
-        "keel-permit claim registry",
+        "keel-permit legacy bundled claim registry",
+        False,
+        id="claim-registry-v0-legacy-path",
+    ),
+    pytest.param(
+        BUNDLED_REGISTRY_TREE,
+        SOURCE_REGISTRY,
+        "keel-permit bundled claim registry",
         False,
         id="claim-registry-v0",
     ),
