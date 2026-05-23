@@ -1,9 +1,29 @@
 # Changelog
 
-## Unreleased
+## v2.4.1 — bundle format fix (2026-05-23)
+
+- Switch the release workflow's `cosign sign-blob` calls to
+  `--new-bundle-format`, producing Sigstore Bundle Format v0.3 (`mediaType:
+  application/vnd.dev.sigstore.bundle+json;version=0.3`). The legacy cosign
+  bundle format (`base64Signature` + `cert` + `rekorBundle`) is not readable
+  by `sigstore-python`'s `Bundle.from_json()`, which caused `keel-verify
+  self-check` to fail at the `sigstore_signature` stage on v2.4.0.
+- Update the `RELEASING.md` verification recipe to add `--new-bundle-format`
+  to the three `cosign verify-blob` commands. (The SBOM attestation
+  `cosign verify-blob-attestation` command is unchanged — DSSE in-toto
+  attestations use a different format and were not affected by the bug.)
+- v2.4.0 is yanked on PyPI. Releases from v2.4.1 onward use the new bundle
+  format throughout.
+
+## v2.4.0 — A.2: TSA witness + self-check (2026-05-23, YANKED)
+
+- Add `keel-verify self-check` for installed-wheel verification against the signed release manifest (full Sigstore signature + cert chain), the Rekor inclusion proof, the DigiCert and GlobalSign TSA witnesses, the RFC 8785 JCS embedded-manifest binding, and per-file wheel digests.
 
 - Add `keel-verify self-check` for installed-wheel verification against the signed release manifest (full Sigstore signature + cert chain), the Rekor inclusion proof, the DigiCert and GlobalSign TSA witnesses, the RFC 8785 JCS embedded-manifest binding, and per-file wheel digests.
 - TSA witness verification is **bind-level by default** — the receipt is parsed, its status is confirmed as `granted`/`granted_with_mods`, and its `messageImprint` is checked to match the signed manifest hash. This mirrors the existing keel-verifier checkpoint-TSA doctrine (`verifier.py:_verify_tsa_receipt`). Full CMS signature and certificate-chain validation against TSA trust roots remains opt-in via the existing `--tsa-ca-bundle` extension pattern.
+- **Note**: v2.4.0 is yanked because the release workflow used cosign's
+  legacy bundle format for `.sigstore` files, which `sigstore-python`
+  cannot parse. v2.4.1 fixes this. See the v2.4.1 entry above.
 - Use `asn1crypto` for BER-tolerant ASN.1 parsing of RFC 3161 receipts (replaces `rfc3161-client`, which enforced strict-DER set ordering that real-world DigiCert and GlobalSign receipts do not satisfy).
 - Add `embedded_manifests` bindings to the signed release manifest and enforce cycle-prevention rules for the embedded `_release_manifest.json`.
 - Add the detached `manifest.json.tsa.json` release sidecar carrying DigiCert and GlobalSign RFC 3161 timestamp receipts for `manifest.json`.
