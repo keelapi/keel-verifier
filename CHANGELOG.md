@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.4.3 — suppress benign sigstore-python warning (2026-05-23)
+
+- Scoped logging filter for the `Failed to load a trusted root key: unsupported
+  key type: 7` warning emitted by sigstore-python 3.x's TUF root loader during
+  `keel-verify self-check`. Key type 7 in the installed `sigstore-protobuf-specs`
+  enum is `PKIX_ED25519`, and the skipped key is the Rekor v2 transparency log
+  (`log2025-1.rekor.sigstore.dev`) that sigstore 3.x does not yet validate
+  against. Current bundles are logged in Rekor v1, so skipping the v2 key is
+  non-blocking for verification.
+- Filter is scoped to the exact warning string only — NOT blanket suppression of
+  sigstore-python warnings. To be removed when migrating to sigstore 4.x (after
+  Rekor v1 sunset). See upstream pypa/sigstore-python#1423 and #1424.
+- Floor pin `sigstore>=3.6.7,<4` (was `>=3.0,<4`).
+- Regression test in `tests/test_self_check_happy.py` asserts stderr is clean
+  during `verify_sigstore` against a v2.4.2 fixture bundle.
+- No runtime verification logic changes from v2.4.2.
+
 ## v2.4.2 — source drift fix + trusted publishing (2026-05-23)
 
 - Stop hardcoding `keel_verifier.__version__`; runtime version now comes from
