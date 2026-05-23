@@ -57,8 +57,13 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           WHEEL="keel_verifier-${VERSION}-py3-none-any.whl"
           SDIST="keel_verifier-${VERSION}.tar.gz"
-          cosign sign-blob --yes --bundle "dist/${WHEEL}.sigstore" "dist/${WHEEL}"
-          cosign sign-blob --yes --bundle "dist/${SDIST}.sigstore" "dist/${SDIST}"
+          # --new-bundle-format produces Sigstore Bundle Format v0.3, which
+          # sigstore-python's Bundle.from_json() reads natively. Without the
+          # flag, cosign emits the legacy bundle format (base64Signature +
+          # cert + rekorBundle) that sigstore-python cannot parse, breaking
+          # `keel-verify self-check` against released artifacts.
+          cosign sign-blob --yes --new-bundle-format --bundle "dist/${WHEEL}.sigstore" "dist/${WHEEL}"
+          cosign sign-blob --yes --new-bundle-format --bundle "dist/${SDIST}.sigstore" "dist/${SDIST}"
 
       - name: Attest CycloneDX SBOM against wheel
         run: |
@@ -79,7 +84,7 @@ jobs:
             --cosign-version "${COSIGN_VERSION}"
 
       - name: Sign release manifest
-        run: cosign sign-blob --yes --bundle manifest.json.sigstore manifest.json
+        run: cosign sign-blob --yes --new-bundle-format --bundle manifest.json.sigstore manifest.json
 
       - name: Timestamp release manifest with DigiCert and GlobalSign
         run: python scripts/generate_tsa_witness.py --manifest manifest.json --output manifest.json.tsa.json
