@@ -1,6 +1,23 @@
 # Changelog
 
-## v2.4.1 — bundle format fix (2026-05-23)
+## v2.4.2 — source drift fix + trusted publishing (2026-05-23)
+
+- Stop hardcoding `keel_verifier.__version__`; runtime version now comes from
+  installed package metadata, with a source-tree fallback matching
+  `pyproject.toml`.
+- Regenerate the embedded release manifest for v2.4.2 so local-built wheels
+  reference the v2.4.2 GitHub Release instead of stale v2.4.0 assets.
+- Add version-consistency regression tests covering `pyproject.toml`,
+  `keel_verifier.__version__`, the embedded manifest tag, and embedded
+  manifest URLs.
+- Add a Trusted Publishing PyPI job that publishes the GitHub Actions-built
+  wheel and source distribution after the GitHub Release upload. Until
+  Trusted Publishing is activated on PyPI, fallback publication must download
+  release artifacts from GitHub and upload those files with Twine.
+- v2.4.1 is yanked on PyPI because the PyPI upload used a stale local build
+  whose embedded manifest still pointed at v2.4.0 release assets.
+
+## v2.4.1 — bundle format fix (2026-05-23, YANKED)
 
 - Switch the release workflow's `cosign sign-blob` calls to
   `--new-bundle-format`, producing Sigstore Bundle Format v0.3 (`mediaType:
@@ -14,6 +31,10 @@
   attestations use a different format and were not affected by the bug.)
 - v2.4.0 is yanked on PyPI. Releases from v2.4.1 onward use the new bundle
   format throughout.
+- **Yank note**: v2.4.1 is yanked on PyPI because the locally built PyPI wheel
+  carried stale v2.4.0 runtime metadata and embedded release-manifest URLs.
+  The GitHub Release artifacts for v2.4.1 were built by Actions and had the
+  corrected v2.4.1 embedded manifest.
 
 ## v2.4.0 — A.2: TSA witness + self-check (2026-05-23, YANKED)
 
