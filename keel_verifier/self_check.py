@@ -465,7 +465,15 @@ def _decode_tsa_response(receipt_der: bytes) -> Any:
             "asn1crypto is required for TSA receipt parsing",
         ) from exc
     try:
-        return tsp.TimeStampResp.load(receipt_der)
+        # strict=True rejects trailing bytes after the TimeStampResp structure;
+        # without it, an attacker who controls the sidecar storage could append
+        # arbitrary data, update receipt_hash, and pass verification.
+        parsed = tsp.TimeStampResp.load(receipt_der, strict=True)
+        # asn1crypto parses children lazily; force eager validation so a
+        # missing required field (e.g. time_stamp_token) is surfaced here
+        # rather than at a later field access in verify_tsa.
+        parsed._parse_children(recurse=True)
+        return parsed
     except Exception as exc:
         raise SelfCheckError(
             "SELF_CHECK_TSA_INVALID",
@@ -499,9 +507,13 @@ def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVeri
     Intentionally does NOT perform CMS signature verification or
     certificate-chain validation. This mirrors the existing keel-verifier
     checkpoint TSA pattern (verifier.py:_verify_tsa_receipt) where full chain
-    validation is an opt-in trust extension. The honest claim is that the TSA
-    issued a granted receipt over our manifest bytes; deeper assertions about
-    which root signed the receipt are out of scope for default self-check.
+    validation is an opt-in trust extension. The honest claim at this layer is
+    bounded: a provider-labeled RFC 3161 response structure binds to the
+    signed manifest hash and reports `granted` status. Deeper assertions
+    about signer authenticity (the receipt was actually signed by DigiCert /
+    GlobalSign root-of-trust, EKU is timestamping, certificate-chain rolls up
+    to a known root) require the opt-in `--tsa-ca-bundle` trust extension and
+    are out of scope for default self-check.
     """
     message_imprint = _sha256_prefixed(signed_manifest_bytes)
     if sidecar.get("message_imprint") != message_imprint:
