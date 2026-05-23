@@ -7,6 +7,7 @@ import argparse
 import json
 import platform
 import re
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
@@ -17,7 +18,27 @@ RELEASE_NAME = "keel-verifier"
 PACKAGE_ROOT = "keel_verifier"
 GITHUB_REPOSITORY = "keelapi/keel-verifier"
 RELEASE_MANIFEST_VERSION = "1.0"
+EMBEDDED_MANIFEST_PATH = f"{PACKAGE_ROOT}/_release_manifest.json"
+EMBEDDED_MANIFEST_MEDIA_TYPE = "application/json"
+EMBEDDED_MANIFEST_CANONICALIZATION = "rfc8785-jcs"
 TAG_RE = re.compile(r"^v(?P<version>\d+\.\d+\.\d+)$")
+FORBIDDEN_EMBEDDED_FIELDS = {
+    "artifacts",
+    "build_environment",
+    "embedded_manifests",
+    "rekor",
+    "rekor_log_index",
+    "rekor_log_url",
+    "released_at",
+    "release_manifest_signature",
+    "release_manifest_tsa_receipt",
+    "release_manifest_tsa_receipts",
+    "sbom",
+    "signature",
+    "signing_identity",
+    "tsa",
+    "tsa_receipts",
+}
 
 
 def _error(message: str) -> SystemExit:
@@ -51,6 +72,17 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     )
 
 
+def _canonical_json_bytes(payload: Any) -> bytes:
+    try:
+        import rfc8785
+    except ImportError as exc:
+        raise _error("rfc8785 is required for release-manifest canonicalization") from exc
+    try:
+        return rfc8785.dumps(payload)
+    except Exception as exc:
+        raise _error(f"failed to canonicalize JSON with RFC 8785 JCS: {exc}") from exc
+
+
 def _sha256(path: Path) -> str:
     digest = sha256()
     try:
@@ -60,6 +92,10 @@ def _sha256(path: Path) -> str:
     except FileNotFoundError as exc:
         raise _error(f"missing required file: {path}") from exc
     return digest.hexdigest()
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return sha256(payload).hexdigest()
 
 
 def _tag_version(tag: str) -> str:
@@ -118,6 +154,38 @@ def _release_url(tag: str, filename: str) -> str:
     return f"https://github.com/{GITHUB_REPOSITORY}/releases/download/{tag}/{filename}"
 
 
+def _url_path_name(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return Path(urlparse(value).path).name
+
+
+def _validate_embedded_manifest(manifest: dict[str, Any]) -> None:
+    forbidden = sorted(FORBIDDEN_EMBEDDED_FIELDS.intersection(manifest))
+    if forbidden:
+        raise _error(
+            "embedded release manifest contains forbidden outer-manifest field(s): "
+            + ", ".join(forbidden)
+        )
+
+    expected_url_basenames = {
+        "release_manifest_url": "manifest.json",
+        "release_manifest_signature_url": "manifest.json.sigstore",
+        "release_manifest_tsa_witness_url": "manifest.json.tsa.json",
+    }
+    for field, expected in expected_url_basenames.items():
+        actual = _url_path_name(manifest.get(field))
+        if actual != expected:
+            raise _error(
+                f"embedded release manifest field {field} must point to {expected}, "
+                f"got {manifest.get(field)!r}"
+            )
+
+    digests = manifest.get("per_file_digests")
+    if not isinstance(digests, dict) or not digests:
+        raise _error("embedded release manifest must contain per_file_digests")
+
+
 def _is_package_payload(path: Path, package_root: Path) -> bool:
     if path.name == "_release_manifest.json":
         return False
@@ -153,6 +221,35 @@ def _package_file_digests(repo_root: Path) -> dict[str, str]:
     if not digests:
         raise _error(f"no package payload files found below {package_root}")
     return digests
+
+
+def _build_embedded_manifest(repo_root: Path, tag: str) -> dict[str, Any]:
+    return {
+        "version": RELEASE_MANIFEST_VERSION,
+        "release_name": RELEASE_NAME,
+        "version_tag": tag,
+        "expected_signing_identity": _signing_identity(tag),
+        "release_manifest_url": _release_url(tag, "manifest.json"),
+        "release_manifest_signature_url": _release_url(tag, "manifest.json.sigstore"),
+        "release_manifest_tsa_witness_url": _release_url(tag, "manifest.json.tsa.json"),
+        "per_file_digests": _package_file_digests(repo_root),
+    }
+
+
+def _embedded_manifest_entry(repo_root: Path) -> dict[str, Any]:
+    manifest_path = repo_root / EMBEDDED_MANIFEST_PATH
+    manifest = _load_json(manifest_path)
+    if not isinstance(manifest, dict):
+        raise _error(f"{manifest_path} must contain a JSON object")
+    _validate_embedded_manifest(manifest)
+    canonical_bytes = _canonical_json_bytes(manifest)
+    return {
+        "artifact": "wheel",
+        "path": EMBEDDED_MANIFEST_PATH,
+        "media_type": EMBEDDED_MANIFEST_MEDIA_TYPE,
+        "canonicalization": EMBEDDED_MANIFEST_CANONICALIZATION,
+        "sha256": f"sha256:{_sha256_bytes(canonical_bytes)}",
+    }
 
 
 def _find_rekor_log_index(value: Any) -> int | None:
@@ -203,16 +300,9 @@ def _artifact_entry(dist_dir: Path, filename: str, content_type: str) -> dict[st
 def write_embedded_manifest(args: argparse.Namespace) -> None:
     repo_root = args.repo_root.resolve()
     version = _assert_version_matches(repo_root, args.tag)
-    manifest = {
-        "version": RELEASE_MANIFEST_VERSION,
-        "release_name": RELEASE_NAME,
-        "version_tag": args.tag,
-        "expected_signing_identity": _signing_identity(args.tag),
-        "release_manifest_url": _release_url(args.tag, "manifest.json"),
-        "release_manifest_signature_url": _release_url(args.tag, "manifest.json.sigstore"),
-        "per_file_digests": _package_file_digests(repo_root),
-    }
-    output_path = repo_root / PACKAGE_ROOT / "_release_manifest.json"
+    manifest = _build_embedded_manifest(repo_root, args.tag)
+    _validate_embedded_manifest(manifest)
+    output_path = repo_root / EMBEDDED_MANIFEST_PATH
     _write_json(output_path, manifest)
     print(f"wrote {output_path.relative_to(repo_root)} for {version}")
 
@@ -242,6 +332,7 @@ def write_release_manifest(args: argparse.Namespace) -> None:
             _artifact_entry(dist_dir, wheel_name, "application/x-wheel+zip"),
             _artifact_entry(dist_dir, sdist_name, "application/gzip"),
         ],
+        "embedded_manifests": [_embedded_manifest_entry(repo_root)],
         "sbom": {
             "format": "cyclonedx",
             "filename": sbom_path.name,

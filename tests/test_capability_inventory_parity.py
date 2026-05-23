@@ -60,9 +60,9 @@ def test_verifier_version_matches_package() -> None:
     assert inv["verifier"]["version"] == keel_verifier.__version__
 
 
-def test_step4_capability_versions() -> None:
+def test_capability_versions() -> None:
     inv = _load_inventory()
-    assert inv["verifier"]["version"] == "2.3.0"
+    assert inv["verifier"]["version"] == "2.4.0"
     assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.1"
 
 
