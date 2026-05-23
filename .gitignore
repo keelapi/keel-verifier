@@ -12,5 +12,6 @@ build/
 dist/
 manifest.json
 manifest.json.sigstore
+manifest.json.tsa.json
 sbom.cyclonedx.json
 keel_verifier/_release_manifest.json
