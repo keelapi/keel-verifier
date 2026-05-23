@@ -60,6 +60,7 @@ python -m keel_verifier sample/export.json --self-attested
 | Verify a checkpoint | `keel-verify checkpoint checkpoint.json` |
 | Verify a registered claim | `keel-verify claim delegation_denied_correctly --evidence-file evidence.json` |
 | Refresh cached trust roots | `keel-verify refresh-keys` |
+| Verify the installed wheel | `keel-verify self-check` |
 
 ## What It Verifies
 
@@ -73,6 +74,47 @@ python -m keel_verifier sample/export.json --self-attested
 `keel-verify checkpoint` verifies integrity checkpoint JSON artifacts: the `chain_heads` composite hash, the Ed25519 checkpoint signature, and an embedded RFC 3161 timestamp MessageImprint when present.
 
 `keel-verify claim` adjudicates pack-pinned evidence packs against the verifier's claim registry — see [Claim Verification](#claim-verification-pack-pinned-semantics) below.
+
+`keel-verify self-check` verifies the installed wheel form of `keel-verifier`
+against the signed release artifact. It verifies the Sigstore-signed release
+manifest, Rekor inclusion, DigiCert and GlobalSign RFC 3161 TSA witnesses, the
+embedded manifest's RFC 8785 JCS binding, and the wheel package files listed in
+the embedded manifest. It does not claim binary or OCI verification.
+
+## Installed Wheel Self-Check
+
+Run self-check after installing from PyPI:
+
+```bash
+python -m pip install keel-verifier
+keel-verify self-check
+```
+
+Successful output is wheel-scoped:
+
+```text
+PASS: keel-verifier self-check passed for installed wheel form
+  [OK] form: wheel form selected
+  [OK] embedded_manifest: embedded release manifest is present and cycle-safe
+  [OK] fetch: release manifest, signature, and TSA sidecar loaded
+  [OK] sigstore_signature: signed release manifest verifies against expected GitHub Actions identity
+  [OK] rekor_inclusion: Rekor inclusion proof is present and verified by sigstore-python
+  [OK] tsa_witnesses: DigiCert and GlobalSign RFC 3161 receipts verify
+  [OK] embedded_binding: embedded manifest JCS hash matches signed release manifest binding
+  [OK] per_file_digests: installed wheel files match embedded per-file digests
+```
+
+Failure output includes a stable error code:
+
+```text
+FAILED: keel-verifier self-check failed for installed wheel form
+  [FAIL] per_file_digests: SELF_CHECK_FILE_DIGEST_MISMATCH: installed file digest mismatch: keel_verifier/__init__.py
+```
+
+Self-check fetches release provenance online by default and uses a 24 hour cache
+under `~/.cache/keel-verifier/`. Use `--offline` to require cached provenance,
+`--no-cache` to fetch without reading or writing cache entries, and `--json` for
+machine-readable stage results.
 
 ## Obtaining a Signed Export
 

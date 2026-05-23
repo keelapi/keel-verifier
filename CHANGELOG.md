@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `keel-verify self-check` for installed-wheel verification against the signed release manifest, Rekor inclusion, both DigiCert and GlobalSign TSA witnesses, the RFC 8785 JCS embedded-manifest binding, and per-file wheel digests.
+- Add `embedded_manifests` bindings to the signed release manifest and enforce cycle-prevention rules for the embedded `_release_manifest.json`.
+- Add the detached `manifest.json.tsa.json` release sidecar carrying DigiCert and GlobalSign RFC 3161 timestamp receipts for `manifest.json`.
 - Add public security reporting policy, README badges, compact common commands, TSA trust-validation docs, and clearer network-behavior wording.
 - Accept `--json` on `keel-verify claim delegation_denied_correctly` for documented CLI compatibility; claim output remains JSON by default.
 - Add Ruff configuration and CI linting.
@@ -25,7 +28,7 @@
 - Add a signed `manifest.json` release manifest covering the wheel, source distribution, SBOM, Sigstore bundles, Rekor log indices, and build-environment metadata.
 - Add a release-time CycloneDX SBOM attestation for the wheel.
 - Every wheel now carries `keel_verifier/_release_manifest.json` with per-file digests and release-manifest URLs for future installed-package self-verification.
-- No new verifier adjudication functionality is included in v2.2.0; the friendly `keel-verify --self-check` wrapper follows in v2.3.0.
+- No new verifier adjudication functionality is included in v2.2.0; installed-wheel self-check follows in v2.4.0.
 
 ## v2.1.0 — scope-faithful export adjudication (2026-05-20)
 
