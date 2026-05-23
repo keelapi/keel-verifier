@@ -77,9 +77,13 @@ python -m keel_verifier sample/export.json --self-attested
 
 `keel-verify self-check` verifies the installed wheel form of `keel-verifier`
 against the signed release artifact. It verifies the Sigstore-signed release
-manifest, Rekor inclusion, DigiCert and GlobalSign RFC 3161 TSA witnesses, the
-embedded manifest's RFC 8785 JCS binding, and the wheel package files listed in
-the embedded manifest. It does not claim binary or OCI verification.
+manifest (full keyless signature and certificate-chain), the Rekor inclusion
+proof, the DigiCert and GlobalSign RFC 3161 TSA witnesses (bind-level: the
+receipts bind to the signed manifest hash and report `granted` status; full
+CMS signature and cert-chain validation against TSA trust roots is opt-in via
+the `--tsa-ca-bundle` extension and is not part of the default self-check),
+the embedded manifest's RFC 8785 JCS binding, and the wheel package files
+listed in the embedded manifest. It does not claim binary or OCI verification.
 
 ## Installed Wheel Self-Check
 
@@ -99,7 +103,7 @@ PASS: keel-verifier self-check passed for installed wheel form
   [OK] fetch: release manifest, signature, and TSA sidecar loaded
   [OK] sigstore_signature: signed release manifest verifies against expected GitHub Actions identity
   [OK] rekor_inclusion: Rekor inclusion proof is present and verified by sigstore-python
-  [OK] tsa_witnesses: DigiCert and GlobalSign RFC 3161 receipts verify
+  [OK] tsa_witnesses: DigiCert and GlobalSign RFC 3161 receipts witness the manifest hash (bind-level; cert-chain validation is opt-in)
   [OK] embedded_binding: embedded manifest JCS hash matches signed release manifest binding
   [OK] per_file_digests: installed wheel files match embedded per-file digests
 ```

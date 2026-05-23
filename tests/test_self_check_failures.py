@@ -84,16 +84,12 @@ def test_missing_tsa_receipt_has_specific_error_code() -> None:
     assert exc.value.code == "SELF_CHECK_TSA_MISSING"
 
 
-def test_expired_or_invalid_tsa_receipt_has_specific_error_code(monkeypatch) -> None:
-    class FakeResponse:
-        status = 0
+def test_malformed_tsa_receipt_has_specific_error_code() -> None:
+    """Non-DER bytes in receipt_b64 should produce SELF_CHECK_TSA_INVALID.
 
-    class FakeVerifier:
-        def verify_message(self, response, message):
-            del response, message
-            raise ValueError("certificate expired at timestamp generation time")
-
-    receipt_der = b"fake-response"
+    Bind-level verification: the receipt fails to decode as TimeStampResp.
+    """
+    receipt_der = b"not-a-real-der-encoded-timestamp-response"
     sidecar = {
         "message_imprint": self_check._sha256_prefixed(b"manifest"),
         "receipt_format": "rfc3161-timestamp-response-der",
@@ -106,13 +102,35 @@ def test_expired_or_invalid_tsa_receipt_has_specific_error_code(monkeypatch) -> 
             for provider in ["digicert", "globalsign"]
         ],
     }
-    monkeypatch.setattr(self_check, "_tsa_verifier", lambda: FakeVerifier())
-    monkeypatch.setattr(self_check, "_decode_tsa_response", lambda raw: FakeResponse())
 
     with pytest.raises(self_check.SelfCheckError) as exc:
         self_check.verify_tsa(b"manifest", sidecar)
 
     assert exc.value.code == "SELF_CHECK_TSA_INVALID"
+
+
+def test_tsa_receipt_hash_mismatch_has_specific_error_code() -> None:
+    """Receipt bytes whose SHA-256 does not match receipt_hash → TSA_INVALID."""
+    receipt_der = b"some-receipt-bytes"
+    sidecar = {
+        "message_imprint": self_check._sha256_prefixed(b"manifest"),
+        "receipt_format": "rfc3161-timestamp-response-der",
+        "receipts": [
+            {
+                "provider": provider,
+                "receipt_b64": base64.b64encode(receipt_der).decode("ascii"),
+                # Deliberately wrong hash
+                "receipt_hash": "sha256:" + "0" * 64,
+            }
+            for provider in ["digicert", "globalsign"]
+        ],
+    }
+
+    with pytest.raises(self_check.SelfCheckError) as exc:
+        self_check.verify_tsa(b"manifest", sidecar)
+
+    assert exc.value.code == "SELF_CHECK_TSA_INVALID"
+    assert "receipt_hash mismatch" in exc.value.message
 
 
 def test_offline_without_cache_fails_closed(tmp_path: Path) -> None:
