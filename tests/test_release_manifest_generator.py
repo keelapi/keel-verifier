@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
+
+import rfc8785
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +57,9 @@ def test_generate_embedded_manifest_records_package_payload_digests(tmp_path: Pa
     assert manifest["expected_signing_identity"].endswith(
         "/.github/workflows/release.yml@refs/tags/v2.2.0"
     )
+    assert manifest["release_manifest_tsa_witness_url"].endswith(
+        "/releases/download/v2.2.0/manifest.json.tsa.json"
+    )
     assert set(manifest["per_file_digests"]) == {
         "keel_verifier/__init__.py",
         "keel_verifier/data/trust_root.json",
@@ -64,6 +70,13 @@ def test_generate_release_manifest_reads_rekor_indices_from_bundles(
     tmp_path: Path,
 ) -> None:
     _write_pyproject(tmp_path, "2.2.0")
+    package = tmp_path / "keel_verifier"
+    package.joinpath("data").mkdir(parents=True)
+    package.joinpath("__init__.py").write_text('__version__ = "2.2.0"\n', encoding="utf-8")
+    package.joinpath("data", "trust_root.json").write_text("{}\n", encoding="utf-8")
+    embedded_result = _run_generator(tmp_path, "embedded", "--tag", "v2.2.0")
+    assert embedded_result.returncode == 0, embedded_result.stderr
+
     dist = tmp_path / "dist"
     dist.mkdir()
     for filename in [
@@ -101,6 +114,17 @@ def test_generate_release_manifest_reads_rekor_indices_from_bundles(
         "/.github/workflows/release.yml@refs/tags/v2.2.0"
     )
     assert [artifact["rekor_log_index"] for artifact in manifest["artifacts"]] == [42, 42]
+    embedded_manifest = json.loads(package.joinpath("_release_manifest.json").read_text())
+    expected_embedded_hash = hashlib.sha256(rfc8785.dumps(embedded_manifest)).hexdigest()
+    assert manifest["embedded_manifests"] == [
+        {
+            "artifact": "wheel",
+            "path": "keel_verifier/_release_manifest.json",
+            "media_type": "application/json",
+            "canonicalization": "rfc8785-jcs",
+            "sha256": f"sha256:{expected_embedded_hash}",
+        }
+    ]
     assert manifest["sbom"]["attestation_bundle"] == "keel_verifier-2.2.0-sbom.intoto.jsonl"
     assert manifest["build_environment"] == {
         "runner": "ubuntu-latest",
