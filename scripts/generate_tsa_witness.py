@@ -1,5 +1,21 @@
 #!/usr/bin/env python3
-"""Generate the detached RFC 3161 TSA witness sidecar for manifest.json."""
+"""Generate the detached RFC 3161 TSA witness sidecar for manifest.json.
+
+Uses asn1crypto for BER-tolerant ASN.1 parsing of TSA responses. Real-world
+commercial TSAs (DigiCert, GlobalSign) frequently return BER-encoded responses
+that strict-DER parsers reject; asn1crypto handles both DER and BER.
+
+Build-time verification scope is intentionally narrow:
+  1. Response decodes as TimeStampResp
+  2. status == GRANTED or GRANTED_WITH_MODS
+  3. messageImprint.hashedMessage matches sha256(manifest_bytes)
+
+Full CMS signature + certificate-chain validation is deferred to opt-in trust
+extension (matches the existing keel-verifier checkpoint TSA pattern in
+verifier.py:_verify_tsa_receipt). The receipt's raw DER bytes are stored
+verbatim in the sidecar so any downstream consumer can perform deeper
+validation independently.
+"""
 
 from __future__ import annotations
 
@@ -12,8 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from rfc3161_client import HashAlgorithm, PKIStatus, TimestampRequestBuilder
-from rfc3161_client import decode_timestamp_response
+from asn1crypto import algos, cms, core, tsp
 
 
 PROVIDERS: tuple[tuple[str, str, str], ...] = (
@@ -30,6 +45,9 @@ PROVIDERS: tuple[tuple[str, str, str], ...] = (
 )
 
 
+GRANTED_STATUSES = {"granted", "granted_with_mods"}
+
+
 def _error(message: str) -> SystemExit:
     return SystemExit(f"error: {message}")
 
@@ -41,15 +59,19 @@ def _read_bytes(path: Path) -> bytes:
         raise _error(f"missing required file: {path}") from exc
 
 
-def _request_der(manifest_bytes: bytes) -> bytes:
-    request = (
-        TimestampRequestBuilder()
-        .data(manifest_bytes)
-        .hash_algorithm(HashAlgorithm.SHA256)
-        .cert_request(cert_request=True)
-        .build()
+def _build_request(manifest_sha256: bytes) -> bytes:
+    """Build an RFC 3161 TimeStampReq with cert_req=True."""
+    request = tsp.TimeStampReq(
+        {
+            "version": "v1",
+            "message_imprint": {
+                "hash_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+                "hashed_message": manifest_sha256,
+            },
+            "cert_req": True,
+        }
     )
-    return request.as_bytes()
+    return request.dump()
 
 
 def _post_timestamp_request(tsa_url: str, request_der: bytes) -> bytes:
@@ -66,6 +88,19 @@ def _post_timestamp_request(tsa_url: str, request_der: bytes) -> bytes:
         return response.read()
 
 
+def _extract_tst_info(ts_resp: tsp.TimeStampResp) -> tsp.TSTInfo:
+    """Pull the inner TSTInfo from the TimeStampToken's SignedData."""
+    token = ts_resp["time_stamp_token"]
+    if isinstance(token, core.Void) or token.native is None:
+        raise ValueError("TimeStampResp does not contain a TimeStampToken")
+    signed_data: cms.SignedData = token["content"]
+    encap = signed_data["encap_content_info"]
+    content_type = encap["content_type"].native
+    if content_type != "tst_info":
+        raise ValueError(f"unexpected encap content type: {content_type}")
+    return encap["content"].parsed
+
+
 def _receipt(
     *,
     provider: str,
@@ -75,10 +110,23 @@ def _receipt(
     response_der: bytes,
     requested_at: str,
 ) -> dict[str, str]:
-    response = decode_timestamp_response(response_der)
-    if PKIStatus(response.status) not in {PKIStatus.GRANTED, PKIStatus.GRANTED_WITH_MODS}:
-        raise ValueError(f"TSA returned non-granted status: {response.status_string}")
-    if response.tst_info.message_imprint.message != manifest_sha256:
+    # strict=True rejects trailing bytes after the TimeStampResp; ensures the
+    # bytes we store in the sidecar are exactly one well-formed response.
+    ts_resp = tsp.TimeStampResp.load(response_der, strict=True)
+    status = ts_resp["status"]["status"].native
+    if status not in GRANTED_STATUSES:
+        fail_info = ts_resp["status"].native.get("fail_info")
+        raise ValueError(
+            f"TSA returned non-granted status: {status}"
+            + (f" (fail_info={fail_info})" if fail_info else "")
+        )
+
+    tst_info = _extract_tst_info(ts_resp)
+    imprint = tst_info["message_imprint"]["hashed_message"].native
+    algo = tst_info["message_imprint"]["hash_algorithm"]["algorithm"].native
+    if algo != "sha256":
+        raise ValueError(f"TSA used unexpected hash algorithm: {algo}")
+    if imprint != manifest_sha256:
         raise ValueError("TSA response message imprint does not match manifest SHA-256")
 
     return {
@@ -94,13 +142,14 @@ def _receipt(
 def generate_sidecar(manifest_path: Path) -> dict[str, Any]:
     manifest_bytes = _read_bytes(manifest_path)
     manifest_sha256 = hashlib.sha256(manifest_bytes).digest()
-    request_der = _request_der(manifest_bytes)
+    request_der = _build_request(manifest_sha256)
 
     receipts: list[dict[str, str]] = []
     attempts: list[dict[str, str]] = []
     for provider, tsa_url, witness_type in PROVIDERS:
-        requested_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-        requested_at = requested_at.replace("+00:00", "Z")
+        requested_at = (
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        )
         try:
             response_der = _post_timestamp_request(tsa_url, request_der)
             receipts.append(

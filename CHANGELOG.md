@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Add `keel-verify self-check` for installed-wheel verification against the signed release manifest, Rekor inclusion, both DigiCert and GlobalSign TSA witnesses, the RFC 8785 JCS embedded-manifest binding, and per-file wheel digests.
+- Add `keel-verify self-check` for installed-wheel verification against the signed release manifest (full Sigstore signature + cert chain), the Rekor inclusion proof, the DigiCert and GlobalSign TSA witnesses, the RFC 8785 JCS embedded-manifest binding, and per-file wheel digests.
+- TSA witness verification is **bind-level by default** — the receipt is parsed, its status is confirmed as `granted`/`granted_with_mods`, and its `messageImprint` is checked to match the signed manifest hash. This mirrors the existing keel-verifier checkpoint-TSA doctrine (`verifier.py:_verify_tsa_receipt`). Full CMS signature and certificate-chain validation against TSA trust roots remains opt-in via the existing `--tsa-ca-bundle` extension pattern.
+- Use `asn1crypto` for BER-tolerant ASN.1 parsing of RFC 3161 receipts (replaces `rfc3161-client`, which enforced strict-DER set ordering that real-world DigiCert and GlobalSign receipts do not satisfy).
 - Add `embedded_manifests` bindings to the signed release manifest and enforce cycle-prevention rules for the embedded `_release_manifest.json`.
 - Add the detached `manifest.json.tsa.json` release sidecar carrying DigiCert and GlobalSign RFC 3161 timestamp receipts for `manifest.json`.
 - Add public security reporting policy, README badges, compact common commands, TSA trust-validation docs, and clearer network-behavior wording.
