@@ -8376,6 +8376,58 @@ def verify_scope_faithfulness_claim(
     }
 
 
+def verify_permit_v2_signature_claim(
+    *,
+    claim_type: str,
+    export_file: str,
+    manifest: str | None = None,
+    key_manifest: str | None = None,
+) -> dict[str, Any]:
+    spec_by_claim_type = {
+        "operator_approved": PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+        "counter_signed": PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+        "audit_attested": PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    }
+    spec = spec_by_claim_type[claim_type]
+    export_document = _load_json_evidence(export_file)
+    if not isinstance(export_document, dict):
+        raise ValueError("permit v2 claim evidence must be a JSON object")
+    manifest_body: dict[str, Any] = {}
+    if manifest is not None:
+        loaded_manifest = _load_json_evidence(manifest)
+        if not isinstance(loaded_manifest, dict):
+            raise ValueError("manifest must be a JSON object")
+        manifest_body = loaded_manifest
+
+    if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT:
+        claim = _adjudicate_operator_approved_v1(
+            export_document=export_document,
+            manifest=manifest_body,
+            key_manifest_source=key_manifest,
+        )
+    elif spec.slot_name == PERMIT_COUNTER_SIGNATURE_SLOT:
+        claim = _adjudicate_pre_dispatch_counter_signed_v1(
+            export_document=export_document,
+            manifest=manifest_body,
+            key_manifest_source=key_manifest,
+        )
+    else:
+        claim = _adjudicate_audit_attested_v1(
+            export_document=export_document,
+            manifest=manifest_body,
+            key_manifest_source=key_manifest,
+        )
+
+    return {
+        "claim_type": claim_type,
+        "status": claim.aggregate_verdict,
+        "ok": claim.aggregate_verdict == verdict_value("supported"),
+        "reason_code": claim.reason_code,
+        "message": claim.message,
+        "claim": claim.to_dict(),
+    }
+
+
 def cmd_refresh_keys(args: argparse.Namespace) -> int:
     """Pull a fresh Keel public-key manifest into ``~/.keel-verifier/trust-root.json``.
 
