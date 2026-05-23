@@ -110,7 +110,9 @@ def _receipt(
     response_der: bytes,
     requested_at: str,
 ) -> dict[str, str]:
-    ts_resp = tsp.TimeStampResp.load(response_der)
+    # strict=True rejects trailing bytes after the TimeStampResp; ensures the
+    # bytes we store in the sidecar are exactly one well-formed response.
+    ts_resp = tsp.TimeStampResp.load(response_der, strict=True)
     status = ts_resp["status"]["status"].native
     if status not in GRANTED_STATUSES:
         fail_info = ts_resp["status"].native.get("fail_info")
