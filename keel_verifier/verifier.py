@@ -445,10 +445,38 @@ PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
 PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
     "permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_OPERATOR_APPROVED_CLAIM_NAME = "permit.operator_approved.v1"
+PERMIT_COUNTER_SIGNED_CLAIM_NAME = "permit.counter_signed.v1"
+PERMIT_AUDIT_ATTESTED_CLAIM_NAME = "permit.audit_attested.v1"
 PERMIT_DECISION_ARTIFACT_TYPE = "permit_decision_binding"
 PERMIT_DECISION_ARTIFACT_VERSION = "permit.decision.v1"
 PERMIT_REVOKED_EVENT_TYPE = "permit.revoked"
 DISPATCH_EGRESS_BOUND_EVENT_TYPE = "dispatch.egress_bound"
+PERMIT_V2_FORMAT_VERSION = "v2"
+PERMIT_OPERATOR_APPROVAL_SLOT = "operator_approval"
+PERMIT_COUNTER_SIGNATURE_SLOT = "counter_signature"
+PERMIT_AUDIT_ATTESTATION_SLOT = "audit_attestation"
+PERMIT_V2_SIGNATURE_SLOTS = (
+    "signature",
+    PERMIT_OPERATOR_APPROVAL_SLOT,
+    PERMIT_COUNTER_SIGNATURE_SLOT,
+    PERMIT_AUDIT_ATTESTATION_SLOT,
+    "provider_attestation",
+)
+PERMIT_OPERATOR_APPROVAL_PAYLOAD_TYPE = "permit.operator_approval.v1"
+PERMIT_COUNTER_SIGNATURE_PAYLOAD_TYPE = "permit.counter_signature.v1"
+PERMIT_AUDIT_ATTESTATION_PAYLOAD_TYPE = "permit.audit_attestation.v1"
+PERMIT_V2_OPERATOR_KEY_PURPOSES = frozenset(
+    {"permit_v2_operator", "operator", "operator_approval"}
+)
+PERMIT_V2_BUYER_KEY_PURPOSES = frozenset(
+    {
+        "permit_v2_buyer_principal",
+        "buyer_principal",
+        "counter_signature",
+        "audit_attestation",
+    }
+)
 _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_version",
     "permit_id",
@@ -485,6 +513,73 @@ _PERMIT_REVOKED_REQUIRED_FIELDS = (
 _PERMIT_REVOKED_ACTOR_KINDS = {"user", "service_account", "system", "api_key"}
 _REASON_CODE_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_SHA256_HEX_RE = re.compile(r"^[a-f0-9]{64}$")
+_PERMIT_V2_UTC_MICROSECOND_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$"
+)
+
+
+@dataclass(frozen=True)
+class PermitV2SlotSpec:
+    slot_name: str
+    claim_name: str
+    payload_type: str
+    subject_type: str
+    signer_payload_field: str
+    key_purposes: frozenset[str]
+    invalid_code: str
+    key_not_trusted_code: str
+    signer_mismatch_code: str
+    supported_code: str
+    extra_field: str | None = None
+    extra_mismatch_code: str | None = None
+
+
+PERMIT_V2_OPERATOR_APPROVAL_SPEC = PermitV2SlotSpec(
+    slot_name=PERMIT_OPERATOR_APPROVAL_SLOT,
+    claim_name=PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
+    payload_type=PERMIT_OPERATOR_APPROVAL_PAYLOAD_TYPE,
+    subject_type="permit_operator_approval",
+    signer_payload_field="operator_id",
+    key_purposes=PERMIT_V2_OPERATOR_KEY_PURPOSES,
+    invalid_code="PERMIT_OPERATOR_APPROVAL_INVALID",
+    key_not_trusted_code="PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
+    signer_mismatch_code="PERMIT_OPERATOR_APPROVAL_SIGNER_MISMATCH",
+    supported_code="PERMIT_OPERATOR_APPROVAL_SUPPORTED",
+)
+PERMIT_V2_COUNTER_SIGNATURE_SPEC = PermitV2SlotSpec(
+    slot_name=PERMIT_COUNTER_SIGNATURE_SLOT,
+    claim_name=PERMIT_COUNTER_SIGNED_CLAIM_NAME,
+    payload_type=PERMIT_COUNTER_SIGNATURE_PAYLOAD_TYPE,
+    subject_type="permit_counter_signature",
+    signer_payload_field="buyer_principal_id",
+    key_purposes=PERMIT_V2_BUYER_KEY_PURPOSES,
+    invalid_code="PERMIT_COUNTER_SIGNATURE_INVALID",
+    key_not_trusted_code="PERMIT_COUNTER_SIGNATURE_KEY_NOT_TRUSTED",
+    signer_mismatch_code="PERMIT_COUNTER_SIGNATURE_SIGNER_MISMATCH",
+    supported_code="PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+    extra_field="execution_intent_hash",
+    extra_mismatch_code="PERMIT_COUNTER_SIGNATURE_INTENT_MISMATCH",
+)
+PERMIT_V2_AUDIT_ATTESTATION_SPEC = PermitV2SlotSpec(
+    slot_name=PERMIT_AUDIT_ATTESTATION_SLOT,
+    claim_name=PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
+    payload_type=PERMIT_AUDIT_ATTESTATION_PAYLOAD_TYPE,
+    subject_type="permit_audit_attestation",
+    signer_payload_field="buyer_principal_id",
+    key_purposes=PERMIT_V2_BUYER_KEY_PURPOSES,
+    invalid_code="PERMIT_AUDIT_ATTESTATION_INVALID",
+    key_not_trusted_code="PERMIT_AUDIT_ATTESTATION_KEY_NOT_TRUSTED",
+    signer_mismatch_code="PERMIT_AUDIT_ATTESTATION_SIGNER_MISMATCH",
+    supported_code="PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+    extra_field="batch_id",
+    extra_mismatch_code="PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+)
+PERMIT_V2_SLOT_SPECS = {
+    PERMIT_OPERATOR_APPROVAL_SLOT: PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+    PERMIT_COUNTER_SIGNATURE_SLOT: PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+    PERMIT_AUDIT_ATTESTATION_SLOT: PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+}
 
 
 def _verify_ed25519(pub_b64: str, signed_message: bytes, sig_b64: str) -> bool:
@@ -2380,6 +2475,739 @@ def _raw_ed25519_signature_b64(value: Any) -> bool:
         return len(base64.b64decode(value, validate=True)) == 64
     except Exception:
         return False
+
+
+def _permit_v2_slot_claim(
+    spec: PermitV2SlotSpec,
+    *,
+    permit_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _permit_claim(
+        spec.claim_name,
+        subject_type=spec.subject_type,
+        subject_id=permit_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or [f"permit.{spec.slot_name}"],
+    )
+
+
+def _permit_v2_required_envelope_fields(spec: PermitV2SlotSpec) -> set[str]:
+    fields = {
+        "payload_type",
+        "signer_id",
+        "key_id",
+        "signed_at",
+        "signed_payload_hash",
+        "signature",
+    }
+    if spec.extra_field is not None:
+        fields.add(spec.extra_field)
+    return fields
+
+
+def _permit_v2_sha256_hex(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text if _SHA256_HEX_RE.fullmatch(text) else None
+
+
+def _permit_v2_parse_signed_at(value: Any) -> datetime | None:
+    if not isinstance(value, str) or _PERMIT_V2_UTC_MICROSECOND_RE.fullmatch(value) is None:
+        return None
+    return _parse_iso_or_none(value)
+
+
+def _permit_v2_key_id_from_public_key(public_key: str) -> str:
+    raw = base64.b64decode(public_key.removeprefix("ed25519:"))
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _permit_v2_public_key_b64(public_key: str) -> str | None:
+    try:
+        raw = base64.b64decode(public_key.removeprefix("ed25519:"), validate=True)
+        if len(raw) != 32:
+            return None
+        return base64.b64encode(raw).decode("ascii")
+    except Exception:
+        return None
+
+
+def _permit_v2_payload_hash(payload_bytes: bytes) -> str:
+    return hashlib.sha256(payload_bytes).hexdigest()
+
+
+def _permit_v2_permit_id(permit: dict[str, Any]) -> str | None:
+    value = _string_field(permit.get("id"), permit.get("permit_id"))
+    return value if _is_uuid_text(value) else None
+
+
+def _permit_v2_account_id(
+    *,
+    permit: dict[str, Any],
+    manifest: dict[str, Any],
+) -> str | None:
+    fields = ("account_id", "organization_id", "org_id", "tenant_id", "project_id")
+    for source in (permit, manifest):
+        for field in fields:
+            value = source.get(field)
+            if _is_uuid_text(value):
+                return str(value)
+    return None
+
+
+def _iter_permit_v2_candidates(
+    document: dict[str, Any],
+) -> list[tuple[dict[str, Any], str]]:
+    candidates: list[tuple[dict[str, Any], str]] = []
+    if document.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+        candidates.append((document, "export"))
+    for key in ("permit", "permit_v2", "permit_record"):
+        nested = document.get(key)
+        if isinstance(nested, dict) and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+            candidates.append((nested, f"export.{key}"))
+    for entry_index, entry in enumerate(_iter_export_entries(document)):
+        if entry.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+            candidates.append((entry, f"chain_entries[{entry_index}]"))
+        payload = _entry_payload_any(entry)
+        if payload.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+            candidates.append((payload, f"chain_entries[{entry_index}].payload_json"))
+        for key in ("permit", "permit_v2", "permit_record"):
+            nested = payload.get(key)
+            if isinstance(nested, dict) and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+                candidates.append((nested, f"chain_entries[{entry_index}].payload_json.{key}"))
+    return candidates
+
+
+def _find_permit_v2_slot(
+    document: dict[str, Any],
+    slot_name: str,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, str]:
+    fallback = f"permit.{slot_name}"
+    for permit, path in _iter_permit_v2_candidates(document):
+        slot = permit.get(slot_name)
+        if isinstance(slot, dict):
+            return permit, slot, f"{path}.{slot_name}"
+        fallback = f"{path}.{slot_name}"
+    return None, None, fallback
+
+
+def _permit_v2_auto_required_claims(document: dict[str, Any] | None) -> set[str]:
+    if document is None:
+        return set()
+    claims: set[str] = set()
+    for permit, _path in _iter_permit_v2_candidates(document):
+        for slot_name, spec in PERMIT_V2_SLOT_SPECS.items():
+            if isinstance(permit.get(slot_name), dict):
+                claims.add(spec.claim_name)
+    return claims
+
+
+def _permit_v2_slot_schema_error(
+    slot: dict[str, Any],
+    spec: PermitV2SlotSpec,
+) -> tuple[str, str] | None:
+    if slot.get("payload_type") != spec.payload_type:
+        return (
+            "PAYLOAD_TYPE_MISMATCH",
+            f"{spec.slot_name}.payload_type must be {spec.payload_type}",
+        )
+    expected = _permit_v2_required_envelope_fields(spec)
+    actual = set(slot.keys())
+    missing = sorted(expected - actual)
+    if missing:
+        return (
+            spec.invalid_code,
+            f"{spec.slot_name} missing required field(s): " + ", ".join(missing),
+        )
+    extra = sorted(actual - expected)
+    if extra:
+        return (
+            spec.invalid_code,
+            f"{spec.slot_name} has unsupported field(s): " + ", ".join(extra),
+        )
+    if not _is_uuid_text(slot.get("signer_id")):
+        return spec.invalid_code, f"{spec.slot_name}.signer_id must be a UUID string"
+    if _permit_v2_sha256_hex(slot.get("key_id")) is None:
+        return spec.invalid_code, f"{spec.slot_name}.key_id must be lowercase SHA-256 hex"
+    if _permit_v2_parse_signed_at(slot.get("signed_at")) is None:
+        return (
+            spec.invalid_code,
+            f"{spec.slot_name}.signed_at must be UTC ISO 8601 with microsecond precision",
+        )
+    if _permit_v2_sha256_hex(slot.get("signed_payload_hash")) is None:
+        return (
+            spec.invalid_code,
+            f"{spec.slot_name}.signed_payload_hash must be lowercase SHA-256 hex",
+        )
+    if not _raw_ed25519_signature_b64(slot.get("signature")):
+        return spec.invalid_code, f"{spec.slot_name}.signature must be base64 Ed25519 bytes"
+    if spec.extra_field == "execution_intent_hash" and _permit_v2_sha256_hex(
+        slot.get("execution_intent_hash")
+    ) is None:
+        return (
+            spec.invalid_code,
+            f"{spec.slot_name}.execution_intent_hash must be lowercase SHA-256 hex",
+        )
+    if spec.extra_field == "batch_id" and not _is_nonempty_str(slot.get("batch_id")):
+        return spec.invalid_code, f"{spec.slot_name}.batch_id must be a non-empty string"
+    return None
+
+
+def _explicit_permit_v2_signed_payload(
+    *,
+    export_document: dict[str, Any],
+    permit: dict[str, Any],
+    spec: PermitV2SlotSpec,
+) -> dict[str, Any] | None:
+    for source in (permit, export_document):
+        for key in ("permit_v2_signed_payloads", "signature_payloads"):
+            payloads = source.get(key)
+            if isinstance(payloads, dict):
+                payload = payloads.get(spec.slot_name)
+                if isinstance(payload, dict):
+                    return payload
+    return None
+
+
+def _permit_v2_issuer_signature_hash(permit: dict[str, Any]) -> str | None:
+    explicit = _permit_v2_sha256_hex(permit.get("issuer_signature_hash"))
+    if explicit is not None:
+        return explicit
+    signature = permit.get("signature")
+    if isinstance(signature, dict):
+        return _permit_v2_payload_hash(_canonical_json_bytes(signature))
+    if isinstance(signature, str) and signature.strip():
+        return _permit_v2_payload_hash(signature.strip().encode("utf-8"))
+    return None
+
+
+def _permit_v2_canonical_permit_hash(permit: dict[str, Any]) -> str | None:
+    explicit = _permit_v2_sha256_hex(
+        permit.get("permit_canonical_hash") or permit.get("canonical_hash")
+    )
+    if explicit is not None:
+        return explicit
+    excluded = {
+        *PERMIT_V2_SIGNATURE_SLOTS,
+        "permit_format_version",
+        "issuer_signature_hash",
+        "permit_canonical_hash",
+        "permit_v2_signed_payloads",
+        "signature_payloads",
+        "revocation",
+        "audit_batch",
+        "audit_batches",
+        "known_audit_batches",
+        "batches",
+    }
+    canonical_payload = {key: value for key, value in permit.items() if key not in excluded}
+    if not canonical_payload:
+        return None
+    return _permit_v2_payload_hash(_canonical_json_bytes(canonical_payload))
+
+
+def _permit_v2_signed_payload(
+    *,
+    export_document: dict[str, Any],
+    permit: dict[str, Any],
+    slot: dict[str, Any],
+    spec: PermitV2SlotSpec,
+) -> tuple[dict[str, Any] | None, str | None, str | None]:
+    explicit = _explicit_permit_v2_signed_payload(
+        export_document=export_document,
+        permit=permit,
+        spec=spec,
+    )
+    if explicit is not None:
+        return explicit, None, None
+
+    permit_id = _permit_v2_permit_id(permit)
+    issuer_signature_hash = _permit_v2_issuer_signature_hash(permit)
+    permit_canonical_hash = _permit_v2_canonical_permit_hash(permit)
+    missing = [
+        field
+        for field, value in (
+            ("permit_id", permit_id),
+            ("issuer_signature_hash", issuer_signature_hash),
+            ("permit_canonical_hash", permit_canonical_hash),
+        )
+        if value is None
+    ]
+    if missing:
+        return (
+            None,
+            spec.invalid_code,
+            "cannot reconstruct canonical signed payload; missing " + ", ".join(missing),
+        )
+    payload: dict[str, Any] = {
+        "payload_type": spec.payload_type,
+        "permit_id": permit_id,
+        "issuer_signature_hash": issuer_signature_hash,
+        "permit_canonical_hash": permit_canonical_hash,
+        spec.signer_payload_field: slot["signer_id"],
+        "signed_at": slot["signed_at"],
+    }
+    if spec.extra_field is not None:
+        payload[spec.extra_field] = slot[spec.extra_field]
+    return payload, None, None
+
+
+def _permit_v2_signed_payload_error(
+    *,
+    payload: dict[str, Any],
+    permit: dict[str, Any],
+    slot: dict[str, Any],
+    spec: PermitV2SlotSpec,
+) -> tuple[str, str] | None:
+    expected = {
+        "payload_type",
+        "permit_id",
+        "issuer_signature_hash",
+        "permit_canonical_hash",
+        spec.signer_payload_field,
+        "signed_at",
+    }
+    if spec.extra_field is not None:
+        expected.add(spec.extra_field)
+    actual = set(payload.keys())
+    missing = sorted(expected - actual)
+    if missing:
+        return spec.invalid_code, "signed payload missing field(s): " + ", ".join(missing)
+    extra = sorted(actual - expected)
+    if extra:
+        return spec.invalid_code, "signed payload has unsupported field(s): " + ", ".join(extra)
+    if payload.get("payload_type") != spec.payload_type:
+        return (
+            "PAYLOAD_TYPE_MISMATCH",
+            f"signed payload payload_type must be {spec.payload_type}",
+        )
+    permit_id = _permit_v2_permit_id(permit)
+    if payload.get("permit_id") != permit_id:
+        return spec.invalid_code, "signed payload permit_id does not match the permit"
+    if _permit_v2_sha256_hex(payload.get("issuer_signature_hash")) is None:
+        return spec.invalid_code, "signed payload issuer_signature_hash must be lowercase SHA-256 hex"
+    if _permit_v2_sha256_hex(payload.get("permit_canonical_hash")) is None:
+        return spec.invalid_code, "signed payload permit_canonical_hash must be lowercase SHA-256 hex"
+    if not _is_uuid_text(payload.get(spec.signer_payload_field)):
+        return spec.invalid_code, f"signed payload {spec.signer_payload_field} must be a UUID string"
+    if payload.get(spec.signer_payload_field) != slot.get("signer_id"):
+        return (
+            spec.signer_mismatch_code,
+            f"{spec.slot_name}.signer_id does not match signed payload {spec.signer_payload_field}",
+        )
+    if payload.get("signed_at") != slot.get("signed_at"):
+        return spec.invalid_code, "signed payload signed_at does not match the envelope"
+    if spec.extra_field is not None and payload.get(spec.extra_field) != slot.get(spec.extra_field):
+        return (
+            spec.extra_mismatch_code or spec.invalid_code,
+            f"{spec.slot_name}.{spec.extra_field} does not match signed payload {spec.extra_field}",
+        )
+    return None
+
+
+def _permit_v2_window_bounds(permit: dict[str, Any]) -> tuple[datetime | None, datetime | None]:
+    valid_from = _parse_iso_or_none(
+        permit.get("valid_from") or permit.get("issued_at") or permit.get("created_at")
+    )
+    valid_until = _parse_iso_or_none(
+        permit.get("valid_until")
+        or permit.get("valid_to")
+        or permit.get("expires_at")
+    )
+    return valid_from, valid_until
+
+
+def _permit_v2_slot_window_error(
+    *,
+    permit: dict[str, Any],
+    signing_time: datetime,
+    spec: PermitV2SlotSpec,
+) -> tuple[str, str] | None:
+    valid_from, valid_until = _permit_v2_window_bounds(permit)
+    if valid_from is None:
+        return spec.invalid_code, "permit valid_from/issued_at/created_at is missing or malformed"
+    if spec.slot_name in {PERMIT_OPERATOR_APPROVAL_SLOT, PERMIT_COUNTER_SIGNATURE_SLOT}:
+        if valid_until is None:
+            return spec.invalid_code, "permit valid_until/expires_at is missing or malformed"
+        if signing_time < valid_from or signing_time > valid_until:
+            return spec.invalid_code, f"{spec.slot_name}.signed_at is outside the permit validity window"
+    elif spec.slot_name == PERMIT_AUDIT_ATTESTATION_SLOT and signing_time < valid_from:
+        return spec.invalid_code, "audit_attestation.signed_at is before permit valid_from"
+    return None
+
+
+def _permit_v2_revocation_effective_at(
+    *,
+    export_document: dict[str, Any],
+    permit: dict[str, Any],
+) -> datetime | None:
+    for source in (permit.get("revocation"), export_document.get("revocation")):
+        if isinstance(source, dict):
+            effective_at = _parse_iso_or_none(source.get("effective_at"))
+            if effective_at is not None:
+                return effective_at
+    event, _declared_hash, _path = _find_revocation_evidence(export_document)
+    if event is None:
+        return None
+    permit_id = _permit_v2_permit_id(permit)
+    if permit_id is not None and event.get("permit_id") != permit_id:
+        return None
+    return _parse_iso_or_none(event.get("effective_at"))
+
+
+def _known_audit_batch_ids(*sources: dict[str, Any]) -> set[str]:
+    ids: set[str] = set()
+
+    def collect(value: Any) -> None:
+        if isinstance(value, str) and value.strip():
+            ids.add(value.strip())
+        elif isinstance(value, dict):
+            for field in ("batch_id", "id", "audit_batch_id"):
+                raw = value.get(field)
+                if isinstance(raw, str) and raw.strip():
+                    ids.add(raw.strip())
+            for field in ("audit_batches", "known_audit_batches", "batches"):
+                collect(value.get(field))
+        elif isinstance(value, list):
+            for item in value:
+                collect(item)
+
+    for source in sources:
+        for field in ("audit_batch", "audit_batches", "known_audit_batches", "batches"):
+            collect(source.get(field))
+    return ids
+
+
+def _permit_v2_entry_identity(entry: dict[str, Any], *fields: str) -> str | None:
+    for field in fields:
+        value = entry.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _permit_v2_key_entry_active_at(entry: dict[str, Any], signing_time: datetime) -> bool:
+    valid_from = _parse_iso_or_none(entry.get("valid_from") or entry.get("active_from"))
+    if valid_from is not None and signing_time < valid_from:
+        return False
+    valid_until = _parse_iso_or_none(
+        entry.get("valid_until") or entry.get("valid_to") or entry.get("active_to")
+    )
+    if valid_until is not None and signing_time >= valid_until:
+        return False
+    revoked_at = _parse_iso_or_none(entry.get("revoked_at"))
+    if revoked_at is not None and signing_time >= revoked_at:
+        return False
+    compromised_at = _parse_iso_or_none(entry.get("compromised_at"))
+    return not (compromised_at is not None and signing_time >= compromised_at)
+
+
+def _permit_v2_key_entry_matches(
+    entry: dict[str, Any],
+    *,
+    spec: PermitV2SlotSpec,
+    account_id: str,
+    signer_id: str,
+    key_id: str,
+    signing_time: datetime,
+) -> bool:
+    purpose = entry.get("purpose")
+    signer_role = entry.get("signer_role")
+    expected_role = (
+        "operator"
+        if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT
+        else "buyer_principal"
+    )
+    if (
+        purpose not in spec.key_purposes
+        and signer_role != expected_role
+    ):
+        return False
+    if entry.get("key_id") != key_id:
+        return False
+    entry_account_id = _permit_v2_entry_identity(
+        entry,
+        "account_id",
+        "organization_id",
+        "org_id",
+        "tenant_id",
+        "project_id",
+    )
+    if entry_account_id != account_id:
+        return False
+    entry_signer_id = _permit_v2_entry_identity(
+        entry,
+        "signer_id",
+        "operator_id",
+        "buyer_principal_id",
+    )
+    if entry_signer_id != signer_id:
+        return False
+    return _permit_v2_key_entry_active_at(entry, signing_time)
+
+
+def _resolve_permit_v2_slot_key(
+    *,
+    slot: dict[str, Any],
+    spec: PermitV2SlotSpec,
+    account_id: str,
+    signing_time: datetime,
+    key_manifest_source: str | None,
+) -> tuple[str | None, str | None]:
+    source = key_manifest_source or _cached_key_manifest_source() or _bundled_key_manifest_source()
+    if source is None:
+        return None, "no permit v2 key registry evidence available"
+    try:
+        entries = _load_key_manifest(source)
+    except Exception as exc:
+        return None, f"could not load key registry evidence: {exc}"
+
+    matches = [
+        entry
+        for entry in entries
+        if _permit_v2_key_entry_matches(
+            entry,
+            spec=spec,
+            account_id=account_id,
+            signer_id=str(slot["signer_id"]),
+            key_id=str(slot["key_id"]),
+            signing_time=signing_time,
+        )
+    ]
+    if len(matches) != 1:
+        return None, "no unique trusted permit v2 signer key resolved at signing time"
+    public_key = matches[0].get("public_key")
+    if not isinstance(public_key, str):
+        return None, "resolved permit v2 key has no public_key"
+    if _permit_v2_public_key_b64(public_key) is None:
+        return None, "resolved permit v2 key is not a valid Ed25519 public key"
+    return public_key, None
+
+
+def _adjudicate_permit_v2_signature_slot(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+    spec: PermitV2SlotSpec,
+) -> ClaimVerdict:
+    permit, slot, evidence_path = _find_permit_v2_slot(export_document, spec.slot_name)
+    if permit is None or slot is None:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=None,
+            verdict="insufficient_evidence",
+            reason_code=spec.invalid_code,
+            message=f"Permit v2 {spec.slot_name} evidence is absent",
+            evidence=[evidence_path],
+        )
+
+    permit_id = _permit_v2_permit_id(permit)
+    if permit_id is None:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=None,
+            verdict="insufficient_evidence",
+            reason_code=spec.invalid_code,
+            message="Permit v2 permit_id/id is missing or malformed",
+            evidence=[evidence_path, "permit.id"],
+        )
+
+    schema_error = _permit_v2_slot_schema_error(slot, spec)
+    if schema_error is not None:
+        reason, message = schema_error
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="disproved",
+            reason_code=reason,
+            message=message,
+            evidence=[evidence_path],
+        )
+
+    signed_at = _permit_v2_parse_signed_at(slot["signed_at"])
+    assert signed_at is not None
+    payload, payload_reason, payload_message = _permit_v2_signed_payload(
+        export_document=export_document,
+        permit=permit,
+        slot=slot,
+        spec=spec,
+    )
+    if payload is None:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code=payload_reason or spec.invalid_code,
+            message=payload_message or "canonical signed payload evidence is absent",
+            evidence=[evidence_path, "canonical_payload"],
+        )
+
+    payload_error = _permit_v2_signed_payload_error(
+        payload=payload,
+        permit=permit,
+        slot=slot,
+        spec=spec,
+    )
+    if payload_error is not None:
+        reason, message = payload_error
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="disproved",
+            reason_code=reason,
+            message=message,
+            evidence=[evidence_path, "canonical_payload"],
+        )
+
+    payload_bytes = _canonical_json_bytes(payload)
+    if _permit_v2_payload_hash(payload_bytes) != slot["signed_payload_hash"]:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="disproved",
+            reason_code=spec.invalid_code,
+            message=f"{spec.slot_name}.signed_payload_hash does not match canonical signed payload bytes",
+            evidence=[evidence_path, "signed_payload_hash"],
+        )
+
+    window_error = _permit_v2_slot_window_error(
+        permit=permit,
+        signing_time=signed_at,
+        spec=spec,
+    )
+    if window_error is not None:
+        reason, message = window_error
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="disproved",
+            reason_code=reason,
+            message=message,
+            evidence=[evidence_path, "signed_at"],
+        )
+
+    if spec.slot_name == PERMIT_COUNTER_SIGNATURE_SLOT:
+        effective_at = _permit_v2_revocation_effective_at(
+            export_document=export_document,
+            permit=permit,
+        )
+        if effective_at is not None and signed_at >= effective_at:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="disproved",
+                reason_code=spec.invalid_code,
+                message="counter_signature.signed_at is not before revocation.effective_at",
+                evidence=[evidence_path, "revocation.effective_at"],
+            )
+
+    if spec.slot_name == PERMIT_AUDIT_ATTESTATION_SLOT:
+        known_batches = _known_audit_batch_ids(permit, export_document, manifest)
+        if slot["batch_id"] not in known_batches:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="disproved",
+                reason_code="PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+                message="audit_attestation.batch_id does not resolve to a known audit batch",
+                evidence=[evidence_path, "audit_batches"],
+            )
+
+    account_id = _permit_v2_account_id(permit=permit, manifest=manifest)
+    if account_id is None:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code=spec.key_not_trusted_code,
+            message="account_id is required to resolve permit v2 signer keys",
+            evidence=[evidence_path, "key_registry"],
+        )
+    public_key, key_error = _resolve_permit_v2_slot_key(
+        slot=slot,
+        spec=spec,
+        account_id=account_id,
+        signing_time=signed_at,
+        key_manifest_source=key_manifest_source,
+    )
+    if public_key is None:
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code=spec.key_not_trusted_code,
+            message=key_error or "permit v2 signer key could not be resolved",
+            evidence=[evidence_path, "key_registry"],
+        )
+
+    if not _verify_ed25519(public_key, payload_bytes, str(slot["signature"])):
+        return _permit_v2_slot_claim(
+            spec,
+            permit_id=permit_id,
+            verdict="disproved",
+            reason_code=spec.invalid_code,
+            message=f"{spec.slot_name} signature does not verify over canonical signed payload bytes",
+            evidence=[evidence_path, "signature", "key_registry"],
+        )
+
+    return _permit_v2_slot_claim(
+        spec,
+        permit_id=permit_id,
+        verdict="supported",
+        reason_code=spec.supported_code,
+        message=f"Permit v2 {spec.slot_name} payload hash, signer key, timing, and signature are supported",
+        evidence=[evidence_path, "key_registry"],
+    )
+
+
+def _adjudicate_operator_approved_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+    )
+
+
+def _adjudicate_pre_dispatch_counter_signed_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+    )
+
+
+def _adjudicate_audit_attested_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    )
 
 
 def _permit_binding_key_candidates(
