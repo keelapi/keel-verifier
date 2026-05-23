@@ -1,11 +1,11 @@
 {
   "version": "1.0",
   "release_name": "keel-verifier",
-  "version_tag": "v2.4.2",
-  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v2.4.2",
-  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.2/manifest.json",
-  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.2/manifest.json.sigstore",
-  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.2/manifest.json.tsa.json",
+  "version_tag": "v2.4.3",
+  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v2.4.3",
+  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.3/manifest.json",
+  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.3/manifest.json.sigstore",
+  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.4.3/manifest.json.tsa.json",
   "per_file_digests": {
     "keel_verifier/__init__.py": "7158d500676420eed9d39568a84eb2e630c2f31de4c29399831db3bb8c359c65",
     "keel_verifier/__main__.py": "8b4cb85d4ef4dd0c4112b69ec713a8ae1589c32b04919daf0d827430be20f603",
@@ -42,7 +42,7 @@
     "keel_verifier/data/semantics/workflow_evidence/sibling_integrity_v1.json": "c4e99745893e6c66afa89ad46602b0cf1931530f78875e18387381fca8c2a5aa",
     "keel_verifier/data/trust_root.json": "836fc63890d347e7aa61c8c33d41775f2bbc78f6d923c9ca73906d9ffd0dbea7",
     "keel_verifier/keys/keel_checkpoint.pub.json": "4b22dcfd53e591dba8a6d6546099c50f1019e8f714234316fb8bbeae560bbd8a",
-    "keel_verifier/self_check.py": "d1cfb3766056e01955c585d6b53aed2270c3591489536d02fb5f2137748d39f8",
+    "keel_verifier/self_check.py": "dc46f6b21dbd403cf20ca22d74ca9faf03fb45e556408a1fde047fb755959aee",
     "keel_verifier/semantics.py": "7e53635f0e2164cfed5880b390013297b944c64869cb0185a0858f021b313329",
     "keel_verifier/verdicts.py": "770ad39af3cf8695d10c1ff00e3bcbfb505cfa85adfa2aa78ea1df6f11f2ae0d",
     "keel_verifier/verifier.py": "9fdc7f34b154836353d15b7a6eec751f90654efb0a8ecbd0fb32a6a261372ba3"
