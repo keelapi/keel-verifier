@@ -5,7 +5,9 @@
 Pre-flight:
 
 - Confirm `CHANGELOG.md` has the intended release entry.
-- Confirm `pyproject.toml` and `keel_verifier/__init__.py` carry the same version.
+- Confirm `pyproject.toml`, `keel_verifier/__init__.py`,
+  `keel_verifier/capability/v1.json`, and
+  `keel_verifier/_release_manifest.json` carry the same version.
 - Confirm the bundled trust root, pinned semantics, capability inventory, and tests match
   the intended release.
 - Confirm every historical `claim_registry` artifact remains bundled, and no pinned
@@ -33,14 +35,24 @@ The tag push triggers `.github/workflows/release.yml` automatically for tags mat
    signing.
 5. Attests the CycloneDX SBOM against the wheel.
 6. Uploads all release artifacts to the GitHub Release.
+7. Downloads the GitHub Release wheel and source distribution and publishes those exact
+   files to PyPI through Trusted Publishing.
 
-PyPI publication remains a maintainer-controlled irreversible step. After the workflow
-completes and the GitHub Release artifacts have been inspected, Christian publishes the
-distribution artifacts manually with PyPI 2FA:
+PyPI Trusted Publishing must be configured for this repository and workflow on
+`pypi.org` before step 7 can succeed. Until that PyPI-side setup is active, the
+`publish-to-pypi` job is expected to fail at the OIDC publication step while the GitHub
+Release artifacts still complete normally.
+
+Fallback PyPI publication, only until Trusted Publishing is active, must upload the
+artifacts already built by GitHub Actions:
 
 ```bash
-python -m twine upload dist/keel_verifier-<VERSION>*
+gh release download v<VERSION> --pattern '*.whl' --pattern '*.tar.gz' -D dist/
+python -m twine upload dist/*
 ```
+
+Do not run `python -m build` for fallback publication. Rebuilding locally can publish
+bytes that differ from the signed GitHub Release artifacts.
 
 ## Build environment pinning
 
