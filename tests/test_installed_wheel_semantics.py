@@ -13,6 +13,7 @@ from keel_verifier import verifier
 from keel_verifier.semantics import (
     AUTHORITY_ENVELOPE_V0_HASH,
     AUTHORITY_ENVELOPE_V0_ID,
+    CLAIM_REGISTRY_HISTORICAL_HASHES,
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
@@ -229,7 +230,14 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
     for relative_path in RELEASED_ARTIFACT_PATHS.values():
         assert f"keel_verifier/data/{relative_path}" in wheel_names
     assert "keel_verifier/data/claim_registry_v0.json" in wheel_names
+    assert "keel_verifier/data/schemas/permit-revoked-event.schema.json" in wheel_names
     assert "keel_verifier/data/trust_root.json" in wheel_names
+    for registry_hash in CLAIM_REGISTRY_HISTORICAL_HASHES:
+        digest = registry_hash.removeprefix("sha256:")
+        assert (
+            "keel_verifier/data/claim_registry/historical/"
+            f"v0-sha256-{digest}.json"
+        ) in wheel_names
 
     venv = tmp_path / "venv"
     _run(
