@@ -68,6 +68,7 @@ Verify the wheel signature:
 
 ```bash
 cosign verify-blob \
+  --new-bundle-format \
   --certificate-identity-regexp 'https://github.com/keelapi/keel-verifier/\.github/workflows/release\.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --bundle keel_verifier-<VERSION>-py3-none-any.whl.sigstore \
@@ -78,6 +79,7 @@ Verify the source distribution signature:
 
 ```bash
 cosign verify-blob \
+  --new-bundle-format \
   --certificate-identity-regexp 'https://github.com/keelapi/keel-verifier/\.github/workflows/release\.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --bundle keel_verifier-<VERSION>.tar.gz.sigstore \
@@ -88,11 +90,17 @@ Verify the release manifest signature:
 
 ```bash
 cosign verify-blob \
+  --new-bundle-format \
   --certificate-identity-regexp 'https://github.com/keelapi/keel-verifier/\.github/workflows/release\.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --bundle manifest.json.sigstore \
   manifest.json
 ```
+
+Note: `--new-bundle-format` is required for releases ≥ v2.4.1. These bundles
+use Sigstore Bundle Format v0.3 (the format `sigstore-python` reads
+natively, which `keel-verify self-check` depends on). v2.4.0 and earlier
+used the legacy cosign bundle format and require omitting this flag.
 
 Verify the CycloneDX SBOM attestation against the wheel:
 
