@@ -7956,18 +7956,64 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
     )
+    operator_approved_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
+    )
+    counter_signed_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_COUNTER_SIGNED_CLAIM_NAME,
+    )
+    audit_attested_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
+    )
     permit_revocation_dependency_requested = (
         permit_revoked_requested or permit_absence_requested
     )
     export_document_for_claims: dict[str, Any] | None = None
-    if permit_decision_requested or permit_revoked_requested or permit_absence_requested:
+    permit_v2_pinned_requested = (
+        operator_approved_pinned
+        or counter_signed_pinned
+        or audit_attested_pinned
+    )
+    should_try_auto_permit_v2 = export_data.lstrip().startswith(b"{")
+    if (
+        permit_decision_requested
+        or permit_revoked_requested
+        or permit_absence_requested
+        or permit_v2_pinned_requested
+        or should_try_auto_permit_v2
+    ):
         try:
             loaded_export_document = _load_export_json_document(export_data)
         except Exception as exc:
             loaded_export_document = None
-            diagnostics.append(f"permit claim evidence is not JSON: {exc}")
+            if (
+                permit_decision_requested
+                or permit_revoked_requested
+                or permit_absence_requested
+                or permit_v2_pinned_requested
+            ):
+                diagnostics.append(f"permit claim evidence is not JSON: {exc}")
         if isinstance(loaded_export_document, dict):
             export_document_for_claims = loaded_export_document
+    permit_v2_auto_required = _permit_v2_auto_required_claims(export_document_for_claims)
+    operator_approved_requested = (
+        operator_approved_pinned
+        or PERMIT_OPERATOR_APPROVED_CLAIM_NAME in permit_v2_auto_required
+    )
+    counter_signed_requested = (
+        counter_signed_pinned
+        or PERMIT_COUNTER_SIGNED_CLAIM_NAME in permit_v2_auto_required
+    )
+    audit_attested_requested = (
+        audit_attested_pinned
+        or PERMIT_AUDIT_ATTESTED_CLAIM_NAME in permit_v2_auto_required
+    )
 
     should_verify_scope_faithfulness = _scope_export_declaration_present(export_data) or (
         semantics.mode == "pinned"
@@ -8073,11 +8119,72 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     revocation_claim=revocation_claim,
                 )
             )
+    if operator_approved_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_OPERATOR_APPROVAL_INVALID",
+                    message="operator_approved claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_operator_approved_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if counter_signed_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_COUNTER_SIGNATURE_INVALID",
+                    message="counter_signed claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_pre_dispatch_counter_signed_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if audit_attested_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_AUDIT_ATTESTATION_INVALID",
+                    message="audit_attested claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_audit_attested_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
     claims.extend(permit_claims)
+    required_permit_claim_names = requested | permit_v2_auto_required
     unsupported_permit_claims = [
         claim
         for claim in permit_claims
-        if claim.name in requested
+        if claim.name in required_permit_claim_names
         and claim.aggregate_verdict != verdict_value("supported")
     ]
     if unsupported_permit_claims:
