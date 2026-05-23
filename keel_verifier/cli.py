@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from keel_verifier import __version__
+from keel_verifier.self_check import run_self_check
 from keel_verifier.verifier import (
     KEELAPI_CHECKPOINT_PUBLIC_KEY_URL,
     KEELAPI_COMPLIANCE_KEYS_URL,
@@ -22,7 +23,7 @@ from keel_verifier.verifier import (
     verify_scope_faithfulness_claim,
 )
 
-LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim"}
+LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim", "self-check"}
 
 
 def _public_key_alias(args: argparse.Namespace) -> None:
@@ -158,6 +159,16 @@ def _cmd_claim_scope_faithfulness(
     return 0 if result["status"] == "supported" else 1
 
 
+def _cmd_self_check(args: argparse.Namespace) -> int:
+    result = run_self_check(args)
+    if args.as_json:
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    else:
+        stream = sys.stdout if result.ok else sys.stderr
+        print(result.format_human(), file=stream)
+    return 0 if result.ok else 1
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="keel-verify",
@@ -248,6 +259,38 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_refresh.set_defaults(func=cmd_refresh_keys)
+
+    p_self = sub.add_parser(
+        "self-check",
+        help="Verify this installed keel-verifier wheel against its signed release manifest.",
+    )
+    p_self.add_argument(
+        "--form",
+        choices=["auto", "wheel"],
+        default="auto",
+        help="Installed artifact form to verify. auto currently resolves to wheel only.",
+    )
+    p_self.add_argument(
+        "--offline",
+        action="store_true",
+        help="Use cached release provenance only; fail closed when required cache entries are absent.",
+    )
+    p_self.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Fetch release provenance without reading or writing the 24h cache.",
+    )
+    p_self.add_argument(
+        "--cache-dir",
+        help="Directory for the 24h release provenance cache. Defaults to ~/.cache/keel-verifier/.",
+    )
+    p_self.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Emit machine-readable self-check results.",
+    )
+    p_self.set_defaults(func=_cmd_self_check)
 
     p_claim = sub.add_parser("claim", help="Verify a registered verifier claim.")
     claim_sub = p_claim.add_subparsers(dest="claim_cmd", required=True)
