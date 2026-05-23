@@ -1,0 +1,59 @@
+{
+  "id": "keel.permit.counter_signature.v1",
+  "version": "v1",
+  "kind": "permit_v2_signature_slot_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.counter_signed.v1",
+    "slot": "counter_signature",
+    "payload_type": "permit.counter_signature.v1",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "signature_algorithm": "Ed25519",
+    "key_registry": {
+      "scope": "account",
+      "signer_role": "buyer_principal",
+      "lookup": "Resolve by account_id and key_id at counter_signature.signed_at. A key is valid only when valid_from <= signed_at and valid_until, revoked_at, and compromised_at are absent or strictly after signed_at.",
+      "key_id": "lowercase SHA-256 hex digest of canonical raw Ed25519 public key bytes"
+    },
+    "envelope": {
+      "required_fields": [
+        "payload_type",
+        "signer_id",
+        "key_id",
+        "signed_at",
+        "signed_payload_hash",
+        "signature",
+        "execution_intent_hash"
+      ],
+      "closed_shape": true,
+      "signature_encoding": "base64 raw Ed25519 signature",
+      "timestamp_rule": "signed_at is a UTC ISO 8601 timestamp with microsecond precision and a Z suffix.",
+      "payload_type_rule": "payload_type MUST equal permit.counter_signature.v1. No other permit v2 signature slot may satisfy this claim."
+    },
+    "canonical_payload": {
+      "required_fields": [
+        "payload_type",
+        "permit_id",
+        "issuer_signature_hash",
+        "permit_canonical_hash",
+        "buyer_principal_id",
+        "execution_intent_hash",
+        "signed_at"
+      ],
+      "buyer_binding": "buyer_principal_id MUST equal envelope signer_id.",
+      "intent_binding": "execution_intent_hash MUST equal envelope execution_intent_hash.",
+      "hash_rule": "signed_payload_hash is the lowercase SHA-256 hex digest of the canonical signed payload bytes.",
+      "signature_message": "canonical signed payload bytes"
+    },
+    "temporal_rules": {
+      "permit_window": "counter_signature.signed_at MUST be inside the permit valid_from..valid_until window.",
+      "pre_dispatch_revocation": "When the permit is revoked, counter_signature.signed_at MUST be strictly before revocation.effective_at."
+    },
+    "verdicts": {
+      "supported": "envelope shape, payload type, payload hash, signer binding, intent binding, signing-time key resolution, permit window, pre-dispatch revocation rule, and signature verification are supported.",
+      "disproved": "payload type, payload hash, signer binding, intent binding, permit window, revocation timing, or signature verification fails.",
+      "insufficient_evidence": "slot evidence, permit canonical inputs, account key registry evidence, signer identity, key id, signing timestamp, execution intent, or signature material is missing.",
+      "unverifiable_scope": "permit format version, canonicalization profile, key-registry profile, or timestamp profile is unsupported."
+    }
+  }
+}

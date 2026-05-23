@@ -1,0 +1,58 @@
+{
+  "id": "keel.permit.audit_attestation.v1",
+  "version": "v1",
+  "kind": "permit_v2_signature_slot_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.audit_attested.v1",
+    "slot": "audit_attestation",
+    "payload_type": "permit.audit_attestation.v1",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "signature_algorithm": "Ed25519",
+    "key_registry": {
+      "scope": "account",
+      "signer_role": "buyer_principal",
+      "lookup": "Resolve by account_id and key_id at audit_attestation.signed_at. A key is valid only when valid_from <= signed_at and valid_until, revoked_at, and compromised_at are absent or strictly after signed_at.",
+      "key_id": "lowercase SHA-256 hex digest of canonical raw Ed25519 public key bytes"
+    },
+    "envelope": {
+      "required_fields": [
+        "payload_type",
+        "signer_id",
+        "key_id",
+        "signed_at",
+        "signed_payload_hash",
+        "signature",
+        "batch_id"
+      ],
+      "closed_shape": true,
+      "signature_encoding": "base64 raw Ed25519 signature",
+      "timestamp_rule": "signed_at is a UTC ISO 8601 timestamp with microsecond precision and a Z suffix.",
+      "payload_type_rule": "payload_type MUST equal permit.audit_attestation.v1. No other permit v2 signature slot may satisfy this claim."
+    },
+    "canonical_payload": {
+      "required_fields": [
+        "payload_type",
+        "permit_id",
+        "issuer_signature_hash",
+        "permit_canonical_hash",
+        "buyer_principal_id",
+        "batch_id",
+        "signed_at"
+      ],
+      "buyer_binding": "buyer_principal_id MUST equal envelope signer_id.",
+      "batch_binding": "batch_id MUST equal envelope batch_id and resolve to a known audit batch in the pack.",
+      "hash_rule": "signed_payload_hash is the lowercase SHA-256 hex digest of the canonical signed payload bytes.",
+      "signature_message": "canonical signed payload bytes"
+    },
+    "temporal_rules": {
+      "not_before_permit": "audit_attestation.signed_at MUST be greater than or equal to permit.valid_from."
+    },
+    "verdicts": {
+      "supported": "envelope shape, payload type, payload hash, signer binding, batch binding, signing-time key resolution, not-before-permit rule, batch resolution, and signature verification are supported.",
+      "disproved": "payload type, payload hash, signer binding, batch binding, not-before-permit rule, batch resolution, or signature verification fails.",
+      "insufficient_evidence": "slot evidence, permit canonical inputs, account key registry evidence, signer identity, key id, signing timestamp, batch id, or signature material is missing.",
+      "unverifiable_scope": "permit format version, canonicalization profile, key-registry profile, audit-batch profile, or timestamp profile is unsupported."
+    }
+  }
+}

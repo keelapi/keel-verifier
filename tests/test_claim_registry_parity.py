@@ -120,12 +120,57 @@ BUNDLED_PERMIT_DISPATCH_ABSENCE = (
     / "permit"
     / "dispatch_absence_after_revocation_v1.json"
 )
+BUNDLED_PERMIT_OPERATOR_APPROVAL = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "permit.operator_approval.v1.json"
+)
+BUNDLED_PERMIT_COUNTER_SIGNATURE = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "permit.counter_signature.v1.json"
+)
+BUNDLED_PERMIT_AUDIT_ATTESTATION = (
+    REPO_ROOT
+    / "keel_verifier"
+    / "data"
+    / "semantics"
+    / "permit"
+    / "permit.audit_attestation.v1.json"
+)
 SOURCE_PERMIT_DISPATCH_ABSENCE = (
     PRODUCT_ROOT
     / "keel-permit"
     / "semantics"
     / "permit"
     / "dispatch_absence_after_revocation_v1.json"
+)
+SOURCE_PERMIT_OPERATOR_APPROVAL = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "permit.operator_approval.v1.json"
+)
+SOURCE_PERMIT_COUNTER_SIGNATURE = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "permit.counter_signature.v1.json"
+)
+SOURCE_PERMIT_AUDIT_ATTESTATION = (
+    PRODUCT_ROOT
+    / "keel-permit"
+    / "semantics"
+    / "permit"
+    / "permit.audit_attestation.v1.json"
 )
 BUNDLED_PERMIT_REVOKED_SCHEMA = (
     REPO_ROOT
@@ -227,6 +272,27 @@ BUNDLED_ARTIFACT_COPIES = [
         "keel-permit permit dispatch absence semantics",
         False,
         id="permit-dispatch-absence-after-revocation-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_OPERATOR_APPROVAL,
+        SOURCE_PERMIT_OPERATOR_APPROVAL,
+        "keel-permit permit operator approval semantics",
+        False,
+        id="permit-operator-approval-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_COUNTER_SIGNATURE,
+        SOURCE_PERMIT_COUNTER_SIGNATURE,
+        "keel-permit permit counter signature semantics",
+        False,
+        id="permit-counter-signature-v1",
+    ),
+    pytest.param(
+        BUNDLED_PERMIT_AUDIT_ATTESTATION,
+        SOURCE_PERMIT_AUDIT_ATTESTATION,
+        "keel-permit permit audit attestation semantics",
+        False,
+        id="permit-audit-attestation-v1",
     ),
     pytest.param(
         BUNDLED_PERMIT_REVOKED_SCHEMA,
