@@ -257,6 +257,15 @@ def test_hash_mismatch_is_insufficient_with_top_level_integrity_error(
     tmp_path,
     run_cli,
 ):
+    if not SOURCE_PERMIT.exists():
+        message = (
+            "keel-permit is not checked out next to keel-verifier: "
+            f"{SOURCE_PERMIT}"
+        )
+        if os.getenv("KEEL_REQUIRE_GOLDEN_CORPUS"):
+            raise FileNotFoundError(message)
+        pytest.skip(message)
+
     export_file, manifest = _signed_export_with_manifest(tmp_path)
     artifact_bytes = (
         SOURCE_PERMIT / RELEASED_ARTIFACT_PATHS[EXPORT_MANIFEST_INTEGRITY_ID]
