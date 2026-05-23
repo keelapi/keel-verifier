@@ -3,11 +3,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 from pathlib import Path
 
 import rfc8785
 
 from keel_verifier import self_check
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SIGSTORE_FIXTURES = REPO_ROOT / "tests" / "fixtures" / "sigstore"
 
 
 def _embedded_manifest() -> dict:
@@ -122,3 +127,37 @@ def test_self_check_happy_path_with_sigstore_mock(monkeypatch, tmp_path: Path) -
         "per_file_digests",
     ]
     assert result.to_dict()["form"] == "wheel"
+
+
+def test_verify_sigstore_fixture_does_not_emit_unsupported_key_warning(
+    caplog,
+    capsys,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from sigstore._internal import tuf
+
+    manifest_bytes = (SIGSTORE_FIXTURES / "v2.4.2-manifest.json").read_bytes()
+    signature = (SIGSTORE_FIXTURES / "v2.4.2-manifest.json.sigstore").read_bytes()
+    expected_identity = json.loads(manifest_bytes)["signing_identity"]
+    tuf_cache = tmp_path / "sigstore-tuf"
+
+    monkeypatch.setattr(
+        tuf,
+        "_get_dirs",
+        lambda url: (tuf_cache / "metadata", tuf_cache / "targets"),
+    )
+    caplog.set_level(logging.WARNING, logger="sigstore._internal.trust")
+
+    self_check.verify_sigstore(
+        manifest_bytes,
+        signature,
+        expected_identity,
+        offline=True,
+    )
+    captured = capsys.readouterr()
+
+    assert "Failed to load a trusted root key" not in captured.err
+    assert "unsupported key type" not in captured.err
+    assert "Failed to load a trusted root key" not in caplog.text
+    assert "unsupported key type" not in caplog.text

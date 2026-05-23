@@ -23,7 +23,7 @@ dependencies = [
     "certifi>=2024.8.30",
     "cryptography>=42",
     "rfc8785>=0.1.4,<1",
-    "sigstore>=3.0,<4",
+    "sigstore>=3.6.7,<4",
 ]
 
 [project.optional-dependencies]
