@@ -7,9 +7,11 @@ import hashlib
 import importlib.metadata
 import importlib.resources
 import json
+import logging
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -41,6 +43,30 @@ FORBIDDEN_EMBEDDED_FIELDS = {
     "tsa",
     "tsa_receipts",
 }
+
+_SIGSTORE_TRUST_LOGGER = "sigstore._internal.trust"
+_SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING = (
+    "Failed to load a trusted root key: unsupported key type: 7"
+)
+
+
+class _SigstoreUnsupportedKeyType7Filter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not (
+            record.name == _SIGSTORE_TRUST_LOGGER
+            and record.getMessage() == _SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING
+        )
+
+
+@contextmanager
+def _suppress_sigstore_unsupported_key_type_7_warning():
+    logger = logging.getLogger(_SIGSTORE_TRUST_LOGGER)
+    warning_filter = _SigstoreUnsupportedKeyType7Filter()
+    logger.addFilter(warning_filter)
+    try:
+        yield
+    finally:
+        logger.removeFilter(warning_filter)
 
 
 @dataclass(frozen=True)
@@ -381,6 +407,13 @@ def verify_sigstore(
     *,
     offline: bool = False,
 ) -> SigstoreVerification:
+    """Verify the signed release manifest with sigstore-python.
+
+    sigstore-python 3.6.7 can warn while skipping Sigstore's Rekor 2025
+    Ed25519 trusted-root key. The v2.4.2 release bundle verifies against the
+    existing Rekor v1 key, so the skipped key is not load-bearing for this
+    check. Keep the suppression scoped to that exact library warning.
+    """
     try:
         from sigstore.errors import VerificationError
         from sigstore.models import Bundle
@@ -394,15 +427,16 @@ def verify_sigstore(
 
     try:
         bundle = Bundle.from_json(signature)
-        verifier = Verifier.production(offline=offline)
-        verifier.verify_artifact(
-            signed_manifest_bytes,
-            bundle,
-            Identity(
-                identity=expected_identity,
-                issuer=GITHUB_ACTIONS_OIDC_ISSUER,
-            ),
-        )
+        with _suppress_sigstore_unsupported_key_type_7_warning():
+            verifier = Verifier.production(offline=offline)
+            verifier.verify_artifact(
+                signed_manifest_bytes,
+                bundle,
+                Identity(
+                    identity=expected_identity,
+                    issuer=GITHUB_ACTIONS_OIDC_ISSUER,
+                ),
+            )
     except VerificationError as exc:
         message = str(exc)
         code = (

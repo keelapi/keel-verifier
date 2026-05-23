@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "release_name": "keel-verifier",
+  "version_tag": "v2.4.2",
+  "released_at": "2026-05-23T06:40:08Z",
+  "signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v2.4.2",
+  "artifacts": [
+    {
+      "filename": "keel_verifier-2.4.2-py3-none-any.whl",
+      "sha256": "cb3ea1393eafccd3932b73900f3b497af005277755315b4819f7dc7fc75a0b93",
+      "content_type": "application/x-wheel+zip",
+      "sigstore_bundle": "keel_verifier-2.4.2-py3-none-any.whl.sigstore",
+      "rekor_log_index": 1613423134,
+      "rekor_log_url": "https://rekor.sigstore.dev/api/v1/log/entries/1613423134"
+    },
+    {
+      "filename": "keel_verifier-2.4.2.tar.gz",
+      "sha256": "4c59543d877099f459dddf31b787ae59e6dde7a85814d36811403efed8b2c40f",
+      "content_type": "application/gzip",
+      "sigstore_bundle": "keel_verifier-2.4.2.tar.gz.sigstore",
+      "rekor_log_index": 1613423383,
+      "rekor_log_url": "https://rekor.sigstore.dev/api/v1/log/entries/1613423383"
+    }
+  ],
+  "embedded_manifests": [
+    {
+      "artifact": "wheel",
+      "path": "keel_verifier/_release_manifest.json",
+      "media_type": "application/json",
+      "canonicalization": "rfc8785-jcs",
+      "sha256": "sha256:c6148b724d121718cbdf433d4d0ddace28072fe9eedee9ebae910f6d70601722"
+    }
+  ],
+  "sbom": {
+    "format": "cyclonedx",
+    "filename": "sbom.cyclonedx.json",
+    "attestation_bundle": "keel_verifier-2.4.2-sbom.intoto.jsonl",
+    "sha256": "35ac5235d111fc9e747d8365e9366ecfec6ffd972adf9f3432a11262202743d5"
+  },
+  "build_environment": {
+    "runner": "ubuntu-latest",
+    "python_version": "3.12.13",
+    "cosign_version": "v2.5.2",
+    "build_backend": "setuptools.build_meta"
+  }
+}
