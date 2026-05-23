@@ -49,7 +49,7 @@ def _claim(report, name: str) -> dict:
 
 def _promoted_records() -> list[dict]:
     corpus = json.loads((CORPUS_ROOT / "corpus.json").read_text(encoding="utf-8"))
-    assert len(corpus["records"]) == 82
+    assert len(corpus["records"]) == 99
     records = [
         record
         for record in corpus["records"]
