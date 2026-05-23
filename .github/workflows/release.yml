@@ -104,8 +104,27 @@ jobs:
             manifest.json.sigstore
             manifest.json.tsa.json
 
-      - name: PyPI publication remains manual
+  publish-to-pypi:
+    name: Publish release distributions to PyPI
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/keel-verifier
+    steps:
+      - name: Download GitHub Release distributions
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Release artifacts are ready. Maintainer may publish manually with:"
-          echo "python -m twine upload dist/keel_verifier-${VERSION}*"
+          mkdir -p dist
+          gh release download "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "*.whl" \
+            --pattern "*.tar.gz" \
+            --dir dist
+
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

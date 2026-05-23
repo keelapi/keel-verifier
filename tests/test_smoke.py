@@ -11,8 +11,23 @@ from keel_verifier import verifier
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _project_version() -> str:
+    current_section: str | None = None
+    for raw_line in (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line.strip("[]")
+            continue
+        if current_section == "project" and line.startswith("version "):
+            _, value = line.split("=", 1)
+            return value.strip().strip('"')
+    raise AssertionError("missing project.version in pyproject.toml")
+
+
 def test_import_version_and_public_api():
-    assert keel_verifier.__version__ == "2.4.0"
+    assert keel_verifier.__version__ == _project_version()
     assert callable(keel_verifier.verify)
     assert callable(keel_verifier.verify_checkpoint)
     assert callable(keel_verifier.verify_export_walk_events)
