@@ -40,19 +40,23 @@ PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
     "keel.permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
+PERMIT_COUNTER_SIGNATURE_ID = "keel.permit.counter_signature.v1"
+PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
     "keel.governance_event.integrity_digest.v1"
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215"
+    "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235"
+    "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235",
     "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
     "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b",
 )
@@ -118,6 +122,15 @@ PERMIT_REVOKED_EVENT_HASH = (
 )
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH = (
     "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4"
+)
+PERMIT_OPERATOR_APPROVAL_HASH = (
+    "sha256:66c6f811aee132c1e93d16708f5a8bbb1b9ca36efa07eaab63aae59894351a63"
+)
+PERMIT_COUNTER_SIGNATURE_HASH = (
+    "sha256:cdc1bebff5f04b746f89aa5247cbcdc7b5cf8a074dfda6120f18bdc26ee22bdb"
+)
+PERMIT_AUDIT_ATTESTATION_HASH = (
+    "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f"
 )
 LEGACY_PROFILE_HASH = (
     "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
@@ -195,6 +208,9 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.dispatch_absence_after_revocation.v1": (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
     ),
+    "permit.operator_approved.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
+    "permit.counter_signed.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
+    "permit.audit_attested.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
     "workflow_evidence.sibling_integrity.v1": (
         WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,
     ),
@@ -229,6 +245,15 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         "semantics/permit/dispatch_absence_after_revocation_v1.json"
     ),
+    PERMIT_OPERATOR_APPROVAL_ID: (
+        "semantics/permit/permit.operator_approval.v1.json"
+    ),
+    PERMIT_COUNTER_SIGNATURE_ID: (
+        "semantics/permit/permit.counter_signature.v1.json"
+    ),
+    PERMIT_AUDIT_ATTESTATION_ID: (
+        "semantics/permit/permit.audit_attestation.v1.json"
+    ),
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
 }
@@ -256,6 +281,9 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH
     ),
+    PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
+    PERMIT_COUNTER_SIGNATURE_ID: PERMIT_COUNTER_SIGNATURE_HASH,
+    PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
 }
@@ -1318,6 +1346,21 @@ def make_permanent_allowlist(
             PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
             PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH,
             "permit_dispatch_absence_after_revocation",
+        ),
+        SemanticImplementation(
+            PERMIT_OPERATOR_APPROVAL_ID,
+            PERMIT_OPERATOR_APPROVAL_HASH,
+            "permit_operator_approval",
+        ),
+        SemanticImplementation(
+            PERMIT_COUNTER_SIGNATURE_ID,
+            PERMIT_COUNTER_SIGNATURE_HASH,
+            "permit_counter_signature",
+        ),
+        SemanticImplementation(
+            PERMIT_AUDIT_ATTESTATION_ID,
+            PERMIT_AUDIT_ATTESTATION_HASH,
+            "permit_audit_attestation",
         ),
         SemanticImplementation(
             LEGACY_PROFILE_ID,
