@@ -41,6 +41,21 @@ STEP4_FAILURE_CODES = {
 }
 
 
+def _project_version() -> str:
+    current_section: str | None = None
+    for raw_line in (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line.strip("[]")
+            continue
+        if current_section == "project" and line.startswith("version "):
+            _, value = line.split("=", 1)
+            return value.strip().strip('"')
+    raise AssertionError("missing project.version in pyproject.toml")
+
+
 def _load_inventory() -> dict:
     text = resources.files("keel_verifier.capability").joinpath("v1.json").read_text()
     return json.loads(text)
@@ -62,7 +77,7 @@ def test_verifier_version_matches_package() -> None:
 
 def test_capability_versions() -> None:
     inv = _load_inventory()
-    assert inv["verifier"]["version"] == "2.4.0"
+    assert inv["verifier"]["version"] == _project_version()
     assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.1"
 
 
