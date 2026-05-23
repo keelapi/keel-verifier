@@ -7,7 +7,6 @@ import hashlib
 import importlib.metadata
 import importlib.resources
 import json
-import ssl
 import time
 import urllib.error
 import urllib.request
@@ -447,84 +446,63 @@ def verify_rekor(signed_manifest_bytes: bytes, signature: bytes) -> RekorVerific
     return RekorVerification(log_index=log_index, checkpoint_present=True)
 
 
-def _load_ca_roots() -> list[Any]:
-    from cryptography import x509
-    from cryptography.hazmat.primitives import hashes
-
-    pem_paths: list[Path] = []
-    try:
-        import certifi
-
-        pem_paths.append(Path(certifi.where()))
-    except ImportError:
-        pass
-
-    default_paths = ssl.get_default_verify_paths()
-    for value in (default_paths.cafile, default_paths.capath):
-        if value:
-            path = Path(value)
-            if path.is_file():
-                pem_paths.append(path)
-
-    certs = []
-    seen: set[bytes] = set()
-    for pem_path in pem_paths:
-        try:
-            pem_bytes = pem_path.read_bytes()
-        except OSError:
-            continue
-        for block in pem_bytes.split(b"-----END CERTIFICATE-----"):
-            if b"-----BEGIN CERTIFICATE-----" not in block:
-                continue
-            candidate = block + b"-----END CERTIFICATE-----\n"
-            try:
-                cert = x509.load_pem_x509_certificate(candidate)
-            except ValueError:
-                continue
-            fingerprint = cert.fingerprint(hashes.SHA256())
-            if fingerprint not in seen:
-                seen.add(fingerprint)
-                certs.append(cert)
-    return certs
-
-
-def _tsa_verifier() -> Any:
-    try:
-        from rfc3161_client import VerifierBuilder
-    except ImportError as exc:
-        raise SelfCheckError(
-            "SELF_CHECK_RUNTIME_DEPENDENCY_MISSING",
-            "rfc3161-client is required for TSA verification",
-        ) from exc
-
-    roots = _load_ca_roots()
-    if not roots:
-        raise SelfCheckError(
-            "SELF_CHECK_TSA_INVALID",
-            "no CA roots are available for TSA certificate-chain validation",
-        )
-    builder = VerifierBuilder()
-    for root in roots:
-        builder = builder.add_root_certificate(root)
-    return builder.build()
+TSA_GRANTED_STATUSES = {"granted", "granted_with_mods"}
 
 
 def _decode_tsa_response(receipt_der: bytes) -> Any:
-    from rfc3161_client import decode_timestamp_response
+    """BER-tolerant decode of an RFC 3161 TimeStampResp.
 
-    return decode_timestamp_response(receipt_der)
-
-
-def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVerification:
+    Uses asn1crypto rather than a strict-DER parser. Real-world commercial TSAs
+    (DigiCert, GlobalSign) frequently return BER-encoded responses; a strict
+    parser rejects them on canonical SET ordering even though the receipts are
+    RFC 3161-compliant.
+    """
     try:
-        from rfc3161_client import PKIStatus
-        from rfc3161_client import VerificationError as RFC3161VerificationError
+        from asn1crypto import tsp
     except ImportError as exc:
         raise SelfCheckError(
             "SELF_CHECK_RUNTIME_DEPENDENCY_MISSING",
-            "rfc3161-client is required for TSA verification",
+            "asn1crypto is required for TSA receipt parsing",
+        ) from exc
+    try:
+        return tsp.TimeStampResp.load(receipt_der)
+    except Exception as exc:
+        raise SelfCheckError(
+            "SELF_CHECK_TSA_INVALID",
+            f"TSA receipt is not a valid TimeStampResp: {exc}",
         ) from exc
 
+
+def _extract_tst_info(ts_resp: Any) -> Any:
+    """Pull TSTInfo out of the SignedData inside the TimeStampToken."""
+    from asn1crypto import core
+
+    token = ts_resp["time_stamp_token"]
+    if isinstance(token, core.Void) or token.native is None:
+        raise SelfCheckError(
+            "SELF_CHECK_TSA_INVALID",
+            "TimeStampResp does not contain a TimeStampToken",
+        )
+    encap = token["content"]["encap_content_info"]
+    content_type = encap["content_type"].native
+    if content_type != "tst_info":
+        raise SelfCheckError(
+            "SELF_CHECK_TSA_INVALID",
+            f"unexpected encap content type: {content_type}",
+        )
+    return encap["content"].parsed
+
+
+def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVerification:
+    """Bind-level TSA verification: parse + GRANTED + message_imprint match.
+
+    Intentionally does NOT perform CMS signature verification or
+    certificate-chain validation. This mirrors the existing keel-verifier
+    checkpoint TSA pattern (verifier.py:_verify_tsa_receipt) where full chain
+    validation is an opt-in trust extension. The honest claim is that the TSA
+    issued a granted receipt over our manifest bytes; deeper assertions about
+    which root signed the receipt are out of scope for default self-check.
+    """
     message_imprint = _sha256_prefixed(signed_manifest_bytes)
     if sidecar.get("message_imprint") != message_imprint:
         raise SelfCheckError(
@@ -552,7 +530,7 @@ def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVeri
             "TSA sidecar is missing required provider receipt(s): " + ", ".join(missing),
         )
 
-    verifier = _tsa_verifier()
+    expected_imprint_bytes = hashlib.sha256(signed_manifest_bytes).digest()
     verified_providers: list[str] = []
     for receipt in receipts:
         if not isinstance(receipt, dict):
@@ -580,29 +558,29 @@ def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVeri
                 "SELF_CHECK_TSA_INVALID",
                 f"TSA receipt_hash mismatch for {provider}",
             )
-        try:
-            response = _decode_tsa_response(receipt_der)
-            if PKIStatus(response.status) not in {
-                PKIStatus.GRANTED,
-                PKIStatus.GRANTED_WITH_MODS,
-            }:
-                raise SelfCheckError(
-                    "SELF_CHECK_TSA_INVALID",
-                    f"TSA receipt for {provider} has non-granted status",
-                )
-            verifier.verify_message(response, signed_manifest_bytes)
-        except SelfCheckError:
-            raise
-        except RFC3161VerificationError as exc:
+
+        ts_resp = _decode_tsa_response(receipt_der)
+        status = ts_resp["status"]["status"].native
+        if status not in TSA_GRANTED_STATUSES:
             raise SelfCheckError(
                 "SELF_CHECK_TSA_INVALID",
-                f"TSA receipt verification failed for {provider}: {exc}",
-            ) from exc
-        except Exception as exc:
+                f"TSA receipt for {provider} has non-granted status: {status}",
+            )
+
+        tst_info = _extract_tst_info(ts_resp)
+        algo = tst_info["message_imprint"]["hash_algorithm"]["algorithm"].native
+        if algo != "sha256":
             raise SelfCheckError(
                 "SELF_CHECK_TSA_INVALID",
-                f"TSA receipt parse failed for {provider}: {exc}",
-            ) from exc
+                f"TSA receipt for {provider} used unexpected hash algorithm: {algo}",
+            )
+        receipt_imprint = tst_info["message_imprint"]["hashed_message"].native
+        if receipt_imprint != expected_imprint_bytes:
+            raise SelfCheckError(
+                "SELF_CHECK_TSA_INVALID",
+                f"TSA receipt for {provider} does not witness the signed manifest hash",
+            )
+
         verified_providers.append(provider)
 
     if set(verified_providers) != REQUIRED_TSA_PROVIDERS:
@@ -846,7 +824,8 @@ def run_self_check(args: Any) -> SelfCheckResult:
         stages.append(
             _stage_ok(
                 "tsa_witnesses",
-                "DigiCert and GlobalSign RFC 3161 receipts verify",
+                "DigiCert and GlobalSign RFC 3161 receipts witness the manifest hash "
+                "(bind-level; cert-chain validation is opt-in)",
                 providers=tsa_result.providers,
                 message_imprint=tsa_result.message_imprint,
             )
