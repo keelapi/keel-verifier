@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.5.0 — explicit --published-wheel self-check mode (2026-05-24)
+
+- New: `keel-verify self-check --published-wheel[=VERSION]` verifies the
+  published wheel from PyPI (downloads + verifies SHA-256 + runs full chain
+  against unpacked wheel) instead of the installed copy. Useful for developers
+  with editable installs who want to verify published artifacts without leaving
+  their dev environment. Output explicitly distinguishes published-wheel
+  verification from installed-copy verification.
+
 ## v2.4.4 — self-check remediation + shadow-import detection (2026-05-24)
 
 - Self-check emits structured remediation hints for environment-related failures.
