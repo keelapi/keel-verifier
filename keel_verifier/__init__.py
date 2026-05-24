@@ -33,7 +33,7 @@ __all__ = [
     "__version__",
 ]
 
-_SOURCE_TREE_VERSION = "2.4.3"
+_SOURCE_TREE_VERSION = "2.4.4"
 
 try:
     __version__ = _metadata_version("keel-verifier")

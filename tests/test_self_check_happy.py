@@ -65,6 +65,14 @@ def test_self_check_happy_path_with_sigstore_mock(monkeypatch, tmp_path: Path) -
     sidecar_bytes = b'{"mock":"tsa"}'
 
     monkeypatch.setattr(self_check, "detect_form", lambda: "wheel")
+    monkeypatch.setattr(
+        self_check,
+        "verify_import_isolation",
+        lambda: self_check.ImportIsolationVerification(
+            imported_path=Path("/site-packages/keel_verifier/__init__.py"),
+            checked=True,
+        ),
+    )
     monkeypatch.setattr(self_check, "load_embedded_manifest", lambda form: embedded_manifest)
 
     def fake_fetch(url, **kwargs):
@@ -118,6 +126,7 @@ def test_self_check_happy_path_with_sigstore_mock(monkeypatch, tmp_path: Path) -
     assert result.ok is True
     assert [stage.name for stage in result.stages] == [
         "form",
+        "import_isolation",
         "embedded_manifest",
         "fetch",
         "sigstore_signature",
