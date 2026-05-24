@@ -43,6 +43,45 @@ FORBIDDEN_EMBEDDED_FIELDS = {
     "tsa",
     "tsa_receipts",
 }
+SELF_CHECK_FAILURE_CODES = frozenset(
+    {
+        "SELF_CHECK_EMBEDDED_BINDING_MISMATCH",
+        "SELF_CHECK_EMBEDDED_BINDING_MISSING",
+        "SELF_CHECK_EMBEDDED_MANIFEST_INVALID",
+        "SELF_CHECK_EMBEDDED_MANIFEST_NOT_FOUND",
+        "SELF_CHECK_FETCH_FAILED",
+        "SELF_CHECK_FILE_DIGEST_MISMATCH",
+        "SELF_CHECK_FILE_MISSING",
+        "SELF_CHECK_FORBIDDEN_EMBEDDED_FIELD",
+        "SELF_CHECK_FORM_UNSUPPORTED",
+        "SELF_CHECK_REKOR_INVALID",
+        "SELF_CHECK_RUNTIME_DEPENDENCY_MISSING",
+        "SELF_CHECK_SHADOW_IMPORT",
+        "SELF_CHECK_SIGNED_MANIFEST_INVALID",
+        "SELF_CHECK_SIGSTORE_INVALID",
+        "SELF_CHECK_SIGNING_IDENTITY_MISMATCH",
+        "SELF_CHECK_TSA_INVALID",
+        "SELF_CHECK_TSA_MISSING",
+        "SELF_CHECK_WHEEL_SUBJECT_MISSING",
+    }
+)
+EDITABLE_INSTALL_REMEDIATION = (
+    "Install and check the published wheel in a clean environment:\n"
+    "  pip uninstall -y keel-verifier\n"
+    "  python -m venv /tmp/demo-venv\n"
+    "  source /tmp/demo-venv/bin/activate\n"
+    "  pip install --no-cache-dir keel-verifier\n"
+    "  keel-verify self-check"
+)
+SHADOW_IMPORT_REMEDIATION = (
+    "Another keel_verifier on sys.path is shadowing the installed wheel.\n"
+    "Diagnose with:\n"
+    "  python -c 'import keel_verifier; print(keel_verifier.__file__)'\n"
+    "  python -c 'import sys; print(chr(10).join(sys.path))'\n"
+    "  printenv PYTHONPATH\n"
+    "Then unset PYTHONPATH, remove the shadowing path, or pip uninstall the user-site "
+    "editable."
+)
 
 _SIGSTORE_TRUST_LOGGER = "sigstore._internal.trust"
 _SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING = (
@@ -73,6 +112,7 @@ def _suppress_sigstore_unsupported_key_type_7_warning():
 class SelfCheckError(Exception):
     code: str
     message: str
+    remediation: str | None = None
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
@@ -84,6 +124,7 @@ class SelfCheckStage:
     ok: bool
     code: str | None = None
     message: str | None = None
+    remediation: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -93,6 +134,8 @@ class SelfCheckStage:
             "code": self.code,
             "message": self.message,
         }
+        if self.remediation is not None:
+            payload["remediation"] = self.remediation
         if self.details:
             payload["details"] = self.details
         return payload
@@ -126,6 +169,12 @@ class EmbeddedBindingVerification:
 @dataclass
 class PerFileDigestVerification:
     checked: int
+
+
+@dataclass(frozen=True)
+class ImportIsolationVerification:
+    imported_path: Path
+    checked: bool
 
 
 @dataclass
@@ -165,6 +214,12 @@ class SelfCheckResult:
                 lines.append(
                     f"  [{marker}] {stage.name}: {stage.code}: {stage.message or 'failed'}"
                 )
+                if stage.remediation is not None:
+                    lines.append("  To fix this:")
+                    lines.extend(
+                        f"    {line}" if line else "    "
+                        for line in stage.remediation.splitlines()
+                    )
         return "\n".join(lines)
 
 
@@ -253,6 +308,7 @@ def detect_form() -> str:
         raise SelfCheckError(
             "SELF_CHECK_FORM_UNSUPPORTED",
             "keel-verifier distribution metadata is not installed",
+            "Install the published wheel: pip install keel-verifier",
         ) from exc
 
     direct_url = dist.read_text("direct_url.json")
@@ -265,6 +321,7 @@ def detect_form() -> str:
             raise SelfCheckError(
                 "SELF_CHECK_FORM_UNSUPPORTED",
                 "editable installs are outside the wheel self-check scope",
+                EDITABLE_INSTALL_REMEDIATION,
             )
 
     if dist.read_text("WHEEL") is not None:
@@ -273,7 +330,59 @@ def detect_form() -> str:
     raise SelfCheckError(
         "SELF_CHECK_FORM_UNSUPPORTED",
         "only installed wheel form is supported by keel-verify self-check",
+        "Force-reinstall the wheel form: pip install --force-reinstall --no-deps "
+        "--only-binary :all: keel-verifier",
     )
+
+
+def verify_import_isolation() -> ImportIsolationVerification:
+    import keel_verifier
+
+    imported_file = getattr(keel_verifier, "__file__", None)
+    actual_path = Path(imported_file).resolve() if imported_file else None
+    if actual_path is None:
+        raise SelfCheckError(
+            "SELF_CHECK_SHADOW_IMPORT",
+            "keel_verifier is importable but does not expose __file__",
+            SHADOW_IMPORT_REMEDIATION,
+        )
+
+    try:
+        dist = importlib.metadata.distribution(DIST_NAME)
+    except importlib.metadata.PackageNotFoundError as exc:
+        raise SelfCheckError(
+            "SELF_CHECK_FORM_UNSUPPORTED",
+            "keel-verifier distribution metadata is not installed",
+            "Install the published wheel: pip install keel-verifier",
+        ) from exc
+
+    files = dist.files
+    # Some installed distributions do not expose RECORD-backed file metadata.
+    # In that packaging edge case, skip rather than failing a valid environment.
+    if not files:
+        return ImportIsolationVerification(imported_path=actual_path, checked=False)
+
+    expected_dirs: set[Path] = set()
+    for dist_file in files:
+        metadata_path = PurePosixPath(str(dist_file))
+        if len(metadata_path.parts) < 2 or metadata_path.parts[0] != PACKAGE_NAME:
+            continue
+        expected_dirs.add(Path(dist.locate_file(dist_file)).resolve().parent)
+
+    if not expected_dirs:
+        return ImportIsolationVerification(imported_path=actual_path, checked=False)
+
+    actual_parent = actual_path.parent
+    if actual_parent not in expected_dirs:
+        expected = ", ".join(str(path) for path in sorted(expected_dirs))
+        raise SelfCheckError(
+            "SELF_CHECK_SHADOW_IMPORT",
+            f"keel_verifier imported from {actual_path} but distribution metadata says "
+            f"it lives at {expected}",
+            SHADOW_IMPORT_REMEDIATION,
+        )
+
+    return ImportIsolationVerification(imported_path=actual_path, checked=True)
 
 
 def load_embedded_manifest(form: str) -> dict[str, Any]:
@@ -769,7 +878,13 @@ def _stage_ok(name: str, message: str, **details: Any) -> SelfCheckStage:
 
 
 def _stage_fail(name: str, exc: SelfCheckError) -> SelfCheckStage:
-    return SelfCheckStage(name=name, ok=False, code=exc.code, message=exc.message)
+    return SelfCheckStage(
+        name=name,
+        ok=False,
+        code=exc.code,
+        message=exc.message,
+        remediation=exc.remediation,
+    )
 
 
 def run_self_check(args: Any) -> SelfCheckResult:
@@ -790,6 +905,28 @@ def run_self_check(args: Any) -> SelfCheckResult:
     except SelfCheckError as exc:
         stages.append(_stage_fail("form", exc))
         return SelfCheckResult(form=str(requested_form), stages=stages)
+
+    try:
+        import_isolation = verify_import_isolation()
+        if import_isolation.checked:
+            import_isolation_message = (
+                f"keel_verifier imported from {import_isolation.imported_path} "
+                "matches distribution metadata"
+            )
+        else:
+            import_isolation_message = (
+                f"keel_verifier imported from {import_isolation.imported_path}; "
+                "distribution file metadata unavailable, shadow-import check skipped"
+            )
+        stages.append(
+            _stage_ok(
+                "import_isolation",
+                import_isolation_message,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("import_isolation", exc))
+        return SelfCheckResult(form=form, stages=stages)
 
     try:
         embedded_manifest = load_embedded_manifest(form)

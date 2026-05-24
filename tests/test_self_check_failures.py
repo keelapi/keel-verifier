@@ -208,6 +208,14 @@ def test_self_check_orchestration_preserves_specific_error_codes(
     ).encode("utf-8")
 
     monkeypatch.setattr(self_check, "detect_form", lambda: "wheel")
+    monkeypatch.setattr(
+        self_check,
+        "verify_import_isolation",
+        lambda: self_check.ImportIsolationVerification(
+            imported_path=Path("/site-packages/keel_verifier/__init__.py"),
+            checked=True,
+        ),
+    )
     monkeypatch.setattr(self_check, "load_embedded_manifest", lambda form: embedded_manifest)
     monkeypatch.setattr(self_check, "fetch_signed_manifest", lambda *args, **kwargs: manifest_bytes)
     monkeypatch.setattr(self_check, "_fetch_url", lambda *args, **kwargs: b"{}")
