@@ -117,9 +117,21 @@ FAILED: keel-verifier self-check failed for installed wheel form
 ```
 
 Self-check fetches release provenance online by default and uses a 24 hour cache
-under `~/.cache/keel-verifier/`. Use `--offline` to require cached provenance,
+under `~/.keel-verifier/cache/`. Use `--offline` to require cached provenance,
 `--no-cache` to fetch without reading or writing cache entries, and `--json` for
 machine-readable stage results.
+
+Developers with an editable checkout can verify the published PyPI artifact
+without leaving that environment:
+
+```bash
+keel-verify self-check --published-wheel
+keel-verify self-check --published-wheel=VERSION
+```
+
+This mode is explicit only: the default self-check never pivots to network
+wheel downloads. Published-wheel output labels the PyPI wheel source and the
+local installed copy separately.
 
 ## Obtaining a Signed Export
 
