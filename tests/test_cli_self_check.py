@@ -125,3 +125,18 @@ def test_cli_self_check_help_lists_offline_and_no_cache(run_cli) -> None:
     assert result.returncode == 0
     assert "--offline" in result.stdout
     assert "--no-cache" in result.stdout
+
+
+def test_cli_self_check_published_wheel_flag_optional_value(monkeypatch) -> None:
+    captured_values = []
+
+    def fake_run(args):
+        captured_values.append(args.published_wheel)
+        return DummySelfCheckResult(ok=True)
+
+    monkeypatch.setattr(cli, "run_self_check", fake_run)
+
+    assert cli.main(["self-check", "--published-wheel"]) == 0
+    assert cli.main(["self-check", "--published-wheel=2.4.4"]) == 0
+
+    assert captured_values == ["", "2.4.4"]

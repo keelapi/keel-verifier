@@ -4,28 +4,52 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import io
 import importlib.metadata
 import importlib.resources
 import json
 import logging
+import re
+import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 
 PACKAGE_NAME = "keel_verifier"
 DIST_NAME = "keel-verifier"
 CACHE_SECONDS = 24 * 60 * 60
-DEFAULT_CACHE_DIR = Path.home() / ".cache" / "keel-verifier"
+DEFAULT_CACHE_DIR = Path.home() / ".keel-verifier" / "cache"
+PYPI_METADATA_URL = "https://pypi.org/pypi/keel-verifier/json"
 GITHUB_ACTIONS_OIDC_ISSUER = "https://token.actions.githubusercontent.com"
 REQUIRED_TSA_PROVIDERS = {"digicert", "globalsign"}
 EMBEDDED_MANIFEST_PATH = "keel_verifier/_release_manifest.json"
 EMBEDDED_CANONICALIZATION = "rfc8785-jcs"
+PEP440_VERSION_RE = re.compile(
+    r"""
+    \Av?
+    (?:
+        (?:(?:[0-9]+)!)?
+        [0-9]+(?:\.[0-9]+)*
+        (?:[-_.]?(?:a|b|c|rc|alpha|beta|pre|preview)[-_.]?[0-9]*)?
+        (?:
+            -[0-9]+
+            |
+            [-_.]?(?:post|rev|r)[-_.]?[0-9]*
+        )?
+        (?:[-_.]?dev[-_.]?[0-9]*)?
+    )
+    (?:\+[a-z0-9]+(?:[-_.][a-z0-9]+)*)?
+    \Z
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 FORBIDDEN_EMBEDDED_FIELDS = {
     "artifacts",
     "build_environment",
@@ -55,6 +79,7 @@ SELF_CHECK_FAILURE_CODES = frozenset(
         "SELF_CHECK_FORBIDDEN_EMBEDDED_FIELD",
         "SELF_CHECK_FORM_UNSUPPORTED",
         "SELF_CHECK_REKOR_INVALID",
+        "SELF_CHECK_PUBLISHED_WHEEL_DIGEST_MISMATCH",
         "SELF_CHECK_RUNTIME_DEPENDENCY_MISSING",
         "SELF_CHECK_SHADOW_IMPORT",
         "SELF_CHECK_SIGNED_MANIFEST_INVALID",
@@ -177,10 +202,51 @@ class ImportIsolationVerification:
     checked: bool
 
 
+@dataclass(frozen=True)
+class InstalledDistributionInfo:
+    version: str | None
+    form: str | None
+    location: str | None = None
+
+
+@dataclass(frozen=True)
+class PublishedWheelInfo:
+    version: str
+    source_url: str
+    installed_version: str | None
+    installed_form: str | None
+    installed_location: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "version": self.version,
+            "source_url": self.source_url,
+            "installed_version": self.installed_version,
+            "installed_form": self.installed_form,
+        }
+        if self.installed_location is not None:
+            payload["installed_location"] = self.installed_location
+        return payload
+
+
+@dataclass(frozen=True)
+class PublishedWheelResolution:
+    version: str
+    source_url: str
+    sha256: str
+
+
+@dataclass(frozen=True)
+class PublishedWheelDownload:
+    wheel_bytes: bytes
+    sha256: str
+
+
 @dataclass
 class SelfCheckResult:
     form: str
     stages: list[SelfCheckStage]
+    published_wheel_info: PublishedWheelInfo | None = None
 
     @property
     def ok(self) -> bool:
@@ -188,6 +254,19 @@ class SelfCheckResult:
 
     @property
     def summary(self) -> str:
+        if self.published_wheel_info is not None:
+            scope = f"published wheel v{self.published_wheel_info.version}"
+            return (
+                f"keel-verifier {scope} verified"
+                if self.ok
+                else f"keel-verifier {scope} verification failed"
+            )
+        if self.form == "published_wheel":
+            return (
+                "keel-verifier published wheel verification passed"
+                if self.ok
+                else "keel-verifier published wheel verification failed"
+            )
         scope = f"installed {self.form} form"
         return (
             f"keel-verifier self-check passed for {scope}"
@@ -196,16 +275,35 @@ class SelfCheckResult:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "ok": self.ok,
             "form": self.form,
             "summary": self.summary,
             "stages": [stage.to_dict() for stage in self.stages],
         }
+        if self.published_wheel_info is not None:
+            payload["published_wheel_info"] = self.published_wheel_info.to_dict()
+        return payload
 
     def format_human(self) -> str:
         status = "PASS" if self.ok else "FAILED"
         lines = [f"{status}: {self.summary}"]
+        if self.published_wheel_info is not None:
+            info = self.published_wheel_info
+            lines.append(f"  Source: {info.source_url}")
+            lines.append(
+                "  Note: This verifies the PUBLISHED wheel. "
+                "Your locally installed copy:"
+            )
+            if info.installed_version is None:
+                lines.append("    not installed")
+            else:
+                form = info.installed_form or "unknown form"
+                local = f"version {info.installed_version} ({form} install"
+                if info.installed_location is not None:
+                    local += f" at {info.installed_location}"
+                local += ")"
+                lines.append(f"    {local}")
         for stage in self.stages:
             marker = "OK" if stage.ok else "FAIL"
             if stage.ok:
@@ -301,6 +399,59 @@ def validate_embedded_manifest(embedded_manifest: dict[str, Any]) -> None:
         )
 
 
+def _validate_published_wheel_version(version: str) -> str:
+    normalized = version.strip()
+    if not normalized or not PEP440_VERSION_RE.fullmatch(normalized):
+        raise SelfCheckError(
+            "SELF_CHECK_FETCH_FAILED",
+            f"--published-wheel version is not a valid PEP 440 version: {version}",
+        )
+    if normalized[0].lower() == "v":
+        normalized = normalized[1:]
+    return normalized.lower()
+
+
+def _direct_url_location(direct_url_payload: dict[str, Any]) -> str | None:
+    url = direct_url_payload.get("url")
+    if not isinstance(url, str) or not url:
+        return None
+    parsed = urlparse(url)
+    if parsed.scheme == "file":
+        return unquote(parsed.path)
+    return url
+
+
+def inspect_installed_distribution() -> InstalledDistributionInfo:
+    try:
+        dist = importlib.metadata.distribution(DIST_NAME)
+    except importlib.metadata.PackageNotFoundError:
+        return InstalledDistributionInfo(version=None, form=None)
+
+    form: str | None = None
+    location: str | None = None
+    direct_url = dist.read_text("direct_url.json")
+    if direct_url:
+        try:
+            direct_url_payload = json.loads(direct_url)
+        except json.JSONDecodeError:
+            direct_url_payload = {}
+        if (
+            isinstance(direct_url_payload, dict)
+            and direct_url_payload.get("dir_info", {}).get("editable") is True
+        ):
+            form = "editable"
+            location = _direct_url_location(direct_url_payload)
+
+    if form is None:
+        form = "wheel" if dist.read_text("WHEEL") is not None else "sdist"
+
+    return InstalledDistributionInfo(
+        version=dist.version,
+        form=form,
+        location=location if form == "editable" else None,
+    )
+
+
 def detect_form() -> str:
     try:
         dist = importlib.metadata.distribution(DIST_NAME)
@@ -385,27 +536,40 @@ def verify_import_isolation() -> ImportIsolationVerification:
     return ImportIsolationVerification(imported_path=actual_path, checked=True)
 
 
-def load_embedded_manifest(form: str) -> dict[str, Any]:
+def load_embedded_manifest(
+    form: str,
+    base_path: Path | None = None,
+) -> dict[str, Any]:
     if form != "wheel":
         raise SelfCheckError(
             "SELF_CHECK_FORM_UNSUPPORTED",
             f"unsupported self-check form: {form}",
         )
-    try:
-        manifest_ref = importlib.resources.files(PACKAGE_NAME).joinpath(
-            "_release_manifest.json"
-        )
-        raw = manifest_ref.read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise SelfCheckError(
-            "SELF_CHECK_EMBEDDED_MANIFEST_NOT_FOUND",
-            "wheel does not contain keel_verifier/_release_manifest.json",
-        ) from exc
-    except ModuleNotFoundError as exc:
-        raise SelfCheckError(
-            "SELF_CHECK_FORM_UNSUPPORTED",
-            "keel_verifier package is not importable",
-        ) from exc
+    if base_path is None:
+        try:
+            manifest_ref = importlib.resources.files(PACKAGE_NAME).joinpath(
+                "_release_manifest.json"
+            )
+            raw = manifest_ref.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise SelfCheckError(
+                "SELF_CHECK_EMBEDDED_MANIFEST_NOT_FOUND",
+                "wheel does not contain keel_verifier/_release_manifest.json",
+            ) from exc
+        except ModuleNotFoundError as exc:
+            raise SelfCheckError(
+                "SELF_CHECK_FORM_UNSUPPORTED",
+                "keel_verifier package is not importable",
+            ) from exc
+    else:
+        manifest_path = base_path / PACKAGE_NAME / "_release_manifest.json"
+        try:
+            raw = manifest_path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise SelfCheckError(
+                "SELF_CHECK_EMBEDDED_MANIFEST_NOT_FOUND",
+                "published wheel does not contain keel_verifier/_release_manifest.json",
+            ) from exc
 
     manifest = _json_object(
         raw,
@@ -414,6 +578,160 @@ def load_embedded_manifest(form: str) -> dict[str, Any]:
     )
     validate_embedded_manifest(manifest)
     return manifest
+
+
+def _release_entries_for_version(
+    pypi_payload: dict[str, Any],
+    version: str,
+) -> list[dict[str, Any]]:
+    releases = pypi_payload.get("releases")
+    if isinstance(releases, dict):
+        release_entries = releases.get(version)
+        if isinstance(release_entries, list):
+            return [entry for entry in release_entries if isinstance(entry, dict)]
+
+        for release_version, entries in releases.items():
+            if not isinstance(release_version, str) or not isinstance(entries, list):
+                continue
+            try:
+                normalized_release_version = _validate_published_wheel_version(
+                    release_version
+                )
+            except SelfCheckError:
+                continue
+            if normalized_release_version == version:
+                return [entry for entry in entries if isinstance(entry, dict)]
+
+    info = pypi_payload.get("info")
+    latest_version = info.get("version") if isinstance(info, dict) else None
+    urls = pypi_payload.get("urls")
+    if latest_version == version and isinstance(urls, list):
+        return [entry for entry in urls if isinstance(entry, dict)]
+    return []
+
+
+def resolve_published_wheel(
+    requested_version: str,
+    *,
+    offline: bool,
+    cache_dir: Path,
+    no_cache: bool,
+) -> PublishedWheelResolution:
+    pinned_version = (
+        _validate_published_wheel_version(requested_version)
+        if requested_version
+        else None
+    )
+    metadata_bytes = _fetch_url(
+        PYPI_METADATA_URL,
+        offline=offline,
+        cache_dir=cache_dir / "pypi",
+        no_cache=no_cache,
+        label="PyPI metadata for keel-verifier",
+    )
+    pypi_payload = _json_object(
+        metadata_bytes,
+        code="SELF_CHECK_FETCH_FAILED",
+        label="PyPI metadata for keel-verifier",
+    )
+
+    if pinned_version is not None:
+        version = pinned_version
+    else:
+        info = pypi_payload.get("info")
+        latest_version = info.get("version") if isinstance(info, dict) else None
+        if not isinstance(latest_version, str) or not latest_version:
+            raise SelfCheckError(
+                "SELF_CHECK_FETCH_FAILED",
+                "PyPI metadata does not contain info.version",
+            )
+        version = _validate_published_wheel_version(latest_version)
+
+    wheel_entries = [
+        entry
+        for entry in _release_entries_for_version(pypi_payload, version)
+        if entry.get("packagetype") == "bdist_wheel"
+    ]
+    if not wheel_entries:
+        raise SelfCheckError(
+            "SELF_CHECK_FETCH_FAILED",
+            f"PyPI metadata has no wheel file for keel-verifier {version}",
+        )
+
+    wheel_entry = wheel_entries[0]
+    source_url = wheel_entry.get("url")
+    digests = wheel_entry.get("digests")
+    digest = digests.get("sha256") if isinstance(digests, dict) else None
+    if not isinstance(source_url, str) or not source_url:
+        raise SelfCheckError(
+            "SELF_CHECK_FETCH_FAILED",
+            f"PyPI wheel metadata for keel-verifier {version} has no URL",
+        )
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(char not in "0123456789abcdefABCDEF" for char in digest)
+    ):
+        raise SelfCheckError(
+            "SELF_CHECK_FETCH_FAILED",
+            f"PyPI wheel metadata for keel-verifier {version} has no SHA-256 digest",
+        )
+    return PublishedWheelResolution(
+        version=version,
+        source_url=source_url,
+        sha256=digest.lower(),
+    )
+
+
+def download_published_wheel(
+    resolution: PublishedWheelResolution,
+    *,
+    offline: bool,
+    cache_dir: Path,
+    no_cache: bool,
+) -> PublishedWheelDownload:
+    wheel_bytes = _fetch_url(
+        resolution.source_url,
+        offline=offline,
+        cache_dir=cache_dir / "published-wheels",
+        no_cache=no_cache,
+        label=f"published keel-verifier wheel {resolution.version}",
+    )
+    actual = hashlib.sha256(wheel_bytes).hexdigest()
+    if actual != resolution.sha256:
+        raise SelfCheckError(
+            "SELF_CHECK_PUBLISHED_WHEEL_DIGEST_MISMATCH",
+            (
+                "downloaded wheel SHA-256 does not match PyPI metadata: "
+                f"expected {resolution.sha256}, got {actual}"
+            ),
+            (
+                "Check PyPI status: https://status.python.org/\n"
+                "Then retry without cached bytes: "
+                "keel-verify self-check --published-wheel"
+                f"={resolution.version} --no-cache"
+            ),
+        )
+    return PublishedWheelDownload(wheel_bytes=wheel_bytes, sha256=actual)
+
+
+def extract_wheel_to_base_path(wheel_bytes: bytes, base_path: Path) -> None:
+    try:
+        with zipfile.ZipFile(io.BytesIO(wheel_bytes)) as wheel:
+            resolved_base = base_path.resolve()
+            for member in wheel.infolist():
+                target = (base_path / member.filename).resolve()
+                if target != resolved_base and resolved_base not in target.parents:
+                    raise SelfCheckError(
+                        "SELF_CHECK_FETCH_FAILED",
+                        f"wheel contains unsafe archive path: {member.filename}",
+                    )
+            wheel.extractall(base_path)
+    except zipfile.BadZipFile as exc:
+        raise SelfCheckError(
+            "SELF_CHECK_FETCH_FAILED",
+            "downloaded wheel is not a valid ZIP archive",
+        ) from exc
 
 
 def _cache_paths(cache_dir: Path, url: str) -> tuple[Path, Path]:
@@ -819,7 +1137,7 @@ def _normalize_manifest_path(raw_path: Any) -> str:
     return path.as_posix()
 
 
-def _installed_file_path(manifest_path: str) -> Path:
+def _installed_file_path(manifest_path: str, base_path: Path | None = None) -> Path:
     normalized = _normalize_manifest_path(manifest_path)
     posix_path = PurePosixPath(normalized)
     if not posix_path.parts or posix_path.parts[0] != PACKAGE_NAME:
@@ -827,12 +1145,15 @@ def _installed_file_path(manifest_path: str) -> Path:
             "SELF_CHECK_EMBEDDED_MANIFEST_INVALID",
             f"per_file_digests path is outside {PACKAGE_NAME}: {manifest_path}",
         )
+    if base_path is not None:
+        return base_path.joinpath(*posix_path.parts)
     package_root = Path(str(importlib.resources.files(PACKAGE_NAME)))
     return package_root.parent.joinpath(*posix_path.parts)
 
 
 def verify_per_file_digests(
     embedded_manifest: dict[str, Any],
+    base_path: Path | None = None,
 ) -> PerFileDigestVerification:
     per_file_digests = embedded_manifest.get("per_file_digests")
     if not isinstance(per_file_digests, dict) or not per_file_digests:
@@ -855,19 +1176,21 @@ def verify_per_file_digests(
                 f"digest for {manifest_path} must be a string",
             )
         expected_hex = expected.removeprefix("sha256:")
-        installed_path = _installed_file_path(normalized_path)
+        installed_path = _installed_file_path(normalized_path, base_path=base_path)
         try:
             payload = installed_path.read_bytes()
         except FileNotFoundError as exc:
+            scope = "published wheel" if base_path is not None else "installed"
             raise SelfCheckError(
                 "SELF_CHECK_FILE_MISSING",
-                f"installed file listed in embedded manifest is missing: {normalized_path}",
+                f"{scope} file listed in embedded manifest is missing: {normalized_path}",
             ) from exc
         actual_hex = hashlib.sha256(payload).hexdigest()
         if actual_hex != expected_hex:
+            scope = "published wheel" if base_path is not None else "installed"
             raise SelfCheckError(
                 "SELF_CHECK_FILE_DIGEST_MISMATCH",
-                f"installed file digest mismatch: {normalized_path}",
+                f"{scope} file digest mismatch: {normalized_path}",
             )
         checked += 1
     return PerFileDigestVerification(checked=checked)
@@ -887,12 +1210,305 @@ def _stage_fail(name: str, exc: SelfCheckError) -> SelfCheckStage:
     )
 
 
+def _result_form(
+    form: str,
+    published_wheel_info: PublishedWheelInfo | None,
+) -> str:
+    return "published_wheel" if published_wheel_info is not None else form
+
+
+def _self_check_result(
+    *,
+    form: str,
+    stages: list[SelfCheckStage],
+    published_wheel_info: PublishedWheelInfo | None = None,
+) -> SelfCheckResult:
+    return SelfCheckResult(
+        form=_result_form(form, published_wheel_info),
+        stages=stages,
+        published_wheel_info=published_wheel_info,
+    )
+
+
+def _load_embedded_manifest_for_base(
+    form: str,
+    base_path: Path | None,
+) -> dict[str, Any]:
+    if base_path is None:
+        return load_embedded_manifest(form)
+    return load_embedded_manifest(form, base_path=base_path)
+
+
+def _verify_per_file_digests_for_base(
+    embedded_manifest: dict[str, Any],
+    base_path: Path | None,
+) -> PerFileDigestVerification:
+    if base_path is None:
+        return verify_per_file_digests(embedded_manifest)
+    return verify_per_file_digests(embedded_manifest, base_path=base_path)
+
+
+def _run_self_check_chain(
+    *,
+    form: str,
+    stages: list[SelfCheckStage],
+    cache_dir: Path,
+    offline: bool,
+    no_cache: bool,
+    base_path: Path | None = None,
+    published_wheel_info: PublishedWheelInfo | None = None,
+) -> SelfCheckResult:
+    try:
+        embedded_manifest = _load_embedded_manifest_for_base(form, base_path)
+        stages.append(
+            _stage_ok(
+                "embedded_manifest",
+                "embedded release manifest is present and cycle-safe",
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("embedded_manifest", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        signed_manifest_bytes = fetch_signed_manifest(
+            embedded_manifest["release_manifest_url"],
+            offline=offline,
+            cache_dir=cache_dir,
+            no_cache=no_cache,
+        )
+        signature = _fetch_url(
+            embedded_manifest["release_manifest_signature_url"],
+            offline=offline,
+            cache_dir=cache_dir,
+            no_cache=no_cache,
+            label="release manifest Sigstore bundle",
+        )
+        tsa_sidecar_bytes = _fetch_url(
+            embedded_manifest["release_manifest_tsa_witness_url"],
+            offline=offline,
+            cache_dir=cache_dir,
+            no_cache=no_cache,
+            label="release manifest TSA witness sidecar",
+        )
+        stages.append(_stage_ok("fetch", "release manifest, signature, and TSA sidecar loaded"))
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("fetch", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        sigstore_result = verify_sigstore(
+            signed_manifest_bytes,
+            signature,
+            str(embedded_manifest["expected_signing_identity"]),
+            offline=offline,
+        )
+        stages.append(
+            _stage_ok(
+                "sigstore_signature",
+                "signed release manifest verifies against expected GitHub Actions identity",
+                log_index=sigstore_result.log_index,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("sigstore_signature", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        rekor_result = verify_rekor(signed_manifest_bytes, signature)
+        stages.append(
+            _stage_ok(
+                "rekor_inclusion",
+                "Rekor inclusion proof is present and verified by sigstore-python",
+                log_index=rekor_result.log_index,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("rekor_inclusion", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        tsa_sidecar = _json_object(
+            tsa_sidecar_bytes,
+            code="SELF_CHECK_TSA_INVALID",
+            label="TSA sidecar",
+        )
+        tsa_result = verify_tsa(signed_manifest_bytes, tsa_sidecar)
+        stages.append(
+            _stage_ok(
+                "tsa_witnesses",
+                "DigiCert and GlobalSign RFC 3161 receipts witness the manifest hash "
+                "(bind-level; cert-chain validation is opt-in)",
+                providers=tsa_result.providers,
+                message_imprint=tsa_result.message_imprint,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("tsa_witnesses", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        signed_manifest = _json_object(
+            signed_manifest_bytes,
+            code="SELF_CHECK_SIGNED_MANIFEST_INVALID",
+            label="signed release manifest",
+        )
+        binding_result = verify_embedded_manifest_binding(
+            signed_manifest,
+            embedded_manifest,
+        )
+        stages.append(
+            _stage_ok(
+                "embedded_binding",
+                "embedded manifest JCS hash matches signed release manifest binding",
+                sha256=binding_result.sha256,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("embedded_binding", exc))
+        return _self_check_result(
+            form=form,
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    try:
+        per_file_result = _verify_per_file_digests_for_base(embedded_manifest, base_path)
+        per_file_message = (
+            "published wheel files match embedded per-file digests"
+            if base_path is not None
+            else "installed wheel files match embedded per-file digests"
+        )
+        stages.append(
+            _stage_ok(
+                "per_file_digests",
+                per_file_message,
+                checked=per_file_result.checked,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("per_file_digests", exc))
+
+    return _self_check_result(
+        form=form,
+        stages=stages,
+        published_wheel_info=published_wheel_info,
+    )
+
+
+def _run_published_wheel_self_check(
+    *,
+    requested_version: str,
+    stages: list[SelfCheckStage],
+    cache_dir: Path,
+    offline: bool,
+    no_cache: bool,
+) -> SelfCheckResult:
+    installed_info = inspect_installed_distribution()
+    published_wheel_info: PublishedWheelInfo | None = None
+    try:
+        resolution = resolve_published_wheel(
+            requested_version,
+            offline=offline,
+            cache_dir=cache_dir,
+            no_cache=no_cache,
+        )
+        published_wheel_info = PublishedWheelInfo(
+            version=resolution.version,
+            source_url=resolution.source_url,
+            installed_version=installed_info.version,
+            installed_form=installed_info.form,
+            installed_location=installed_info.location,
+        )
+        stages.append(
+            _stage_ok(
+                "published_wheel_resolve",
+                f"PyPI metadata resolved to keel-verifier {resolution.version}",
+                version=resolution.version,
+                source_url=resolution.source_url,
+                sha256=resolution.sha256,
+            )
+        )
+    except SelfCheckError as exc:
+        stages.append(_stage_fail("published_wheel_resolve", exc))
+        return _self_check_result(
+            form="published_wheel",
+            stages=stages,
+            published_wheel_info=published_wheel_info,
+        )
+
+    with tempfile.TemporaryDirectory(prefix="keel-verify-pubwheel-") as tempdir:
+        base_path = Path(tempdir)
+        try:
+            download = download_published_wheel(
+                resolution,
+                offline=offline,
+                cache_dir=cache_dir,
+                no_cache=no_cache,
+            )
+            extract_wheel_to_base_path(download.wheel_bytes, base_path)
+            stages.append(
+                _stage_ok(
+                    "published_wheel_download",
+                    f"wheel downloaded + SHA-256 verified ({download.sha256})",
+                    sha256=download.sha256,
+                )
+            )
+        except SelfCheckError as exc:
+            stages.append(_stage_fail("published_wheel_download", exc))
+            return _self_check_result(
+                form="published_wheel",
+                stages=stages,
+                published_wheel_info=published_wheel_info,
+            )
+
+        return _run_self_check_chain(
+            form="wheel",
+            stages=stages,
+            cache_dir=cache_dir,
+            offline=offline,
+            no_cache=no_cache,
+            base_path=base_path,
+            published_wheel_info=published_wheel_info,
+        )
+
+
 def run_self_check(args: Any) -> SelfCheckResult:
     stages: list[SelfCheckStage] = []
     requested_form = getattr(args, "form", "auto")
     cache_dir = Path(getattr(args, "cache_dir", None) or DEFAULT_CACHE_DIR).expanduser()
     offline = bool(getattr(args, "offline", False))
     no_cache = bool(getattr(args, "no_cache", False))
+    published_wheel = getattr(args, "published_wheel", None)
+
+    if published_wheel is not None:
+        return _run_published_wheel_self_check(
+            requested_version=str(published_wheel),
+            stages=stages,
+            cache_dir=cache_dir,
+            offline=offline,
+            no_cache=no_cache,
+        )
 
     try:
         form = detect_form() if requested_form == "auto" else requested_form
@@ -928,126 +1544,10 @@ def run_self_check(args: Any) -> SelfCheckResult:
         stages.append(_stage_fail("import_isolation", exc))
         return SelfCheckResult(form=form, stages=stages)
 
-    try:
-        embedded_manifest = load_embedded_manifest(form)
-        stages.append(
-            _stage_ok(
-                "embedded_manifest",
-                "embedded release manifest is present and cycle-safe",
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("embedded_manifest", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        signed_manifest_bytes = fetch_signed_manifest(
-            embedded_manifest["release_manifest_url"],
-            offline=offline,
-            cache_dir=cache_dir,
-            no_cache=no_cache,
-        )
-        signature = _fetch_url(
-            embedded_manifest["release_manifest_signature_url"],
-            offline=offline,
-            cache_dir=cache_dir,
-            no_cache=no_cache,
-            label="release manifest Sigstore bundle",
-        )
-        tsa_sidecar_bytes = _fetch_url(
-            embedded_manifest["release_manifest_tsa_witness_url"],
-            offline=offline,
-            cache_dir=cache_dir,
-            no_cache=no_cache,
-            label="release manifest TSA witness sidecar",
-        )
-        stages.append(_stage_ok("fetch", "release manifest, signature, and TSA sidecar loaded"))
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("fetch", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        sigstore_result = verify_sigstore(
-            signed_manifest_bytes,
-            signature,
-            str(embedded_manifest["expected_signing_identity"]),
-            offline=offline,
-        )
-        stages.append(
-            _stage_ok(
-                "sigstore_signature",
-                "signed release manifest verifies against expected GitHub Actions identity",
-                log_index=sigstore_result.log_index,
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("sigstore_signature", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        rekor_result = verify_rekor(signed_manifest_bytes, signature)
-        stages.append(
-            _stage_ok(
-                "rekor_inclusion",
-                "Rekor inclusion proof is present and verified by sigstore-python",
-                log_index=rekor_result.log_index,
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("rekor_inclusion", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        tsa_sidecar = _json_object(
-            tsa_sidecar_bytes,
-            code="SELF_CHECK_TSA_INVALID",
-            label="TSA sidecar",
-        )
-        tsa_result = verify_tsa(signed_manifest_bytes, tsa_sidecar)
-        stages.append(
-            _stage_ok(
-                "tsa_witnesses",
-                "DigiCert and GlobalSign RFC 3161 receipts witness the manifest hash "
-                "(bind-level; cert-chain validation is opt-in)",
-                providers=tsa_result.providers,
-                message_imprint=tsa_result.message_imprint,
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("tsa_witnesses", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        signed_manifest = _json_object(
-            signed_manifest_bytes,
-            code="SELF_CHECK_SIGNED_MANIFEST_INVALID",
-            label="signed release manifest",
-        )
-        binding_result = verify_embedded_manifest_binding(
-            signed_manifest,
-            embedded_manifest,
-        )
-        stages.append(
-            _stage_ok(
-                "embedded_binding",
-                "embedded manifest JCS hash matches signed release manifest binding",
-                sha256=binding_result.sha256,
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("embedded_binding", exc))
-        return SelfCheckResult(form=form, stages=stages)
-
-    try:
-        per_file_result = verify_per_file_digests(embedded_manifest)
-        stages.append(
-            _stage_ok(
-                "per_file_digests",
-                "installed wheel files match embedded per-file digests",
-                checked=per_file_result.checked,
-            )
-        )
-    except SelfCheckError as exc:
-        stages.append(_stage_fail("per_file_digests", exc))
-
-    return SelfCheckResult(form=form, stages=stages)
+    return _run_self_check_chain(
+        form=form,
+        stages=stages,
+        cache_dir=cache_dir,
+        offline=offline,
+        no_cache=no_cache,
+    )
