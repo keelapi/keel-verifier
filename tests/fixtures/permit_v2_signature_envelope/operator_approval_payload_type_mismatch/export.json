@@ -1,0 +1,31 @@
+{
+  "account_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "action_name": "generate_report",
+  "counter_signature": {
+    "key_id": "baafd9562715f33bc600ac0e150e7d0a23c0d865a121a73d6d51c44384e6419e",
+    "payload_type": "permit.operator_approval.v1",
+    "signature": "rO6gu/NUoCmo6iX5noi7ocRWXTYF+3ykhLvvvfJLmpPzAFpheEw1120095yrLna5rNIyeCpEknPYbcCtN/GmBw==",
+    "signed_at": "2026-05-23T12:30:00.123456Z",
+    "signed_payload_hash": "845ec2b13ae4b2fd66b3e89c04527309706de343dfa710cdb2b917a2da13f04a",
+    "signer_id": "22222222-bbbb-4bbb-8bbb-222222222222"
+  },
+  "created_at": "2026-05-23T12:00:00.000000Z",
+  "decision": "allow",
+  "expires_at": "2026-05-23T14:00:00.000000Z",
+  "id": "11111111-aaaa-4aaa-8aaa-111111111111",
+  "permit_format_version": "v2",
+  "project_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "reason": "policy.allow",
+  "request_fingerprint": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "resource_model": "gpt-5",
+  "resource_provider": "openai",
+  "signature": {
+    "key_id": "issuer-key-v1",
+    "signature": "MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMQ==",
+    "signed_at": "2026-05-23T12:00:01.000000Z",
+    "signed_payload_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signer_id": "55555555-eeee-4eee-8eee-555555555555"
+  },
+  "subject_id": "subject-001",
+  "subject_type": "user"
+}

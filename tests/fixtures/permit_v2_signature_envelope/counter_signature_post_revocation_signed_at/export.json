@@ -1,0 +1,36 @@
+{
+  "account_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "action_name": "generate_report",
+  "counter_signature": {
+    "execution_intent_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "key_id": "ee68a4f2cdd7400f3d7c8fd420c5716368b9fc5208644b62a41dd6ada88519fa",
+    "payload_type": "permit.counter_signature.v1",
+    "signature": "FF1WiHtdSJ+SHDsn/LASOop3O6h2awxHSMjOxRxW6lsMJn8NMGSxQ+kXDID2v3quIWTsZ+xCfWGMnSVvJQJbAw==",
+    "signed_at": "2026-05-23T13:30:00.123456Z",
+    "signed_payload_hash": "37906dfeb42af30f15ea9d2b6bfc61418a91bf4dfc90129ca4f63dfaaaa9a090",
+    "signer_id": "33333333-cccc-4ccc-8ccc-333333333333"
+  },
+  "created_at": "2026-05-23T12:00:00.000000Z",
+  "decision": "allow",
+  "expires_at": "2026-05-23T14:00:00.000000Z",
+  "id": "11111111-aaaa-4aaa-8aaa-111111111111",
+  "permit_format_version": "v2",
+  "project_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "reason": "policy.allow",
+  "request_fingerprint": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "resource_model": "gpt-5",
+  "resource_provider": "openai",
+  "revocation": {
+    "effective_at": "2026-05-23T13:00:00.000000Z",
+    "reason_code": "operator.requested"
+  },
+  "signature": {
+    "key_id": "issuer-key-v1",
+    "signature": "MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMQ==",
+    "signed_at": "2026-05-23T12:00:01.000000Z",
+    "signed_payload_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signer_id": "55555555-eeee-4eee-8eee-555555555555"
+  },
+  "subject_id": "subject-001",
+  "subject_type": "user"
+}
