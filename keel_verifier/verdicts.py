@@ -1,13 +1,15 @@
 """Structured verifier verdicts.
 
 The verdict enum and claim names are loaded from the v0 claim registry rather
-than duplicated in code. The bundled copy is a standalone-install fallback;
-source checkouts prefer the sibling keel-permit registry.
+than duplicated in code. The bundled copy is the verifier-build-time source of
+truth; set KEEL_CLAIM_REGISTRY for explicit offline drift checks against a
+source checkout.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from importlib import resources
@@ -21,7 +23,6 @@ from keel_verifier.semantics import (
     LEGACY_PROFILE_ID,
     LEGACY_PROFILE_WARNING,
     RELEASED_ARTIFACT_HASHES,
-    candidate_registry_paths,
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
@@ -57,7 +58,8 @@ class ClaimRegistry:
 
 
 def _candidate_registry_paths() -> list[Path]:
-    return candidate_registry_paths()
+    env_path = os.getenv("KEEL_CLAIM_REGISTRY")
+    return [Path(env_path).expanduser()] if env_path else []
 
 
 def _load_registry_payload() -> tuple[dict[str, Any], str]:

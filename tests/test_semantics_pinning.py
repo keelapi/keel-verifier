@@ -41,6 +41,7 @@ from keel_verifier.verifier import PERMANENT_ALLOWLIST
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_ROOT = REPO_ROOT.parent
 SOURCE_PERMIT = PRODUCT_ROOT / "keel-permit"
+BUNDLED_DATA = REPO_ROOT / "keel_verifier" / "data"
 CANONICAL_SOURCE_ARTIFACTS = {
     EXPORT_SCOPE_FAITHFULNESS_ID,
     SCOPE_STATE_MERKLE_ID,
@@ -393,25 +394,16 @@ def test_required_checkpoint_tsa_claim_without_receipt_fails_closed(
     assert claim["reason_code"] == "REQUIRED_CLAIM_NOT_ADJUDICATED"
 
 
-def test_permanent_allowlist_matches_released_keel_permit_artifacts():
-    if not SOURCE_PERMIT.exists():
-        message = (
-            "keel-permit is not checked out next to keel-verifier: "
-            f"{SOURCE_PERMIT}"
-        )
-        if os.getenv("KEEL_REQUIRE_GOLDEN_CORPUS"):
-            raise FileNotFoundError(message)
-        pytest.skip(message)
-
+def test_permanent_allowlist_matches_bundled_released_artifacts():
     allowlist_hashes: dict[str, set[str]] = {}
     for artifact_id, artifact_hash in PERMANENT_ALLOWLIST:
         allowlist_hashes.setdefault(artifact_id, set()).add(artifact_hash)
 
     assert set(allowlist_hashes) == set(RELEASED_ARTIFACT_PATHS)
     for artifact_id, relative_path in RELEASED_ARTIFACT_PATHS.items():
-        artifact_path = SOURCE_PERMIT / relative_path
+        artifact_path = BUNDLED_DATA / relative_path
         assert artifact_path.exists(), artifact_path
-        assert _sha256(_artifact_source_bytes(artifact_id, artifact_path)) in allowlist_hashes[artifact_id]
+        assert _sha256(artifact_path.read_bytes()) in allowlist_hashes[artifact_id]
 
 
 def test_claim_semantics_and_permanent_allowlist_are_closed():
