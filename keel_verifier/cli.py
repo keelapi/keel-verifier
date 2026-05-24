@@ -298,8 +298,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Fetch release provenance without reading or writing the 24h cache.",
     )
     p_self.add_argument(
+        "--published-wheel",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="VERSION",
+        help=(
+            "Verify the published PyPI wheel instead of the installed copy. "
+            "Omit VERSION to verify the latest published version."
+        ),
+    )
+    p_self.add_argument(
         "--cache-dir",
-        help="Directory for the 24h release provenance cache. Defaults to ~/.cache/keel-verifier/.",
+        help="Directory for the 24h release provenance cache. Defaults to ~/.keel-verifier/cache/.",
     )
     p_self.add_argument(
         "--json",
