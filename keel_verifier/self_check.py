@@ -22,6 +22,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from keel_verifier.install_diagnostics import (
+    DIST_NAME,
     PACKAGE_NAME,
     SHADOW_IMPORT_REMEDIATION,
     inspect_import_isolation,
