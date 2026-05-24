@@ -325,9 +325,57 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
+    },
+    {
+      "name": "permit.operator_approved.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
+      "depends_on_semantics": [
+        "keel.permit.operator_approval.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.counter_signed.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 counter_signature slot as a distinct buyer-principal pre-dispatch signature over execution intent and permit binding inputs.",
+      "depends_on_semantics": [
+        "keel.permit.counter_signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.audit_attested.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 audit_attestation slot as a distinct buyer-principal post-hoc signature bound to a known audit batch.",
+      "depends_on_semantics": [
+        "keel.permit.audit_attestation.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
     }
   ],
   "artifact_formats": [
+    {
+      "name": "permit_v2",
+      "status": "supported",
+      "permit_spec": "spec/permit-v2.md",
+      "note": "Additive Permit v2 signature-envelope slots are verified as distinct claims."
+    },
     {
       "name": "permit_v1",
       "status": "supported",
@@ -465,6 +513,18 @@
       "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
       "PERMIT_REVOKED_ACTOR_PII_DETECTED",
       "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED",
+      "PERMIT_OPERATOR_APPROVAL_INVALID",
+      "PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
+      "PERMIT_OPERATOR_APPROVAL_SIGNER_MISMATCH",
+      "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "PERMIT_COUNTER_SIGNATURE_KEY_NOT_TRUSTED",
+      "PERMIT_COUNTER_SIGNATURE_SIGNER_MISMATCH",
+      "PERMIT_COUNTER_SIGNATURE_INTENT_MISMATCH",
+      "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "PERMIT_AUDIT_ATTESTATION_KEY_NOT_TRUSTED",
+      "PERMIT_AUDIT_ATTESTATION_SIGNER_MISMATCH",
+      "PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+      "PAYLOAD_TYPE_MISMATCH",
       "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
       "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
       "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE"
@@ -513,7 +573,8 @@
     {
       "category": "Wire-format extensions",
       "items": [
-        "Permit v2+ (not yet defined)",
+        "Permit v3+ (not yet defined)",
+        "Permit v2 provider_attestation (reserved)",
         "closure_v3+ (not yet defined)",
         "Chain entry hash format v2+ (not yet defined)"
       ],
@@ -571,6 +632,21 @@
     {
       "id": "keel.permit.dispatch_absence_after_revocation.v1",
       "hash": "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.operator_approval.v1",
+      "hash": "sha256:66c6f811aee132c1e93d16708f5a8bbb1b9ca36efa07eaab63aae59894351a63",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.counter_signature.v1",
+      "hash": "sha256:cdc1bebff5f04b746f89aa5247cbcdc7b5cf8a074dfda6120f18bdc26ee22bdb",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.audit_attestation.v1",
+      "hash": "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f",
       "status": "allowlisted"
     }
   ]

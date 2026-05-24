@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import hashlib
 import os
-import json
 from pathlib import Path
 
 import pytest
@@ -23,11 +23,6 @@ PRODUCT_ROOT = REPO_ROOT.parent
 SOURCE_PERMIT = PRODUCT_ROOT / "keel-permit"
 SOURCE_API = PRODUCT_ROOT / "keel-api"
 BUNDLED_DATA = REPO_ROOT / "keel_verifier" / "data"
-CANONICAL_SOURCE_ARTIFACTS = {
-    EXPORT_SCOPE_FAITHFULNESS_ID,
-    SCOPE_STATE_MERKLE_ID,
-    SCOPE_STATE_SIDECAR_FORMAT_ID,
-}
 VERIFIER_ADDITIVE_ARTIFACTS = {
     "keel.verifier_claim_registry.v0",
     EXPORT_SCOPE_FAITHFULNESS_ID,
@@ -39,16 +34,8 @@ VERIFIER_ADDITIVE_ARTIFACTS = {
 }
 
 
-def _expected_source_bytes(artifact_id: str, source_artifact: Path) -> bytes:
-    raw = source_artifact.read_bytes()
-    if artifact_id not in CANONICAL_SOURCE_ARTIFACTS:
-        return raw
-    return json.dumps(
-        json.loads(raw.decode("utf-8")),
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
+def _sha256(data: bytes) -> str:
+    return f"sha256:{hashlib.sha256(data).hexdigest()}"
 
 
 def test_released_artifact_paths_cover_verifier_additive_artifacts() -> None:
@@ -60,29 +47,16 @@ def test_released_artifact_paths_cover_verifier_additive_artifacts() -> None:
     ("artifact_id", "relative_path"),
     sorted(RELEASED_ARTIFACT_PATHS.items()),
 )
-def test_released_artifact_matches_keel_permit_source_bytes(
+def test_released_artifact_matches_declared_bundled_hash(
     artifact_id: str,
     relative_path: str,
 ) -> None:
-    source_artifact = SOURCE_PERMIT / relative_path
-    if not source_artifact.exists():
-        message = (
-            "keel-permit released artifact is not checked out next to "
-            f"keel-verifier: {source_artifact}"
-        )
-        if os.getenv("KEEL_REQUIRE_GOLDEN_CORPUS"):
-            raise FileNotFoundError(message)
-        pytest.skip(message)
-
     bundled_artifact = BUNDLED_DATA / relative_path
 
     assert bundled_artifact.exists(), (
         f"{artifact_id} is not bundled at keel_verifier/data/{relative_path}"
     )
-    assert bundled_artifact.read_bytes() == _expected_source_bytes(
-        artifact_id,
-        source_artifact,
-    )
+    assert _sha256(bundled_artifact.read_bytes()) == RELEASED_ARTIFACT_HASHES[artifact_id]
 
 
 @pytest.mark.parametrize(

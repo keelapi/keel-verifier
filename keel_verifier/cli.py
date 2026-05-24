@@ -20,6 +20,7 @@ from keel_verifier.verifier import (
     cmd_refresh_keys,
     verify,
     verify_delegation_denied_correctly,
+    verify_permit_v2_signature_claim,
     verify_scope_faithfulness_claim,
 )
 
@@ -153,6 +154,22 @@ def _cmd_claim_scope_faithfulness(
         manifest=args.manifest,
         sidecar=args.sidecar,
         checkpoint=args.checkpoint,
+        key_manifest=args.key_manifest,
+    )
+    print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    return 0 if result["status"] == "supported" else 1
+
+
+def _cmd_claim_permit_v2_signature(
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+) -> int:
+    if not args.export_file:
+        parser.error(f"{args.claim_cmd} requires --export-file")
+    result = verify_permit_v2_signature_claim(
+        claim_type=args.claim_cmd,
+        export_file=args.export_file,
+        manifest=args.manifest,
         key_manifest=args.key_manifest,
     )
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
@@ -334,6 +351,37 @@ def _build_parser() -> argparse.ArgumentParser:
             args,
         )
     )
+
+    for claim_name, help_text in (
+        (
+            "operator_approved",
+            "Verify a Permit v2 operator_approval signature slot.",
+        ),
+        (
+            "counter_signed",
+            "Verify a Permit v2 counter_signature pre-dispatch signature slot.",
+        ),
+        (
+            "audit_attested",
+            "Verify a Permit v2 audit_attestation signature slot.",
+        ),
+    ):
+        p_permit_v2 = claim_sub.add_parser(claim_name, help=help_text)
+        p_permit_v2.add_argument("--export-file", required=True)
+        p_permit_v2.add_argument("--manifest")
+        p_permit_v2.add_argument("--key-manifest")
+        p_permit_v2.add_argument(
+            "--json",
+            action="store_true",
+            dest="as_json",
+            help="Accepted for consistency; claim output is JSON by default.",
+        )
+        p_permit_v2.set_defaults(
+            func=lambda args, parser=p_permit_v2: _cmd_claim_permit_v2_signature(
+                parser,
+                args,
+            )
+        )
 
     return parser
 
