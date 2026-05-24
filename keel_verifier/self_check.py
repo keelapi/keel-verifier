@@ -21,9 +21,13 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from keel_verifier.install_diagnostics import (
+    PACKAGE_NAME,
+    SHADOW_IMPORT_REMEDIATION,
+    inspect_import_isolation,
+    inspect_install_form,
+)
 
-PACKAGE_NAME = "keel_verifier"
-DIST_NAME = "keel-verifier"
 CACHE_SECONDS = 24 * 60 * 60
 DEFAULT_CACHE_DIR = Path.home() / ".keel-verifier" / "cache"
 PYPI_METADATA_URL = "https://pypi.org/pypi/keel-verifier/json"
@@ -90,24 +94,6 @@ SELF_CHECK_FAILURE_CODES = frozenset(
         "SELF_CHECK_WHEEL_SUBJECT_MISSING",
     }
 )
-EDITABLE_INSTALL_REMEDIATION = (
-    "Install and check the published wheel in a clean environment:\n"
-    "  pip uninstall -y keel-verifier\n"
-    "  python -m venv /tmp/demo-venv\n"
-    "  source /tmp/demo-venv/bin/activate\n"
-    "  pip install --no-cache-dir keel-verifier\n"
-    "  keel-verify self-check"
-)
-SHADOW_IMPORT_REMEDIATION = (
-    "Another keel_verifier on sys.path is shadowing the installed wheel.\n"
-    "Diagnose with:\n"
-    "  python -c 'import keel_verifier; print(keel_verifier.__file__)'\n"
-    "  python -c 'import sys; print(chr(10).join(sys.path))'\n"
-    "  printenv PYTHONPATH\n"
-    "Then unset PYTHONPATH, remove the shadowing path, or pip uninstall the user-site "
-    "editable."
-)
-
 _SIGSTORE_TRUST_LOGGER = "sigstore._internal.trust"
 _SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING = (
     "Failed to load a trusted root key: unsupported key type: 7"
@@ -453,87 +439,51 @@ def inspect_installed_distribution() -> InstalledDistributionInfo:
 
 
 def detect_form() -> str:
-    try:
-        dist = importlib.metadata.distribution(DIST_NAME)
-    except importlib.metadata.PackageNotFoundError as exc:
+    diagnostic = inspect_install_form(
+        distribution_getter=importlib.metadata.distribution,
+    )
+    if diagnostic.form == "wheel":
+        return "wheel"
+    if diagnostic.form == "missing":
         raise SelfCheckError(
             "SELF_CHECK_FORM_UNSUPPORTED",
-            "keel-verifier distribution metadata is not installed",
-            "Install the published wheel: pip install keel-verifier",
-        ) from exc
-
-    direct_url = dist.read_text("direct_url.json")
-    if direct_url:
-        try:
-            direct_url_payload = json.loads(direct_url)
-        except json.JSONDecodeError:
-            direct_url_payload = {}
-        if direct_url_payload.get("dir_info", {}).get("editable") is True:
-            raise SelfCheckError(
-                "SELF_CHECK_FORM_UNSUPPORTED",
-                "editable installs are outside the wheel self-check scope",
-                EDITABLE_INSTALL_REMEDIATION,
-            )
-
-    if dist.read_text("WHEEL") is not None:
-        return "wheel"
+            diagnostic.message,
+            diagnostic.remediation,
+        )
+    if diagnostic.form == "editable":
+        raise SelfCheckError(
+            "SELF_CHECK_FORM_UNSUPPORTED",
+            diagnostic.message,
+            diagnostic.remediation,
+        )
 
     raise SelfCheckError(
         "SELF_CHECK_FORM_UNSUPPORTED",
-        "only installed wheel form is supported by keel-verify self-check",
-        "Force-reinstall the wheel form: pip install --force-reinstall --no-deps "
-        "--only-binary :all: keel-verifier",
+        diagnostic.message,
+        diagnostic.remediation,
     )
 
 
 def verify_import_isolation() -> ImportIsolationVerification:
-    import keel_verifier
-
-    imported_file = getattr(keel_verifier, "__file__", None)
-    actual_path = Path(imported_file).resolve() if imported_file else None
-    if actual_path is None:
+    diagnostic = inspect_import_isolation(
+        distribution_getter=importlib.metadata.distribution,
+    )
+    if diagnostic.aligned is False:
+        raise SelfCheckError(
+            str(diagnostic.code),
+            diagnostic.message,
+            diagnostic.remediation,
+        )
+    if diagnostic.imported_path is None:
         raise SelfCheckError(
             "SELF_CHECK_SHADOW_IMPORT",
             "keel_verifier is importable but does not expose __file__",
             SHADOW_IMPORT_REMEDIATION,
         )
-
-    try:
-        dist = importlib.metadata.distribution(DIST_NAME)
-    except importlib.metadata.PackageNotFoundError as exc:
-        raise SelfCheckError(
-            "SELF_CHECK_FORM_UNSUPPORTED",
-            "keel-verifier distribution metadata is not installed",
-            "Install the published wheel: pip install keel-verifier",
-        ) from exc
-
-    files = dist.files
-    # Some installed distributions do not expose RECORD-backed file metadata.
-    # In that packaging edge case, skip rather than failing a valid environment.
-    if not files:
-        return ImportIsolationVerification(imported_path=actual_path, checked=False)
-
-    expected_dirs: set[Path] = set()
-    for dist_file in files:
-        metadata_path = PurePosixPath(str(dist_file))
-        if len(metadata_path.parts) < 2 or metadata_path.parts[0] != PACKAGE_NAME:
-            continue
-        expected_dirs.add(Path(dist.locate_file(dist_file)).resolve().parent)
-
-    if not expected_dirs:
-        return ImportIsolationVerification(imported_path=actual_path, checked=False)
-
-    actual_parent = actual_path.parent
-    if actual_parent not in expected_dirs:
-        expected = ", ".join(str(path) for path in sorted(expected_dirs))
-        raise SelfCheckError(
-            "SELF_CHECK_SHADOW_IMPORT",
-            f"keel_verifier imported from {actual_path} but distribution metadata says "
-            f"it lives at {expected}",
-            SHADOW_IMPORT_REMEDIATION,
-        )
-
-    return ImportIsolationVerification(imported_path=actual_path, checked=True)
+    return ImportIsolationVerification(
+        imported_path=diagnostic.imported_path,
+        checked=diagnostic.checked,
+    )
 
 
 def load_embedded_manifest(

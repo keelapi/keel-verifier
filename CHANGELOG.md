@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.5.1 — keel-verify doctor diagnostic command (2026-05-24)
+
+- New: `keel-verify doctor` — environment diagnostic command. Reports install
+  form, Python interpreter, import location, sys.path, PYTHONPATH, .pth
+  shadows, cache state, and what self-check would do given current state.
+- Pure-local by default. Opt-in `--check-network` checks PyPI, Sigstore/Rekor,
+  and TSA endpoint reachability with HEAD requests.
+- Add `--fail-on-problem` for CI gate usage.
+
 ## v2.5.0 — explicit --published-wheel self-check mode (2026-05-24)
 
 - New: `keel-verify self-check --published-wheel[=VERSION]` verifies the
