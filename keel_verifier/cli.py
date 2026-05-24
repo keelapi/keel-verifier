@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from keel_verifier import __version__
+from keel_verifier.doctor import run_doctor
 from keel_verifier.self_check import run_self_check
 from keel_verifier.verifier import (
     KEELAPI_CHECKPOINT_PUBLIC_KEY_URL,
@@ -24,7 +25,7 @@ from keel_verifier.verifier import (
     verify_scope_faithfulness_claim,
 )
 
-LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim", "self-check"}
+LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim", "self-check", "doctor"}
 
 
 def _public_key_alias(args: argparse.Namespace) -> None:
@@ -186,6 +187,21 @@ def _cmd_self_check(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    result = run_doctor(args)
+    if args.as_json:
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    else:
+        print(result.format_human())
+    if getattr(args, "fail_on_warning", False) and (
+        result.any_warnings or result.any_problems
+    ):
+        return 1
+    if getattr(args, "fail_on_problem", False) and result.any_problems:
+        return 1
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="keel-verify",
@@ -319,6 +335,39 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Emit machine-readable self-check results.",
     )
     p_self.set_defaults(func=_cmd_self_check)
+
+    p_doctor = sub.add_parser(
+        "doctor",
+        help=(
+            "Diagnose the keel-verifier installation and environment without "
+            "running verification or network calls."
+        ),
+    )
+    p_doctor.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Emit machine-readable doctor results.",
+    )
+    p_doctor.add_argument(
+        "--check-network",
+        action="store_true",
+        help=(
+            "Also check reachability of PyPI, Sigstore/Rekor, and default TSA "
+            "endpoints with HEAD requests."
+        ),
+    )
+    p_doctor.add_argument(
+        "--fail-on-problem",
+        action="store_true",
+        help="Exit 1 if any doctor check reports a problem.",
+    )
+    p_doctor.add_argument(
+        "--fail-on-warning",
+        action="store_true",
+        help="Exit 1 if any doctor check reports a warning or problem.",
+    )
+    p_doctor.set_defaults(func=_cmd_doctor)
 
     p_claim = sub.add_parser("claim", help="Verify a registered verifier claim.")
     claim_sub = p_claim.add_subparsers(dest="claim_cmd", required=True)
