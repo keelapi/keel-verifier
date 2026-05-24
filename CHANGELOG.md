@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.4.4 — self-check remediation + shadow-import detection (2026-05-24)
+
+- Self-check emits structured remediation hints for environment-related failures.
+- New stage `import_isolation` detects when another `keel_verifier` on `sys.path`
+  shadows the installed wheel, with new failure code `SELF_CHECK_SHADOW_IMPORT`.
+
 ## v2.4.3 — suppress benign sigstore-python warning (2026-05-23)
 
 - Scoped logging filter for the `Failed to load a trusted root key: unsupported

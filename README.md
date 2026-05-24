@@ -99,6 +99,7 @@ Successful output is wheel-scoped:
 ```text
 PASS: keel-verifier self-check passed for installed wheel form
   [OK] form: wheel form selected
+  [OK] import_isolation: keel_verifier imported from /path/to/site-packages/keel_verifier/__init__.py matches distribution metadata
   [OK] embedded_manifest: embedded release manifest is present and cycle-safe
   [OK] fetch: release manifest, signature, and TSA sidecar loaded
   [OK] sigstore_signature: signed release manifest verifies against expected GitHub Actions identity
