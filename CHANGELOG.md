@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.0 — PERMIT_V2 §4.3 slot-signature adjudication (2026-05-25)
+## Unreleased — PERMIT_V2 §4.3 slot-signature adjudication
 
 - Add verifier adjudication for `permit.operator_approval.v1`,
   `permit.counter_signature.v1`, and `permit.audit_attestation.v1` while
