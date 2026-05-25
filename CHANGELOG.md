@@ -154,7 +154,7 @@
 - Enforce required claims: for a pinned pack, every claim its `claim_set` marks `required` is adjudicated; a required claim with no evidence is `insufficient_evidence`; `ok` is true only when every required claim is `supported`.
 - Add opt-in TSA-authenticity validation: `--tsa-ca-bundle` runs OpenSSL-backed RFC 3161 TSA trust-chain validation as a separate, opt-in trust extension. It does not check historical revocation.
 - Register and adjudicate the new `permit_chain.delegation_denied_correctly.v1` claim for `permit.delegated_denied` events correctly denied under `authority-envelope.v0` semantics.
-- Make the public verifier the single verification core after retiring the internal verifier. The wheel bundles the released verifier artifact set.
+- Make the packaged verifier the single verification core. The wheel bundles the released verifier artifact set.
 - Bump package metadata and module version to v2.0.0.
 
 ### Breaking changes

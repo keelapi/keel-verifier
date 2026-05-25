@@ -28,7 +28,7 @@ DEFAULT_CORPUS = (
     / "v0"
     / "corpus.json"
 )
-DEFAULT_INTERNAL_SCRIPT = PRODUCT_ROOT / "keel-api" / "scripts" / "keel_verify.py"
+DEFAULT_ALTERNATE_SCRIPT = PRODUCT_ROOT / "keel-api" / "scripts" / "keel_verify.py"
 
 
 @dataclass(frozen=True)
@@ -415,7 +415,7 @@ def _make_target(
     verifier: str,
     python_executable: str,
     verifier_root: Path,
-    internal_script: Path,
+    alternate_script: Path,
 ) -> VerifierTarget:
     if verifier == "public":
         return VerifierTarget(
@@ -423,11 +423,11 @@ def _make_target(
             command_prefix=[python_executable, "-m", "keel_verifier"],
             cwd=verifier_root,
         )
-    if verifier == "internal":
+    if verifier == "alternate":
         return VerifierTarget(
-            profile="internal",
-            command_prefix=[python_executable, str(internal_script)],
-            cwd=internal_script.parents[1],
+            profile="alternate",
+            command_prefix=[python_executable, str(alternate_script)],
+            cwd=alternate_script.parents[1],
         )
     raise ValueError(f"unknown verifier profile: {verifier}")
 
@@ -438,7 +438,7 @@ def run_corpus(
     verifier: str = "public",
     python_executable: str = sys.executable,
     verifier_root: Path = REPO_ROOT,
-    internal_script: Path = DEFAULT_INTERNAL_SCRIPT,
+    alternate_script: Path = DEFAULT_ALTERNATE_SCRIPT,
     fixture_ids: set[str] | None = None,
     timeout_seconds: int = 30,
 ) -> dict[str, Any]:
@@ -464,7 +464,7 @@ def run_corpus(
         verifier=verifier,
         python_executable=python_executable,
         verifier_root=verifier_root.resolve(),
-        internal_script=internal_script.resolve(),
+        alternate_script=alternate_script.resolve(),
     )
     results = [
         _run_record(
@@ -518,10 +518,10 @@ def _print_summary(report: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
-    parser.add_argument("--verifier", choices=["public", "internal"], default="public")
+    parser.add_argument("--verifier", choices=["public", "alternate"], default="public")
     parser.add_argument("--python", default=sys.executable, dest="python_executable")
     parser.add_argument("--verifier-root", type=Path, default=REPO_ROOT)
-    parser.add_argument("--internal-script", type=Path, default=DEFAULT_INTERNAL_SCRIPT)
+    parser.add_argument("--alternate-script", type=Path, default=DEFAULT_ALTERNATE_SCRIPT)
     parser.add_argument("--fixture", action="append", default=[])
     parser.add_argument("--timeout-seconds", type=int, default=30)
     parser.add_argument("--report-json", type=Path)
@@ -537,7 +537,7 @@ def main(argv: list[str] | None = None) -> int:
         verifier=args.verifier,
         python_executable=args.python_executable,
         verifier_root=args.verifier_root,
-        internal_script=args.internal_script,
+        alternate_script=args.alternate_script,
         fixture_ids=set(args.fixture) if args.fixture else None,
         timeout_seconds=args.timeout_seconds,
     )

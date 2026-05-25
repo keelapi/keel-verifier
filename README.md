@@ -155,7 +155,7 @@ Then run:
 keel-verify export export.json manifest.json --walk-events --verify-closure
 ```
 
-The flag form used by the internal verifier is also supported:
+The explicit flag form is also supported:
 
 ```bash
 keel-verify export --export-file export.json --manifest manifest.json --walk-events --verify-closure

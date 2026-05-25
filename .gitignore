@@ -15,3 +15,7 @@ manifest.json.sigstore
 manifest.json.tsa.json
 sbom.cyclonedx.json
 keel_verifier/_release_manifest.json
+# Local-only research/workpapers. Do not publish.
+_internal-local/
+research-local/
+compliance-research-local/
