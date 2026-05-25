@@ -165,8 +165,18 @@ def _cmd_claim_permit_v2_signature(
     parser: argparse.ArgumentParser,
     args: argparse.Namespace,
 ) -> int:
+    if getattr(args, "pack", None):
+        pack = Path(args.pack)
+        if pack.is_dir():
+            args.export_file = args.export_file or str(pack / "export.json")
+            args.manifest = args.manifest or str(pack / "manifest.json")
+            key_manifest = pack / "key_manifest.json"
+            if args.key_manifest is None and key_manifest.exists():
+                args.key_manifest = str(key_manifest)
+        elif args.export_file is None:
+            args.export_file = str(pack)
     if not args.export_file:
-        parser.error(f"{args.claim_cmd} requires --export-file")
+        parser.error(f"{args.claim_cmd} requires PACK or --export-file")
     result = verify_permit_v2_signature_claim(
         claim_type=args.claim_cmd,
         export_file=args.export_file,
@@ -414,20 +424,45 @@ def _build_parser() -> argparse.ArgumentParser:
 
     for claim_name, help_text in (
         (
-            "operator_approved",
+            "permit.operator_approval.v1",
             "Verify a Permit v2 operator_approval signature slot.",
         ),
         (
-            "counter_signed",
+            "permit.counter_signature.v1",
             "Verify a Permit v2 counter_signature pre-dispatch signature slot.",
         ),
         (
-            "audit_attested",
+            "permit.audit_attestation.v1",
             "Verify a Permit v2 audit_attestation signature slot.",
+        ),
+        (
+            "operator_approval",
+            "Verify a Permit v2 operator_approval signature slot.",
+        ),
+        (
+            "counter_signature",
+            "Verify a Permit v2 counter_signature pre-dispatch signature slot.",
+        ),
+        (
+            "audit_attestation",
+            "Verify a Permit v2 audit_attestation signature slot.",
+        ),
+        (
+            "operator_approved",
+            "Compatibility alias for permit.operator_approval.v1.",
+        ),
+        (
+            "counter_signed",
+            "Compatibility alias for permit.counter_signature.v1.",
+        ),
+        (
+            "audit_attested",
+            "Compatibility alias for permit.audit_attestation.v1.",
         ),
     ):
         p_permit_v2 = claim_sub.add_parser(claim_name, help=help_text)
-        p_permit_v2.add_argument("--export-file", required=True)
+        p_permit_v2.add_argument("pack", nargs="?")
+        p_permit_v2.add_argument("--export-file")
         p_permit_v2.add_argument("--manifest")
         p_permit_v2.add_argument("--key-manifest")
         p_permit_v2.add_argument(

@@ -211,10 +211,15 @@ For `closure.dispatch_binding.v1`, streaming dispatch paths emit separate `provi
 
 ```bash
 keel-verify claim delegation_denied_correctly --evidence-file evidence.json
+keel-verify claim permit.operator_approval.v1 path/to/pack/
+keel-verify claim permit.counter_signature.v1 path/to/pack/
+keel-verify claim permit.audit_attestation.v1 path/to/pack/
 ```
 
 Claim output is JSON by default. `--json` is accepted for consistency with the
-export and checkpoint commands.
+export and checkpoint commands. Permit v2 slot-claim packs may be passed as a
+directory containing `export.json`, `manifest.json`, and `key_manifest.json`, or
+with explicit `--export-file`, `--manifest`, and `--key-manifest` flags.
 
 A pack carries two manifest blocks:
 

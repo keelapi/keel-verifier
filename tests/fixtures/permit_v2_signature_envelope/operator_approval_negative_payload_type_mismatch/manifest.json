@@ -1,0 +1,31 @@
+{
+  "claim_set": {
+    "claims": [
+      {
+        "name": "permit.operator_approval.v1",
+        "required": true
+      }
+    ],
+    "registry": {
+      "hash": "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
+      "id": "keel.verifier_claim_registry.v0",
+      "path": "claim_registry/v0.json"
+    },
+    "version": "verifier-claims.v0"
+  },
+  "content_hash": "sha256:65f1837f37fe6ecba559c8c39c6880264c5f6aa0baad78a2e371e3a6911b712b",
+  "key_id": "sha256:4260c6f38a37c1dad828400e7e549df8",
+  "semantics_pins": {
+    "artifacts": [
+      {
+        "hash": "sha256:66c6f811aee132c1e93d16708f5a8bbb1b9ca36efa07eaab63aae59894351a63",
+        "id": "keel.permit.operator_approval.v1",
+        "path": "semantics/permit/permit.operator_approval.v1.json"
+      }
+    ],
+    "mode": "pinned",
+    "version": "keel-semantics-pins.v0"
+  },
+  "signature": "ed25519:1o0ihMlX6vtjc8BtBmc0IAl903ifdNhOIX6RH6fGTJTsp2nha/bg+mrS3YyzW6VpOV4EMvfyNd407qSdVUfuDA==",
+  "signed_at": "2026-05-23T13:00:00Z"
+}

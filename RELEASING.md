@@ -12,6 +12,10 @@ Pre-flight:
   the intended release.
 - Confirm every historical `claim_registry` artifact remains bundled, and no pinned
   semantics or trust-root artifacts were pruned from the distribution package.
+- For PERMIT_V2 slot-signature releases, confirm the vendored
+  `permit.operator_approval.v1`, `permit.counter_signature.v1`, and
+  `permit.audit_attestation.v1` semantics hashes still match keel-api main,
+  and run the permit v2 slot-signature corpus before tagging.
 - Confirm CI is green on `main`.
 
 Create and push the release tag:
@@ -125,6 +129,11 @@ cosign verify-blob-attestation \
   keel_verifier-<VERSION>-py3-none-any.whl
 ```
 
-A.2 will add `keel-verify --self-check` as a friendly CLI wrapper for the
-wheel-install verification path. A.1 intentionally ships the embedded manifest and
-signed release manifest first, so self-check can verify the installed form honestly.
+Installed wheels can be checked with:
+
+```bash
+keel-verify self-check --published-wheel=<VERSION> --json
+```
+
+Use this against the GitHub Actions-built artifact after publishing, not a local
+rebuild, so the PyPI bytes are verified against the signed release manifest.

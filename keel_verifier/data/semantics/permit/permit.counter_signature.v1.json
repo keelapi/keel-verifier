@@ -42,6 +42,7 @@
       ],
       "buyer_binding": "buyer_principal_id MUST equal envelope signer_id.",
       "intent_binding": "execution_intent_hash MUST equal envelope execution_intent_hash.",
+      "execution_intent_hash_profile": "execution_intent_hash is the lowercase SHA-256 hex digest of canonical permit.counter_signature.execution_intent.v1 bytes. That intent payload binds permit_id, permit_canonical_hash, dispatch_request_hash, resource_provider, resource_model, and resource_operation. dispatch_request_hash is the lowercase SHA-256 hex digest of the canonical provider-neutral dispatch request bytes selected by runtime enforcement.",
       "hash_rule": "signed_payload_hash is the lowercase SHA-256 hex digest of the canonical signed payload bytes.",
       "signature_message": "canonical signed payload bytes"
     },

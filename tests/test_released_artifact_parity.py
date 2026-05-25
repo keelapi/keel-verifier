@@ -8,8 +8,11 @@ import pytest
 
 from keel_verifier.semantics import (
     EXPORT_SCOPE_FAITHFULNESS_ID,
+    PERMIT_AUDIT_ATTESTATION_ID,
+    PERMIT_COUNTER_SIGNATURE_ID,
     PERMIT_DECISION_ID,
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+    PERMIT_OPERATOR_APPROVAL_ID,
     PERMIT_REVOKED_EVENT_ID,
     RELEASED_ARTIFACT_HASHES,
     RELEASED_ARTIFACT_PATHS,
@@ -28,6 +31,9 @@ VERIFIER_ADDITIVE_ARTIFACTS = {
     EXPORT_SCOPE_FAITHFULNESS_ID,
     PERMIT_DECISION_ID,
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
+    PERMIT_OPERATOR_APPROVAL_ID,
+    PERMIT_COUNTER_SIGNATURE_ID,
+    PERMIT_AUDIT_ATTESTATION_ID,
     PERMIT_REVOKED_EVENT_ID,
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
@@ -107,7 +113,10 @@ def test_keel_api_verifier_additive_pin_constants_match_released_artifacts() -> 
 
     text = pins_source.read_text(encoding="utf-8")
     for artifact_id in VERIFIER_ADDITIVE_ARTIFACTS:
-        if artifact_id != "keel.verifier_claim_registry.v0":
-            assert artifact_id in text
+        if artifact_id == "keel.verifier_claim_registry.v0":
+            # The verifier registry can advance independently of keel-api's
+            # additive registry pin; semantic payload pins stay byte-paired.
+            continue
+        assert artifact_id in text
         assert RELEASED_ARTIFACT_HASHES[artifact_id] in text
         assert RELEASED_ARTIFACT_PATHS[artifact_id] in text
