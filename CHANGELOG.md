@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — PERMIT_V2 §4.3 slot-signature adjudication
+
+- Add verifier adjudication for `permit.operator_approval.v1`,
+  `permit.counter_signature.v1`, and `permit.audit_attestation.v1` while
+  preserving the earlier `*_approved/*_signed/*_attested` compatibility names.
+- Vendor the keel-api main pinned PERMIT_V2 slot semantics, including the
+  updated `permit.counter_signature.v1` hash
+  `sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143`.
+- Verify counter-signature `execution_intent_hash` against canonical
+  `permit.counter_signature.execution_intent.v1` dispatch facts and use runtime
+  failure code `counter_signature.execution_intent_mismatch` on mismatch.
+- Add dotted claim CLI subcommands and a 45-record permit v2 slot-signature
+  corpus covering positive, negative, and edge fixtures for all three slots.
+
 ## v2.5.1 — keel-verify doctor diagnostic command (2026-05-24)
 
 - New: `keel-verify doctor` — environment diagnostic command. Reports install

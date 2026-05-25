@@ -1,0 +1,27 @@
+{
+  "keys": [
+    {
+      "algorithm": "ed25519",
+      "key_id": "sha256:4260c6f38a37c1dad828400e7e549df8",
+      "public_key": "ed25519:1RZyPzCJEaYHHIG9l3A8+W3jIsdeJj4Surf6k0j9aTc=",
+      "purpose": "export_signing",
+      "status": "active",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null
+    },
+    {
+      "account_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "algorithm": "ed25519",
+      "compromised_at": null,
+      "key_id": "6169fae3a8859addf7b6623de073212697c67431a4de238eba5942a377a3f128",
+      "public_key": "ed25519:lUmW+sMkatS59yodCmQey//QypoiX2tzlDu0BSnaxV4=",
+      "purpose": "permit_v2_buyer_principal",
+      "revoked_at": "2026-05-23T12:45:00.000000Z",
+      "signer_id": "33333333-cccc-4ccc-8ccc-333333333333",
+      "signer_role": "buyer_principal",
+      "status": "active",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": null
+    }
+  ]
+}

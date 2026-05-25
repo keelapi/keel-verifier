@@ -1,0 +1,31 @@
+{
+  "claim_set": {
+    "claims": [
+      {
+        "name": "permit.counter_signature.v1",
+        "required": true
+      }
+    ],
+    "registry": {
+      "hash": "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
+      "id": "keel.verifier_claim_registry.v0",
+      "path": "claim_registry/v0.json"
+    },
+    "version": "verifier-claims.v0"
+  },
+  "content_hash": "sha256:0fb2ebd846ded9fda50ce970da7bb4ab1bc2e8f7bf1d3305c9f441dc844cd49d",
+  "key_id": "sha256:4260c6f38a37c1dad828400e7e549df8",
+  "semantics_pins": {
+    "artifacts": [
+      {
+        "hash": "sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143",
+        "id": "keel.permit.counter_signature.v1",
+        "path": "semantics/permit/permit.counter_signature.v1.json"
+      }
+    ],
+    "mode": "pinned",
+    "version": "keel-semantics-pins.v0"
+  },
+  "signature": "ed25519:nc0ci9Je2pdyiG248Vq7AzlbRZ8zf6c5EWVTsfx5vF8lbEPhPdS881UO5XBay8AVkJisn77QU1dz7arMXBfoBg==",
+  "signed_at": "2026-05-23T13:00:00Z"
+}

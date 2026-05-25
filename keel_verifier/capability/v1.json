@@ -327,6 +327,48 @@
       ]
     },
     {
+      "name": "permit.operator_approval.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
+      "depends_on_semantics": [
+        "keel.permit.operator_approval.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.counter_signature.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 counter_signature slot as a distinct buyer-principal pre-dispatch signature over execution intent and permit binding inputs, including canonical execution-intent hash reconciliation.",
+      "depends_on_semantics": [
+        "keel.permit.counter_signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.audit_attestation.v1",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 audit_attestation slot as a distinct buyer-principal post-hoc signature bound to a known audit batch.",
+      "depends_on_semantics": [
+        "keel.permit.audit_attestation.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approved.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
@@ -519,7 +561,8 @@
       "PERMIT_COUNTER_SIGNATURE_INVALID",
       "PERMIT_COUNTER_SIGNATURE_KEY_NOT_TRUSTED",
       "PERMIT_COUNTER_SIGNATURE_SIGNER_MISMATCH",
-      "PERMIT_COUNTER_SIGNATURE_INTENT_MISMATCH",
+      "PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_MISSING",
+      "counter_signature.execution_intent_mismatch",
       "PERMIT_AUDIT_ATTESTATION_INVALID",
       "PERMIT_AUDIT_ATTESTATION_KEY_NOT_TRUSTED",
       "PERMIT_AUDIT_ATTESTATION_SIGNER_MISMATCH",
@@ -641,7 +684,7 @@
     },
     {
       "id": "keel.permit.counter_signature.v1",
-      "hash": "sha256:cdc1bebff5f04b746f89aa5247cbcdc7b5cf8a074dfda6120f18bdc26ee22bdb",
+      "hash": "sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143",
       "status": "allowlisted"
     },
     {

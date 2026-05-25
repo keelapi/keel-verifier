@@ -1,0 +1,13 @@
+{
+  "keys": [
+    {
+      "algorithm": "ed25519",
+      "key_id": "sha256:4260c6f38a37c1dad828400e7e549df8",
+      "public_key": "ed25519:1RZyPzCJEaYHHIG9l3A8+W3jIsdeJj4Surf6k0j9aTc=",
+      "purpose": "export_signing",
+      "status": "active",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_to": null
+    }
+  ]
+}

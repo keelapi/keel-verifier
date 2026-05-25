@@ -1,91 +1,543 @@
 {
   "records": [
     {
-      "claim": "permit.operator_approved.v1",
+      "claim": "permit.operator_approval.v1",
       "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
       "expected_verdict": "supported",
-      "id": "happy_path_operator_approved",
+      "id": "operator_approval_positive_01",
+      "kind": "positive",
       "pack": {
-        "export_file": "happy_path_operator_approved/export.json",
-        "key_manifest": "happy_path_operator_approved/key_manifest.json",
-        "manifest": "happy_path_operator_approved/manifest.json"
+        "export_file": "operator_approval_positive_01/export.json",
+        "key_manifest": "operator_approval_positive_01/key_manifest.json",
+        "manifest": "operator_approval_positive_01/manifest.json"
       }
     },
     {
-      "claim": "permit.counter_signed.v1",
-      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
       "expected_verdict": "supported",
-      "id": "happy_path_counter_signed_pre_dispatch",
+      "id": "operator_approval_positive_02",
+      "kind": "positive",
       "pack": {
-        "export_file": "happy_path_counter_signed_pre_dispatch/export.json",
-        "key_manifest": "happy_path_counter_signed_pre_dispatch/key_manifest.json",
-        "manifest": "happy_path_counter_signed_pre_dispatch/manifest.json"
+        "export_file": "operator_approval_positive_02/export.json",
+        "key_manifest": "operator_approval_positive_02/key_manifest.json",
+        "manifest": "operator_approval_positive_02/manifest.json"
       }
     },
     {
-      "claim": "permit.audit_attested.v1",
-      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
       "expected_verdict": "supported",
-      "id": "happy_path_audit_attested",
+      "id": "operator_approval_positive_03",
+      "kind": "positive",
       "pack": {
-        "export_file": "happy_path_audit_attested/export.json",
-        "key_manifest": "happy_path_audit_attested/key_manifest.json",
-        "manifest": "happy_path_audit_attested/manifest.json"
+        "export_file": "operator_approval_positive_03/export.json",
+        "key_manifest": "operator_approval_positive_03/key_manifest.json",
+        "manifest": "operator_approval_positive_03/manifest.json"
       }
     },
     {
-      "claim": "permit.counter_signed.v1",
-      "expected_code": "PAYLOAD_TYPE_MISMATCH",
-      "expected_verdict": "disproved",
-      "id": "operator_approval_payload_type_mismatch",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "operator_approval_positive_04",
+      "kind": "positive",
       "pack": {
-        "export_file": "operator_approval_payload_type_mismatch/export.json",
-        "key_manifest": "operator_approval_payload_type_mismatch/key_manifest.json",
-        "manifest": "operator_approval_payload_type_mismatch/manifest.json"
+        "export_file": "operator_approval_positive_04/export.json",
+        "key_manifest": "operator_approval_positive_04/key_manifest.json",
+        "manifest": "operator_approval_positive_04/manifest.json"
       }
     },
     {
-      "claim": "permit.counter_signed.v1",
-      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
-      "expected_verdict": "disproved",
-      "id": "counter_signature_post_revocation_signed_at",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "operator_approval_positive_05",
+      "kind": "positive",
       "pack": {
-        "export_file": "counter_signature_post_revocation_signed_at/export.json",
-        "key_manifest": "counter_signature_post_revocation_signed_at/key_manifest.json",
-        "manifest": "counter_signature_post_revocation_signed_at/manifest.json"
+        "export_file": "operator_approval_positive_05/export.json",
+        "key_manifest": "operator_approval_positive_05/key_manifest.json",
+        "manifest": "operator_approval_positive_05/manifest.json"
       }
     },
     {
-      "claim": "permit.audit_attested.v1",
-      "expected_code": "PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
-      "expected_verdict": "disproved",
-      "id": "audit_attestation_batch_unknown",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "operator_approval_positive_06",
+      "kind": "positive",
       "pack": {
-        "export_file": "audit_attestation_batch_unknown/export.json",
-        "key_manifest": "audit_attestation_batch_unknown/key_manifest.json",
-        "manifest": "audit_attestation_batch_unknown/manifest.json"
+        "export_file": "operator_approval_positive_06/export.json",
+        "key_manifest": "operator_approval_positive_06/key_manifest.json",
+        "manifest": "operator_approval_positive_06/manifest.json"
       }
     },
     {
-      "claim": "permit.operator_approved.v1",
+      "claim": "permit.operator_approval.v1",
       "expected_code": "PERMIT_OPERATOR_APPROVAL_INVALID",
       "expected_verdict": "disproved",
-      "id": "signed_payload_hash_tampered",
+      "id": "operator_approval_negative_invalid_signature",
+      "kind": "negative",
       "pack": {
-        "export_file": "signed_payload_hash_tampered/export.json",
-        "key_manifest": "signed_payload_hash_tampered/key_manifest.json",
-        "manifest": "signed_payload_hash_tampered/manifest.json"
+        "export_file": "operator_approval_negative_invalid_signature/export.json",
+        "key_manifest": "operator_approval_negative_invalid_signature/key_manifest.json",
+        "manifest": "operator_approval_negative_invalid_signature/manifest.json"
       }
     },
     {
-      "claim": "permit.operator_approved.v1",
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_INVALID",
+      "expected_verdict": "disproved",
+      "id": "operator_approval_negative_wrong_key",
+      "kind": "negative",
+      "pack": {
+        "export_file": "operator_approval_negative_wrong_key/export.json",
+        "key_manifest": "operator_approval_negative_wrong_key/key_manifest.json",
+        "manifest": "operator_approval_negative_wrong_key/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_INVALID",
+      "expected_verdict": "disproved",
+      "id": "operator_approval_negative_signed_payload_hash_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "operator_approval_negative_signed_payload_hash_tampered/export.json",
+        "key_manifest": "operator_approval_negative_signed_payload_hash_tampered/key_manifest.json",
+        "manifest": "operator_approval_negative_signed_payload_hash_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_INVALID",
+      "expected_verdict": "disproved",
+      "id": "operator_approval_negative_payload_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "operator_approval_negative_payload_tampered/export.json",
+        "key_manifest": "operator_approval_negative_payload_tampered/key_manifest.json",
+        "manifest": "operator_approval_negative_payload_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PAYLOAD_TYPE_MISMATCH",
+      "expected_verdict": "disproved",
+      "id": "operator_approval_negative_payload_type_mismatch",
+      "kind": "negative",
+      "pack": {
+        "export_file": "operator_approval_negative_payload_type_mismatch/export.json",
+        "key_manifest": "operator_approval_negative_payload_type_mismatch/key_manifest.json",
+        "manifest": "operator_approval_negative_payload_type_mismatch/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "operator_approval_edge_key_revoked_after_signing",
+      "kind": "edge",
+      "pack": {
+        "export_file": "operator_approval_edge_key_revoked_after_signing/export.json",
+        "key_manifest": "operator_approval_edge_key_revoked_after_signing/key_manifest.json",
+        "manifest": "operator_approval_edge_key_revoked_after_signing/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "expected_code": "PERMIT_OPERATOR_APPROVAL_INVALID",
+      "expected_verdict": "disproved",
+      "id": "operator_approval_edge_signed_at_outside_validity",
+      "kind": "edge",
+      "pack": {
+        "export_file": "operator_approval_edge_signed_at_outside_validity/export.json",
+        "key_manifest": "operator_approval_edge_signed_at_outside_validity/key_manifest.json",
+        "manifest": "operator_approval_edge_signed_at_outside_validity/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v1",
       "expected_code": "PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
       "expected_verdict": "insufficient_evidence",
-      "id": "signer_id_unknown_in_registry",
+      "id": "operator_approval_edge_missing_key_registry",
+      "kind": "edge",
       "pack": {
-        "export_file": "signer_id_unknown_in_registry/export.json",
-        "key_manifest": "signer_id_unknown_in_registry/key_manifest.json",
-        "manifest": "signer_id_unknown_in_registry/manifest.json"
+        "export_file": "operator_approval_edge_missing_key_registry/export.json",
+        "key_manifest": "operator_approval_edge_missing_key_registry/key_manifest.json",
+        "manifest": "operator_approval_edge_missing_key_registry/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_01",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_01/export.json",
+        "key_manifest": "counter_signature_positive_01/key_manifest.json",
+        "manifest": "counter_signature_positive_01/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_02",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_02/export.json",
+        "key_manifest": "counter_signature_positive_02/key_manifest.json",
+        "manifest": "counter_signature_positive_02/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_03",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_03/export.json",
+        "key_manifest": "counter_signature_positive_03/key_manifest.json",
+        "manifest": "counter_signature_positive_03/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_04",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_04/export.json",
+        "key_manifest": "counter_signature_positive_04/key_manifest.json",
+        "manifest": "counter_signature_positive_04/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_05",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_05/export.json",
+        "key_manifest": "counter_signature_positive_05/key_manifest.json",
+        "manifest": "counter_signature_positive_05/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_positive_06",
+      "kind": "positive",
+      "pack": {
+        "export_file": "counter_signature_positive_06/export.json",
+        "key_manifest": "counter_signature_positive_06/key_manifest.json",
+        "manifest": "counter_signature_positive_06/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_invalid_signature",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_invalid_signature/export.json",
+        "key_manifest": "counter_signature_negative_invalid_signature/key_manifest.json",
+        "manifest": "counter_signature_negative_invalid_signature/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_wrong_key",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_wrong_key/export.json",
+        "key_manifest": "counter_signature_negative_wrong_key/key_manifest.json",
+        "manifest": "counter_signature_negative_wrong_key/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_signed_payload_hash_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_signed_payload_hash_tampered/export.json",
+        "key_manifest": "counter_signature_negative_signed_payload_hash_tampered/key_manifest.json",
+        "manifest": "counter_signature_negative_signed_payload_hash_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_payload_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_payload_tampered/export.json",
+        "key_manifest": "counter_signature_negative_payload_tampered/key_manifest.json",
+        "manifest": "counter_signature_negative_payload_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PAYLOAD_TYPE_MISMATCH",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_payload_type_mismatch",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_payload_type_mismatch/export.json",
+        "key_manifest": "counter_signature_negative_payload_type_mismatch/key_manifest.json",
+        "manifest": "counter_signature_negative_payload_type_mismatch/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "counter_signature.execution_intent_mismatch",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_execution_intent_mismatch",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_execution_intent_mismatch/export.json",
+        "key_manifest": "counter_signature_negative_execution_intent_mismatch/key_manifest.json",
+        "manifest": "counter_signature_negative_execution_intent_mismatch/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_negative_counter_post_revocation",
+      "kind": "negative",
+      "pack": {
+        "export_file": "counter_signature_negative_counter_post_revocation/export.json",
+        "key_manifest": "counter_signature_negative_counter_post_revocation/key_manifest.json",
+        "manifest": "counter_signature_negative_counter_post_revocation/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "counter_signature_edge_key_revoked_after_signing",
+      "kind": "edge",
+      "pack": {
+        "export_file": "counter_signature_edge_key_revoked_after_signing/export.json",
+        "key_manifest": "counter_signature_edge_key_revoked_after_signing/key_manifest.json",
+        "manifest": "counter_signature_edge_key_revoked_after_signing/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_INVALID",
+      "expected_verdict": "disproved",
+      "id": "counter_signature_edge_signed_at_outside_validity",
+      "kind": "edge",
+      "pack": {
+        "export_file": "counter_signature_edge_signed_at_outside_validity/export.json",
+        "key_manifest": "counter_signature_edge_signed_at_outside_validity/key_manifest.json",
+        "manifest": "counter_signature_edge_signed_at_outside_validity/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "expected_code": "PERMIT_COUNTER_SIGNATURE_KEY_NOT_TRUSTED",
+      "expected_verdict": "insufficient_evidence",
+      "id": "counter_signature_edge_missing_key_registry",
+      "kind": "edge",
+      "pack": {
+        "export_file": "counter_signature_edge_missing_key_registry/export.json",
+        "key_manifest": "counter_signature_edge_missing_key_registry/key_manifest.json",
+        "manifest": "counter_signature_edge_missing_key_registry/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_01",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_01/export.json",
+        "key_manifest": "audit_attestation_positive_01/key_manifest.json",
+        "manifest": "audit_attestation_positive_01/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_02",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_02/export.json",
+        "key_manifest": "audit_attestation_positive_02/key_manifest.json",
+        "manifest": "audit_attestation_positive_02/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_03",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_03/export.json",
+        "key_manifest": "audit_attestation_positive_03/key_manifest.json",
+        "manifest": "audit_attestation_positive_03/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_04",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_04/export.json",
+        "key_manifest": "audit_attestation_positive_04/key_manifest.json",
+        "manifest": "audit_attestation_positive_04/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_05",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_05/export.json",
+        "key_manifest": "audit_attestation_positive_05/key_manifest.json",
+        "manifest": "audit_attestation_positive_05/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_positive_06",
+      "kind": "positive",
+      "pack": {
+        "export_file": "audit_attestation_positive_06/export.json",
+        "key_manifest": "audit_attestation_positive_06/key_manifest.json",
+        "manifest": "audit_attestation_positive_06/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_invalid_signature",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_invalid_signature/export.json",
+        "key_manifest": "audit_attestation_negative_invalid_signature/key_manifest.json",
+        "manifest": "audit_attestation_negative_invalid_signature/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_wrong_key",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_wrong_key/export.json",
+        "key_manifest": "audit_attestation_negative_wrong_key/key_manifest.json",
+        "manifest": "audit_attestation_negative_wrong_key/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_signed_payload_hash_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_signed_payload_hash_tampered/export.json",
+        "key_manifest": "audit_attestation_negative_signed_payload_hash_tampered/key_manifest.json",
+        "manifest": "audit_attestation_negative_signed_payload_hash_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_payload_tampered",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_payload_tampered/export.json",
+        "key_manifest": "audit_attestation_negative_payload_tampered/key_manifest.json",
+        "manifest": "audit_attestation_negative_payload_tampered/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PAYLOAD_TYPE_MISMATCH",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_payload_type_mismatch",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_payload_type_mismatch/export.json",
+        "key_manifest": "audit_attestation_negative_payload_type_mismatch/key_manifest.json",
+        "manifest": "audit_attestation_negative_payload_type_mismatch/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_negative_audit_batch_unknown",
+      "kind": "negative",
+      "pack": {
+        "export_file": "audit_attestation_negative_audit_batch_unknown/export.json",
+        "key_manifest": "audit_attestation_negative_audit_batch_unknown/key_manifest.json",
+        "manifest": "audit_attestation_negative_audit_batch_unknown/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_SUPPORTED",
+      "expected_verdict": "supported",
+      "id": "audit_attestation_edge_key_revoked_after_signing",
+      "kind": "edge",
+      "pack": {
+        "export_file": "audit_attestation_edge_key_revoked_after_signing/export.json",
+        "key_manifest": "audit_attestation_edge_key_revoked_after_signing/key_manifest.json",
+        "manifest": "audit_attestation_edge_key_revoked_after_signing/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_INVALID",
+      "expected_verdict": "disproved",
+      "id": "audit_attestation_edge_signed_at_outside_validity",
+      "kind": "edge",
+      "pack": {
+        "export_file": "audit_attestation_edge_signed_at_outside_validity/export.json",
+        "key_manifest": "audit_attestation_edge_signed_at_outside_validity/key_manifest.json",
+        "manifest": "audit_attestation_edge_signed_at_outside_validity/manifest.json"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "expected_code": "PERMIT_AUDIT_ATTESTATION_KEY_NOT_TRUSTED",
+      "expected_verdict": "insufficient_evidence",
+      "id": "audit_attestation_edge_missing_key_registry",
+      "kind": "edge",
+      "pack": {
+        "export_file": "audit_attestation_edge_missing_key_registry/export.json",
+        "key_manifest": "audit_attestation_edge_missing_key_registry/key_manifest.json",
+        "manifest": "audit_attestation_edge_missing_key_registry/manifest.json"
       }
     }
   ]
