@@ -1,0 +1,31 @@
+{
+  "claim_set": {
+    "claims": [
+      {
+        "name": "permit.audit_attestation.v1",
+        "required": true
+      }
+    ],
+    "registry": {
+      "hash": "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
+      "id": "keel.verifier_claim_registry.v0",
+      "path": "claim_registry/v0.json"
+    },
+    "version": "verifier-claims.v0"
+  },
+  "content_hash": "sha256:ea38cb98087a4d5ba2ba612886f41dd4dea66093ab27d3ac9922bf21d43f377d",
+  "key_id": "sha256:4260c6f38a37c1dad828400e7e549df8",
+  "semantics_pins": {
+    "artifacts": [
+      {
+        "hash": "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f",
+        "id": "keel.permit.audit_attestation.v1",
+        "path": "semantics/permit/permit.audit_attestation.v1.json"
+      }
+    ],
+    "mode": "pinned",
+    "version": "keel-semantics-pins.v0"
+  },
+  "signature": "ed25519:5DbCO/yHMMBw4FYbe2mHpkAN6+g8m4IwSNeSfzXip0qWQM+b/tpNyrY80xZ46Vw6oKsL1WKGFmUsi3Z+bmRZDg==",
+  "signed_at": "2026-05-23T13:00:00Z"
+}

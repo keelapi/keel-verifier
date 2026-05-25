@@ -185,6 +185,11 @@ def _merge_claims(claims: list[ClaimVerdict]) -> list[ClaimVerdict]:
             required=existing.required or claim.required,
             semantics=existing.semantics if existing.semantics is not None else claim.semantics,
             evidence=[*existing.evidence, *claim.evidence],
+            epistemic_state={
+                **(existing.epistemic_state or {}),
+                **(claim.epistemic_state or {}),
+            }
+            or None,
             reason_code=existing.reason_code or claim.reason_code,
             message=existing.message or claim.message,
             diagnostics=[*existing.diagnostics, *claim.diagnostics],
@@ -445,6 +450,9 @@ PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
 PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
     "permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
+PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
+PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
 PERMIT_OPERATOR_APPROVED_CLAIM_NAME = "permit.operator_approved.v1"
 PERMIT_COUNTER_SIGNED_CLAIM_NAME = "permit.counter_signed.v1"
 PERMIT_AUDIT_ATTESTED_CLAIM_NAME = "permit.audit_attested.v1"
@@ -465,6 +473,9 @@ PERMIT_V2_SIGNATURE_SLOTS = (
 )
 PERMIT_OPERATOR_APPROVAL_PAYLOAD_TYPE = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_PAYLOAD_TYPE = "permit.counter_signature.v1"
+PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_PAYLOAD_TYPE = (
+    "permit.counter_signature.execution_intent.v1"
+)
 PERMIT_AUDIT_ATTESTATION_PAYLOAD_TYPE = "permit.audit_attestation.v1"
 PERMIT_V2_OPERATOR_KEY_PURPOSES = frozenset(
     {"permit_v2_operator", "operator", "operator_approval"}
@@ -537,7 +548,7 @@ class PermitV2SlotSpec:
 
 PERMIT_V2_OPERATOR_APPROVAL_SPEC = PermitV2SlotSpec(
     slot_name=PERMIT_OPERATOR_APPROVAL_SLOT,
-    claim_name=PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
+    claim_name=PERMIT_OPERATOR_APPROVAL_CLAIM_NAME,
     payload_type=PERMIT_OPERATOR_APPROVAL_PAYLOAD_TYPE,
     subject_type="permit_operator_approval",
     signer_payload_field="operator_id",
@@ -549,7 +560,7 @@ PERMIT_V2_OPERATOR_APPROVAL_SPEC = PermitV2SlotSpec(
 )
 PERMIT_V2_COUNTER_SIGNATURE_SPEC = PermitV2SlotSpec(
     slot_name=PERMIT_COUNTER_SIGNATURE_SLOT,
-    claim_name=PERMIT_COUNTER_SIGNED_CLAIM_NAME,
+    claim_name=PERMIT_COUNTER_SIGNATURE_CLAIM_NAME,
     payload_type=PERMIT_COUNTER_SIGNATURE_PAYLOAD_TYPE,
     subject_type="permit_counter_signature",
     signer_payload_field="buyer_principal_id",
@@ -559,11 +570,11 @@ PERMIT_V2_COUNTER_SIGNATURE_SPEC = PermitV2SlotSpec(
     signer_mismatch_code="PERMIT_COUNTER_SIGNATURE_SIGNER_MISMATCH",
     supported_code="PERMIT_COUNTER_SIGNATURE_SUPPORTED",
     extra_field="execution_intent_hash",
-    extra_mismatch_code="PERMIT_COUNTER_SIGNATURE_INTENT_MISMATCH",
+    extra_mismatch_code="counter_signature.execution_intent_mismatch",
 )
 PERMIT_V2_AUDIT_ATTESTATION_SPEC = PermitV2SlotSpec(
     slot_name=PERMIT_AUDIT_ATTESTATION_SLOT,
-    claim_name=PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
+    claim_name=PERMIT_AUDIT_ATTESTATION_CLAIM_NAME,
     payload_type=PERMIT_AUDIT_ATTESTATION_PAYLOAD_TYPE,
     subject_type="permit_audit_attestation",
     signer_payload_field="buyer_principal_id",
@@ -574,6 +585,18 @@ PERMIT_V2_AUDIT_ATTESTATION_SPEC = PermitV2SlotSpec(
     supported_code="PERMIT_AUDIT_ATTESTATION_SUPPORTED",
     extra_field="batch_id",
     extra_mismatch_code="PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+)
+PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC = replace(
+    PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+    claim_name=PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
+)
+PERMIT_V2_LEGACY_COUNTER_SIGNED_SPEC = replace(
+    PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+    claim_name=PERMIT_COUNTER_SIGNED_CLAIM_NAME,
+)
+PERMIT_V2_LEGACY_AUDIT_ATTESTED_SPEC = replace(
+    PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    claim_name=PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
 )
 PERMIT_V2_SLOT_SPECS = {
     PERMIT_OPERATOR_APPROVAL_SLOT: PERMIT_V2_OPERATOR_APPROVAL_SPEC,
@@ -2396,8 +2419,9 @@ def _permit_claim(
     reason_code: str,
     message: str,
     evidence: list[str] | None = None,
+    epistemic_state: dict[str, str] | None = None,
 ) -> ClaimVerdict:
-    return _single_subject_claim(
+    claim = _single_subject_claim(
         name,
         subject_type=subject_type,
         subject_id=subject_id,
@@ -2406,6 +2430,9 @@ def _permit_claim(
         message=message,
         evidence=evidence or ["export"],
     )
+    if epistemic_state is None:
+        return claim
+    return replace(claim, epistemic_state=epistemic_state)
 
 
 def _entry_payload_any(entry: dict[str, Any]) -> dict[str, Any]:
@@ -2485,7 +2512,11 @@ def _permit_v2_slot_claim(
     reason_code: str,
     message: str,
     evidence: list[str] | None = None,
+    epistemic_state: str | None = None,
 ) -> ClaimVerdict:
+    slot_state = epistemic_state
+    if slot_state is None:
+        slot_state = "verified" if verdict == "supported" else "observed"
     return _permit_claim(
         spec.claim_name,
         subject_type=spec.subject_type,
@@ -2494,6 +2525,7 @@ def _permit_v2_slot_claim(
         reason_code=reason_code,
         message=message,
         evidence=evidence or [f"permit.{spec.slot_name}"],
+        epistemic_state={spec.slot_name: slot_state},
     )
 
 
@@ -2516,6 +2548,22 @@ def _permit_v2_sha256_hex(value: Any) -> str | None:
         return None
     text = value.strip()
     return text if _SHA256_HEX_RE.fullmatch(text) else None
+
+
+def _permit_v2_sha256_hexish(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip().lower()
+    if text.startswith("sha256:"):
+        text = text.removeprefix("sha256:")
+    return text if _SHA256_HEX_RE.fullmatch(text) else None
+
+
+def _permit_v2_text(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
 
 
 def _permit_v2_parse_signed_at(value: Any) -> datetime | None:
@@ -2706,6 +2754,10 @@ def _permit_v2_canonical_permit_hash(permit: dict[str, Any]) -> str | None:
         "audit_batches",
         "known_audit_batches",
         "batches",
+        "counter_signature_execution_intent",
+        "counter_signature_execution_intent_v1",
+        "execution_intent",
+        "dispatch_facts",
     }
     canonical_payload = {key: value for key, value in permit.items() if key not in excluded}
     if not canonical_payload:
@@ -2862,6 +2914,143 @@ def _permit_v2_revocation_effective_at(
     return _parse_iso_or_none(event.get("effective_at"))
 
 
+def _permit_v2_counter_signature_intent_candidates(
+    *,
+    export_document: dict[str, Any],
+    permit: dict[str, Any],
+) -> list[tuple[dict[str, Any], str]]:
+    candidates: list[tuple[dict[str, Any], str]] = []
+
+    def add(value: Any, path: str) -> None:
+        if isinstance(value, dict):
+            candidates.append((value, path))
+
+    for source, source_path in (
+        (permit, "permit"),
+        (export_document, "export"),
+    ):
+        for key in (
+            "counter_signature_execution_intent",
+            "counter_signature_execution_intent_v1",
+            "execution_intent",
+            "dispatch_facts",
+            "dispatch",
+        ):
+            add(source.get(key), f"{source_path}.{key}")
+
+    for entry_index, entry in enumerate(_iter_export_entries(export_document)):
+        payload = _entry_payload_any(entry)
+        event_type = _permit_v2_text(entry.get("event_type")) or _permit_v2_text(
+            payload.get("event_type")
+        )
+        merged = {**entry, **payload}
+        if (
+            event_type in {"dispatch.egress_bound", "execution.completed"}
+            or any(
+                field in merged
+                for field in (
+                    "dispatch_request_hash",
+                    "dispatch_request_digest_v1",
+                    "binding_request_hash",
+                )
+            )
+        ):
+            candidates.append((merged, f"chain_entries[{entry_index}]"))
+
+    candidates.append((permit, "permit"))
+    return candidates
+
+
+def _permit_v2_nested_mapping(value: Any, *keys: str) -> dict[str, Any] | None:
+    current = value
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current if isinstance(current, dict) else None
+
+
+def _permit_v2_counter_signature_intent_hashes(
+    *,
+    export_document: dict[str, Any],
+    permit: dict[str, Any],
+) -> tuple[list[tuple[str, str]], str | None]:
+    permit_id = _permit_v2_permit_id(permit)
+    permit_canonical_hash = _permit_v2_canonical_permit_hash(permit)
+    if permit_id is None or permit_canonical_hash is None:
+        return [], "cannot reconstruct execution intent; missing permit_id or permit_canonical_hash"
+
+    hashes: list[tuple[str, str]] = []
+    for candidate, path in _permit_v2_counter_signature_intent_candidates(
+        export_document=export_document,
+        permit=permit,
+    ):
+        target = _permit_v2_nested_mapping(candidate, "target") or {}
+        resource_attributes = (
+            _permit_v2_nested_mapping(candidate, "resource_attributes")
+            or _permit_v2_nested_mapping(candidate, "resource_attributes_json")
+            or {}
+        )
+        dispatch_request_hash = _permit_v2_sha256_hexish(
+            candidate.get("dispatch_request_hash")
+            or candidate.get("dispatch_request_digest_v1")
+            or candidate.get("binding_request_hash")
+            or candidate.get("final_request_hash")
+            or permit.get("binding_request_hash")
+            or permit.get("final_request_hash")
+        )
+        resource_provider = _permit_v2_text(
+            candidate.get("resource_provider")
+            or candidate.get("provider")
+            or target.get("provider")
+            or permit.get("resource_provider")
+            or permit.get("provider")
+        )
+        resource_model = _permit_v2_text(
+            candidate.get("resource_model")
+            or candidate.get("model")
+            or target.get("model")
+            or permit.get("resource_model")
+            or permit.get("model")
+        )
+        resource_operation = _permit_v2_text(
+            candidate.get("resource_operation")
+            or candidate.get("operation")
+            or target.get("operation")
+            or resource_attributes.get("operation")
+            or permit.get("resource_operation")
+            or permit.get("operation")
+        )
+        if resource_operation is None:
+            permit_attributes = (
+                _permit_v2_nested_mapping(permit, "resource_attributes")
+                or _permit_v2_nested_mapping(permit, "resource_attributes_json")
+                or {}
+            )
+            resource_operation = _permit_v2_text(
+                permit_attributes.get("operation") or permit.get("action_name")
+            )
+        if (
+            dispatch_request_hash is None
+            or resource_provider is None
+            or resource_model is None
+        ):
+            continue
+        payload = {
+            "payload_type": PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_PAYLOAD_TYPE,
+            "permit_id": permit_id,
+            "permit_canonical_hash": permit_canonical_hash,
+            "dispatch_request_hash": dispatch_request_hash,
+            "resource_provider": resource_provider,
+            "resource_model": resource_model,
+            "resource_operation": resource_operation,
+        }
+        hashes.append((_permit_v2_payload_hash(_canonical_json_bytes(payload)), path))
+    if not hashes:
+        return [], "counter_signature execution-intent dispatch facts are absent"
+    return hashes, None
+
+
 def _known_audit_batch_ids(*sources: dict[str, Any]) -> set[str]:
     ids: set[str] = set()
 
@@ -3007,6 +3196,7 @@ def _adjudicate_permit_v2_signature_slot(
             reason_code=spec.invalid_code,
             message=f"Permit v2 {spec.slot_name} evidence is absent",
             evidence=[evidence_path],
+            epistemic_state="unverifiable",
         )
 
     permit_id = _permit_v2_permit_id(permit)
@@ -3018,6 +3208,7 @@ def _adjudicate_permit_v2_signature_slot(
             reason_code=spec.invalid_code,
             message="Permit v2 permit_id/id is missing or malformed",
             evidence=[evidence_path, "permit.id"],
+            epistemic_state="unverifiable",
         )
 
     schema_error = _permit_v2_slot_schema_error(slot, spec)
@@ -3048,6 +3239,7 @@ def _adjudicate_permit_v2_signature_slot(
             reason_code=payload_reason or spec.invalid_code,
             message=payload_message or "canonical signed payload evidence is absent",
             evidence=[evidence_path, "canonical_payload"],
+            epistemic_state="unverifiable",
         )
 
     payload_error = _permit_v2_signed_payload_error(
@@ -3095,6 +3287,38 @@ def _adjudicate_permit_v2_signature_slot(
         )
 
     if spec.slot_name == PERMIT_COUNTER_SIGNATURE_SLOT:
+        intent_hashes, intent_error = _permit_v2_counter_signature_intent_hashes(
+            export_document=export_document,
+            permit=permit,
+        )
+        if not intent_hashes:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="insufficient_evidence",
+                reason_code="PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_MISSING",
+                message=intent_error or "counter_signature execution intent is absent",
+                evidence=[evidence_path, "execution_intent"],
+                epistemic_state="unverifiable",
+            )
+        if slot["execution_intent_hash"] not in {
+            intent_hash for intent_hash, _path in intent_hashes
+        }:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="disproved",
+                reason_code="counter_signature.execution_intent_mismatch",
+                message=(
+                    "counter_signature.execution_intent_hash does not match "
+                    "canonical permit.counter_signature.execution_intent.v1 bytes"
+                ),
+                evidence=[
+                    evidence_path,
+                    *(path for _intent_hash, path in intent_hashes),
+                ],
+            )
+
         effective_at = _permit_v2_revocation_effective_at(
             export_document=export_document,
             permit=permit,
@@ -3130,6 +3354,7 @@ def _adjudicate_permit_v2_signature_slot(
             reason_code=spec.key_not_trusted_code,
             message="account_id is required to resolve permit v2 signer keys",
             evidence=[evidence_path, "key_registry"],
+            epistemic_state="unverifiable",
         )
     public_key, key_error = _resolve_permit_v2_slot_key(
         slot=slot,
@@ -3146,6 +3371,7 @@ def _adjudicate_permit_v2_signature_slot(
             reason_code=spec.key_not_trusted_code,
             message=key_error or "permit v2 signer key could not be resolved",
             evidence=[evidence_path, "key_registry"],
+            epistemic_state="unverifiable",
         )
 
     if not _verify_ed25519(public_key, payload_bytes, str(slot["signature"])):
@@ -3168,7 +3394,7 @@ def _adjudicate_permit_v2_signature_slot(
     )
 
 
-def _adjudicate_operator_approved_v1(
+def _adjudicate_permit_operator_approval_v1(
     *,
     export_document: dict[str, Any],
     manifest: dict[str, Any],
@@ -3182,7 +3408,7 @@ def _adjudicate_operator_approved_v1(
     )
 
 
-def _adjudicate_pre_dispatch_counter_signed_v1(
+def _adjudicate_permit_counter_signature_v1(
     *,
     export_document: dict[str, Any],
     manifest: dict[str, Any],
@@ -3196,7 +3422,7 @@ def _adjudicate_pre_dispatch_counter_signed_v1(
     )
 
 
-def _adjudicate_audit_attested_v1(
+def _adjudicate_permit_audit_attestation_v1(
     *,
     export_document: dict[str, Any],
     manifest: dict[str, Any],
@@ -3207,6 +3433,48 @@ def _adjudicate_audit_attested_v1(
         manifest=manifest,
         key_manifest_source=key_manifest_source,
         spec=PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    )
+
+
+def _adjudicate_operator_approved_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC,
+    )
+
+
+def _adjudicate_pre_dispatch_counter_signed_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_LEGACY_COUNTER_SIGNED_SPEC,
+    )
+
+
+def _adjudicate_audit_attested_v1(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_LEGACY_AUDIT_ATTESTED_SPEC,
     )
 
 
@@ -7956,17 +8224,32 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
     )
-    operator_approved_pinned = _pinned_claim_requested(
+    operator_approval_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_OPERATOR_APPROVAL_CLAIM_NAME,
+    )
+    counter_signature_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_COUNTER_SIGNATURE_CLAIM_NAME,
+    )
+    audit_attestation_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_AUDIT_ATTESTATION_CLAIM_NAME,
+    )
+    legacy_operator_approved_pinned = _pinned_claim_requested(
         semantics,
         requested,
         PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
     )
-    counter_signed_pinned = _pinned_claim_requested(
+    legacy_counter_signed_pinned = _pinned_claim_requested(
         semantics,
         requested,
         PERMIT_COUNTER_SIGNED_CLAIM_NAME,
     )
-    audit_attested_pinned = _pinned_claim_requested(
+    legacy_audit_attested_pinned = _pinned_claim_requested(
         semantics,
         requested,
         PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
@@ -7976,9 +8259,12 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     )
     export_document_for_claims: dict[str, Any] | None = None
     permit_v2_pinned_requested = (
-        operator_approved_pinned
-        or counter_signed_pinned
-        or audit_attested_pinned
+        operator_approval_pinned
+        or counter_signature_pinned
+        or audit_attestation_pinned
+        or legacy_operator_approved_pinned
+        or legacy_counter_signed_pinned
+        or legacy_audit_attested_pinned
     )
     should_try_auto_permit_v2 = export_data.lstrip().startswith(b"{")
     if (
@@ -8002,17 +8288,17 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if isinstance(loaded_export_document, dict):
             export_document_for_claims = loaded_export_document
     permit_v2_auto_required = _permit_v2_auto_required_claims(export_document_for_claims)
-    operator_approved_requested = (
-        operator_approved_pinned
-        or PERMIT_OPERATOR_APPROVED_CLAIM_NAME in permit_v2_auto_required
+    operator_approval_requested = (
+        operator_approval_pinned
+        or PERMIT_OPERATOR_APPROVAL_CLAIM_NAME in permit_v2_auto_required
     )
-    counter_signed_requested = (
-        counter_signed_pinned
-        or PERMIT_COUNTER_SIGNED_CLAIM_NAME in permit_v2_auto_required
+    counter_signature_requested = (
+        counter_signature_pinned
+        or PERMIT_COUNTER_SIGNATURE_CLAIM_NAME in permit_v2_auto_required
     )
-    audit_attested_requested = (
-        audit_attested_pinned
-        or PERMIT_AUDIT_ATTESTED_CLAIM_NAME in permit_v2_auto_required
+    audit_attestation_requested = (
+        audit_attestation_pinned
+        or PERMIT_AUDIT_ATTESTATION_CLAIM_NAME in permit_v2_auto_required
     )
 
     should_verify_scope_faithfulness = _scope_export_declaration_present(export_data) or (
@@ -8119,7 +8405,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     revocation_claim=revocation_claim,
                 )
             )
-    if operator_approved_requested:
+    if operator_approval_requested:
         if export_document_for_claims is None:
             permit_claims.append(
                 _permit_v2_slot_claim(
@@ -8127,8 +8413,30 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     permit_id=None,
                     verdict="insufficient_evidence",
                     reason_code="PERMIT_OPERATOR_APPROVAL_INVALID",
+                    message="operator_approval claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_operator_approval_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if legacy_operator_approved_pinned:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_OPERATOR_APPROVAL_INVALID",
                     message="operator_approved claim requires a JSON export payload",
                     evidence=["export"],
+                    epistemic_state="unverifiable",
                 )
             )
         else:
@@ -8139,7 +8447,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
-    if counter_signed_requested:
+    if counter_signature_requested:
         if export_document_for_claims is None:
             permit_claims.append(
                 _permit_v2_slot_claim(
@@ -8147,8 +8455,30 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     permit_id=None,
                     verdict="insufficient_evidence",
                     reason_code="PERMIT_COUNTER_SIGNATURE_INVALID",
+                    message="counter_signature claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_counter_signature_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if legacy_counter_signed_pinned:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_LEGACY_COUNTER_SIGNED_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_COUNTER_SIGNATURE_INVALID",
                     message="counter_signed claim requires a JSON export payload",
                     evidence=["export"],
+                    epistemic_state="unverifiable",
                 )
             )
         else:
@@ -8159,7 +8489,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
-    if audit_attested_requested:
+    if audit_attestation_requested:
         if export_document_for_claims is None:
             permit_claims.append(
                 _permit_v2_slot_claim(
@@ -8167,8 +8497,30 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     permit_id=None,
                     verdict="insufficient_evidence",
                     reason_code="PERMIT_AUDIT_ATTESTATION_INVALID",
+                    message="audit_attestation claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_audit_attestation_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if legacy_audit_attested_pinned:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_LEGACY_AUDIT_ATTESTED_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_AUDIT_ATTESTATION_INVALID",
                     message="audit_attested claim requires a JSON export payload",
                     evidence=["export"],
+                    epistemic_state="unverifiable",
                 )
             )
         else:
@@ -8384,9 +8736,18 @@ def verify_permit_v2_signature_claim(
     key_manifest: str | None = None,
 ) -> dict[str, Any]:
     spec_by_claim_type = {
+        "operator_approval": PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+        PERMIT_OPERATOR_APPROVAL_CLAIM_NAME: PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+        "counter_signature": PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+        PERMIT_COUNTER_SIGNATURE_CLAIM_NAME: PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+        "audit_attestation": PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+        PERMIT_AUDIT_ATTESTATION_CLAIM_NAME: PERMIT_V2_AUDIT_ATTESTATION_SPEC,
         "operator_approved": PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+        PERMIT_OPERATOR_APPROVED_CLAIM_NAME: PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC,
         "counter_signed": PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+        PERMIT_COUNTER_SIGNED_CLAIM_NAME: PERMIT_V2_LEGACY_COUNTER_SIGNED_SPEC,
         "audit_attested": PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+        PERMIT_AUDIT_ATTESTED_CLAIM_NAME: PERMIT_V2_LEGACY_AUDIT_ATTESTED_SPEC,
     }
     spec = spec_by_claim_type[claim_type]
     export_document = _load_json_evidence(export_file)
@@ -8399,24 +8760,12 @@ def verify_permit_v2_signature_claim(
             raise ValueError("manifest must be a JSON object")
         manifest_body = loaded_manifest
 
-    if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT:
-        claim = _adjudicate_operator_approved_v1(
-            export_document=export_document,
-            manifest=manifest_body,
-            key_manifest_source=key_manifest,
-        )
-    elif spec.slot_name == PERMIT_COUNTER_SIGNATURE_SLOT:
-        claim = _adjudicate_pre_dispatch_counter_signed_v1(
-            export_document=export_document,
-            manifest=manifest_body,
-            key_manifest_source=key_manifest,
-        )
-    else:
-        claim = _adjudicate_audit_attested_v1(
-            export_document=export_document,
-            manifest=manifest_body,
-            key_manifest_source=key_manifest,
-        )
+    claim = _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest_body,
+        key_manifest_source=key_manifest,
+        spec=spec,
+    )
 
     return {
         "claim_type": claim_type,

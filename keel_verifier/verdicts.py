@@ -212,6 +212,7 @@ class ClaimVerdict:
     verdict: str | None = None
     semantics: list[dict[str, Any]] | None = None
     evidence: list[str] = field(default_factory=list)
+    epistemic_state: dict[str, str] | None = None
     reason_code: str | None = None
     message: str | None = None
     diagnostics: list[str] = field(default_factory=list)
@@ -253,6 +254,11 @@ class ClaimVerdict:
                     else claim_semantics(self.name)
                 ),
                 "evidence": list(self.evidence),
+                "epistemic_state": (
+                    dict(self.epistemic_state)
+                    if self.epistemic_state is not None
+                    else None
+                ),
                 "reason_code": reason_code,
                 "message": message,
                 "diagnostics": list(self.diagnostics),
@@ -338,6 +344,13 @@ def verdict_output_json_schema() -> dict[str, Any]:
                         "message": {"type": "string"},
                         "subjects": {"type": "array"},
                         "evidence": {"type": "array"},
+                        "epistemic_state": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string",
+                                "enum": ["observed", "verified", "unverifiable"],
+                            },
+                        },
                         "diagnostics": {"type": "array"},
                     },
                 },

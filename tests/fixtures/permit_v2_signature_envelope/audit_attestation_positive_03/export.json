@@ -1,0 +1,42 @@
+{
+  "account_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "action_name": "generate.text",
+  "audit_attestation": {
+    "batch_id": "batch-alpha",
+    "key_id": "4f00524ae0d38d73a33d0adff1f53d6e383745a6dfbe8fe5a3707a9cbb6f0dc0",
+    "payload_type": "permit.audit_attestation.v1",
+    "signature": "bqsk6yIaXXcZZCdNICtJ2JrT+V92rxXJY5cYqDJSgLXuqeEbTtbutKDdIVR+B1YfjxFezwx67BbzO8f/JNv8Cw==",
+    "signed_at": "2026-05-23T12:30:00.123456Z",
+    "signed_payload_hash": "ba7c2df219747a58481e3598be71b03562b70c9e76f9bd76d1bac3f0e053ba3a",
+    "signer_id": "33333333-cccc-4ccc-8ccc-333333333333"
+  },
+  "audit_batches": [
+    {
+      "batch_id": "batch-alpha"
+    }
+  ],
+  "binding_request_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+  "created_at": "2026-05-23T12:00:00.000000Z",
+  "decision": "allow",
+  "expires_at": "2026-05-23T14:00:00.000000Z",
+  "id": "11111111-aaaa-4aaa-8aaa-000000000303",
+  "issuer_signature_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+  "permit_format_version": "v2",
+  "project_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  "reason": "policy.allow",
+  "request_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+  "resource_attributes": {
+    "operation": "generate.text"
+  },
+  "resource_model": "gpt-4o-mini-303",
+  "resource_provider": "openai",
+  "signature": {
+    "key_id": "issuer-key-v1",
+    "signature": "MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMQ==",
+    "signed_at": "2026-05-23T12:00:01.000000Z",
+    "signed_payload_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+    "signer_id": "55555555-eeee-4eee-8eee-555555555555"
+  },
+  "subject_id": "subject-303",
+  "subject_type": "user"
+}
