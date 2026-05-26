@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.6.0 — Phase A voice-session attestation support (2026-05-25)
+
+- Add auto-detection for Phase A voice-session attestation artifacts via the
+  top-level `verifier_compatibility` block while preserving the legacy
+  single-file checkpoint verification path.
+- Verify Phase A session-chain hash linkage, Ed25519 signatures over canonical
+  artifact bytes, RFC 3161 timestamp receipts, and embedded policy snapshot
+  hashes.
+- Add a synthetic public sample at `sample/voice_session_export.json` and
+  regression tests for the Phase A happy path, tamper detection, legacy
+  backward compatibility, and format auto-detection.
+
 ## Unreleased — PERMIT_V2 §4.3 slot-signature adjudication
 
 - Add verifier adjudication for `permit.operator_approval.v1`,

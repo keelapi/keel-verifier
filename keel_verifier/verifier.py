@@ -66,6 +66,7 @@ import tempfile
 import urllib.request
 import uuid
 import zipfile
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field, replace
 from importlib import resources
@@ -102,6 +103,15 @@ except ImportError:
 
 DEFAULT_TRUST_ROOT_PATH = Path(__file__).resolve().parent / "data" / "trust_root.json"
 CACHED_TRUST_ROOT_PATH = Path.home() / ".keel-verifier" / "trust-root.json"
+VOICE_ATTESTATION_ARTIFACT_SCHEMA = "keel.voice.attestation.phase_a"
+VOICE_ATTESTATION_ARTIFACT_VERSION = "1.0.0"
+VOICE_ATTESTATION_CANONICALIZATION_PROFILE = (
+    "keel.canonical_json.attestation_artifact.v1"
+)
+VOICE_ATTESTATION_CHAIN_GENESIS_HASH = (
+    "sha256:"
+    + hashlib.sha256(b"keel-voice-session-artifact-chain-genesis-v1").hexdigest()
+)
 KEELAPI_COMPLIANCE_KEYS_URL = "https://api.keelapi.com/v1/compliance/keys"
 KEELAPI_CHECKPOINT_PUBLIC_KEY_URL = (
     "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
@@ -9649,6 +9659,319 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
 # ─── Programmatic and legacy checkpoint API ─────────────────────────
 
 
+def _voice_attestation_check(
+    name: str,
+    ok: bool,
+    reason: str,
+    **detail: Any,
+) -> dict[str, Any]:
+    if ok:
+        return {"name": name, "result": "pass", **detail}
+    return {"name": name, "result": "fail", "reason": reason, **detail}
+
+
+def _voice_attestation_canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+
+def _voice_attestation_sha256_prefixed(value: bytes) -> str:
+    return f"sha256:{hashlib.sha256(value).hexdigest()}"
+
+
+def _voice_attestation_signature_payload(
+    artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(artifact)
+    payload.pop("signatures", None)
+    return payload
+
+
+def _voice_attestation_chain_entry_hash(entry: Mapping[str, Any]) -> str:
+    material = dict(entry)
+    material.pop("content_hash", None)
+    return _voice_attestation_sha256_prefixed(
+        _voice_attestation_canonical_json_bytes(material)
+    )
+
+
+def _is_voice_attestation_artifact(value: Any) -> bool:
+    return isinstance(value, dict) and isinstance(
+        value.get("verifier_compatibility"),
+        dict,
+    )
+
+
+def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    return _voice_attestation_check(
+        "artifact_schema",
+        artifact.get("artifact_version") == VOICE_ATTESTATION_ARTIFACT_VERSION
+        and artifact.get("schema") == VOICE_ATTESTATION_ARTIFACT_SCHEMA
+        and artifact.get("schema_version") == 1
+        and artifact.get("canonicalization_profile")
+        == VOICE_ATTESTATION_CANONICALIZATION_PROFILE,
+        "unsupported Phase A voice attestation schema/version",
+    )
+
+
+def _verify_voice_attestation_signature(
+    artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    signatures = artifact.get("signatures")
+    if not isinstance(signatures, list) or not signatures:
+        return _voice_attestation_check("issuer_signature", False, "missing signatures")
+
+    canonical = _voice_attestation_canonical_json_bytes(
+        _voice_attestation_signature_payload(artifact)
+    )
+    content_hash = _voice_attestation_sha256_prefixed(canonical)
+    for entry in signatures:
+        if not isinstance(entry, Mapping):
+            continue
+        if str(entry.get("algorithm") or "").lower() != "ed25519":
+            continue
+        if entry.get("content_hash") not in (None, content_hash):
+            continue
+        public_key = entry.get("public_key")
+        signature = entry.get("signature")
+        if not isinstance(public_key, str) or not isinstance(signature, str):
+            continue
+        if _verify_ed25519(public_key, canonical, signature):
+            return {
+                "name": "issuer_signature",
+                "result": "pass",
+                "key_id": entry.get("key_id"),
+                "key_purpose": entry.get("key_purpose"),
+                "content_hash": content_hash,
+            }
+
+    return _voice_attestation_check(
+        "issuer_signature",
+        False,
+        "no valid Ed25519 signature over canonical artifact bytes",
+    )
+
+
+def _verify_voice_attestation_chain(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    chain = artifact.get("chain")
+    if not isinstance(chain, list):
+        return _voice_attestation_check("chain_integrity", False, "chain must be an array")
+
+    previous = VOICE_ATTESTATION_CHAIN_GENESIS_HASH
+    last_hash = VOICE_ATTESTATION_CHAIN_GENESIS_HASH
+    last_artifact_sequence = 0
+    for index, item in enumerate(chain, start=1):
+        if not isinstance(item, Mapping):
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} invalid",
+            )
+        if item.get("previous_content_hash") != previous:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} previous_content_hash mismatch",
+            )
+        artifact_sequence = item.get("artifact_sequence")
+        if not isinstance(artifact_sequence, int) or artifact_sequence <= last_artifact_sequence:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} artifact_sequence is not strictly increasing",
+            )
+        recomputed = _voice_attestation_chain_entry_hash(item)
+        if item.get("content_hash") != recomputed:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} content_hash mismatch",
+            )
+        previous = recomputed
+        last_hash = recomputed
+        last_artifact_sequence = artifact_sequence
+
+    head = artifact.get("chain_head")
+    if not isinstance(head, Mapping):
+        return _voice_attestation_check("chain_integrity", False, "chain_head missing")
+    if head.get("content_hash") != last_hash:
+        return _voice_attestation_check(
+            "chain_integrity",
+            False,
+            "chain_head hash mismatch",
+        )
+    if int(head.get("event_count") or 0) != len(chain):
+        return _voice_attestation_check(
+            "chain_integrity",
+            False,
+            "chain_head event_count mismatch",
+        )
+    return {
+        "name": "chain_integrity",
+        "result": "pass",
+        "events_verified": len(chain),
+    }
+
+
+def _verify_voice_attestation_policy_snapshot_hash(
+    artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    metadata = artifact.get("session_metadata")
+    snapshot = artifact.get("policy_snapshot")
+    if not isinstance(metadata, Mapping) or not isinstance(snapshot, Mapping):
+        return _voice_attestation_check(
+            "policy_snapshot_hash",
+            False,
+            "policy snapshot missing",
+        )
+
+    embedded = dict(snapshot)
+    embedded.pop("snapshot_id", None)
+    embedded.pop("snapshot_hash", None)
+    computed = hashlib.sha256(
+        _voice_attestation_canonical_json_bytes(embedded)
+    ).hexdigest()
+    expected = str(metadata.get("policy_snapshot_hash") or "").strip().lower()
+    if computed != expected:
+        return _voice_attestation_check(
+            "policy_snapshot_hash",
+            False,
+            "embedded policy_snapshot hash does not match session metadata",
+            computed=f"sha256:{computed}",
+            expected=f"sha256:{expected}" if expected else None,
+        )
+    return {
+        "name": "policy_snapshot_hash",
+        "result": "pass",
+        "policy_snapshot_hash": f"sha256:{expected}",
+    }
+
+
+def _voice_attestation_receipts(artifact: Mapping[str, Any]) -> list[dict[str, Any]]:
+    receipts: list[dict[str, Any]] = []
+    raw_receipts = artifact.get("timestamp_receipts")
+    if isinstance(raw_receipts, list):
+        receipts.extend(receipt for receipt in raw_receipts if isinstance(receipt, dict))
+    single = artifact.get("rfc3161_timestamp_receipt")
+    if isinstance(single, dict) and single not in receipts:
+        receipts.insert(0, single)
+    return receipts
+
+
+def _verify_voice_attestation_timestamp_receipt(
+    artifact: Mapping[str, Any],
+    *,
+    check_tsa: bool,
+) -> dict[str, Any]:
+    receipts = _voice_attestation_receipts(artifact)
+    if not receipts:
+        return _voice_attestation_check(
+            "rfc3161_timestamp_receipt",
+            False,
+            "missing RFC 3161 timestamp receipt",
+        )
+    if not check_tsa:
+        return {
+            "name": "rfc3161_timestamp_receipt",
+            "result": "pass",
+            "checked": False,
+            "receipts_verified": 0,
+        }
+
+    project_head = artifact.get("project_chain_head")
+    project_head_hash = (
+        project_head.get("content_hash") if isinstance(project_head, Mapping) else None
+    )
+    verified = 0
+    for index, receipt in enumerate(receipts, start=1):
+        request_hash = str(receipt.get("request_hash") or "").strip()
+        response_b64 = receipt.get("tsa_response_base64")
+        covers_hash = receipt.get("covers_chain_head_hash")
+        if not request_hash.startswith("sha256:") or not isinstance(response_b64, str):
+            return _voice_attestation_check(
+                "rfc3161_timestamp_receipt",
+                False,
+                f"receipt {index} is incomplete",
+            )
+        if project_head_hash is not None and request_hash != project_head_hash:
+            return _voice_attestation_check(
+                "rfc3161_timestamp_receipt",
+                False,
+                f"receipt {index} request_hash does not match project_chain_head",
+            )
+        if covers_hash is not None and covers_hash != request_hash:
+            return _voice_attestation_check(
+                "rfc3161_timestamp_receipt",
+                False,
+                f"receipt {index} covers_chain_head_hash does not match request_hash",
+            )
+        ok, reason = _verify_tsa_receipt(
+            response_b64,
+            request_hash.removeprefix("sha256:"),
+        )
+        if not ok:
+            return _voice_attestation_check(
+                "rfc3161_timestamp_receipt",
+                False,
+                f"receipt {index}: {reason}",
+            )
+        verified += 1
+
+    return {
+        "name": "rfc3161_timestamp_receipt",
+        "result": "pass",
+        "checked": True,
+        "receipts_verified": verified,
+    }
+
+
+def verify_attestation_artifact(
+    artifact: Mapping[str, Any],
+    *,
+    check_tsa: bool = True,
+) -> dict[str, Any]:
+    """Verify a Phase A voice session attestation artifact."""
+
+    checks = [
+        _verify_voice_attestation_schema(artifact),
+        _verify_voice_attestation_signature(artifact),
+        _verify_voice_attestation_chain(artifact),
+        _verify_voice_attestation_policy_snapshot_hash(artifact),
+        _verify_voice_attestation_timestamp_receipt(artifact, check_tsa=check_tsa),
+    ]
+    failed = [check for check in checks if check.get("result") != "pass"]
+    metadata = artifact.get("session_metadata")
+    chain_head = artifact.get("chain_head")
+    return {
+        "verdict": "fail" if failed else "pass",
+        "schema": artifact.get("schema"),
+        "session_id": (
+            metadata.get("session_id")
+            if isinstance(metadata, Mapping)
+            and isinstance(metadata.get("session_id"), str)
+            else None
+        ),
+        "checks": checks,
+        "failed_checks": failed,
+        "head_hash": (
+            chain_head.get("content_hash")
+            if isinstance(chain_head, Mapping)
+            and isinstance(chain_head.get("content_hash"), str)
+            else None
+        ),
+        "head_sequence": (
+            chain_head.get("sequence")
+            if isinstance(chain_head, Mapping)
+            and isinstance(chain_head.get("sequence"), int)
+            else None
+        ),
+    }
+
+
 @dataclass
 class VerifyResult:
     ok: bool
@@ -10441,13 +10764,71 @@ def verify(
     self_attested: bool = False,
     check_tsa: bool = True,
 ) -> VerifyResult:
-    """Verify a v0.2-compatible integrity checkpoint JSON artifact.
+    """Verify a standalone artifact path.
 
     This preserves the historical ``python -m keel_verifier <artifact>`` and
     programmatic ``verify(path)`` surface. New signed compliance exports should
     use ``keel-verify export`` so ``--walk-events`` and ``--verify-closure`` can
-    validate bundled lifecycle evidence.
+    validate bundled lifecycle evidence. Phase A voice-session attestation
+    artifacts are auto-detected by their top-level ``verifier_compatibility``
+    block and verified locally.
     """
+    path = Path(export_path)
+    try:
+        raw = path.read_bytes()
+        body = json.loads(raw.decode("utf-8"))
+    except Exception:
+        body = None
+    if _is_voice_attestation_artifact(body):
+        artifact = _checkpoint_artifact_dict(path, raw if "raw" in locals() else None)
+        artifact["kind"] = "voice_session_attestation"
+        result = verify_attestation_artifact(body, check_tsa=check_tsa)
+        checks = result["checks"]
+        failed = result["failed_checks"]
+        artifact.update(
+            {
+                "schema": result.get("schema"),
+                "session_id": result.get("session_id"),
+                "checks": checks,
+                "head_hash": result.get("head_hash"),
+                "head_sequence": result.get("head_sequence"),
+            }
+        )
+        return VerifyResult(
+            ok=result["verdict"] == "pass",
+            error=(
+                "; ".join(
+                    f"{check.get('name')}: {check.get('reason')}"
+                    for check in failed
+                )
+                if failed
+                else None
+            ),
+            exit_code=0 if result["verdict"] == "pass" else 1,
+            artifact=artifact,
+            checkpoint_id=result.get("session_id"),
+            composite_hash=result.get("head_hash"),
+            chain_heads_count=int(result.get("head_sequence") or 0),
+            tsa_present=any(
+                check.get("name") == "rfc3161_timestamp_receipt"
+                for check in checks
+            ),
+            tsa_checked=check_tsa,
+            tsa_verified=not any(
+                check.get("name") == "rfc3161_timestamp_receipt"
+                and check.get("result") != "pass"
+                for check in checks
+            ),
+            tsa_receipts=[
+                {
+                    "checked": check_tsa,
+                    "verified": check.get("result") == "pass",
+                    "reason": check.get("reason"),
+                }
+                for check in checks
+                if check.get("name") == "rfc3161_timestamp_receipt"
+            ],
+        )
     return verify_checkpoint(
         export_path,
         expected_public_key=public_key,

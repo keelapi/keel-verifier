@@ -58,6 +58,7 @@ python -m keel_verifier sample/export.json --self-attested
 | Walk lifecycle chain entries | `keel-verify export export.json manifest.json --walk-events` |
 | Verify closure records | `keel-verify export export.json manifest.json --walk-events --verify-closure` |
 | Verify a checkpoint | `keel-verify checkpoint checkpoint.json` |
+| Verify a Phase A voice-session artifact | `python -m keel_verifier voice_session_export.json` |
 | Verify a registered claim | `keel-verify claim delegation_denied_correctly --evidence-file evidence.json` |
 | Refresh cached trust roots | `keel-verify refresh-keys` |
 | Verify the installed wheel | `keel-verify self-check` |
@@ -74,6 +75,20 @@ python -m keel_verifier sample/export.json --self-attested
 `keel-verify checkpoint` verifies integrity checkpoint JSON artifacts: the `chain_heads` composite hash, the Ed25519 checkpoint signature, and an embedded RFC 3161 timestamp MessageImprint when present.
 
 `keel-verify claim` adjudicates pack-pinned evidence packs against the verifier's claim registry — see [Claim Verification](#claim-verification-pack-pinned-semantics) below.
+
+Phase A voice-session attestation artifacts are auto-detected by a top-level
+`verifier_compatibility` block when passed to the legacy single-file verifier
+entry point:
+
+```bash
+python -m keel_verifier sample/voice_session_export.json
+```
+
+For these artifacts, the verifier checks the session chain's per-event hash
+linkage, the Ed25519 signature over canonical artifact bytes, the embedded
+RFC 3161 timestamp receipt's MessageImprint against the project chain head,
+and the locked policy snapshot hash. Legacy checkpoint artifacts continue to
+use the existing checkpoint verification path.
 
 `keel-verify self-check` verifies the installed wheel form of `keel-verifier`
 against the signed release artifact. It verifies the Sigstore-signed release
