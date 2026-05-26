@@ -1,11 +1,11 @@
 {
   "version": "1.0",
   "release_name": "keel-verifier",
-  "version_tag": "v2.6.0",
-  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v2.6.0",
-  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.6.0/manifest.json",
-  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.6.0/manifest.json.sigstore",
-  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.6.0/manifest.json.tsa.json",
+  "version_tag": "v2.7.0",
+  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v2.7.0",
+  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.7.0/manifest.json",
+  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.7.0/manifest.json.sigstore",
+  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v2.7.0/manifest.json.tsa.json",
   "per_file_digests": {
     "keel_verifier/__init__.py": "3105d1af4f4c57830a3bf21c1548dc0c33049360fc17cee31df59559d257398a",
     "keel_verifier/__main__.py": "8b4cb85d4ef4dd0c4112b69ec713a8ae1589c32b04919daf0d827430be20f603",

@@ -104,7 +104,13 @@ except ImportError:
 DEFAULT_TRUST_ROOT_PATH = Path(__file__).resolve().parent / "data" / "trust_root.json"
 CACHED_TRUST_ROOT_PATH = Path.home() / ".keel-verifier" / "trust-root.json"
 VOICE_ATTESTATION_ARTIFACT_SCHEMA = "keel.voice.attestation.phase_a"
-VOICE_ATTESTATION_ARTIFACT_VERSION = "1.0.0"
+VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA = {
+    1: "1.0.0",
+    3: "1.2.0",
+}
+SUPPORTED_VOICE_ATTESTATION_SCHEMA_VERSIONS = frozenset(
+    VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA
+)
 VOICE_ATTESTATION_CANONICALIZATION_PROFILE = (
     "keel.canonical_json.attestation_artifact.v1"
 )
@@ -9707,11 +9713,19 @@ def _is_voice_attestation_artifact(value: Any) -> bool:
 
 
 def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    schema_version = artifact.get("schema_version")
+    expected_artifact_version = VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA.get(
+        schema_version
+    )
     return _voice_attestation_check(
         "artifact_schema",
-        artifact.get("artifact_version") == VOICE_ATTESTATION_ARTIFACT_VERSION
+        # v1 is the original Phase A artifact with embedded canonical payloads;
+        # v3 is main's hash-only materialization. Both use the same signature
+        # and chain hash primitives, but their top-level artifact versions differ.
+        expected_artifact_version is not None
+        and artifact.get("artifact_version") == expected_artifact_version
         and artifact.get("schema") == VOICE_ATTESTATION_ARTIFACT_SCHEMA
-        and artifact.get("schema_version") == 1
+        and schema_version in SUPPORTED_VOICE_ATTESTATION_SCHEMA_VERSIONS
         and artifact.get("canonicalization_profile")
         == VOICE_ATTESTATION_CANONICALIZATION_PROFILE,
         "unsupported Phase A voice attestation schema/version",
@@ -9756,7 +9770,7 @@ def _verify_voice_attestation_signature(
     )
 
 
-def _verify_voice_attestation_chain(artifact: Mapping[str, Any]) -> dict[str, Any]:
+def _verify_voice_attestation_chain_v1(artifact: Mapping[str, Any]) -> dict[str, Any]:
     chain = artifact.get("chain")
     if not isinstance(chain, list):
         return _voice_attestation_check("chain_integrity", False, "chain must be an array")
@@ -9815,6 +9829,99 @@ def _verify_voice_attestation_chain(artifact: Mapping[str, Any]) -> dict[str, An
         "result": "pass",
         "events_verified": len(chain),
     }
+
+
+def _verify_voice_attestation_chain_v3(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    chain = artifact.get("chain")
+    if not isinstance(chain, list):
+        return _voice_attestation_check("chain_integrity", False, "chain must be an array")
+
+    previous = VOICE_ATTESTATION_CHAIN_GENESIS_HASH
+    last_hash = VOICE_ATTESTATION_CHAIN_GENESIS_HASH
+    last_artifact_sequence = 0
+    for index, item in enumerate(chain, start=1):
+        if not isinstance(item, Mapping):
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} invalid",
+            )
+        if "canonicalized_payload" in item:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} embeds payload material in schema v3",
+            )
+        if item.get("payload_materialization") != "hash_only":
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} payload_materialization must be hash_only",
+            )
+        payload_hash = item.get("canonicalized_payload_hash")
+        if not isinstance(payload_hash, str) or not payload_hash.startswith("sha256:"):
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} canonicalized_payload_hash is invalid",
+            )
+        if item.get("previous_content_hash") != previous:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} previous_content_hash mismatch",
+            )
+        artifact_sequence = item.get("artifact_sequence")
+        if not isinstance(artifact_sequence, int) or artifact_sequence <= last_artifact_sequence:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} artifact_sequence is not strictly increasing",
+            )
+        recomputed = _voice_attestation_chain_entry_hash(item)
+        if item.get("content_hash") != recomputed:
+            return _voice_attestation_check(
+                "chain_integrity",
+                False,
+                f"chain entry {index} content_hash mismatch",
+            )
+        previous = recomputed
+        last_hash = recomputed
+        last_artifact_sequence = artifact_sequence
+
+    head = artifact.get("chain_head")
+    if not isinstance(head, Mapping):
+        return _voice_attestation_check("chain_integrity", False, "chain_head missing")
+    if head.get("content_hash") != last_hash:
+        return _voice_attestation_check(
+            "chain_integrity",
+            False,
+            "chain_head hash mismatch",
+        )
+    if int(head.get("event_count") or 0) != len(chain):
+        return _voice_attestation_check(
+            "chain_integrity",
+            False,
+            "chain_head event_count mismatch",
+        )
+    return {
+        "name": "chain_integrity",
+        "result": "pass",
+        "events_verified": len(chain),
+    }
+
+
+def _verify_voice_attestation_chain(artifact: Mapping[str, Any]) -> dict[str, Any]:
+    schema_version = artifact.get("schema_version")
+    if schema_version == 1:
+        return _verify_voice_attestation_chain_v1(artifact)
+    if schema_version == 3:
+        return _verify_voice_attestation_chain_v3(artifact)
+    return _voice_attestation_check(
+        "chain_integrity",
+        False,
+        "unsupported Phase A voice attestation schema/version",
+    )
 
 
 def _verify_voice_attestation_policy_snapshot_hash(

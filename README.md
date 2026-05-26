@@ -78,10 +78,14 @@ python -m keel_verifier sample/export.json --self-attested
 
 Phase A voice-session attestation artifacts are auto-detected by a top-level
 `verifier_compatibility` block when passed to the legacy single-file verifier
-entry point:
+entry point. The verifier accepts both the original schema v1 artifact format
+(`artifact_version=1.0.0`, embedded canonical payload material) and main's
+current schema v3 hash-only format (`artifact_version=1.2.0`,
+`payload_materialization=hash_only`):
 
 ```bash
 python -m keel_verifier sample/voice_session_export.json
+python -m keel_verifier sample/voice_session_export_v3.json
 ```
 
 For these artifacts, the verifier checks the session chain's per-event hash
