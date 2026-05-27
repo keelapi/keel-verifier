@@ -207,7 +207,7 @@ def _is_excluded_from_scan(path: Path) -> bool:
     parts = relative.parts
     if not parts:
         return True
-    if parts[0] in {".git", "dist", "build", "sample"}:
+    if parts[0] in {".git", "dist", "build", "sample", "_internal-local"}:
         return True
     if parts[0].startswith(".venv"):
         return True

@@ -7,6 +7,7 @@ from pathlib import Path
 from keel_verifier.verifier import (
     VerifyResult,
     verify,
+    verify_attestation_artifact,
     verify_checkpoint,
     verify_closure_record,
     verify_delegation_denied_correctly,
@@ -26,6 +27,7 @@ __all__ = [
     "VerdictSubject",
     "aggregate_subject_verdicts",
     "verify",
+    "verify_attestation_artifact",
     "verify_checkpoint",
     "verify_closure_record",
     "verify_delegation_denied_correctly",
@@ -33,7 +35,7 @@ __all__ = [
     "__version__",
 ]
 
-_SOURCE_TREE_VERSION = "2.6.0"
+_SOURCE_TREE_VERSION = "2.7.0"
 
 try:
     __version__ = _metadata_version("keel-verifier")
