@@ -1,0 +1,208 @@
+{
+  "artifact_version": "1.0.0",
+  "canonicalization_profile": "keel.canonical_json.attestation_artifact.v1",
+  "chain": [
+    {
+      "artifact_sequence": 1,
+      "canonicalized_payload": {
+        "claim": "ai_disclosure_emitted",
+        "jurisdiction_codes": [
+          "US-TCPA"
+        ],
+        "text_hash": "sha256:f682d6579b83be92a5622a362ec88810350ebba4726775055733a64450b5a7c6"
+      },
+      "canonicalized_payload_hash": "sha256:abfc73c64dc67bd292a5f2da3adbf08f88ffac929cd27561813a47413e9290d1",
+      "category": "regulatory_evidence",
+      "chain_scope": "project:proj_sample_voice_phase_a",
+      "content_hash": "sha256:9c6e1547597389ed0a3a64c7fcfe20d0fc438600f2d790e06aa4c5ff789136cd",
+      "created_at": "2026-05-21T14:32:04Z",
+      "decision": "recorded",
+      "event_id": "evt_voice_sample_001",
+      "event_type": "voice.ai_disclosure.emitted",
+      "governance_previous_record_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "governance_record_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "model": "gpt-4o-realtime-preview",
+      "occurred_at": "2026-05-21T14:32:04Z",
+      "operation": "realtime.session",
+      "outcome": "disclosure_emitted",
+      "permit_id": null,
+      "previous_content_hash": "sha256:83bd9d2d5b4a86a78ad5832ebeded1a546e56f2be8758dff0b54d64414a00418",
+      "provider": "openai_realtime",
+      "request_id": "req_voice_sample_001",
+      "resource_id": "sess_voice_sample_phase_a",
+      "resource_type": "voice_session",
+      "sequence": 101,
+      "session_id": "sess_voice_sample_phase_a",
+      "severity": "info",
+      "surface": "voice"
+    },
+    {
+      "artifact_sequence": 2,
+      "canonicalized_payload": {
+        "arguments_hash": "sha256:9ae39a6e09bec0f84bf58046b7d082a4628dc1a3b20f70881cd94b2154c3bbbf",
+        "tool_name": "lookup_order_status",
+        "verdict": "allowed"
+      },
+      "canonicalized_payload_hash": "sha256:4b2286cca94bc3caff4b4c25b9293e17c2e4d411cd49cb61d645fe57071359bb",
+      "category": "tool_governance",
+      "chain_scope": "project:proj_sample_voice_phase_a",
+      "content_hash": "sha256:e543c281aacc28a814c6ed654f1dc2cbff06df975c8045252c3d4cbaa7146999",
+      "created_at": "2026-05-21T14:33:12Z",
+      "decision": "allowed",
+      "event_id": "evt_voice_sample_002",
+      "event_type": "voice.tool_invocation.governed",
+      "governance_previous_record_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "governance_record_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "model": "gpt-4o-realtime-preview",
+      "occurred_at": "2026-05-21T14:33:12Z",
+      "operation": "tool.lookup_order_status",
+      "outcome": "tool_call_allowed",
+      "permit_id": "perm_voice_sample_lookup",
+      "previous_content_hash": "sha256:9c6e1547597389ed0a3a64c7fcfe20d0fc438600f2d790e06aa4c5ff789136cd",
+      "provider": "openai_realtime",
+      "request_id": "req_voice_sample_002",
+      "resource_id": "call_voice_sample_001",
+      "resource_type": "tool_call",
+      "sequence": 102,
+      "session_id": "sess_voice_sample_phase_a",
+      "severity": "info",
+      "surface": "voice"
+    }
+  ],
+  "chain_head": {
+    "content_hash": "sha256:e543c281aacc28a814c6ed654f1dc2cbff06df975c8045252c3d4cbaa7146999",
+    "event_count": 2,
+    "sequence": 102
+  },
+  "issued_at": "2026-05-21T14:35:00Z",
+  "permits": {
+    "child_tool_call_permits": [
+      {
+        "action_name": "lookup_order_status",
+        "binding_canonical_hash": "sha256:b2926a0afb6201ff4bbf57432423fe6c7a9db22ce637cce5f1a8ee7d47aa76bd",
+        "binding_expires_at": "2026-05-21T15:33:12Z",
+        "binding_issued_at": "2026-05-21T14:33:12Z",
+        "binding_key_id": null,
+        "binding_project_anchor_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+        "binding_request_hash": "sha256:3aa140199b353d1d92cba3cfb23253d0640a3b6bd331b1f8bea8229f6ca75a6f",
+        "binding_session_event_hash": "sha256:e543c281aacc28a814c6ed654f1dc2cbff06df975c8045252c3d4cbaa7146999",
+        "binding_session_id": "sess_voice_sample_phase_a",
+        "binding_signature": null,
+        "binding_signatures": [],
+        "binding_version": "sample-v1",
+        "created_at": "2026-05-21T14:33:12Z",
+        "custom_metadata": {
+          "fixture": "synthetic"
+        },
+        "decision": "allowed",
+        "model": "gpt-4o-realtime-preview",
+        "operation": "tool.lookup_order_status",
+        "parent_permit_id": null,
+        "permit_id": "perm_voice_sample_lookup",
+        "policy_id": "pol_voice_disclosure_v1",
+        "policy_snapshot_hash": "sha256:dd55c57d4dadaa39a0c1958607ab7a3c0b1aacc411b7a76998ea0e4255a24baa",
+        "policy_version": "1",
+        "project_id": "proj_sample_voice_phase_a",
+        "provider": "openai_realtime",
+        "reason": "synthetic sample request within voice policy",
+        "resource_type": "tool_call",
+        "session_id": "sess_voice_sample_phase_a",
+        "status": "issued"
+      }
+    ],
+    "parent_session_permit": null
+  },
+  "policy_snapshot": {
+    "kind": "realtime_session_policy_snapshot_v1",
+    "policies": [
+      {
+        "id": "pol_voice_disclosure_v1",
+        "name": "Synthetic voice disclosure",
+        "org_id": null,
+        "policy_json": {
+          "deny_payment_card_collection": true,
+          "require_ai_disclosure": true,
+          "require_explicit_consent": true
+        },
+        "project_id": "proj_sample_voice_phase_a",
+        "scope": "project",
+        "version": 1
+      }
+    ],
+    "project_id": "proj_sample_voice_phase_a",
+    "snapshot_hash": "sha256:dd55c57d4dadaa39a0c1958607ab7a3c0b1aacc411b7a76998ea0e4255a24baa",
+    "snapshot_id": "ps_sample_voice_phase_a"
+  },
+  "project_chain_head": {
+    "chain_scope": "project:proj_sample_voice_phase_a",
+    "content_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+    "event_id": "evt_voice_sample_ended",
+    "event_type": "voice.session.ended",
+    "previous_content_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "sequence": 103
+  },
+  "region_anchor": "us-west-1",
+  "rfc3161_timestamp_attempts": [
+    {
+      "provider": "digicert_fixture",
+      "status": "granted",
+      "url": "https://timestamp.digicert.com",
+      "witness_type": "external timestamp witness"
+    }
+  ],
+  "rfc3161_timestamp_receipt": {
+    "covers_chain_head_at_sequence": 103,
+    "covers_chain_head_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+    "provider": "digicert_fixture",
+    "receipt_hash": "sha256:4b81a66422ede2fe4b1b918413157e3b05388d437728e814324e9b3035580138",
+    "received_at": "2026-05-21T14:35:01Z",
+    "request_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+    "tsa": "https://timestamp.digicert.com",
+    "tsa_response_base64": "MIGRBgkqhkiG9w0BBwKggYMwgYACAQMxDzANBglghkgBZQMEAgEFADBoBgsqhkiG9w0BCRABBKBZBFcwVQIBAQYJKwYBBAGGjR8BMDEwDQYJYIZIAWUDBAIBBQAEIL8Tox7G0DVyiOYPHL5v9KtjafhHl/xZj8g08uqC1ZHXAgEBGA8yMDI2MDQxNTEyMDAwMVoxAA==",
+    "witness_type": "external timestamp witness"
+  },
+  "schema": "keel.voice.attestation.phase_a",
+  "schema_version": 1,
+  "session_metadata": {
+    "ended_at": "2026-05-21T14:35:00Z",
+    "modality": "voice",
+    "model": "gpt-4o-realtime-preview",
+    "operation": "realtime.session",
+    "policy_snapshot_hash": "dd55c57d4dadaa39a0c1958607ab7a3c0b1aacc411b7a76998ea0e4255a24baa",
+    "policy_snapshot_id": "ps_sample_voice_phase_a",
+    "project_id": "proj_sample_voice_phase_a",
+    "provider": "openai_realtime",
+    "region_code": "us-west-1",
+    "session_id": "sess_voice_sample_phase_a",
+    "started_at": "2026-05-21T14:32:00Z",
+    "status": "ended"
+  },
+  "signatures": [
+    {
+      "algorithm": "ed25519",
+      "content_hash": "sha256:cb1a39bd2aedc5603216283f069cc7b01276c6d58d702ce5d7c883a32e3b9dff",
+      "key_id": "sha256:e56ba47c4f76eeeef2ffcb6c13f16112",
+      "key_purpose": "export_signing",
+      "public_key": "ed25519:U/Xopa0Sae5FpS63pinNWcRfnFcA3J9v8h7PFwA1MFg=",
+      "signature": "ed25519:bALApldXR9kF+bPWr5/jwR1wtMszXh6mlx6oQz2G90IzvxB8TXucLXmXoqhFiz3yIwgHrWrVKVyQYXCsklJdAg==",
+      "signed_at": "2026-05-21T14:35:00Z"
+    }
+  ],
+  "timestamp_receipts": [
+    {
+      "covers_chain_head_at_sequence": 103,
+      "covers_chain_head_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+      "provider": "digicert_fixture",
+      "receipt_hash": "sha256:4b81a66422ede2fe4b1b918413157e3b05388d437728e814324e9b3035580138",
+      "received_at": "2026-05-21T14:35:01Z",
+      "request_hash": "sha256:bf13a31ec6d0357288e60f1cbe6ff4ab6369f84797fc598fc834f2ea82d591d7",
+      "tsa": "https://timestamp.digicert.com",
+      "tsa_response_base64": "MIGRBgkqhkiG9w0BBwKggYMwgYACAQMxDzANBglghkgBZQMEAgEFADBoBgsqhkiG9w0BCRABBKBZBFcwVQIBAQYJKwYBBAGGjR8BMDEwDQYJYIZIAWUDBAIBBQAEIL8Tox7G0DVyiOYPHL5v9KtjafhHl/xZj8g08uqC1ZHXAgEBGA8yMDI2MDQxNTEyMDAwMVoxAA==",
+      "witness_type": "external timestamp witness"
+    }
+  ],
+  "verifier_compatibility": {
+    "atoms_layer": false,
+    "format_version": "1.0"
+  }
+}

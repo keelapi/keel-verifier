@@ -523,6 +523,39 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
     def p(s: str = "") -> None:
         print(s, file=stream)
 
+    if result.artifact.get("kind") == "voice_session_attestation":
+        if result.ok:
+            p(f"VERIFIED: {export_path}")
+        else:
+            p(f"FAILED: {export_path}")
+            if result.error:
+                for line in result.error.splitlines():
+                    p(f"  {line}")
+
+        session_id = result.artifact.get("session_id")
+        if session_id:
+            p(f"  Session:      {session_id}")
+        if result.composite_hash:
+            p(f"  Chain head:   {result.composite_hash}")
+        checks = result.artifact.get("checks")
+        if isinstance(checks, list):
+            p("  Checks:")
+            for check in checks:
+                if not isinstance(check, dict):
+                    continue
+                marker = "PASS" if check.get("result") == "pass" else "FAIL"
+                detail = ""
+                if check.get("events_verified") is not None:
+                    detail = f" ({check['events_verified']} events)"
+                elif check.get("receipts_verified") is not None:
+                    detail = f" ({check['receipts_verified']} receipt(s))"
+                elif check.get("key_id"):
+                    detail = f" ({check['key_id']})"
+                p(f"    [{marker}] {check.get('name')}{detail}")
+                if marker == "FAIL" and check.get("reason"):
+                    p(f"           {check['reason']}")
+        return
+
     if result.ok:
         p(f"VERIFIED: {export_path}")
     else:

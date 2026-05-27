@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.7.0 — Phase A schema v3 voice-session compatibility (2026-05-25)
+
+- Accept Phase A voice-session attestation schema v3 artifacts from Keel API's
+  hash-only materialization format (`artifact_version=1.2.0`) alongside legacy
+  schema v1 artifacts (`artifact_version=1.0.0`).
+- Preserve the existing schema v1 verification path while adding schema v3
+  chain validation for `payload_materialization=hash_only` and
+  `canonicalized_payload_hash` entries.
+- Add a synthetic public v3 sample at `sample/voice_session_export_v3.json` and
+  regression coverage for v1, v3, and v3 hash tamper detection.
+
+## v2.6.0 — Phase A voice-session attestation support (2026-05-25)
+
+- Add auto-detection for Phase A voice-session attestation artifacts via the
+  top-level `verifier_compatibility` block while preserving the legacy
+  single-file checkpoint verification path.
+- Verify Phase A session-chain hash linkage, Ed25519 signatures over canonical
+  artifact bytes, RFC 3161 timestamp receipts, and embedded policy snapshot
+  hashes.
+- Add a synthetic public sample at `sample/voice_session_export.json` and
+  regression tests for the Phase A happy path, tamper detection, legacy
+  backward compatibility, and format auto-detection.
+
 ## Unreleased — PERMIT_V2 §4.3 slot-signature adjudication
 
 - Add verifier adjudication for `permit.operator_approval.v1`,
