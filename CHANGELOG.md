@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.0 — PR 5 verifier UX rendering (2026-06-02)
+
+- Add `keel-verify render` for `verifier_output.v3.0` documents with `json`,
+  `tree`, `graph`, and `html` output modes.
+- Embed the locked PR 5 20-outcome render table in the renderer and render
+  command help for downstream dashboard and auditor tooling.
+- Preserve verification semantics: the render command consumes already
+  evaluated `verifier.*` and `execution.*` namespaces and does not re-adjudicate
+  provider-attestation outcomes.
+
 ## v2.7.0 — Phase A schema v3 voice-session compatibility (2026-05-25)
 
 - Accept Phase A voice-session attestation schema v3 artifacts from Keel API's
