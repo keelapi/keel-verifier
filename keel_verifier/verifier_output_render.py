@@ -1,4 +1,4 @@
-"""PR 5 verifier output rendering for keel-verifier."""
+"""Verifier output v3.0 rendering for keel-verifier."""
 
 from __future__ import annotations
 

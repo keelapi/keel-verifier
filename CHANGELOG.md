@@ -1,18 +1,18 @@
 # Changelog
 
-## v3.0.0 — PR 5 verifier UX rendering (2026-06-02)
+## v3.0.0 — Verifier UX rendering (2026-06-02)
 
 - Add `keel-verify render` for `verifier_output.v3.0` documents with `json`,
   `tree`, `graph`, and `html` output modes.
-- Embed the locked PR 5 20-outcome render table in the renderer and render
+- Embed the locked 20-outcome render table in the renderer and render
   command help for downstream dashboard and auditor tooling.
 - Preserve verification semantics: the render command consumes already
   evaluated `verifier.*` and `execution.*` namespaces and does not re-adjudicate
   provider-attestation outcomes.
 
-## v2.7.0 — Phase A schema v3 voice-session compatibility (2026-05-25)
+## v2.7.0 — Voice-session attestation schema v3 compatibility (2026-05-25)
 
-- Accept Phase A voice-session attestation schema v3 artifacts from Keel API's
+- Accept voice-session attestation schema v3 artifacts from Keel API's
   hash-only materialization format (`artifact_version=1.2.0`) alongside legacy
   schema v1 artifacts (`artifact_version=1.0.0`).
 - Preserve the existing schema v1 verification path while adding schema v3
@@ -21,25 +21,25 @@
 - Add a synthetic public v3 sample at `sample/voice_session_export_v3.json` and
   regression coverage for v1, v3, and v3 hash tamper detection.
 
-## v2.6.0 — Phase A voice-session attestation support (2026-05-25)
+## v2.6.0 — Voice-session attestation support (2026-05-25)
 
-- Add auto-detection for Phase A voice-session attestation artifacts via the
+- Add auto-detection for voice-session attestation artifacts via the
   top-level `verifier_compatibility` block while preserving the legacy
   single-file checkpoint verification path.
-- Verify Phase A session-chain hash linkage, Ed25519 signatures over canonical
+- Verify session-chain hash linkage, Ed25519 signatures over canonical
   artifact bytes, RFC 3161 timestamp receipts, and embedded policy snapshot
   hashes.
 - Add a synthetic public sample at `sample/voice_session_export.json` and
-  regression tests for the Phase A happy path, tamper detection, legacy
+  regression tests for the voice-session happy path, tamper detection, legacy
   backward compatibility, and format auto-detection.
 
-## Unreleased — PERMIT_V2 §4.3 slot-signature adjudication
+## Unreleased — Permit slot-signature adjudication
 
 - Add verifier adjudication for `permit.operator_approval.v1`,
   `permit.counter_signature.v1`, and `permit.audit_attestation.v1` while
   preserving the earlier `*_approved/*_signed/*_attested` compatibility names.
-- Vendor the keel-api main pinned PERMIT_V2 slot semantics, including the
-  updated `permit.counter_signature.v1` hash
+- Pin the latest slot semantics, including the updated
+  `permit.counter_signature.v1` hash
   `sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143`.
 - Verify counter-signature `execution_intent_hash` against canonical
   `permit.counter_signature.execution_intent.v1` dispatch facts and use runtime
