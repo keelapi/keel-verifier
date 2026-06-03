@@ -9719,7 +9719,7 @@ def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, A
     )
     return _voice_attestation_check(
         "artifact_schema",
-        # v1 is the original Phase A artifact with embedded canonical payloads;
+        # v1 is the original voice-session artifact with embedded canonical payloads;
         # v3 is main's hash-only materialization. Both use the same signature
         # and chain hash primitives, but their top-level artifact versions differ.
         expected_artifact_version is not None
@@ -9728,7 +9728,7 @@ def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, A
         and schema_version in SUPPORTED_VOICE_ATTESTATION_SCHEMA_VERSIONS
         and artifact.get("canonicalization_profile")
         == VOICE_ATTESTATION_CANONICALIZATION_PROFILE,
-        "unsupported Phase A voice attestation schema/version",
+        "unsupported voice-session attestation schema/version",
     )
 
 
@@ -9920,7 +9920,7 @@ def _verify_voice_attestation_chain(artifact: Mapping[str, Any]) -> dict[str, An
     return _voice_attestation_check(
         "chain_integrity",
         False,
-        "unsupported Phase A voice attestation schema/version",
+        "unsupported voice-session attestation schema/version",
     )
 
 
@@ -10041,7 +10041,7 @@ def verify_attestation_artifact(
     *,
     check_tsa: bool = True,
 ) -> dict[str, Any]:
-    """Verify a Phase A voice session attestation artifact."""
+    """Verify a voice-session attestation artifact."""
 
     checks = [
         _verify_voice_attestation_schema(artifact),
@@ -10876,7 +10876,7 @@ def verify(
     This preserves the historical ``python -m keel_verifier <artifact>`` and
     programmatic ``verify(path)`` surface. New signed compliance exports should
     use ``keel-verify export`` so ``--walk-events`` and ``--verify-closure`` can
-    validate bundled lifecycle evidence. Phase A voice-session attestation
+    validate bundled lifecycle evidence. Voice-session attestation
     artifacts are auto-detected by their top-level ``verifier_compatibility``
     block and verified locally.
     """

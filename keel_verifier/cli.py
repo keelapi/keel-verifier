@@ -398,11 +398,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_doctor.set_defaults(func=_cmd_doctor)
 
-    outcome_help = "PR 5 outcomes: " + ", ".join(sorted(OUTCOME_RENDER_MAPPINGS))
+    outcome_help = "Verifier output v3.0 outcomes: " + ", ".join(sorted(OUTCOME_RENDER_MAPPINGS))
     p_render = sub.add_parser(
         "render",
         help=(
-            "Render a PR 5 verifier_output.v3.0 JSON document as json, tree, "
+            "Render a verifier_output.v3.0 JSON document as json, tree, "
             "graph, or html."
         ),
         epilog=outcome_help,
