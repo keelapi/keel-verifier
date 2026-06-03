@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "2.7.0",
+    "version": "3.0.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -153,7 +153,7 @@
     {
       "name": "workflow.effective_intent_hash.v1",
       "status": "implemented",
-      "description": "Re-derives effective_intent_hash = SHA-256(declaration.intent_json ‖ ordered amendments at decision time) and matches against permit.workflow_state_json.",
+      "description": "Re-derives effective_intent_hash = SHA-256(declaration.intent_json \u2016 ordered amendments at decision time) and matches against permit.workflow_state_json.",
       "depends_on_semantics": [
         "keel.workflow.canonicalization.v1"
       ],
@@ -585,12 +585,12 @@
     ],
     "does_not_prove": [
       "Pre-signing manipulation by a privileged Keel operator at evidence-creation time.",
-      "Historical TSA certificate revocation status — TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
+      "Historical TSA certificate revocation status \u2014 TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
       "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
-      "Provider or tool actually performing the action correctly in the real world — the verifier validates recorded evidence."
+      "Provider or tool actually performing the action correctly in the real world \u2014 the verifier validates recorded evidence."
     ],
     "requires_for_strong_assurance": [
-      "Hardware-backed signing (TEE/HSM) for pre-signing protection — a separate capability tier above this verifier.",
+      "Hardware-backed signing (TEE/HSM) for pre-signing protection \u2014 a separate capability tier above this verifier.",
       "Live trust-root anchoring via --public-key-url against the production endpoint.",
       "Trust-root rotation via the refresh-keys subcommand."
     ]

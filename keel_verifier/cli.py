@@ -10,6 +10,11 @@ from pathlib import Path
 from keel_verifier import __version__
 from keel_verifier.doctor import run_doctor
 from keel_verifier.self_check import run_self_check
+from keel_verifier.verifier_output_render import (
+    OUTCOME_RENDER_MAPPINGS,
+    load_verifier_output,
+    render_output,
+)
 from keel_verifier.verifier import (
     KEELAPI_CHECKPOINT_PUBLIC_KEY_URL,
     KEELAPI_COMPLIANCE_KEYS_URL,
@@ -25,7 +30,15 @@ from keel_verifier.verifier import (
     verify_scope_faithfulness_claim,
 )
 
-LEGACY_COMMANDS = {"export", "checkpoint", "refresh-keys", "claim", "self-check", "doctor"}
+LEGACY_COMMANDS = {
+    "export",
+    "checkpoint",
+    "refresh-keys",
+    "claim",
+    "self-check",
+    "doctor",
+    "render",
+}
 
 
 def _public_key_alias(args: argparse.Namespace) -> None:
@@ -212,6 +225,12 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_render(args: argparse.Namespace) -> int:
+    payload = load_verifier_output(args.verifier_output)
+    print(render_output(payload, output_format=args.output_format, plain=args.plain))
+    return 0
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="keel-verify",
@@ -378,6 +397,30 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Exit 1 if any doctor check reports a warning or problem.",
     )
     p_doctor.set_defaults(func=_cmd_doctor)
+
+    outcome_help = "PR 5 outcomes: " + ", ".join(sorted(OUTCOME_RENDER_MAPPINGS))
+    p_render = sub.add_parser(
+        "render",
+        help=(
+            "Render a PR 5 verifier_output.v3.0 JSON document as json, tree, "
+            "graph, or html."
+        ),
+        epilog=outcome_help,
+    )
+    p_render.add_argument("verifier_output")
+    p_render.add_argument(
+        "--format",
+        choices=["json", "tree", "graph", "html"],
+        default="json",
+        dest="output_format",
+        help="Rendering mode. Defaults to json for machine consumption.",
+    )
+    p_render.add_argument(
+        "--plain",
+        action="store_true",
+        help="Use plain ASCII tree markers for log ingestion.",
+    )
+    p_render.set_defaults(func=_cmd_render)
 
     p_claim = sub.add_parser("claim", help="Verify a registered verifier claim.")
     claim_sub = p_claim.add_subparsers(dest="claim_cmd", required=True)
