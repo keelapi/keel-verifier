@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+
 from keel_verifier import verifier
+from keel_verifier.canonical import permit_binding
 
 
 RECORD_ONE = {
@@ -58,6 +61,82 @@ CLOSURE_V2 = {
 }
 
 CANONICAL = {"z": [3, 2, 1], "a": {"emoji": "keel", "number": 7}, "none": None, "bool": True}
+PERMIT_BINDING_SOURCE = (
+    "keel-api/app/services/permit_binding.py at commit "
+    "03bcd1d964c6f25f9c985850d1452a19ee771a5a"
+)
+PERMIT_BINDING_CANONICAL_JSON = {
+    "z": ["é", 2, None],
+    "a": {"currency": "USD", "amount": 5000},
+    "bool": True,
+}
+PERMIT_BINDING_SPEND_SCOPE = {
+    "amount_max": "5000",
+    "currency_class": "usd_fiat",
+    "cadence": "ONE_TIME",
+    "ttl_seconds": "900",
+    "purpose_binding": "Purchase.Once",
+    "recipient_address_digest": "ABCDEF",
+    "merchant_id_digest": "",
+    "description_digest": None,
+}
+PERMIT_BINDING_DELEGATION_POLICY = {
+    "delegations": [
+        {
+            "verb": "Refund.Issue",
+            "amount_max": None,
+            "currency_class": None,
+            "ttl_seconds": 300,
+            "allowed_purpose_bindings": ["refund.once", "Refund.Once"],
+        },
+        {
+            "verb": "Purchase.Create",
+            "amount_max": "5000",
+            "currency_class": "usd_fiat",
+            "ttl_seconds": "900",
+            "allowed_purpose_bindings": ["Purchase.Once", "purchase.recurring"],
+        },
+    ]
+}
+PERMIT_BINDING_BASE_FIELDS = {
+    "permit_id": "10000000-0000-4000-8000-000000000222",
+    "project_id": "20000000-0000-4000-8000-000000000333",
+    "parent_permit_id": "30000000-0000-4000-8000-000000000444",
+    "decision": " ALLOW ",
+    "reason": " policy.allow ",
+    "provider": "OpenAI",
+    "model": "gpt-5",
+    "operation": "RESPONSES.CREATE",
+    "action_name": "mpp.purchase",
+    "request_fingerprint": "SHA256:" + "A" * 64,
+    "constraints": {"max_amount": "5000", "currency_class": "USD_FIAT"},
+    "routing": {
+        "requested_provider": "OPENAI",
+        "requested_model": "gpt-5",
+        "selected_provider": "OPENAI",
+        "selected_model": "gpt-5",
+        "fallback_chain": [{"provider": "ANTHROPIC", "model": "claude-opus-4"}],
+        "reason_code": "primary_selected",
+        "fallback_occurred": False,
+        "reason_metadata": {"latency_tier": "interactive"},
+    },
+    "policy_id": "policy_mpp",
+    "policy_version": "2026-06-04",
+    "policy_snapshot_hash": "SHA256:" + "B" * 64,
+    "issued_at": "2026-06-04T12:00:00Z",
+    "expires_at": "2026-06-04T12:15:00Z",
+    "is_dry_run": False,
+    "binding_key_id": "permit-key-1",
+    "final_request_hash": "SHA256:" + "C" * 64,
+}
+PERMIT_BINDING_V2_FIELDS = {
+    "binding_session_id": "session_abc",
+    "binding_session_event_hash": "SHA256:" + "D" * 64,
+    "binding_project_anchor_hash": "SHA256:" + "E" * 64,
+    "permit_chain_role": "SESSION_CHILD",
+    "inherits_from": "40000000-0000-4000-8000-000000000555",
+    "authority_delta": {"actions": ["payments.charge"], "max_amount": 5000},
+}
 
 
 def test_record_hash_v1_matches_keel_api_golden_vectors():
@@ -73,3 +152,75 @@ def test_closure_canonical_hash_matches_keel_api_golden_vectors():
 def test_canonical_json_matches_keel_api_golden_vector():
     assert verifier._canonical_json(CANONICAL) == '{"a":{"emoji":"keel","number":7},"bool":true,"none":null,"z":[3,2,1]}'
     assert verifier._compute_canonical_binding_hash(CANONICAL) == "0643da58d8d3b61b2e9c1a0d1c2472c7eed4ebaa89ae3e118ab153aa3d9a0f11"
+
+
+def test_canonical_json_byte_identity_with_keel_api():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    assert PERMIT_BINDING_SOURCE
+    assert permit_binding._canonical_json(PERMIT_BINDING_CANONICAL_JSON).hex() == (
+        "7b2261223a7b22616d6f756e74223a353030302c2263757272656e6379223a"
+        "22555344227d2c22626f6f6c223a747275652c227a223a5b22c3a9222c32"
+        "2c6e756c6c5d7d"
+    )
+
+
+def test_canonical_spend_scope_payload_byte_identity():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    assert permit_binding.canonical_spend_scope_payload(PERMIT_BINDING_SPEND_SCOPE) == (
+        "f744453b37ab4e6cc05a8137abb69e4a430449d0825fb2066d97db61e57915ce"
+    )
+
+
+def test_canonical_binding_payload_v2_byte_identity():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    payload = permit_binding.canonical_binding_payload_v2(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+    )
+    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
+        "52464d7545a142012d3e0097233e278a68489483971675dbffee569796b3c21b"
+    )
+
+
+def test_canonical_binding_payload_v3_byte_identity():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    payload = permit_binding.canonical_binding_payload_v3(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+        spend_scope_hash=permit_binding.canonical_spend_scope_payload(
+            PERMIT_BINDING_SPEND_SCOPE
+        ),
+    )
+    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
+        "808261240a2602579b090068115a06826494a48dd3104d3e161345e6e51fcef8"
+    )
+
+
+def test_canonical_binding_payload_v4_byte_identity():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    payload = permit_binding.canonical_binding_payload_v4(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+        spend_scope_hash=permit_binding.canonical_spend_scope_payload(
+            PERMIT_BINDING_SPEND_SCOPE
+        ),
+        delegation_policy_hash=permit_binding.canonical_delegation_policy_payload(
+            PERMIT_BINDING_DELEGATION_POLICY
+        ),
+    )
+    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
+        "356935ee2a827a72cd5fbe99a6d8fe53bb296aa47b5793dcd0954ec8e6f290e8"
+    )
+
+
+def test_canonical_delegation_policy_payload_byte_identity():
+    # Produced by keel-api/app/services/permit_binding.py at commit
+    # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
+    assert permit_binding.canonical_delegation_policy_payload(
+        PERMIT_BINDING_DELEGATION_POLICY
+    ) == "4231454d7dec489042aa687e0d3b1c077d28a1e25f5ca83b10269f0875d70e01"

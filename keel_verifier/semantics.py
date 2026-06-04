@@ -116,6 +116,9 @@ EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = (
+    "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
+)
+PERMIT_DECISION_PREVIOUS_HASH = (
     "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c"
 )
 PERMIT_REVOKED_EVENT_HASH = (
@@ -512,6 +515,27 @@ def _read_bundled_legacy_profile() -> bytes | None:
         return None
 
 
+def _read_bundled_permit_decision_semantics(
+    declared_hash: str | None = None,
+) -> bytes | None:
+    candidates = ["data/semantics/permit/decision_v1.json"]
+    if isinstance(declared_hash, str) and declared_hash.startswith("sha256:"):
+        digest = declared_hash.removeprefix("sha256:")
+        candidates.append(
+            "data/semantics/permit/historical/"
+            f"decision_v1-sha256-{digest}.json"
+        )
+    for relative_path in candidates:
+        try:
+            bundled = resources.files("keel_verifier").joinpath(relative_path)
+            raw = bundled.read_bytes()
+        except Exception:
+            continue
+        if declared_hash is None or _content_hash(raw) == declared_hash:
+            return raw
+    return None
+
+
 def _read_bundled_artifact(relative_path: str) -> bytes | None:
     try:
         rel = Path(relative_path)
@@ -541,6 +565,9 @@ def _resolve_artifact_bytes(
         errors: list[str] = []
         registry_mismatch: bytes | None = None
         registry_mismatch_source: str | None = None
+        sibling_fallback: bytes | None = None
+        sibling_fallback_source: str | None = None
+        sibling_root = _keel_permit_root()
         for path in _candidate_local_paths(path_value, pack_root=pack_root):
             try:
                 if path.exists():
@@ -552,9 +579,29 @@ def _resolve_artifact_bytes(
                             registry_mismatch = raw
                             registry_mismatch_source = str(path)
                         continue
+                    if path.is_relative_to(sibling_root):
+                        sibling_fallback = raw
+                        sibling_fallback_source = str(path)
+                        continue
                     return raw, str(path), None
             except OSError as exc:
                 errors.append(f"{path}: {exc}")
+        if ref.get("id") != CLAIM_REGISTRY_ID:
+            if ref.get("id") == PERMIT_DECISION_ID:
+                bundled = _read_bundled_permit_decision_semantics(declared_hash)
+                if bundled is not None:
+                    return (
+                        bundled,
+                        "bundled keel_verifier/data/semantics/permit/decision_v1.json",
+                        None,
+                    )
+            bundled = _read_bundled_artifact(path_value)
+            if bundled is not None and (
+                declared_hash is None or _content_hash(bundled) == declared_hash
+            ):
+                return bundled, f"bundled keel_verifier/data/{path_value}", None
+            if sibling_fallback is not None and sibling_fallback_source is not None:
+                return sibling_fallback, sibling_fallback_source, None
         if ref.get("id") == CLAIM_REGISTRY_ID:
             bundled = _read_bundled_claim_registry(declared_hash)
             if bundled is not None:
@@ -1339,6 +1386,11 @@ def make_permanent_allowlist(
         SemanticImplementation(
             PERMIT_DECISION_ID,
             PERMIT_DECISION_HASH,
+            "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_DECISION_ID,
+            PERMIT_DECISION_PREVIOUS_HASH,
             "permit_decision",
         ),
         SemanticImplementation(

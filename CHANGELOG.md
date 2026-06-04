@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.1.0 — Permit binding-version coverage (2026-06-04)
+
+- Expand `permit.decision.v1` adjudication from v1-only bindings to v1, v2, v3,
+  and v4 canonical permit bindings without changing the claim ID.
+- Add independent v3 spend-scope and v4 delegation-policy sub-hash recompute
+  checks from exported `resource_attributes_json`.
+- Port keel-api permit-binding canonical builders into the verifier package for
+  byte-identity regression coverage without importing keel-api.
+
 ## v3.0.0 — Verifier UX rendering (2026-06-02)
 
 - Add `keel-verify render` for `verifier_output.v3.0` documents with `json`,
