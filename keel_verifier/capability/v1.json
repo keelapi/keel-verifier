@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.0.1",
+    "version": "3.1.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -287,7 +287,7 @@
     {
       "name": "permit.decision.v1",
       "status": "implemented",
-      "description": "Verifies the issuance-time permit decision canonical payload, canonical hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
+      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v4, canonical hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
       "depends_on_semantics": [
         "keel.permit.decision.v1"
       ],
@@ -546,6 +546,10 @@
       "PERMIT_DECISION_KEY_ID_MISMATCH",
       "PERMIT_DECISION_UNTRUSTED_KEY",
       "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION",
+      "permit.binding.resource_attributes_json_missing",
+      "permit.binding.resource_attributes_json_invalid",
+      "permit.binding.v3.spend_scope_hash_mismatch",
+      "permit.binding.v4.delegation_policy_hash_mismatch",
       "PERMIT_REVOKED_EVIDENCE_MISSING",
       "PERMIT_REVOKED_SCHEMA_INVALID",
       "PERMIT_REVOKED_SIGNATURE_INVALID",
@@ -577,6 +581,7 @@
   "trust_boundary": {
     "proves": [
       "Post-signing tampering of any element in the permit lifecycle (input, dispatch, provider response, client response, closure record) is detected.",
+      "Permit decision bindings v3/v4 independently recompute signed spend-scope and delegation-policy sub-hashes from exported resource attributes.",
       "Signature validity against bundled or supplied public keys (Ed25519).",
       "Record-hash chain continuity within bundled chain entries; sequence-inversion detection.",
       "Closure-binding consistency for dispatched executions (closure_v2 dispatch_request_digest_v1 cross-reference).",
@@ -616,7 +621,7 @@
     {
       "category": "Wire-format extensions",
       "items": [
-        "Permit v3+ (not yet defined)",
+        "Permit binding v5+ (not yet defined)",
         "Permit v2 provider_attestation (reserved)",
         "closure_v3+ (not yet defined)",
         "Chain entry hash format v2+ (not yet defined)"
@@ -664,7 +669,7 @@
     },
     {
       "id": "keel.permit.decision.v1",
-      "hash": "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c",
+      "hash": "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54",
       "status": "allowlisted"
     },
     {

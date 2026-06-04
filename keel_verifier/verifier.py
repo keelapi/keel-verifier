@@ -73,6 +73,11 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from keel_verifier.canonical.permit_binding import (
+    SUPPORTED_BINDING_VERSIONS as SUPPORTED_PERMIT_BINDING_VERSIONS,
+    canonical_delegation_policy_payload,
+    canonical_spend_scope_payload,
+)
 from keel_verifier.verdicts import (
     ClaimVerdict,
     VERDICT_SCHEMA_ID,
@@ -527,6 +532,29 @@ _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_key_id",
     "final_request_hash",
 )
+_PERMIT_DECISION_V2_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS,
+    "binding_session_id",
+    "binding_session_event_hash",
+    "binding_project_anchor_hash",
+    "permit_chain_role",
+    "inherits_from",
+    "authority_delta",
+)
+_PERMIT_DECISION_V3_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_V2_CANONICAL_FIELDS,
+    "spend_scope_hash",
+)
+_PERMIT_DECISION_V4_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_V3_CANONICAL_FIELDS,
+    "delegation_policy_hash",
+)
+_PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
+    "v1": _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS,
+    "v2": _PERMIT_DECISION_V2_CANONICAL_FIELDS,
+    "v3": _PERMIT_DECISION_V3_CANONICAL_FIELDS,
+    "v4": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
+}
 _PERMIT_REVOKED_REQUIRED_FIELDS = (
     "permit_id",
     "project_id",
@@ -3556,15 +3584,16 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
     canonical_payload = evidence.get("canonical_payload")
     if not isinstance(canonical_payload, dict):
         return "canonical_payload must be an object"
-    required = set(_PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS)
+    binding_version = canonical_payload.get("binding_version")
+    if binding_version not in SUPPORTED_PERMIT_BINDING_VERSIONS:
+        return "binding_version must be one of v1, v2, v3, or v4"
+    required = set(_PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION[str(binding_version)])
     if set(canonical_payload.keys()) != required:
         missing = sorted(required - set(canonical_payload.keys()))
         extra = sorted(set(canonical_payload.keys()) - required)
         if missing:
             return "canonical_payload missing signed field(s): " + ", ".join(missing)
         return "canonical_payload has unsupported signed field(s): " + ", ".join(extra)
-    if canonical_payload.get("binding_version") != "v1":
-        return "binding_version must be v1"
     if canonical_payload.get("decision") not in {"allow", "deny", "challenge"}:
         return "decision must be allow, deny, or challenge"
     for field in ("permit_id", "project_id", "issued_at", "binding_key_id"):
@@ -3577,6 +3606,113 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
         return "binding_signature must be ed25519:<base64>"
     if not _is_nonempty_str(evidence.get("binding_issued_at")):
         return "binding_issued_at must be a non-empty string"
+    return None
+
+
+@dataclass(frozen=True)
+class _PermitDecisionBindingFailure:
+    verdict: str
+    reason_code: str
+    message: str
+    evidence: list[str]
+
+
+def _permit_decision_resource_attributes(
+    evidence: dict[str, Any],
+) -> tuple[Mapping[str, Any] | None, _PermitDecisionBindingFailure | None]:
+    raw = evidence.get("resource_attributes_json")
+    evidence_path = "resource_attributes_json"
+    if raw is None:
+        raw = evidence.get("resource_attributes")
+        evidence_path = "resource_attributes"
+    if isinstance(raw, Mapping):
+        return raw, None
+    if isinstance(raw, str):
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            return None, _PermitDecisionBindingFailure(
+                verdict="insufficient_evidence",
+                reason_code="permit.binding.resource_attributes_json_invalid",
+                message=f"resource_attributes_json is not valid JSON: {exc}",
+                evidence=[evidence_path],
+            )
+        if isinstance(decoded, Mapping):
+            return decoded, None
+        return None, _PermitDecisionBindingFailure(
+            verdict="insufficient_evidence",
+            reason_code="permit.binding.resource_attributes_json_invalid",
+            message="resource_attributes_json must decode to an object",
+            evidence=[evidence_path],
+        )
+    return None, _PermitDecisionBindingFailure(
+        verdict="insufficient_evidence",
+        reason_code="permit.binding.resource_attributes_json_missing",
+        message="resource_attributes_json is required to recompute binding sub-hashes",
+        evidence=[evidence_path],
+    )
+
+
+def _permit_decision_binding_recompute_failure(
+    *,
+    evidence: dict[str, Any],
+    canonical_payload: dict[str, Any],
+    evidence_path: str,
+) -> _PermitDecisionBindingFailure | None:
+    version = canonical_payload.get("binding_version")
+    if version not in {"v3", "v4"}:
+        return None
+
+    resource_attributes, resource_failure = _permit_decision_resource_attributes(evidence)
+    spend_scope_hash = canonical_payload.get("spend_scope_hash")
+    if spend_scope_hash is not None:
+        if resource_failure is not None:
+            return resource_failure
+        assert resource_attributes is not None
+        recomputed_spend_scope_hash = canonical_spend_scope_payload(
+            resource_attributes.get("spend_scope")
+        )
+        if recomputed_spend_scope_hash != spend_scope_hash:
+            return _PermitDecisionBindingFailure(
+                verdict="disproved",
+                reason_code="permit.binding.v3.spend_scope_hash_mismatch",
+                message=(
+                    "canonical_payload.spend_scope_hash does not match "
+                    "resource_attributes_json.spend_scope"
+                ),
+                evidence=[
+                    evidence_path,
+                    "canonical_payload.spend_scope_hash",
+                    "resource_attributes_json.spend_scope",
+                ],
+            )
+
+    if version != "v4":
+        return None
+
+    delegation_policy_hash = canonical_payload.get("delegation_policy_hash")
+    if delegation_policy_hash is None:
+        return None
+    if resource_failure is not None:
+        return resource_failure
+    assert resource_attributes is not None
+    recomputed_delegation_policy_hash = canonical_delegation_policy_payload(
+        resource_attributes.get("delegation_policy")
+    )
+    if recomputed_delegation_policy_hash != delegation_policy_hash:
+        return _PermitDecisionBindingFailure(
+            verdict="disproved",
+            reason_code="permit.binding.v4.delegation_policy_hash_mismatch",
+            message=(
+                "canonical_payload.delegation_policy_hash does not match "
+                "resource_attributes_json.delegation_policy"
+            ),
+            evidence=[
+                evidence_path,
+                "canonical_payload.delegation_policy_hash",
+                "resource_attributes_json.delegation_policy",
+            ],
+        )
     return None
 
 
@@ -3642,6 +3778,22 @@ def _adjudicate_permit_decision_v1(
             reason_code="PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
             message="binding_canonical_hash does not match the canonical payload",
             evidence=[evidence_path, "canonical_payload"],
+        )
+
+    binding_failure = _permit_decision_binding_recompute_failure(
+        evidence=evidence,
+        canonical_payload=canonical_payload,
+        evidence_path=evidence_path,
+    )
+    if binding_failure is not None:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict=binding_failure.verdict,
+            reason_code=binding_failure.reason_code,
+            message=binding_failure.message,
+            evidence=binding_failure.evidence,
         )
 
     expected_decision = evidence.get("expected_decision")

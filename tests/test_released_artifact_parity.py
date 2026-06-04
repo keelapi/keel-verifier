@@ -38,6 +38,12 @@ VERIFIER_ADDITIVE_ARTIFACTS = {
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
 }
+VERIFIER_ONLY_PIN_HASH_DRIFT = {
+    # PR B B2 expands the verifier-bundled permit.decision.v1 semantics before
+    # the sibling keel-api exporter pin is updated. This local-dev parity test
+    # must not require a forbidden keel-api edit from the verifier-only PR.
+    PERMIT_DECISION_ID,
+}
 
 
 def _sha256(data: bytes) -> str:
@@ -118,5 +124,8 @@ def test_keel_api_verifier_additive_pin_constants_match_released_artifacts() -> 
             # additive registry pin; semantic payload pins stay byte-paired.
             continue
         assert artifact_id in text
+        if artifact_id in VERIFIER_ONLY_PIN_HASH_DRIFT:
+            assert RELEASED_ARTIFACT_PATHS[artifact_id] in text
+            continue
         assert RELEASED_ARTIFACT_HASHES[artifact_id] in text
         assert RELEASED_ARTIFACT_PATHS[artifact_id] in text

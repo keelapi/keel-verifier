@@ -8,18 +8,11 @@
     "artifact_type": "permit_decision_binding",
     "artifact_version": "permit.decision.v1",
     "canonicalization_profile": "keel.canonical_json.payload.v1",
-    "binding_version": {
-      "enum": [
-        "v1",
-        "v2",
-        "v3",
-        "v4"
-      ]
-    },
+    "binding_version": "v1",
     "scope": "issuance_only",
     "issuer_key_purpose": "permit_binding_signing",
     "canonical_payload": {
-      "source": "The issuance-time v1-v4 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
+      "source": "The issuance-time v1 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
       "required_fields": [
         "binding_version",
         "permit_id",
@@ -43,24 +36,7 @@
         "binding_key_id",
         "final_request_hash"
       ],
-      "versioned_fields": {
-        "v2": [
-          "binding_session_id",
-          "binding_session_event_hash",
-          "binding_project_anchor_hash",
-          "permit_chain_role",
-          "inherits_from",
-          "authority_delta"
-        ],
-        "v3": [
-          "spend_scope_hash"
-        ],
-        "v4": [
-          "delegation_policy_hash"
-        ]
-      },
-      "subhash_recompute_rule": "For v3/v4 payloads carrying spend_scope_hash or delegation_policy_hash, verifiers recompute the hash from exported resource_attributes_json.spend_scope or resource_attributes_json.delegation_policy before accepting the signed decision.",
-      "decision_rule": "canonical_payload.decision is the only decision adjudicated by this claim and must be one of allow, deny, or challenge after issuer binding normalization.",
+      "decision_rule": "canonical_payload.decision is the only decision adjudicated by this claim and must be one of allow, deny, or challenge after issuer v1 normalization.",
       "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project.",
       "row_state_rule": "Verifiers MUST NOT adjudicate a later mutable permit row as the issuance decision unless the pack supplies evidence that the reconstructed payload is the original issuance-time signed payload."
     },
