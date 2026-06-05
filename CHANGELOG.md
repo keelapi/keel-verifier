@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.2.0 — Binding v5 RFC 8785 canonical support (2026-06-05)
+
+- Adds binding v5 (RFC 8785 JCS canonical) as the new default for newly-issued
+  permits.
+- Verifies v5 permit-decision bindings, including spend-scope and
+  delegation-policy sub-hash tamper detection with v5-specific reason codes.
+- Adds v5 canonical byte-identity coverage and drift locks while preserving
+  v1-v4 golden vectors.
+
 ## v3.1.0 — Permit binding-version coverage (2026-06-04)
 
 - Expand `permit.decision.v1` adjudication from v1-only bindings to v1, v2, v3,

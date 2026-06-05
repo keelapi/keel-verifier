@@ -8,6 +8,7 @@ bytes for legitimate permits.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import inspect
 import json
@@ -17,17 +18,136 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+import rfc8785
 
-SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4"})
+SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5"})
+CLOSURE_RFC8785_BINDING_VERSION = "closure_v3"
+_RFC8785_SIGNED_SURFACE_VERSIONS = frozenset({"v5", CLOSURE_RFC8785_BINDING_VERSION})
+LEGACY_CHAIN_CANONICAL_VERSIONS = frozenset({"v1", "closure_v1", "closure_v2"})
+RFC8785_CHAIN_CANONICAL_VERSIONS = frozenset({"closure_v3", "chain_v3"})
+LEGACY_BINDING_REQUEST_CANONICAL_VERSION = "v1"
+RFC8785_BINDING_REQUEST_CANONICAL_VERSION = "v5"
+_V5_BINDING_FIELD_NAMES: frozenset[str] = frozenset()
+
+_VOLATILE_REQUEST_KEYS = frozenset(
+    {
+        "requestid",
+        "traceid",
+        "spanid",
+        "idempotencykey",
+        "keelrequestid",
+        "xrequestid",
+        "xkeeltimestamp",
+        "timestamp",
+        "keelidempotencykey",
+    }
+)
+
+_SENSITIVE_REQUEST_KEYS = frozenset(
+    {
+        "authorization",
+        "apikey",
+        "xapikey",
+        "openaiapikey",
+        "anthropicapikey",
+        "xgoogapikey",
+        "proxyauthorization",
+    }
+)
 
 
-def _canonical_json(value: Any) -> bytes:
+def _legacy_canonical_json_v1_to_v4(value: Any) -> bytes:
     return json.dumps(
         value,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
     ).encode("utf-8")
+
+
+def canonical_binding_bytes(binding_version: str, payload: Mapping[str, Any]) -> bytes:
+    normalized = str(binding_version or "").strip()
+    if normalized in {"v1", "v2", "v3", "v4"}:
+        return _legacy_canonical_json_v1_to_v4(payload)
+    if normalized == "v5":
+        return rfc8785.dumps(payload)
+    raise ValueError(f"Unsupported binding_version: {binding_version}")
+
+
+def chain_canonical_bytes(chain_format_version: str, payload: Mapping[str, Any]) -> bytes:
+    normalized = str(chain_format_version or "").strip()
+    if normalized in RFC8785_CHAIN_CANONICAL_VERSIONS:
+        return rfc8785.dumps(payload)
+    if normalized in LEGACY_CHAIN_CANONICAL_VERSIONS:
+        return _legacy_canonical_json_v1_to_v4(payload)
+    raise ValueError(f"Unsupported chain_format_version: {chain_format_version}")
+
+
+def binding_request_canonical_version_for_binding(
+    binding_version: str | None,
+) -> str:
+    return (
+        RFC8785_BINDING_REQUEST_CANONICAL_VERSION
+        if str(binding_version or "").strip() == "v5"
+        else LEGACY_BINDING_REQUEST_CANONICAL_VERSION
+    )
+
+
+def _is_volatile_key(key: Any) -> bool:
+    if not isinstance(key, str):
+        return False
+    normalized = "".join(ch for ch in key.lower() if ch.isalnum())
+    return normalized in _VOLATILE_REQUEST_KEYS or normalized in _SENSITIVE_REQUEST_KEYS
+
+
+def _strip_volatile(value: Any) -> Any:
+    if is_dataclass(value) and not isinstance(value, type):
+        return _strip_volatile(asdict(value))
+    if isinstance(value, Mapping):
+        return {
+            str(key): _strip_volatile(item)
+            for key, item in value.items()
+            if not _is_volatile_key(key)
+        }
+    if isinstance(value, (list, tuple)):
+        return [_strip_volatile(item) for item in value]
+    if isinstance(value, (set, frozenset)):
+        return sorted(_strip_volatile(item) for item in value)
+    if isinstance(value, bytes):
+        return base64.b64encode(value).decode("ascii")
+    if isinstance(value, datetime):
+        return _normalize_datetime(value)
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return value
+
+
+def canonical_provider_wire_body(
+    payload: Mapping[str, Any] | None,
+    *,
+    binding_request_canonical_version: str | None = None,
+) -> bytes:
+    sanitized = _strip_volatile(payload or {})
+    normalized_version = str(
+        binding_request_canonical_version
+        or LEGACY_BINDING_REQUEST_CANONICAL_VERSION
+    ).strip()
+    if normalized_version == RFC8785_BINDING_REQUEST_CANONICAL_VERSION:
+        return rfc8785.dumps(sanitized)
+    return _legacy_canonical_json_v1_to_v4(sanitized)
+
+
+def canonical_provider_wire_body_hash(
+    payload: Mapping[str, Any] | None,
+    *,
+    binding_request_canonical_version: str | None = None,
+) -> str:
+    return _sha256_hex(
+        canonical_provider_wire_body(
+            payload,
+            binding_request_canonical_version=binding_request_canonical_version,
+        )
+    )
 
 
 def _sha256_hex(value: bytes | str) -> str:
@@ -275,11 +395,25 @@ def canonical_binding_payload_v4(
     return payload
 
 
+def canonical_binding_payload_v5(
+    *,
+    delegation_policy_hash: str | None = None,
+    **v3_fields: Any,
+) -> dict[str, Any]:
+    payload = canonical_binding_payload_v4(
+        delegation_policy_hash=delegation_policy_hash,
+        **v3_fields,
+    )
+    payload["binding_version"] = "v5"
+    return payload
+
+
 CANONICAL_PAYLOAD_BUILDERS = {
     "v1": canonical_binding_payload_v1,
     "v2": canonical_binding_payload_v2,
     "v3": canonical_binding_payload_v3,
     "v4": canonical_binding_payload_v4,
+    "v5": canonical_binding_payload_v5,
 }
 
 
@@ -392,7 +526,7 @@ def canonical_spend_scope_payload(spend_scope: Mapping[str, Any] | None) -> str 
         }
     except (KeyError, TypeError, ValueError):
         return None
-    return _sha256_hex(_canonical_json(canonical))
+    return _sha256_hex(_legacy_canonical_json_v1_to_v4(canonical))
 
 
 def canonical_delegation_policy_payload(
@@ -447,11 +581,16 @@ def canonical_delegation_policy_payload(
         canonical = {"delegations": sorted(entries, key=lambda item: item["verb"])}
     except (KeyError, TypeError, ValueError):
         return None
-    return _sha256_hex(_canonical_json(canonical))
+    return _sha256_hex(_legacy_canonical_json_v1_to_v4(canonical))
 
 
 def compute_canonical_binding_hash(payload: Mapping[str, Any]) -> str:
-    return _sha256_hex(_canonical_json(payload))
+    binding_version = str(payload.get("binding_version") or "").strip()
+    if binding_version in SUPPORTED_BINDING_VERSIONS:
+        return _sha256_hex(canonical_binding_bytes(binding_version, payload))
+    if binding_version in _RFC8785_SIGNED_SURFACE_VERSIONS:
+        return _sha256_hex(rfc8785.dumps(payload))
+    return _sha256_hex(_legacy_canonical_json_v1_to_v4(payload))
 
 
 def _normalize_permit_chain_role(value: str | None) -> str:
@@ -461,13 +600,23 @@ def _normalize_permit_chain_role(value: str | None) -> str:
 
 __all__ = [
     "SUPPORTED_BINDING_VERSIONS",
-    "_canonical_json",
+    "CLOSURE_RFC8785_BINDING_VERSION",
+    "LEGACY_BINDING_REQUEST_CANONICAL_VERSION",
+    "RFC8785_BINDING_REQUEST_CANONICAL_VERSION",
+    "_V5_BINDING_FIELD_NAMES",
+    "_legacy_canonical_json_v1_to_v4",
+    "binding_request_canonical_version_for_binding",
+    "canonical_binding_bytes",
     "canonical_binding_payload",
     "canonical_binding_payload_v1",
     "canonical_binding_payload_v2",
     "canonical_binding_payload_v3",
     "canonical_binding_payload_v4",
+    "canonical_binding_payload_v5",
     "canonical_delegation_policy_payload",
+    "canonical_provider_wire_body",
+    "canonical_provider_wire_body_hash",
     "canonical_spend_scope_payload",
+    "chain_canonical_bytes",
     "compute_canonical_binding_hash",
 ]

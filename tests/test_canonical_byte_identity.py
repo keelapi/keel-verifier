@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 
+import rfc8785
+
 from keel_verifier import verifier
 from keel_verifier.canonical import permit_binding
 
@@ -58,6 +60,10 @@ CLOSURE_V2 = {
     "binding_version": "closure_v2",
     "dispatch_request_digest_v1": "c" * 64,
     "dispatch_request_digest_semantics": "approved_request_body_bytes_at_dispatch_time",
+}
+CLOSURE_V3 = {
+    **CLOSURE_V2,
+    "binding_version": "closure_v3",
 }
 
 CANONICAL = {"z": [3, 2, 1], "a": {"emoji": "keel", "number": 7}, "none": None, "bool": True}
@@ -149,6 +155,14 @@ def test_closure_canonical_hash_matches_keel_api_golden_vectors():
     assert verifier._compute_canonical_binding_hash(CLOSURE_V2) == "f8c5eb7635180e662351af2f7aad47c27d478bdc57ca25e9708660a6273083dc"
 
 
+def test_closure_v3_canonical_hash_uses_rfc8785():
+    expected = hashlib.sha256(rfc8785.dumps(CLOSURE_V3)).hexdigest()
+    assert verifier._compute_canonical_binding_hash(CLOSURE_V3) == expected
+    assert permit_binding.chain_canonical_bytes("closure_v3", CLOSURE_V3) == (
+        rfc8785.dumps(CLOSURE_V3)
+    )
+
+
 def test_canonical_json_matches_keel_api_golden_vector():
     assert verifier._canonical_json(CANONICAL) == '{"a":{"emoji":"keel","number":7},"bool":true,"none":null,"z":[3,2,1]}'
     assert verifier._compute_canonical_binding_hash(CANONICAL) == "0643da58d8d3b61b2e9c1a0d1c2472c7eed4ebaa89ae3e118ab153aa3d9a0f11"
@@ -158,7 +172,9 @@ def test_canonical_json_byte_identity_with_keel_api():
     # Produced by keel-api/app/services/permit_binding.py at commit
     # 03bcd1d964c6f25f9c985850d1452a19ee771a5a.
     assert PERMIT_BINDING_SOURCE
-    assert permit_binding._canonical_json(PERMIT_BINDING_CANONICAL_JSON).hex() == (
+    assert permit_binding._legacy_canonical_json_v1_to_v4(
+        PERMIT_BINDING_CANONICAL_JSON
+    ).hex() == (
         "7b2261223a7b22616d6f756e74223a353030302c2263757272656e6379223a"
         "22555344227d2c22626f6f6c223a747275652c227a223a5b22c3a9222c32"
         "2c6e756c6c5d7d"
@@ -180,8 +196,11 @@ def test_canonical_binding_payload_v2_byte_identity():
         **PERMIT_BINDING_BASE_FIELDS,
         **PERMIT_BINDING_V2_FIELDS,
     )
-    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
-        "52464d7545a142012d3e0097233e278a68489483971675dbffee569796b3c21b"
+    assert (
+        hashlib.sha256(
+            permit_binding._legacy_canonical_json_v1_to_v4(payload)
+        ).hexdigest()
+        == "52464d7545a142012d3e0097233e278a68489483971675dbffee569796b3c21b"
     )
 
 
@@ -195,8 +214,11 @@ def test_canonical_binding_payload_v3_byte_identity():
             PERMIT_BINDING_SPEND_SCOPE
         ),
     )
-    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
-        "808261240a2602579b090068115a06826494a48dd3104d3e161345e6e51fcef8"
+    assert (
+        hashlib.sha256(
+            permit_binding._legacy_canonical_json_v1_to_v4(payload)
+        ).hexdigest()
+        == "808261240a2602579b090068115a06826494a48dd3104d3e161345e6e51fcef8"
     )
 
 
@@ -213,8 +235,78 @@ def test_canonical_binding_payload_v4_byte_identity():
             PERMIT_BINDING_DELEGATION_POLICY
         ),
     )
-    assert hashlib.sha256(permit_binding._canonical_json(payload)).hexdigest() == (
-        "356935ee2a827a72cd5fbe99a6d8fe53bb296aa47b5793dcd0954ec8e6f290e8"
+    assert (
+        hashlib.sha256(
+            permit_binding._legacy_canonical_json_v1_to_v4(payload)
+        ).hexdigest()
+        == "356935ee2a827a72cd5fbe99a6d8fe53bb296aa47b5793dcd0954ec8e6f290e8"
+    )
+
+
+def test_canonical_binding_payload_v5_byte_identity_with_rfc8785():
+    payload = permit_binding.canonical_binding_payload_v5(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+        spend_scope_hash=permit_binding.canonical_spend_scope_payload(
+            PERMIT_BINDING_SPEND_SCOPE
+        ),
+        delegation_policy_hash=permit_binding.canonical_delegation_policy_payload(
+            PERMIT_BINDING_DELEGATION_POLICY
+        ),
+    )
+    assert payload["binding_version"] == "v5"
+    assert permit_binding.canonical_binding_bytes("v5", payload) == rfc8785.dumps(
+        payload
+    )
+    assert permit_binding.compute_canonical_binding_hash(payload) == hashlib.sha256(
+        rfc8785.dumps(payload)
+    ).hexdigest()
+
+
+def test_provider_wire_body_v5_byte_identity_with_rfc8785():
+    payload = {
+        "model": "gpt-5",
+        "temperature": 1.0,
+        "messages": [{"role": "user", "content": "Hello 世界"}],
+        "request_id": "volatile",
+    }
+    expected_payload = {
+        "model": "gpt-5",
+        "temperature": 1.0,
+        "messages": [{"role": "user", "content": "Hello 世界"}],
+    }
+    assert permit_binding.canonical_provider_wire_body(
+        payload,
+        binding_request_canonical_version="v5",
+    ) == rfc8785.dumps(expected_payload)
+
+
+def test_permit_v2_envelope_v5_byte_identity_with_rfc8785():
+    payload = {
+        "payload_type": "permit.counter_signature.v1",
+        "permit_id": "10000000-0000-4000-8000-000000000222",
+        "issuer_signature_hash": "a" * 64,
+        "permit_canonical_hash": "b" * 64,
+        "buyer_principal_id": "20000000-0000-4000-8000-000000000333",
+        "signed_at": "2026-06-04T12:00:00.000000Z",
+        "execution_intent_hash": "c" * 64,
+    }
+    assert verifier._permit_v2_canonical_bytes("v5", payload) == rfc8785.dumps(
+        payload
+    )
+    assert verifier._permit_v2_canonical_bytes("v4", payload) == (
+        verifier._canonical_json_bytes(payload)
+    )
+
+
+def test_chain_v3_byte_identity_with_rfc8785():
+    payload = {
+        "chain_format_version": "chain_v3",
+        "temperature": 1.0,
+        "filters": {"operation": "responses.create", "limit": 10},
+    }
+    assert permit_binding.chain_canonical_bytes("chain_v3", payload) == (
+        rfc8785.dumps(payload)
     )
 
 

@@ -116,9 +116,12 @@ EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = (
-    "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
+    "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd"
 )
 PERMIT_DECISION_PREVIOUS_HASH = (
+    "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
+)
+PERMIT_DECISION_LEGACY_HASH = (
     "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c"
 )
 PERMIT_REVOKED_EVENT_HASH = (
@@ -1310,7 +1313,7 @@ def make_permanent_allowlist(
             CLOSURE_FORMAT_V2_ID,
             CLOSURE_FORMAT_V2_HASH,
             "closure_format",
-            closure_verifiers={"closure_v2": closure_v2},
+            closure_verifiers={"closure_v2": closure_v2, "closure_v3": closure_v2},
         ),
         SemanticImplementation(
             CLOSURE_DIGEST_RULES_ID,
@@ -1391,6 +1394,11 @@ def make_permanent_allowlist(
         SemanticImplementation(
             PERMIT_DECISION_ID,
             PERMIT_DECISION_PREVIOUS_HASH,
+            "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_DECISION_ID,
+            PERMIT_DECISION_LEGACY_HASH,
             "permit_decision",
         ),
         SemanticImplementation(
