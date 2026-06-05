@@ -73,10 +73,16 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+import rfc8785
+
 from keel_verifier.canonical.permit_binding import (
+    CLOSURE_RFC8785_BINDING_VERSION,
     SUPPORTED_BINDING_VERSIONS as SUPPORTED_PERMIT_BINDING_VERSIONS,
+    binding_request_canonical_version_for_binding,
     canonical_delegation_policy_payload,
+    canonical_provider_wire_body_hash,
     canonical_spend_scope_payload,
+    compute_canonical_binding_hash as _canonical_permit_binding_hash,
 )
 from keel_verifier.verdicts import (
     ClaimVerdict,
@@ -554,6 +560,7 @@ _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v2": _PERMIT_DECISION_V2_CANONICAL_FIELDS,
     "v3": _PERMIT_DECISION_V3_CANONICAL_FIELDS,
     "v4": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
+    "v5": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
 }
 _PERMIT_REVOKED_REQUIRED_FIELDS = (
     "permit_id",
@@ -1396,7 +1403,7 @@ def verify_delegation_denied_correctly(
 
 
 def _compute_canonical_binding_hash(payload: dict[str, Any]) -> str:
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+    return _canonical_permit_binding_hash(payload)
 
 
 def _binding_key_id_from_public_key(public_key: str) -> str:
@@ -2635,6 +2642,22 @@ def _permit_v2_payload_hash(payload_bytes: bytes) -> str:
     return hashlib.sha256(payload_bytes).hexdigest()
 
 
+def _permit_v2_envelope_version(permit: dict[str, Any]) -> str | None:
+    value = permit.get("binding_version")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _permit_v2_canonical_bytes(
+    envelope_version: str | None,
+    payload: Mapping[str, Any],
+) -> bytes:
+    if str(envelope_version or "").strip() == "v5":
+        return rfc8785.dumps(dict(payload))
+    return _canonical_json_bytes(dict(payload))
+
+
 def _permit_v2_permit_id(permit: dict[str, Any]) -> str | None:
     value = _string_field(permit.get("id"), permit.get("permit_id"))
     return value if _is_uuid_text(value) else None
@@ -2774,7 +2797,12 @@ def _permit_v2_issuer_signature_hash(permit: dict[str, Any]) -> str | None:
         return explicit
     signature = permit.get("signature")
     if isinstance(signature, dict):
-        return _permit_v2_payload_hash(_canonical_json_bytes(signature))
+        return _permit_v2_payload_hash(
+            _permit_v2_canonical_bytes(
+                _permit_v2_envelope_version(permit),
+                signature,
+            )
+        )
     if isinstance(signature, str) and signature.strip():
         return _permit_v2_payload_hash(signature.strip().encode("utf-8"))
     return None
@@ -2806,7 +2834,12 @@ def _permit_v2_canonical_permit_hash(permit: dict[str, Any]) -> str | None:
     canonical_payload = {key: value for key, value in permit.items() if key not in excluded}
     if not canonical_payload:
         return None
-    return _permit_v2_payload_hash(_canonical_json_bytes(canonical_payload))
+    return _permit_v2_payload_hash(
+        _permit_v2_canonical_bytes(
+            _permit_v2_envelope_version(permit),
+            canonical_payload,
+        )
+    )
 
 
 def _permit_v2_signed_payload(
@@ -3089,7 +3122,17 @@ def _permit_v2_counter_signature_intent_hashes(
             "resource_model": resource_model,
             "resource_operation": resource_operation,
         }
-        hashes.append((_permit_v2_payload_hash(_canonical_json_bytes(payload)), path))
+        hashes.append(
+            (
+                _permit_v2_payload_hash(
+                    _permit_v2_canonical_bytes(
+                        _permit_v2_envelope_version(permit),
+                        payload,
+                    )
+                ),
+                path,
+            )
+        )
     if not hashes:
         return [], "counter_signature execution-intent dispatch facts are absent"
     return hashes, None
@@ -3303,7 +3346,10 @@ def _adjudicate_permit_v2_signature_slot(
             evidence=[evidence_path, "canonical_payload"],
         )
 
-    payload_bytes = _canonical_json_bytes(payload)
+    payload_bytes = _permit_v2_canonical_bytes(
+        _permit_v2_envelope_version(permit),
+        payload,
+    )
     if _permit_v2_payload_hash(payload_bytes) != slot["signed_payload_hash"]:
         return _permit_v2_slot_claim(
             spec,
@@ -3586,7 +3632,7 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
         return "canonical_payload must be an object"
     binding_version = canonical_payload.get("binding_version")
     if binding_version not in SUPPORTED_PERMIT_BINDING_VERSIONS:
-        return "binding_version must be one of v1, v2, v3, or v4"
+        return "binding_version must be one of v1, v2, v3, v4, or v5"
     required = set(_PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION[str(binding_version)])
     if set(canonical_payload.keys()) != required:
         missing = sorted(required - set(canonical_payload.keys()))
@@ -3653,6 +3699,76 @@ def _permit_decision_resource_attributes(
     )
 
 
+_PERMIT_DECISION_WIRE_BODY_FIELDS = (
+    "binding_request_body",
+    "binding_request_body_json",
+    "provider_wire_body",
+    "provider_request_body",
+    "provider_request_json",
+    "dispatch_request_body",
+)
+
+
+def _permit_decision_wire_body(
+    evidence: dict[str, Any],
+) -> tuple[Mapping[str, Any] | None, str | None, _PermitDecisionBindingFailure | None]:
+    for field in _PERMIT_DECISION_WIRE_BODY_FIELDS:
+        raw = evidence.get(field)
+        if raw is None:
+            continue
+        if isinstance(raw, Mapping):
+            return raw, field, None
+        if isinstance(raw, str):
+            try:
+                decoded = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                return None, field, _PermitDecisionBindingFailure(
+                    verdict="insufficient_evidence",
+                    reason_code="permit.binding.wire_body_json_invalid",
+                    message=f"{field} is not valid JSON: {exc}",
+                    evidence=[field],
+                )
+            if isinstance(decoded, Mapping):
+                return decoded, field, None
+        return None, field, _PermitDecisionBindingFailure(
+            verdict="insufficient_evidence",
+            reason_code="permit.binding.wire_body_json_invalid",
+            message=f"{field} must be a JSON object",
+            evidence=[field],
+        )
+    return None, None, None
+
+
+def _permit_decision_binding_request_hash(
+    evidence: dict[str, Any],
+    canonical_payload: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    for source, prefix in ((evidence, ""), (canonical_payload, "canonical_payload.")):
+        for field in (
+            "binding_request_hash",
+            "final_request_hash",
+            "dispatch_request_hash",
+            "dispatch_request_digest_v1",
+        ):
+            value = _permit_v2_sha256_hexish(source.get(field))
+            if value is not None:
+                return value, prefix + field
+    return None, None
+
+
+def _permit_decision_binding_request_canonical_version(
+    evidence: dict[str, Any],
+    canonical_payload: dict[str, Any],
+) -> str:
+    for source in (evidence, canonical_payload):
+        value = source.get("binding_request_canonical_version")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return binding_request_canonical_version_for_binding(
+        str(canonical_payload.get("binding_version") or "")
+    )
+
+
 def _permit_decision_binding_recompute_failure(
     *,
     evidence: dict[str, Any],
@@ -3660,7 +3776,47 @@ def _permit_decision_binding_recompute_failure(
     evidence_path: str,
 ) -> _PermitDecisionBindingFailure | None:
     version = canonical_payload.get("binding_version")
-    if version not in {"v3", "v4"}:
+    wire_body, wire_field, wire_failure = _permit_decision_wire_body(evidence)
+    if wire_failure is not None:
+        return wire_failure
+    if wire_body is not None:
+        expected_hash, hash_field = _permit_decision_binding_request_hash(
+            evidence,
+            canonical_payload,
+        )
+        if expected_hash is None:
+            return _PermitDecisionBindingFailure(
+                verdict="insufficient_evidence",
+                reason_code="permit.binding.wire_body_hash_missing",
+                message="wire-body evidence is present but binding_request_hash is absent",
+                evidence=[wire_field or "binding_request_body"],
+            )
+        canonical_version = _permit_decision_binding_request_canonical_version(
+            evidence,
+            canonical_payload,
+        )
+        actual_hash = canonical_provider_wire_body_hash(
+            wire_body,
+            binding_request_canonical_version=canonical_version,
+        )
+        if actual_hash != expected_hash:
+            reason = (
+                "permit.binding.v5.wire_body_hash_mismatch"
+                if version == "v5"
+                else "permit.binding.wire_body_hash_mismatch"
+            )
+            return _PermitDecisionBindingFailure(
+                verdict="disproved",
+                reason_code=reason,
+                message="binding_request_hash does not match provider wire-body bytes",
+                evidence=[
+                    evidence_path,
+                    wire_field or "binding_request_body",
+                    hash_field or "binding_request_hash",
+                ],
+            )
+
+    if version not in {"v3", "v4", "v5"}:
         return None
 
     resource_attributes, resource_failure = _permit_decision_resource_attributes(evidence)
@@ -3673,9 +3829,12 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes.get("spend_scope")
         )
         if recomputed_spend_scope_hash != spend_scope_hash:
+            spend_reason_version = "v5" if version == "v5" else "v3"
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
-                reason_code="permit.binding.v3.spend_scope_hash_mismatch",
+                reason_code=(
+                    f"permit.binding.{spend_reason_version}.spend_scope_hash_mismatch"
+                ),
                 message=(
                     "canonical_payload.spend_scope_hash does not match "
                     "resource_attributes_json.spend_scope"
@@ -3687,7 +3846,7 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version != "v4":
+    if version not in {"v4", "v5"}:
         return None
 
     delegation_policy_hash = canonical_payload.get("delegation_policy_hash")
@@ -3700,9 +3859,13 @@ def _permit_decision_binding_recompute_failure(
         resource_attributes.get("delegation_policy")
     )
     if recomputed_delegation_policy_hash != delegation_policy_hash:
+        delegation_reason_version = "v5" if version == "v5" else "v4"
         return _PermitDecisionBindingFailure(
             verdict="disproved",
-            reason_code="permit.binding.v4.delegation_policy_hash_mismatch",
+            reason_code=(
+                "permit.binding."
+                f"{delegation_reason_version}.delegation_policy_hash_mismatch"
+            ),
             message=(
                 "canonical_payload.delegation_policy_hash does not match "
                 "resource_attributes_json.delegation_policy"
@@ -4758,7 +4921,7 @@ def _verify_export_closures(
                 digest_checks += 1
             if _digest_value(payload.get("client_response_digest_v1")) is not None:
                 digest_checks += 1
-            if binding_version == "closure_v2":
+            if binding_version in {"closure_v2", CLOSURE_RFC8785_BINDING_VERSION}:
                 if _digest_value(payload.get("dispatch_request_digest_v1")) is not None:
                     dispatch_digest_checks += 1
                 elif closure_status != CLOSURE_STATUS_CLOSED:

@@ -156,6 +156,24 @@ def _binding_payload(
                 )
             ),
         )
+    if version == "v5":
+        return permit_binding.canonical_binding_payload_v5(
+            **fields,
+            spend_scope_hash=(
+                spend_scope_hash
+                if spend_scope_hash is not None
+                else permit_binding.canonical_spend_scope_payload(
+                    resource_attributes["spend_scope"]
+                )
+            ),
+            delegation_policy_hash=(
+                delegation_policy_hash
+                if delegation_policy_hash is not None
+                else permit_binding.canonical_delegation_policy_payload(
+                    resource_attributes["delegation_policy"]
+                )
+            ),
+        )
     raise AssertionError(f"unsupported test binding version: {version}")
 
 
@@ -370,12 +388,120 @@ def test_v4_permit_recompute_rejects_mismatched_hash(tmp_path: Path) -> None:
     assert claim.reason_code == "permit.binding.v4.delegation_policy_hash_mismatch"
 
 
+def test_v5_permit_recompute_succeeds_for_well_formed_binding(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"j" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v5"),
+        trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
+def test_v5_permit_recompute_succeeds_with_wire_body_evidence(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"m" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    wire_body = {
+        "model": "gpt-5",
+        "temperature": 1.0,
+        "messages": [{"role": "user", "content": "approve"}],
+    }
+    wire_hash = permit_binding.canonical_provider_wire_body_hash(
+        wire_body,
+        binding_request_canonical_version="v5",
+    )
+    payload = _binding_payload(public_key, version="v5")
+    payload["final_request_hash"] = "sha256:" + wire_hash
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v5",
+        payload=payload,
+    )
+    evidence["binding_request_hash"] = wire_hash
+    evidence["binding_request_canonical_version"] = "v5"
+    evidence["binding_request_body"] = wire_body
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
+def test_v5_permit_recompute_rejects_tampered_wire_body(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"n" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    wire_body = {
+        "model": "gpt-5",
+        "temperature": 1.0,
+        "messages": [{"role": "user", "content": "approve"}],
+    }
+    wire_hash = permit_binding.canonical_provider_wire_body_hash(
+        wire_body,
+        binding_request_canonical_version="v5",
+    )
+    payload = _binding_payload(public_key, version="v5")
+    payload["final_request_hash"] = "sha256:" + wire_hash
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v5",
+        payload=payload,
+    )
+    evidence["binding_request_hash"] = wire_hash
+    evidence["binding_request_canonical_version"] = "v5"
+    evidence["binding_request_body"] = {
+        **wire_body,
+        "temperature": 0.5,
+    }
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "permit.binding.v5.wire_body_hash_mismatch"
+
+
+def test_v5_permit_recompute_rejects_tampered_spend_scope(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"k" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v5")
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+    resource_attributes["spend_scope"]["amount_max"] = 9999
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "permit.binding.v5.spend_scope_hash_mismatch"
+
+
+def test_v5_permit_recompute_rejects_tampered_delegation_policy(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"l" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v5")
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+    resource_attributes["delegation_policy"]["delegations"][0]["amount_max"] = 10000
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "permit.binding.v5.delegation_policy_hash_mismatch"
+
+
 def test_unknown_binding_version_rejected(tmp_path: Path) -> None:
     private_key, public_key = keypair(b"h" * 32)
     trust_root = write_permit_trust_root(tmp_path, public_key)
     evidence = decision_evidence(private_key, public_key)
     evidence["canonical_payload"] = copy.deepcopy(evidence["canonical_payload"])
-    evidence["canonical_payload"]["binding_version"] = "v5"
+    evidence["canonical_payload"]["binding_version"] = "v6"
 
     claim = _claim(evidence, trust_root)
 

@@ -41,6 +41,9 @@ jobs:
       - name: Run Ruff
         run: ruff check .
 
+      - name: Run canonical drift lock
+        run: pytest -q tests/test_jcs_drift_lock.py
+
       - name: Run pytest
         run: pytest -q
 
