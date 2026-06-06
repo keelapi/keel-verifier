@@ -1,0 +1,280 @@
+{
+  "schema": "keel.substrate_v6.resource_attributes_hash.golden_vectors.v1",
+  "generated_from": "keel-verifier Stage 1 substrate-v6 implementation",
+  "canonicalizer": "RFC 8785 JCS via rfc8785.dumps, SHA-256 lowercase hex",
+  "empty_resource_attributes_canonical_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "vectors": [
+    {
+      "label": "empty_resource_attributes",
+      "resource_attributes": {},
+      "resource_attributes_canonical_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "canonical_payload": {
+        "binding_version": "v6",
+        "permit_id": "10000000-0000-4000-8000-000000000666",
+        "project_id": "20000000-0000-4000-8000-000000000333",
+        "parent_permit_id": "30000000-0000-4000-8000-000000000444",
+        "decision": "allow",
+        "reason": "policy.allow",
+        "provider": "openai",
+        "model": "gpt-5",
+        "operation": "responses.create",
+        "action_name": "rail.none",
+        "request_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "constraints": {
+          "max_amount": "5000",
+          "currency_class": "USD_FIAT"
+        },
+        "routing": {
+          "requested_provider": "openai",
+          "requested_model": "gpt-5",
+          "selected_provider": "openai",
+          "selected_model": "gpt-5",
+          "fallback_chain": [
+            {
+              "provider": "anthropic",
+              "model": "claude-opus-4"
+            }
+          ],
+          "reason_code": "primary_selected",
+          "fallback_occurred": false,
+          "reason_metadata": {
+            "latency_tier": "interactive"
+          }
+        },
+        "policy_id": "policy_mpp",
+        "policy_version": "2026-06-04",
+        "policy_snapshot_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "issued_at": "2026-06-04T12:00:00+00:00",
+        "expires_at": "2026-06-04T12:15:00+00:00",
+        "is_dry_run": false,
+        "binding_key_id": "permit-key-1",
+        "final_request_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "binding_session_id": "session_abc",
+        "binding_session_event_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_project_anchor_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "permit_chain_role": "session_child",
+        "inherits_from": "40000000-0000-4000-8000-000000000555",
+        "authority_delta": {
+          "actions": [
+            "payments.charge"
+          ],
+          "max_amount": 5000
+        },
+        "spend_scope_hash": null,
+        "delegation_policy_hash": null,
+        "resource_attributes_canonical_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "binding_canonical_hash": "f7fe936401f2a7b99ec18e21af06184765ed961e353b9a14527217d6bb66d14c"
+    },
+    {
+      "label": "x402_resource_attributes_evidence",
+      "resource_attributes": {
+        "operation": "responses.create",
+        "spend_scope": {
+          "amount_max": "5000",
+          "currency_class": "usd_fiat",
+          "cadence": "ONE_TIME",
+          "ttl_seconds": "900",
+          "purpose_binding": "Purchase.Once",
+          "recipient_address_digest": "ABCDEF",
+          "merchant_id_digest": "",
+          "description_digest": null
+        },
+        "delegation_policy": {
+          "delegations": [
+            {
+              "verb": "Refund.Issue",
+              "amount_max": null,
+              "currency_class": null,
+              "ttl_seconds": 300,
+              "allowed_purpose_bindings": [
+                "refund.once",
+                "Refund.Once"
+              ]
+            },
+            {
+              "verb": "Purchase.Create",
+              "amount_max": "5000",
+              "currency_class": "usd_fiat",
+              "ttl_seconds": "900",
+              "allowed_purpose_bindings": [
+                "Purchase.Once",
+                "purchase.recurring"
+              ]
+            }
+          ]
+        },
+        "x402": {
+          "payment_required": true,
+          "asset_summary": {
+            "currency": "USD",
+            "amount": 5000
+          }
+        }
+      },
+      "resource_attributes_canonical_hash": "3948a061226e7d5793f24ef41f7312c460fb4de42f100534cfb68568bf7166c4",
+      "canonical_payload": {
+        "binding_version": "v6",
+        "permit_id": "10000000-0000-4000-8000-000000000222",
+        "project_id": "20000000-0000-4000-8000-000000000333",
+        "parent_permit_id": "30000000-0000-4000-8000-000000000444",
+        "decision": "allow",
+        "reason": "policy.allow",
+        "provider": "openai",
+        "model": "gpt-5",
+        "operation": "responses.create",
+        "action_name": "mpp.purchase",
+        "request_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "constraints": {
+          "max_amount": "5000",
+          "currency_class": "USD_FIAT"
+        },
+        "routing": {
+          "requested_provider": "openai",
+          "requested_model": "gpt-5",
+          "selected_provider": "openai",
+          "selected_model": "gpt-5",
+          "fallback_chain": [
+            {
+              "provider": "anthropic",
+              "model": "claude-opus-4"
+            }
+          ],
+          "reason_code": "primary_selected",
+          "fallback_occurred": false,
+          "reason_metadata": {
+            "latency_tier": "interactive"
+          }
+        },
+        "policy_id": "policy_mpp",
+        "policy_version": "2026-06-04",
+        "policy_snapshot_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "issued_at": "2026-06-04T12:00:00+00:00",
+        "expires_at": "2026-06-04T12:15:00+00:00",
+        "is_dry_run": false,
+        "binding_key_id": "permit-key-1",
+        "final_request_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "binding_session_id": "session_abc",
+        "binding_session_event_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_project_anchor_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "permit_chain_role": "session_child",
+        "inherits_from": "40000000-0000-4000-8000-000000000555",
+        "authority_delta": {
+          "actions": [
+            "payments.charge"
+          ],
+          "max_amount": 5000
+        },
+        "spend_scope_hash": "f744453b37ab4e6cc05a8137abb69e4a430449d0825fb2066d97db61e57915ce",
+        "delegation_policy_hash": "4231454d7dec489042aa687e0d3b1c077d28a1e25f5ca83b10269f0875d70e01",
+        "resource_attributes_canonical_hash": "3948a061226e7d5793f24ef41f7312c460fb4de42f100534cfb68568bf7166c4"
+      },
+      "binding_canonical_hash": "e7e196ed5f6e67f13c329b882820af10bf922c9cea78f9a43b1a450401655c8b"
+    },
+    {
+      "label": "spend_scope_currency_normalization_collision",
+      "resource_attributes": {
+        "operation": "responses.create",
+        "spend_scope": {
+          "amount_max": "5000",
+          "currency_class": "USD_FIAT",
+          "cadence": "ONE_TIME",
+          "ttl_seconds": "900",
+          "purpose_binding": "Purchase.Once",
+          "recipient_address_digest": "ABCDEF",
+          "merchant_id_digest": "",
+          "description_digest": null
+        },
+        "delegation_policy": {
+          "delegations": [
+            {
+              "verb": "Refund.Issue",
+              "amount_max": null,
+              "currency_class": null,
+              "ttl_seconds": 300,
+              "allowed_purpose_bindings": [
+                "refund.once",
+                "Refund.Once"
+              ]
+            },
+            {
+              "verb": "Purchase.Create",
+              "amount_max": "5000",
+              "currency_class": "usd_fiat",
+              "ttl_seconds": "900",
+              "allowed_purpose_bindings": [
+                "Purchase.Once",
+                "purchase.recurring"
+              ]
+            }
+          ]
+        },
+        "x402": {
+          "payment_required": true,
+          "asset_summary": {
+            "currency": "USD",
+            "amount": 5000
+          }
+        }
+      },
+      "resource_attributes_canonical_hash": "956ba4b4c14c99e387db74e89944dbe94b0a93401856adebbeb5a4cce564bdd4",
+      "canonical_payload": {
+        "binding_version": "v6",
+        "permit_id": "10000000-0000-4000-8000-000000000777",
+        "project_id": "20000000-0000-4000-8000-000000000333",
+        "parent_permit_id": "30000000-0000-4000-8000-000000000444",
+        "decision": "allow",
+        "reason": "policy.allow",
+        "provider": "openai",
+        "model": "gpt-5",
+        "operation": "responses.create",
+        "action_name": "mpp.purchase.normalization_collision",
+        "request_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "constraints": {
+          "max_amount": "5000",
+          "currency_class": "USD_FIAT"
+        },
+        "routing": {
+          "requested_provider": "openai",
+          "requested_model": "gpt-5",
+          "selected_provider": "openai",
+          "selected_model": "gpt-5",
+          "fallback_chain": [
+            {
+              "provider": "anthropic",
+              "model": "claude-opus-4"
+            }
+          ],
+          "reason_code": "primary_selected",
+          "fallback_occurred": false,
+          "reason_metadata": {
+            "latency_tier": "interactive"
+          }
+        },
+        "policy_id": "policy_mpp",
+        "policy_version": "2026-06-04",
+        "policy_snapshot_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "issued_at": "2026-06-04T12:00:00+00:00",
+        "expires_at": "2026-06-04T12:15:00+00:00",
+        "is_dry_run": false,
+        "binding_key_id": "permit-key-1",
+        "final_request_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "binding_session_id": "session_abc",
+        "binding_session_event_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "binding_project_anchor_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "permit_chain_role": "session_child",
+        "inherits_from": "40000000-0000-4000-8000-000000000555",
+        "authority_delta": {
+          "actions": [
+            "payments.charge"
+          ],
+          "max_amount": 5000
+        },
+        "spend_scope_hash": "f744453b37ab4e6cc05a8137abb69e4a430449d0825fb2066d97db61e57915ce",
+        "delegation_policy_hash": "4231454d7dec489042aa687e0d3b1c077d28a1e25f5ca83b10269f0875d70e01",
+        "resource_attributes_canonical_hash": "956ba4b4c14c99e387db74e89944dbe94b0a93401856adebbeb5a4cce564bdd4"
+      },
+      "binding_canonical_hash": "c444c86a824f31fcad257880a94b9aa4400f6fb9d6b55d4102e9973ec07edf2b"
+    }
+  ]
+}

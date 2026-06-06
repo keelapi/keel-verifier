@@ -20,3 +20,24 @@ def test_replay_recompute_uses_stored_binding_version_not_environment_default(
 
     assert legacy_hash != rfc8785_hash
     assert permit_binding.compute_canonical_binding_hash(payload) == legacy_hash
+
+
+def test_replay_recompute_uses_stored_v6_binding_version_not_environment_default(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("KEEL_BINDING_VERSION_DEFAULT", "v4")
+    payload = {
+        "binding_version": "v6",
+        "temperature": 1.0,
+        "resource_attributes_canonical_hash": (
+            "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+        ),
+    }
+
+    legacy_hash = hashlib.sha256(
+        permit_binding._legacy_canonical_json_v1_to_v4(payload)
+    ).hexdigest()
+    rfc8785_hash = hashlib.sha256(rfc8785.dumps(payload)).hexdigest()
+
+    assert legacy_hash != rfc8785_hash
+    assert permit_binding.compute_canonical_binding_hash(payload) == rfc8785_hash

@@ -116,9 +116,12 @@ EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = (
-    "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd"
+    "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d"
 )
 PERMIT_DECISION_PREVIOUS_HASH = (
+    "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd"
+)
+PERMIT_DECISION_V31_HASH = (
     "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
 )
 PERMIT_DECISION_LEGACY_HASH = (
@@ -1394,6 +1397,11 @@ def make_permanent_allowlist(
         SemanticImplementation(
             PERMIT_DECISION_ID,
             PERMIT_DECISION_PREVIOUS_HASH,
+            "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_DECISION_ID,
+            PERMIT_DECISION_V31_HASH,
             "permit_decision",
         ),
         SemanticImplementation(

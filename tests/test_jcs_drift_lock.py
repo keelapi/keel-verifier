@@ -1,10 +1,24 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import rfc8785
 
-from keel_verifier.canonical.permit_binding import canonical_binding_bytes
+from keel_verifier.canonical.permit_binding import (
+    canonical_binding_bytes,
+    canonical_resource_attributes_payload,
+    compute_canonical_binding_hash,
+)
+
+
+V6_VECTOR_PATH = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "substrate_v6_resource_attributes_hash_vectors.json"
+)
 
 
 REALISTIC_KEEL_PAYLOADS = [
@@ -74,3 +88,20 @@ def test_v5_jcs_drift_lock_realistic_keel_payloads() -> None:
 def test_v5_jcs_drift_lock_rfc8785_reference_vectors() -> None:
     for payload in RFC8785_REFERENCE_VECTORS:
         assert canonical_binding_bytes("v5", payload) == rfc8785.dumps(payload)
+
+
+def test_v6_jcs_drift_lock_resource_attribute_vectors() -> None:
+    vectors = json.loads(V6_VECTOR_PATH.read_text(encoding="utf-8"))
+
+    assert vectors["empty_resource_attributes_canonical_hash"] == hashlib.sha256(
+        rfc8785.dumps({})
+    ).hexdigest()
+    for vector in vectors["vectors"]:
+        assert (
+            canonical_resource_attributes_payload(vector["resource_attributes"])
+            == vector["resource_attributes_canonical_hash"]
+        )
+        payload = vector["canonical_payload"]
+        assert payload["binding_version"] == "v6"
+        assert canonical_binding_bytes("v6", payload) == rfc8785.dumps(payload)
+        assert compute_canonical_binding_hash(payload) == vector["binding_canonical_hash"]

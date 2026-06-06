@@ -20,14 +20,19 @@ from typing import Any
 
 import rfc8785
 
-SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5"})
+SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5", "v6"})
 CLOSURE_RFC8785_BINDING_VERSION = "closure_v3"
-_RFC8785_SIGNED_SURFACE_VERSIONS = frozenset({"v5", CLOSURE_RFC8785_BINDING_VERSION})
+_RFC8785_SIGNED_SURFACE_VERSIONS = frozenset(
+    {"v5", "v6", CLOSURE_RFC8785_BINDING_VERSION}
+)
 LEGACY_CHAIN_CANONICAL_VERSIONS = frozenset({"v1", "closure_v1", "closure_v2"})
 RFC8785_CHAIN_CANONICAL_VERSIONS = frozenset({"closure_v3", "chain_v3"})
 LEGACY_BINDING_REQUEST_CANONICAL_VERSION = "v1"
 RFC8785_BINDING_REQUEST_CANONICAL_VERSION = "v5"
 _V5_BINDING_FIELD_NAMES: frozenset[str] = frozenset()
+_V6_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
+    {"resource_attributes_canonical_hash"}
+)
 
 _VOLATILE_REQUEST_KEYS = frozenset(
     {
@@ -69,7 +74,7 @@ def canonical_binding_bytes(binding_version: str, payload: Mapping[str, Any]) ->
     normalized = str(binding_version or "").strip()
     if normalized in {"v1", "v2", "v3", "v4"}:
         return _legacy_canonical_json_v1_to_v4(payload)
-    if normalized == "v5":
+    if normalized in {"v5", "v6"}:
         return rfc8785.dumps(payload)
     raise ValueError(f"Unsupported binding_version: {binding_version}")
 
@@ -88,7 +93,7 @@ def binding_request_canonical_version_for_binding(
 ) -> str:
     return (
         RFC8785_BINDING_REQUEST_CANONICAL_VERSION
-        if str(binding_version or "").strip() == "v5"
+        if str(binding_version or "").strip() in {"v5", "v6"}
         else LEGACY_BINDING_REQUEST_CANONICAL_VERSION
     )
 
@@ -153,6 +158,16 @@ def canonical_provider_wire_body_hash(
 def _sha256_hex(value: bytes | str) -> str:
     data = value.encode("utf-8") if isinstance(value, str) else value
     return hashlib.sha256(data).hexdigest()
+
+
+def canonical_resource_attributes_payload(
+    resource_attributes: Mapping[str, Any] | None,
+) -> str | None:
+    """Return the v6 SHA-256 digest for RFC 8785 resource attributes bytes."""
+
+    if resource_attributes is None:
+        return None
+    return _sha256_hex(rfc8785.dumps(resource_attributes))
 
 
 def _normalize_datetime(value: Any) -> str | None:
@@ -408,12 +423,26 @@ def canonical_binding_payload_v5(
     return payload
 
 
+def canonical_binding_payload_v6(
+    *,
+    resource_attributes_canonical_hash: str | None = None,
+    **v5_fields: Any,
+) -> dict[str, Any]:
+    payload = canonical_binding_payload_v5(**v5_fields)
+    payload["binding_version"] = "v6"
+    payload["resource_attributes_canonical_hash"] = (
+        (resource_attributes_canonical_hash or "").strip().lower() or None
+    )
+    return payload
+
+
 CANONICAL_PAYLOAD_BUILDERS = {
     "v1": canonical_binding_payload_v1,
     "v2": canonical_binding_payload_v2,
     "v3": canonical_binding_payload_v3,
     "v4": canonical_binding_payload_v4,
     "v5": canonical_binding_payload_v5,
+    "v6": canonical_binding_payload_v6,
 }
 
 
@@ -604,6 +633,7 @@ __all__ = [
     "LEGACY_BINDING_REQUEST_CANONICAL_VERSION",
     "RFC8785_BINDING_REQUEST_CANONICAL_VERSION",
     "_V5_BINDING_FIELD_NAMES",
+    "_V6_BINDING_FIELD_NAMES",
     "_legacy_canonical_json_v1_to_v4",
     "binding_request_canonical_version_for_binding",
     "canonical_binding_bytes",
@@ -613,9 +643,11 @@ __all__ = [
     "canonical_binding_payload_v3",
     "canonical_binding_payload_v4",
     "canonical_binding_payload_v5",
+    "canonical_binding_payload_v6",
     "canonical_delegation_policy_payload",
     "canonical_provider_wire_body",
     "canonical_provider_wire_body_hash",
+    "canonical_resource_attributes_payload",
     "canonical_spend_scope_payload",
     "chain_canonical_bytes",
     "compute_canonical_binding_hash",

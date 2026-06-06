@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.2.0",
+    "version": "3.3.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -287,7 +287,7 @@
     {
       "name": "permit.decision.v1",
       "status": "implemented",
-      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v5, canonical hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
+      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v6, canonical hash, v6 resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
       "depends_on_semantics": [
         "keel.permit.decision.v1"
       ],
@@ -550,6 +550,14 @@
       "permit.binding.resource_attributes_json_invalid",
       "permit.binding.v3.spend_scope_hash_mismatch",
       "permit.binding.v4.delegation_policy_hash_mismatch",
+      "permit.binding.v5.wire_body_hash_mismatch",
+      "permit.binding.v5.spend_scope_hash_mismatch",
+      "permit.binding.v5.delegation_policy_hash_mismatch",
+      "permit.binding.v6.wire_body_hash_mismatch",
+      "permit.binding.v6.spend_scope_hash_mismatch",
+      "permit.binding.v6.delegation_policy_hash_mismatch",
+      "permit.binding.v6.resource_attributes_canonical_hash_missing",
+      "permit.binding.v6.resource_attributes_canonical_hash_mismatch",
       "PERMIT_REVOKED_EVIDENCE_MISSING",
       "PERMIT_REVOKED_SCHEMA_INVALID",
       "PERMIT_REVOKED_SIGNATURE_INVALID",
@@ -669,7 +677,7 @@
     },
     {
       "id": "keel.permit.decision.v1",
-      "hash": "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd",
+      "hash": "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d",
       "status": "allowlisted"
     },
     {

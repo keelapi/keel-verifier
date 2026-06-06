@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.3.0 — Binding v6 resource-attributes canonical hash (2026-06-06)
+
+- Adds binding v6 canonical payload support with
+  `resource_attributes_canonical_hash` over RFC 8785 canonical
+  `resource_attributes_json` bytes, including the locked empty-object digest.
+- Verifies v6 permit-decision replay with the four-part invariant: stored v6
+  version, present resource-attributes hash, matching recomputed
+  resource-attributes hash, and matching signed canonical payload hash.
+- Sweeps verifier-side v5 RFC 8785 selectors to v5/v6 while keeping the v6
+  recompute-entry predicate exact on `binding_version == "v6"`.
+
 ## v3.2.0 — Binding v5 RFC 8785 canonical support (2026-06-05)
 
 - Adds binding v5 (RFC 8785 JCS canonical) as the new default for newly-issued

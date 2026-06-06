@@ -81,6 +81,7 @@ from keel_verifier.canonical.permit_binding import (
     binding_request_canonical_version_for_binding,
     canonical_delegation_policy_payload,
     canonical_provider_wire_body_hash,
+    canonical_resource_attributes_payload,
     canonical_spend_scope_payload,
     compute_canonical_binding_hash as _canonical_permit_binding_hash,
 )
@@ -555,12 +556,17 @@ _PERMIT_DECISION_V4_CANONICAL_FIELDS = (
     *_PERMIT_DECISION_V3_CANONICAL_FIELDS,
     "delegation_policy_hash",
 )
+_PERMIT_DECISION_V6_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_V4_CANONICAL_FIELDS,
+    "resource_attributes_canonical_hash",
+)
 _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v1": _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS,
     "v2": _PERMIT_DECISION_V2_CANONICAL_FIELDS,
     "v3": _PERMIT_DECISION_V3_CANONICAL_FIELDS,
     "v4": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
     "v5": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
+    "v6": _PERMIT_DECISION_V6_CANONICAL_FIELDS,
 }
 _PERMIT_REVOKED_REQUIRED_FIELDS = (
     "permit_id",
@@ -2653,7 +2659,7 @@ def _permit_v2_canonical_bytes(
     envelope_version: str | None,
     payload: Mapping[str, Any],
 ) -> bytes:
-    if str(envelope_version or "").strip() == "v5":
+    if str(envelope_version or "").strip() in {"v5", "v6"}:
         return rfc8785.dumps(dict(payload))
     return _canonical_json_bytes(dict(payload))
 
@@ -3632,12 +3638,18 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
         return "canonical_payload must be an object"
     binding_version = canonical_payload.get("binding_version")
     if binding_version not in SUPPORTED_PERMIT_BINDING_VERSIONS:
-        return "binding_version must be one of v1, v2, v3, v4, or v5"
+        return "binding_version must be one of v1, v2, v3, v4, v5, or v6"
     required = set(_PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION[str(binding_version)])
     if set(canonical_payload.keys()) != required:
         missing = sorted(required - set(canonical_payload.keys()))
         extra = sorted(set(canonical_payload.keys()) - required)
         if missing:
+            if (
+                binding_version == "v6"
+                and missing == ["resource_attributes_canonical_hash"]
+                and not extra
+            ):
+                return None
             return "canonical_payload missing signed field(s): " + ", ".join(missing)
         return "canonical_payload has unsupported signed field(s): " + ", ".join(extra)
     if canonical_payload.get("decision") not in {"allow", "deny", "challenge"}:
@@ -3801,8 +3813,8 @@ def _permit_decision_binding_recompute_failure(
         )
         if actual_hash != expected_hash:
             reason = (
-                "permit.binding.v5.wire_body_hash_mismatch"
-                if version == "v5"
+                f"permit.binding.{version}.wire_body_hash_mismatch"
+                if version in {"v5", "v6"}
                 else "permit.binding.wire_body_hash_mismatch"
             )
             return _PermitDecisionBindingFailure(
@@ -3816,10 +3828,50 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v3", "v4", "v5"}:
+    if version not in {"v3", "v4", "v5", "v6"}:
         return None
 
     resource_attributes, resource_failure = _permit_decision_resource_attributes(evidence)
+
+    if version == "v6":
+        resource_attributes_canonical_hash = canonical_payload.get(
+            "resource_attributes_canonical_hash"
+        )
+        if resource_attributes_canonical_hash is None:
+            return _PermitDecisionBindingFailure(
+                verdict="disproved",
+                reason_code=(
+                    "permit.binding.v6.resource_attributes_canonical_hash_missing"
+                ),
+                message=(
+                    "v6 canonical_payload is missing "
+                    "resource_attributes_canonical_hash"
+                ),
+                evidence=[evidence_path, "canonical_payload.resource_attributes_canonical_hash"],
+            )
+        if resource_failure is not None:
+            return resource_failure
+        assert resource_attributes is not None
+        recomputed_resource_attributes_hash = canonical_resource_attributes_payload(
+            resource_attributes
+        )
+        if recomputed_resource_attributes_hash != resource_attributes_canonical_hash:
+            return _PermitDecisionBindingFailure(
+                verdict="disproved",
+                reason_code=(
+                    "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+                ),
+                message=(
+                    "canonical_payload.resource_attributes_canonical_hash does not "
+                    "match resource_attributes_json"
+                ),
+                evidence=[
+                    evidence_path,
+                    "canonical_payload.resource_attributes_canonical_hash",
+                    "resource_attributes_json",
+                ],
+            )
+
     spend_scope_hash = canonical_payload.get("spend_scope_hash")
     if spend_scope_hash is not None:
         if resource_failure is not None:
@@ -3829,7 +3881,7 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes.get("spend_scope")
         )
         if recomputed_spend_scope_hash != spend_scope_hash:
-            spend_reason_version = "v5" if version == "v5" else "v3"
+            spend_reason_version = str(version) if version in {"v5", "v6"} else "v3"
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
@@ -3846,7 +3898,7 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v4", "v5"}:
+    if version not in {"v4", "v5", "v6"}:
         return None
 
     delegation_policy_hash = canonical_payload.get("delegation_policy_hash")
@@ -3859,7 +3911,7 @@ def _permit_decision_binding_recompute_failure(
         resource_attributes.get("delegation_policy")
     )
     if recomputed_delegation_policy_hash != delegation_policy_hash:
-        delegation_reason_version = "v5" if version == "v5" else "v4"
+        delegation_reason_version = str(version) if version in {"v5", "v6"} else "v4"
         return _PermitDecisionBindingFailure(
             verdict="disproved",
             reason_code=(

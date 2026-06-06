@@ -119,7 +119,9 @@ def _binding_payload(
     spend_scope_hash: str | None = None,
     delegation_policy_hash: str | None = None,
 ) -> dict[str, Any]:
-    resource_attributes = resource_attributes or BASE_RESOURCE_ATTRIBUTES
+    resource_attributes = (
+        BASE_RESOURCE_ATTRIBUTES if resource_attributes is None else resource_attributes
+    )
     fields = {
         **BASE_BINDING_FIELDS,
         **V2_BINDING_FIELDS,
@@ -174,6 +176,29 @@ def _binding_payload(
                 )
             ),
         )
+    if version == "v6":
+        return permit_binding.canonical_binding_payload_v6(
+            **fields,
+            spend_scope_hash=(
+                spend_scope_hash
+                if spend_scope_hash is not None
+                else permit_binding.canonical_spend_scope_payload(
+                    resource_attributes["spend_scope"]
+                )
+            ),
+            delegation_policy_hash=(
+                delegation_policy_hash
+                if delegation_policy_hash is not None
+                else permit_binding.canonical_delegation_policy_payload(
+                    resource_attributes["delegation_policy"]
+                )
+            ),
+            resource_attributes_canonical_hash=(
+                permit_binding.canonical_resource_attributes_payload(
+                    resource_attributes
+                )
+            ),
+        )
     raise AssertionError(f"unsupported test binding version: {version}")
 
 
@@ -185,7 +210,9 @@ def _binding_evidence(
     resource_attributes: dict[str, Any] | None = None,
     payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    resource_attributes = copy.deepcopy(resource_attributes or BASE_RESOURCE_ATTRIBUTES)
+    resource_attributes = copy.deepcopy(
+        BASE_RESOURCE_ATTRIBUTES if resource_attributes is None else resource_attributes
+    )
     canonical_payload = payload or _binding_payload(
         public_key,
         version=version,
@@ -496,12 +523,195 @@ def test_v5_permit_recompute_rejects_tampered_delegation_policy(
     assert claim.reason_code == "permit.binding.v5.delegation_policy_hash_mismatch"
 
 
+def test_v6_permit_recompute_succeeds_for_well_formed_binding(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"o" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v6"),
+        trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
+def test_v6_permit_recompute_rejects_tampered_resource_attributes_json(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"p" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    resource_attributes = copy.deepcopy(BASE_RESOURCE_ATTRIBUTES)
+    resource_attributes["tap"] = {"mandate_id": "tap_001", "amount": 5000}
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v6",
+        resource_attributes=resource_attributes,
+    )
+    tampered = json.loads(evidence["resource_attributes_json"])
+    tampered["tap"]["amount"] = 9999
+    evidence["resource_attributes_json"] = json.dumps(tampered)
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+    )
+
+
+def test_v6_replay_rejects_missing_resource_attributes_canonical_hash(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"q" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    payload = _binding_payload(public_key, version="v6")
+    payload.pop("resource_attributes_canonical_hash")
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v6", payload=payload),
+        trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v6.resource_attributes_canonical_hash_missing"
+    )
+
+
+def test_v6_replay_rejects_mismatched_resource_attributes_canonical_hash(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"r" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    payload = _binding_payload(public_key, version="v6")
+    payload["resource_attributes_canonical_hash"] = "0" * 64
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v6", payload=payload),
+        trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+    )
+
+
+def test_v6_replay_rejects_binding_hash_mismatch(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"s" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v6")
+    evidence["canonical_payload"] = copy.deepcopy(evidence["canonical_payload"])
+    evidence["canonical_payload"]["reason"] = "policy.changed"
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "PERMIT_DECISION_CANONICAL_HASH_MISMATCH"
+
+
+def test_v6_replay_rejects_missing_resource_attributes_json(tmp_path: Path) -> None:
+    private_key, public_key = keypair(b"t" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v6")
+    evidence.pop("resource_attributes_json")
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "permit.binding.resource_attributes_json_missing"
+
+
+def test_v6_spend_scope_value_tamper_trips_subhash_and_resource_hash(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"u" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v6")
+    canonical_payload = evidence["canonical_payload"]
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+    resource_attributes["spend_scope"]["amount_max"] = 9999
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    assert (
+        permit_binding.canonical_spend_scope_payload(
+            resource_attributes["spend_scope"]
+        )
+        != canonical_payload["spend_scope_hash"]
+    )
+    assert (
+        permit_binding.canonical_resource_attributes_payload(resource_attributes)
+        != canonical_payload["resource_attributes_canonical_hash"]
+    )
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+    )
+
+
+def test_v6_spend_scope_normalization_collision_trips_resource_hash_only(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"v" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v6")
+    canonical_payload = evidence["canonical_payload"]
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+    resource_attributes["spend_scope"]["currency_class"] = "USD_FIAT"
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    assert (
+        permit_binding.canonical_spend_scope_payload(
+            resource_attributes["spend_scope"]
+        )
+        == canonical_payload["spend_scope_hash"]
+    )
+    assert (
+        permit_binding.canonical_resource_attributes_payload(resource_attributes)
+        != canonical_payload["resource_attributes_canonical_hash"]
+    )
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+    )
+
+
+def test_v5_permit_does_not_enter_v6_resource_hash_recompute_path(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"w" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(private_key, public_key, version="v5")
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+    resource_attributes["spend_scope"]["currency_class"] = "USD_FIAT"
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    claim = _claim(evidence, trust_root)
+
+    assert "resource_attributes_canonical_hash" not in evidence["canonical_payload"]
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
 def test_unknown_binding_version_rejected(tmp_path: Path) -> None:
     private_key, public_key = keypair(b"h" * 32)
     trust_root = write_permit_trust_root(tmp_path, public_key)
     evidence = decision_evidence(private_key, public_key)
     evidence["canonical_payload"] = copy.deepcopy(evidence["canonical_payload"])
-    evidence["canonical_payload"]["binding_version"] = "v6"
+    evidence["canonical_payload"]["binding_version"] = "v7"
 
     claim = _claim(evidence, trust_root)
 

@@ -104,6 +104,24 @@ PERMIT_BINDING_DELEGATION_POLICY = {
         },
     ]
 }
+EMPTY_RESOURCE_ATTRIBUTES_CANONICAL_HASH = (
+    "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+)
+PERMIT_BINDING_RESOURCE_ATTRIBUTES = {
+    "operation": "responses.create",
+    "spend_scope": PERMIT_BINDING_SPEND_SCOPE,
+    "delegation_policy": PERMIT_BINDING_DELEGATION_POLICY,
+    "x402": {
+        "payment_required": True,
+        "asset_summary": {"currency": "USD", "amount": 5000},
+    },
+}
+PERMIT_BINDING_RESOURCE_ATTRIBUTES_HASH = (
+    "3948a061226e7d5793f24ef41f7312c460fb4de42f100534cfb68568bf7166c4"
+)
+PERMIT_BINDING_V6_CANONICAL_HASH = (
+    "e7e196ed5f6e67f13c329b882820af10bf922c9cea78f9a43b1a450401655c8b"
+)
 PERMIT_BINDING_BASE_FIELDS = {
     "permit_id": "10000000-0000-4000-8000-000000000222",
     "project_id": "20000000-0000-4000-8000-000000000333",
@@ -254,13 +272,54 @@ def test_canonical_binding_payload_v5_byte_identity_with_rfc8785():
             PERMIT_BINDING_DELEGATION_POLICY
         ),
     )
-    assert payload["binding_version"] == "v5"
+    assert payload["binding_version"] == permit_binding.RFC8785_BINDING_REQUEST_CANONICAL_VERSION
     assert permit_binding.canonical_binding_bytes("v5", payload) == rfc8785.dumps(
         payload
     )
     assert permit_binding.compute_canonical_binding_hash(payload) == hashlib.sha256(
         rfc8785.dumps(payload)
     ).hexdigest()
+
+
+def test_resource_attributes_canonical_hash_empty_object_constant():
+    assert permit_binding.canonical_resource_attributes_payload(None) is None
+    assert (
+        permit_binding.canonical_resource_attributes_payload({})
+        == EMPTY_RESOURCE_ATTRIBUTES_CANONICAL_HASH
+    )
+    assert hashlib.sha256(rfc8785.dumps({})).hexdigest() == (
+        EMPTY_RESOURCE_ATTRIBUTES_CANONICAL_HASH
+    )
+
+
+def test_canonical_binding_payload_v6_byte_identity_with_rfc8785():
+    resource_attributes_hash = permit_binding.canonical_resource_attributes_payload(
+        PERMIT_BINDING_RESOURCE_ATTRIBUTES
+    )
+    payload = permit_binding.canonical_binding_payload_v6(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+        spend_scope_hash=permit_binding.canonical_spend_scope_payload(
+            PERMIT_BINDING_SPEND_SCOPE
+        ),
+        delegation_policy_hash=permit_binding.canonical_delegation_policy_payload(
+            PERMIT_BINDING_DELEGATION_POLICY
+        ),
+        resource_attributes_canonical_hash=resource_attributes_hash,
+    )
+
+    assert resource_attributes_hash == PERMIT_BINDING_RESOURCE_ATTRIBUTES_HASH
+    assert payload["binding_version"] == "v6"
+    assert payload["resource_attributes_canonical_hash"] == (
+        PERMIT_BINDING_RESOURCE_ATTRIBUTES_HASH
+    )
+    assert permit_binding.canonical_binding_bytes("v6", payload) == rfc8785.dumps(
+        payload
+    )
+    assert (
+        permit_binding.compute_canonical_binding_hash(payload)
+        == PERMIT_BINDING_V6_CANONICAL_HASH
+    )
 
 
 def test_provider_wire_body_v5_byte_identity_with_rfc8785():
@@ -279,6 +338,12 @@ def test_provider_wire_body_v5_byte_identity_with_rfc8785():
         payload,
         binding_request_canonical_version="v5",
     ) == rfc8785.dumps(expected_payload)
+    assert permit_binding.canonical_provider_wire_body(
+        payload,
+        binding_request_canonical_version=(
+            permit_binding.binding_request_canonical_version_for_binding("v6")
+        ),
+    ) == rfc8785.dumps(expected_payload)
 
 
 def test_permit_v2_envelope_v5_byte_identity_with_rfc8785():
@@ -292,6 +357,9 @@ def test_permit_v2_envelope_v5_byte_identity_with_rfc8785():
         "execution_intent_hash": "c" * 64,
     }
     assert verifier._permit_v2_canonical_bytes("v5", payload) == rfc8785.dumps(
+        payload
+    )
+    assert verifier._permit_v2_canonical_bytes("v6", payload) == rfc8785.dumps(
         payload
     )
     assert verifier._permit_v2_canonical_bytes("v4", payload) == (
