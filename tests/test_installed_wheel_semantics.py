@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
 
-from conftest import write_json
+from conftest import keypair, write_combined_key_manifest, write_json, write_signed_export
 from keel_verifier import verifier
 from keel_verifier.semantics import (
     AUTHORITY_ENVELOPE_V0_HASH,
@@ -16,15 +16,22 @@ from keel_verifier.semantics import (
     CLAIM_REGISTRY_HISTORICAL_HASHES,
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
+    EXPORT_MANIFEST_INTEGRITY_HASH,
+    EXPORT_MANIFEST_INTEGRITY_ID,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
     GOVERNANCE_RECORD_HASH_HASH,
     GOVERNANCE_RECORD_HASH_ID,
+    PERMIT_DECISION_HASH,
+    PERMIT_DECISION_ID,
     RELEASED_ARTIFACT_PATHS,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+PERMIT_DECISION_GOLDEN_VECTOR_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "permit_decision_binding_golden_vectors_v1_v6.json"
+)
 
 
 def _run(
@@ -202,6 +209,29 @@ def _path_only_delegation_denied_evidence() -> dict[str, Any]:
     return evidence
 
 
+def _add_permit_decision_pins(manifest_path: Path) -> None:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["claim_set"] = {
+        "version": "verifier-claims.v0",
+        "registry": _path_ref(CLAIM_REGISTRY_ID, CLAIM_REGISTRY_HASH),
+        "claims": [
+            {
+                "name": verifier.PERMIT_DECISION_CLAIM_NAME,
+                "required": True,
+            }
+        ],
+    }
+    manifest["semantics_pins"] = {
+        "version": "keel-semantics-pins.v0",
+        "mode": "pinned",
+        "artifacts": [
+            _path_ref(EXPORT_MANIFEST_INTEGRITY_ID, EXPORT_MANIFEST_INTEGRITY_HASH),
+            _path_ref(PERMIT_DECISION_ID, PERMIT_DECISION_HASH),
+        ],
+    }
+    write_json(manifest_path, manifest)
+
+
 def test_installed_wheel_resolves_path_only_semantic_pins(
     tmp_path: Path,
 ) -> None:
@@ -303,3 +333,49 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
         GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID,
         AUTHORITY_ENVELOPE_V0_ID,
     }
+
+    golden = json.loads(PERMIT_DECISION_GOLDEN_VECTOR_PATH.read_text(encoding="utf-8"))
+    v6_evidence = next(
+        item["artifact"] for item in golden["vectors"] if item["binding_version"] == "v6"
+    )
+    export_private, export_public, export_key_id = keypair()
+    key_manifest = write_combined_key_manifest(
+        tmp_path,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+        binding_public_key=golden["binding_public_key"],
+    )
+    export_file, manifest = write_signed_export(
+        tmp_path,
+        {"permit_decision": v6_evidence},
+        export_private_key=export_private,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+    )
+    _add_permit_decision_pins(manifest)
+
+    v6_result = _run(
+        [
+            str(venv_python),
+            "-m",
+            "keel_verifier",
+            "export",
+            "--json",
+            str(export_file),
+            str(manifest),
+            "--key-manifest",
+            str(key_manifest),
+            "--offline",
+        ],
+        cwd=run_dir,
+        env=_clean_env(),
+    )
+    v6_payload = json.loads(v6_result.stdout)
+    v6_claim = next(
+        claim
+        for claim in v6_payload["claims"]
+        if claim["name"] == verifier.PERMIT_DECISION_CLAIM_NAME
+    )
+
+    assert v6_claim["verdict"] == "supported"
+    assert v6_claim["reason_code"] == "PERMIT_DECISION_SUPPORTED"

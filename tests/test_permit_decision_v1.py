@@ -303,6 +303,56 @@ def test_golden_permit_decision_vectors_v1_to_v6_supported(tmp_path: Path) -> No
         assert claim.reason_code == item["expected_reason_code"]
 
 
+def test_cli_verifies_v6_golden_permit_decision_offline(
+    tmp_path: Path,
+    run_cli,
+) -> None:
+    fixture = json.loads(
+        PERMIT_DECISION_GOLDEN_VECTOR_PATH.read_text(encoding="utf-8")
+    )
+    evidence = copy.deepcopy(
+        next(
+            item["artifact"]
+            for item in fixture["vectors"]
+            if item["binding_version"] == "v6"
+        )
+    )
+    export_private, export_public, export_key_id = export_keypair()
+    key_manifest = write_combined_key_manifest(
+        tmp_path,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+        binding_public_key=fixture["binding_public_key"],
+    )
+    export_file, manifest = write_signed_export(
+        tmp_path,
+        {"permit_decision": evidence},
+        export_private_key=export_private,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+    )
+    _add_permit_decision_pins(manifest)
+
+    result = run_cli(
+        "export",
+        "--json",
+        str(export_file),
+        str(manifest),
+        "--key-manifest",
+        str(key_manifest),
+        "--offline",
+    )
+    assert result.returncode == 0, result.stderr
+
+    payload = json.loads(result.stdout)
+    claim = next(
+        claim for claim in payload["claims"] if claim["name"] == "permit.decision.v1"
+    )
+
+    assert claim["verdict"] == "supported"
+    assert claim["reason_code"] == "PERMIT_DECISION_SUPPORTED"
+
+
 def test_permit_decision_allow_supported(tmp_path: Path) -> None:
     private_key, public_key = keypair(b"1" * 32)
     trust_root = write_permit_trust_root(tmp_path, public_key)

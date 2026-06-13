@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.3.1 — Permit-decision v1-v6 golden vectors (2026-06-13)
+
+- Adds shared golden vectors for `permit.decision.v1` bindings across v1-v6,
+  including the v5 RFC 8785 selector shape and v6
+  `resource_attributes_canonical_hash`.
+- Confirms the existing v5/v6 permit-decision adjudication path accepts signed
+  evidence offline and preserves `PERMIT_DECISION_SUPPORTED` verdicts for all
+  supported binding versions.
+- No runtime verifier changes are required beyond the v3.3.0 v6 implementation.
+
 ## v3.3.0 — Binding v6 resource-attributes canonical hash (2026-06-06)
 
 - Adds binding v6 canonical payload support with
