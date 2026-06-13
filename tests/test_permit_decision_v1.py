@@ -32,6 +32,11 @@ from keel_verifier.verifier import (
     _binding_key_id_from_public_key,
 )
 
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+PERMIT_DECISION_GOLDEN_VECTOR_PATH = (
+    FIXTURES_DIR / "permit_decision_binding_golden_vectors_v1_v6.json"
+)
+
 
 BASE_RESOURCE_ATTRIBUTES = {
     "operation": "responses.create",
@@ -268,6 +273,34 @@ def _add_permit_decision_pins(manifest_path: Path) -> None:
         ],
     }
     write_json(manifest_path, manifest)
+
+
+def test_golden_permit_decision_vectors_v1_to_v6_supported(tmp_path: Path) -> None:
+    fixture = json.loads(
+        PERMIT_DECISION_GOLDEN_VECTOR_PATH.read_text(encoding="utf-8")
+    )
+    trust_root = write_permit_trust_root(tmp_path, fixture["binding_public_key"])
+
+    assert fixture["schema_version"] == "permit_decision_binding_golden_vectors.v1"
+    assert [item["binding_version"] for item in fixture["vectors"]] == [
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+    ]
+    for item in fixture["vectors"]:
+        artifact = item["artifact"]
+        assert (
+            permit_binding.compute_canonical_binding_hash(
+                artifact["canonical_payload"]
+            )
+            == artifact["binding_canonical_hash"]
+        )
+        claim = _claim(artifact, trust_root)
+        assert claim.aggregate_verdict == item["expected_verdict"]
+        assert claim.reason_code == item["expected_reason_code"]
 
 
 def test_permit_decision_allow_supported(tmp_path: Path) -> None:
