@@ -18,17 +18,6 @@ ArtifactType = Literal[
 
 _DIGEST_RE = re.compile(r"^sha256:[a-f0-9]{64}$")
 _LOWERCASE_RE = re.compile(r"^[^A-Z]+$")
-_UUID_RE = re.compile(
-    r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-)
-_ID_PREFIXES: dict[str, tuple[str, ...]] = {
-    "compliance_export": ("exp_", "export_"),
-    "checkpoint_envelope": ("chk_", "checkpoint_"),
-    "voice_session_attestation": ("sess_", "voice_session_"),
-    "decision_evidence": ("pmt_", "permit_", "decision_"),
-    "rail_evidence": ("rail_",),
-}
-_PREFIXED_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 
 class ArtifactRef(BaseModel):
@@ -84,16 +73,7 @@ class ArtifactRef(BaseModel):
             raise ValueError(
                 "urn must be urn:x-keel:artifact:<type>:<id> with exactly five segments"
             )
-        if not _id_matches_type(self.type, self.id):
-            raise ValueError(f"id does not match existing {self.type} ID format")
         return self
-
-
-def _id_matches_type(artifact_type: str, artifact_id: str) -> bool:
-    if _UUID_RE.fullmatch(artifact_id):
-        return True
-    prefixes = _ID_PREFIXES[artifact_type]
-    return artifact_id.startswith(prefixes) and bool(_PREFIXED_ID_RE.fullmatch(artifact_id))
 
 
 def parse_artifact_ref(bundle: Mapping[str, Any]) -> ArtifactRef | None:
