@@ -1,5 +1,6 @@
 asn1crypto>=1.5,<2
 certifi>=2024.8.30
 cryptography>=42
+pydantic>=2,<3
 rfc8785>=0.1.4,<1
 sigstore>=3.6.7,<4

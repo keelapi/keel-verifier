@@ -102,6 +102,7 @@ from keel_verifier.semantics import (
     make_permanent_allowlist,
     resolve_pack_semantics,
 )
+from keel_verifier.schemas.artifact_ref import ArtifactRef, parse_artifact_ref
 
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -143,10 +144,51 @@ REFRESH_KEYS_SOURCES: tuple[tuple[str, str, str], ...] = (
     ("api", "Keel API", KEELAPI_COMPLIANCE_KEYS_URL),
     ("github", "GitHub", GITHUB_TRUST_ROOT_URL),
 )
+LEGACY_ARTIFACT_REF_WARNING = (
+    "Bundle uses legacy schema without artifact_ref. New bundles include stable URN "
+    "identity; legacy bundles remain verifiable but lose the URN identity layer."
+)
+_legacy_artifact_ref_warning_printed = False
 
 
 def _content_hash(data: bytes) -> str:
     return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _artifact_ref_to_dict(artifact_ref: ArtifactRef) -> dict[str, Any]:
+    return artifact_ref.model_dump()
+
+
+def _emit_legacy_artifact_ref_warning_once() -> None:
+    global _legacy_artifact_ref_warning_printed
+    if _legacy_artifact_ref_warning_printed:
+        return
+    print(f"WARNING: {LEGACY_ARTIFACT_REF_WARNING}", file=sys.stderr)
+    _legacy_artifact_ref_warning_printed = True
+
+
+def _artifact_ref_from_bundle(bundle: Mapping[str, Any]) -> ArtifactRef | None:
+    return parse_artifact_ref(bundle)
+
+
+def _artifact_ref_from_export_data(export_data: bytes) -> ArtifactRef | None:
+    try:
+        bundle = _load_export_json_document(export_data)
+    except Exception:
+        return None
+    if not isinstance(bundle, Mapping):
+        return None
+    return _artifact_ref_from_bundle(bundle)
+
+
+def _emit_legacy_artifact_ref_warning_for_path(path: str | Path) -> None:
+    try:
+        data = Path(path).read_bytes()
+        artifact_ref = _artifact_ref_from_export_data(data)
+    except Exception:
+        return
+    if artifact_ref is None:
+        _emit_legacy_artifact_ref_warning_once()
 
 
 def _subject(
@@ -6224,6 +6266,7 @@ def _export_artifact_dict(
     manifest_path: Path,
     export_data: bytes | None = None,
     manifest_data: bytes | None = None,
+    artifact_ref: ArtifactRef | None = None,
 ) -> dict[str, Any]:
     artifact: dict[str, Any] = {
         "kind": "export",
@@ -6234,6 +6277,8 @@ def _export_artifact_dict(
         artifact["manifest_hash"] = _content_hash(manifest_data)
     if export_data is not None:
         artifact["payload_hash"] = _content_hash(export_data)
+    if artifact_ref is not None:
+        artifact["artifact_ref"] = _artifact_ref_to_dict(artifact_ref)
     return artifact
 
 
@@ -8355,11 +8400,33 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
 
     manifest_data = manifest_path.read_bytes()
     export_data = export_path.read_bytes()
+    artifact_ref: ArtifactRef | None = None
+    try:
+        artifact_ref = _artifact_ref_from_export_data(export_data)
+    except Exception as exc:
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=[
+                _single_subject_claim(
+                    "export.integrity.v1",
+                    subject_type="artifact_ref",
+                    subject_id=export_path.name,
+                    verdict="insufficient_evidence",
+                    reason_code="ARTIFACT_REF_INVALID",
+                    message=f"artifact_ref is invalid: {exc}",
+                    evidence=["export.artifact_ref"],
+                )
+            ],
+            error=f"artifact_ref is invalid: {exc}",
+        )
     artifact = _export_artifact_dict(
         export_path=export_path,
         manifest_path=manifest_path,
         export_data=export_data,
         manifest_data=manifest_data,
+        artifact_ref=artifact_ref,
     )
     try:
         manifest = json.loads(manifest_data.decode("utf-8"))
@@ -9240,6 +9307,8 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
 def cmd_export(args: argparse.Namespace) -> int:
     if getattr(args, "as_json", False):
         report = verify_export_structured(args)
+        if report.ok and "artifact_ref" not in report.artifact:
+            _emit_legacy_artifact_ref_warning_once()
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
         return report.exit_code
 
@@ -9255,6 +9324,11 @@ def cmd_export(args: argparse.Namespace) -> int:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     export_data = export_path.read_bytes()
+    try:
+        artifact_ref = _artifact_ref_from_export_data(export_data)
+    except Exception as exc:
+        print(f"FAILED: artifact_ref is invalid: {exc}", file=sys.stderr)
+        return 1
 
     expected = manifest.get("content_hash")
     actual = _content_hash(export_data)
@@ -9315,6 +9389,9 @@ def cmd_export(args: argparse.Namespace) -> int:
         print("FAILED: Signature verification failed.", file=sys.stderr)
         return 1
 
+    if artifact_ref is None:
+        _emit_legacy_artifact_ref_warning_once()
+
     print("VERIFIED")
     print(f"  Export:       {export_path.name}")
     print(f"  Content hash: {expected}")
@@ -9322,6 +9399,9 @@ def cmd_export(args: argparse.Namespace) -> int:
     print(f"  Public key:   {trusted_pub}")
     print(f"  Key id:       {artifact_key_id or _public_key_fingerprint(trusted_pub)}")
     print(f"  Trust source: {trust_source}")
+    if artifact_ref is not None:
+        print(f"  Artifact URN: {artifact_ref.urn}")
+        print(f"  Artifact type:{artifact_ref.type:>23}")
     if _scope_export_declaration_present(export_data):
         scope_claims = _adjudicate_export_scope_faithfulness_v1(
             export_data=export_data,
@@ -10531,6 +10611,20 @@ def _checkpoint_artifact_dict(path: Path, data: bytes | None = None) -> dict[str
     return artifact
 
 
+def _attach_artifact_ref(
+    artifact: dict[str, Any],
+    bundle: Mapping[str, Any],
+) -> tuple[dict[str, Any], str | None]:
+    try:
+        artifact_ref = _artifact_ref_from_bundle(bundle)
+    except Exception as exc:
+        return artifact, f"artifact_ref is invalid: {exc}"
+    if artifact_ref is not None:
+        artifact = dict(artifact)
+        artifact["artifact_ref"] = _artifact_ref_to_dict(artifact_ref)
+    return artifact, None
+
+
 def _checkpoint_composite_claim(
     *,
     verdict: str,
@@ -10725,6 +10819,9 @@ def _verify_checkpoint_core(
             error="top-level JSON must be an object",
             artifact=artifact,
         )
+    artifact, artifact_ref_error = _attach_artifact_ref(artifact, body)
+    if artifact_ref_error is not None:
+        return VerifyResult(ok=False, error=artifact_ref_error, artifact=artifact)
 
     default_claims = ("checkpoint.composite_hash.v1", "checkpoint.signature.v1")
     semantics = resolve_pack_semantics(
@@ -11256,6 +11353,9 @@ def verify(
     if _is_voice_attestation_artifact(body):
         artifact = _checkpoint_artifact_dict(path, raw if "raw" in locals() else None)
         artifact["kind"] = "voice_session_attestation"
+        artifact, artifact_ref_error = _attach_artifact_ref(artifact, body)
+        if artifact_ref_error is not None:
+            return VerifyResult(ok=False, error=artifact_ref_error, artifact=artifact)
         result = verify_attestation_artifact(body, check_tsa=check_tsa)
         checks = result["checks"]
         failed = result["failed_checks"]

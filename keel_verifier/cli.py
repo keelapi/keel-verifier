@@ -21,6 +21,7 @@ from keel_verifier.verifier import (
     REFRESH_KEYS_SOURCES,
     VerifyResult,
     _load_json_evidence,
+    _emit_legacy_artifact_ref_warning_for_path,
     cmd_checkpoint,
     cmd_export,
     cmd_refresh_keys,
@@ -578,6 +579,10 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
         session_id = result.artifact.get("session_id")
         if session_id:
             p(f"  Session:      {session_id}")
+        artifact_ref = result.artifact.get("artifact_ref")
+        if isinstance(artifact_ref, dict):
+            p(f"  Artifact URN: {artifact_ref.get('urn')}")
+            p(f"  Artifact type:{str(artifact_ref.get('type')):>23}")
         if result.composite_hash:
             p(f"  Chain head:   {result.composite_hash}")
         checks = result.artifact.get("checks")
@@ -615,6 +620,10 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
         p(f"  Composite:     {result.composite_hash}")
     if result.chain_heads_count:
         p(f"  Chain heads:   {result.chain_heads_count} scope(s)")
+    artifact_ref = result.artifact.get("artifact_ref")
+    if isinstance(artifact_ref, dict):
+        p(f"  Artifact URN:  {artifact_ref.get('urn')}")
+        p(f"  Artifact type: {artifact_ref.get('type')}")
     if result.public_key:
         p(f"  Public key:    {result.public_key}")
     if result.key_id:
@@ -662,6 +671,8 @@ def _main_legacy(argv: list[str]) -> int:
         self_attested=args.self_attested,
         check_tsa=not args.no_tsa,
     )
+    if result.ok:
+        _emit_legacy_artifact_ref_warning_for_path(args.export_file)
 
     if args.as_json:
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))

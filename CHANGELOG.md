@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.0
+
+- Parse `artifact_ref` (artifact_ref.v1 schema) from new-format bundles
+- Surface URN as stable artifact identity in verbose output
+- Verification is offline-first: URL reachability is diagnostic, never a verification gate
+- Forgiving for legacy bundles without artifact_ref (deprecation warning, still verifies)
+
 ## v3.3.1 — Permit-decision v1-v6 golden vectors (2026-06-13)
 
 - Adds shared golden vectors for `permit.decision.v1` bindings across v1-v6,
