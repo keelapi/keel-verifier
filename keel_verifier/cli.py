@@ -113,8 +113,6 @@ def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -
     args.manifest = args.manifest_flag or args.manifest_pos
     if not args.export_file:
         parser.error("export requires EXPORT_FILE or --export-file")
-    if not args.manifest:
-        parser.error("export requires MANIFEST or --manifest")
     if _trust_flag_count(args, include_public_key_url=False) > 1:
         parser.error(
             "--expected-public-key/--public-key, --key-manifest, "

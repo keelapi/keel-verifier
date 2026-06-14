@@ -46,7 +46,7 @@ def test_new_format_bundle_verifies_and_surfaces_urn(tmp_path, run_cli) -> None:
     assert result.returncode == 0, result.stderr
     assert f"Artifact URN: {ARTIFACT_URN}" in result.stdout
     assert "compliance_export" in result.stdout
-    assert result.stderr == ""
+    assert "legacy split-file export input is deprecated" in result.stderr
 
 
 def test_new_format_bundle_json_output_includes_artifact_ref(
@@ -74,4 +74,4 @@ def test_new_format_bundle_json_output_includes_artifact_ref(
     assert result.returncode == 0, result.stderr
     assert payload["artifact"]["artifact_ref"]["urn"] == ARTIFACT_URN
     assert payload["artifact"]["artifact_ref"]["type"] == "compliance_export"
-    assert result.stderr == ""
+    assert "legacy split-file export input is deprecated" in result.stderr

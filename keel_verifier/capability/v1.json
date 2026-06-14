@@ -29,6 +29,18 @@
       ]
     },
     {
+      "name": "evidence_bundle.self_attesting.v1",
+      "status": "implemented",
+      "description": "Verifies a self-attesting evidence bundle wrapper: artifact_ref digest, canonical body content_hash, Ed25519 signature, and bundled RFC 3161 TSA receipt imprints when present.",
+      "depends_on_semantics": [],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "export.scope_identity.v1",
       "status": "implemented",
       "description": "Verifies the export's manifest identity fields against the signed payload shape: export_id, project_id, export_type, format, compressed, and record_count.",

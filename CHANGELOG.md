@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — self-attesting evidence bundle support
+
+- Add `keel.evidence_bundle/v1` parsing before legacy split-file export
+  verification. Single-file bundles verify `artifact_ref.v1`,
+  `signature_envelope.content_hash`, Ed25519 signature, and bundled RFC 3161
+  TSA receipt imprints without network access.
+- Preserve backward compatibility for legacy `export + manifest` verification
+  while emitting a deprecation warning for split-file input.
+- Accept self-attesting checkpoint bundles in `keel-verify checkpoint` by
+  validating the wrapper first, then running the existing checkpoint
+  composite-hash, signature, and TSA checks against `bundle.body`.
+
 ## 3.4.0
 
 - Parse `artifact_ref` (artifact_ref.v1 schema) from new-format bundles

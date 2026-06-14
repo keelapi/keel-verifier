@@ -49,7 +49,7 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08"
+    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
     "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c"
@@ -163,6 +163,7 @@ AuthorityEnvelopeComparator = Callable[..., Any]
 
 CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "export.integrity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
+    "evidence_bundle.self_attesting.v1": (),
     "export.scope_identity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "governance_chain.local_continuity.v1": (GOVERNANCE_RECORD_HASH_ID,),
     "permit_chain.delegation_denied_correctly.v1": (

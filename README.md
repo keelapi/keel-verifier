@@ -50,10 +50,29 @@ The v0.2.0 invocation pattern still works:
 python -m keel_verifier sample/export.json --self-attested
 ```
 
+## Single-File Evidence Bundles
+
+Keel evidence bundle v1 is intentionally one file, one command, no network.
+When a file has `schema_version=keel.evidence_bundle/v1`, the verifier reads
+the embedded `body` and `signature_envelope`, validates `artifact_ref.v1`,
+recomputes `signature_envelope.content_hash` over canonical `body`, verifies
+the Ed25519 signature with the bundled public key, and checks RFC 3161 TSA
+receipt imprints against the bundled anchor when receipts are present.
+
+```bash
+keel-verify export evidence_bundle.json
+keel-verify checkpoint checkpoint_bundle.json
+```
+
+Legacy split-file exports still verify with `keel-verify export export.json
+manifest.json`, but the CLI emits a deprecation warning so operators migrate
+downloads to the single-file bundle.
+
 ## Common Commands
 
 | Task | Command |
 | --- | --- |
+| Verify a self-attesting evidence bundle | `keel-verify export evidence_bundle.json` |
 | Verify a signed export | `keel-verify export export.json manifest.json` |
 | Walk lifecycle chain entries | `keel-verify export export.json manifest.json --walk-events` |
 | Verify closure records | `keel-verify export export.json manifest.json --walk-events --verify-closure` |
