@@ -218,7 +218,7 @@ The bundled trust root lives at `keel_verifier/data/trust_root.json`. It include
 
 ## Workflow Intent Verification
 
-`keel-verify export` understands `keel.vanta.workflow_evidence/v1` artifacts emitted alongside Vanta evidence exports. When the signed export manifest includes a `sibling_artifacts.workflow_evidence` entry, the verifier checks the sibling file hash, export signature, workflow declaration signatures, workflow amendment signatures, amendment version ordering, declaration `effective_intent_hash`, and any permit `workflow_state_json` snapshots in the main evidence.
+`keel-verify export` understands `keel.workflow_evidence/v1` artifacts emitted alongside evidence exports. During the 3.x transition it also accepts the legacy `keel.vanta.workflow_evidence/v1` name with a deprecation warning. When the signed export manifest includes a `sibling_artifacts.workflow_evidence` entry, the verifier checks the sibling file hash, export signature, workflow declaration signatures, workflow amendment signatures, amendment version ordering, declaration `effective_intent_hash`, and any permit `workflow_state_json` snapshots in the main evidence.
 
 Incident evidence zip bundles remain backward compatible. Manifest version 1 bundles without workflow files verify as before. Manifest version 2 bundles must include `workflow_declarations.jsonl` and `workflow_amendments.jsonl`; the verifier validates those files and fails gracefully on unknown manifest versions.
 

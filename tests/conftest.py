@@ -469,7 +469,7 @@ def workflow_evidence_document(
             ],
         )
     return {
-        "schema": "keel.vanta.workflow_evidence/v1",
+        "schema": "keel.workflow_evidence/v1",
         "source": "keel",
         "generated_at": "2026-05-07T12:10:00+00:00",
         "project_id": declarations[0]["project_id"] if declarations else "00000000-0000-0000-0000-000000000001",

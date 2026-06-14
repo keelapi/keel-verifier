@@ -148,7 +148,13 @@ LEGACY_ARTIFACT_REF_WARNING = (
     "Bundle uses legacy schema without artifact_ref. New bundles include stable URN "
     "identity; legacy bundles remain verifiable but lose the URN identity layer."
 )
+LEGACY_VANTA_SCHEMA_WARNING = (
+    "Bundle uses legacy Vanta-prefixed evidence schema names. "
+    "Use keel.evidence/v1 and keel.workflow_evidence/v1; legacy names remain "
+    "verifiable during the 3.x transition and will be removed in keel-verifier 4.0."
+)
 _legacy_artifact_ref_warning_printed = False
+_legacy_vanta_schema_warning_printed = False
 
 
 def _content_hash(data: bytes) -> str:
@@ -165,6 +171,14 @@ def _emit_legacy_artifact_ref_warning_once() -> None:
         return
     print(f"WARNING: {LEGACY_ARTIFACT_REF_WARNING}", file=sys.stderr)
     _legacy_artifact_ref_warning_printed = True
+
+
+def _emit_legacy_vanta_schema_warning_once() -> None:
+    global _legacy_vanta_schema_warning_printed
+    if _legacy_vanta_schema_warning_printed:
+        return
+    print(f"WARNING: {LEGACY_VANTA_SCHEMA_WARNING}", file=sys.stderr)
+    _legacy_vanta_schema_warning_printed = True
 
 
 def _artifact_ref_from_bundle(bundle: Mapping[str, Any]) -> ArtifactRef | None:
@@ -448,7 +462,13 @@ INCIDENT_UNKNOWN_MANIFEST_VERSION = "INCIDENT_UNKNOWN_MANIFEST_VERSION"
 PERMIT_BINDING_SIGNING_PURPOSE = "permit_binding_signing"
 WORKFLOW_DECLARATION_BINDING_VERSION = "workflow_declaration.v1"
 WORKFLOW_AMENDMENT_BINDING_VERSION = "workflow_amendment.v1"
-VANTA_WORKFLOW_EVIDENCE_SCHEMA = "keel.vanta.workflow_evidence/v1"
+EVIDENCE_SCHEMA = "keel.evidence/v1"
+LEGACY_VANTA_EVIDENCE_SCHEMA = "keel.vanta.evidence/v1"
+WORKFLOW_EVIDENCE_SCHEMA = "keel.workflow_evidence/v1"
+LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA = "keel.vanta.workflow_evidence/v1"
+WORKFLOW_EVIDENCE_SCHEMAS = frozenset(
+    {WORKFLOW_EVIDENCE_SCHEMA, LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA}
+)
 INCIDENT_WORKFLOW_DECLARATIONS_SCHEMA = "keel.workflow_declarations/v1"
 INCIDENT_WORKFLOW_AMENDMENTS_SCHEMA = "keel.workflow_amendments/v1"
 INCIDENT_V2_REQUIRED_FILES = {
@@ -466,6 +486,21 @@ PROVIDER_RESPONSE_DIGEST_SEMANTICS = "provider_bytes_received_by_keel"
 CLIENT_RESPONSE_DIGEST_SEMANTICS = "response_bytes_handed_to_asgi_not_tcp_receipt"
 CLOSURE_STATUS_CLOSED = "closed"
 CLOSURE_STATUS_MISSING_CLOSURE = "missing_closure"
+
+
+def _warn_if_legacy_evidence_schema(schema: Any) -> None:
+    if schema in {
+        LEGACY_VANTA_EVIDENCE_SCHEMA,
+        LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA,
+    }:
+        _emit_legacy_vanta_schema_warning_once()
+
+
+def _is_workflow_evidence_schema(schema: Any) -> bool:
+    if schema == LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+        _emit_legacy_vanta_schema_warning_once()
+        return True
+    return schema == WORKFLOW_EVIDENCE_SCHEMA
 
 _SIGNED_CLOSURE_V1_REQUIRED_KEYS = (
     "binding_version",
@@ -5673,10 +5708,10 @@ def _verify_workflow_evidence_document(
     args: argparse.Namespace,
     label: str,
 ) -> tuple[_WorkflowEvidenceIndex | None, int | None]:
-    if document.get("schema") != VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+    if not _is_workflow_evidence_schema(document.get("schema")):
         return None, _workflow_fail(
             WORKFLOW_EVIDENCE_SCHEMA_INVALID,
-            f"{label} schema must be {VANTA_WORKFLOW_EVIDENCE_SCHEMA!r}",
+            f"{label} schema must be {WORKFLOW_EVIDENCE_SCHEMA!r}",
         )
     declarations = document.get("declarations")
     amendments = document.get("amendments")
@@ -5969,7 +6004,7 @@ def _verify_vanta_workflow_extension(
     sibling = sibling_artifacts.get("workflow_evidence")
     if not isinstance(sibling, dict):
         return None
-    if sibling.get("schema") != VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+    if not _is_workflow_evidence_schema(sibling.get("schema")):
         return _workflow_fail(
             WORKFLOW_EVIDENCE_SCHEMA_INVALID,
             "workflow_evidence sibling schema is invalid",
@@ -6176,7 +6211,11 @@ def _verify_export_workflow_extensions(
     args: argparse.Namespace,
 ) -> int | None:
     export_document = _json_document_or_none(export_data)
-    if isinstance(export_document, dict) and export_document.get("schema") == VANTA_WORKFLOW_EVIDENCE_SCHEMA:
+    if isinstance(export_document, dict):
+        _warn_if_legacy_evidence_schema(export_document.get("schema"))
+    if isinstance(export_document, dict) and _is_workflow_evidence_schema(
+        export_document.get("schema")
+    ):
         _index, failure = _verify_workflow_evidence_document(
             export_document,
             args=args,

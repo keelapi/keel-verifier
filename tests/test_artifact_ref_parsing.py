@@ -58,17 +58,17 @@ def test_parse_artifact_ref_returns_none_for_legacy_bundle() -> None:
         (
             "voice_session_attestation",
             "customer_supplied_session_id",
-            "/v1/voice/sessions/customer_supplied_session_id/attestation",
+            "/v1/voice/sessions/customer_supplied_session_id/events.jsonl.zst",
         ),
         (
             "decision_evidence",
             "40000000-0000-0000-0000-000000000003",
-            "/v1/decisions/40000000-0000-0000-0000-000000000003/evidence",
+            "/v1/permits/40000000-0000-0000-0000-000000000003",
         ),
         (
             "rail_evidence",
             "1" * 64,
-            "/v1/rails/evidence/" + "1" * 64,
+            "/v1/executions/40000000-0000-0000-0000-000000000004/provider-attestation",
         ),
     ],
 )

@@ -6,6 +6,8 @@
 - Surface URN as stable artifact identity in verbose output
 - Verification is offline-first: URL reachability is diagnostic, never a verification gate
 - Forgiving for legacy bundles without artifact_ref (deprecation warning, still verifies)
+- Accept `keel.evidence/v1` and `keel.workflow_evidence/v1` while keeping
+  legacy Vanta-prefixed schema names verifiable with a deprecation warning
 
 ## v3.3.1 — Permit-decision v1-v6 golden vectors (2026-06-13)
 
