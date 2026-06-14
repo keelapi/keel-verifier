@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -19,9 +20,18 @@ BUNDLED_PATH = (
 )
 
 
-def _fetch_json(url: str) -> dict[str, Any]:
-    with urllib.request.urlopen(url, timeout=10) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+def _fetch_json(url: str, *, attempts: int = 3, timeout: int = 20) -> dict[str, Any]:
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            last_exc = exc
+            if attempt < attempts:
+                time.sleep(attempt)
+    assert last_exc is not None
+    raise last_exc
 
 
 def _entries_by_purpose(body: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:

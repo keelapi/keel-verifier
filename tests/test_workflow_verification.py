@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timezone
 import zipfile
 
+import pytest
+
 from conftest import (
     content_hash,
     keypair,
@@ -18,6 +20,11 @@ from conftest import (
     write_signed_export,
     write_signed_payload,
 )
+
+EVIDENCE_SCHEMA = "keel.evidence/v1"
+LEGACY_VANTA_EVIDENCE_SCHEMA = "keel.vanta.evidence/v1"
+WORKFLOW_EVIDENCE_SCHEMA = "keel.workflow_evidence/v1"
+LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA = "keel.vanta.workflow_evidence/v1"
 
 
 def _workflow_fixture(tmp_path, *, with_amendment: bool = True):
@@ -67,7 +74,7 @@ def _write_workflow_sibling(tmp_path, fixture, workflow_document):
         fixture["export_private"].sign(workflow_digest.encode("utf-8"))
     ).decode("ascii")
     return workflow_path, {
-        "schema": "keel.vanta.workflow_evidence/v1",
+        "schema": workflow_document["schema"],
         "workflow_evidence_file": str(workflow_path),
         "workflow_evidence": {
             "file_name": "workflow_evidence.json",
@@ -95,7 +102,7 @@ def test_vanta_workflow_sibling_and_permit_snapshot_verify_clean(tmp_path, run_c
     export_file, manifest = write_signed_export(
         tmp_path,
         {
-            "schema": "keel.vanta.evidence/v1",
+            "schema": EVIDENCE_SCHEMA,
             "records": [
                 {
                     "permit_id": "permit_123",
@@ -137,6 +144,57 @@ def test_vanta_workflow_sibling_and_permit_snapshot_verify_clean(tmp_path, run_c
     assert result.returncode == 0, result.stderr
     assert "WORKFLOW-EVIDENCE: VERIFIED" in result.stdout
     assert "workflow_state_json checks: 1 PASS" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("evidence_schema", "workflow_schema", "expects_warning"),
+    (
+        (EVIDENCE_SCHEMA, WORKFLOW_EVIDENCE_SCHEMA, False),
+        (
+            LEGACY_VANTA_EVIDENCE_SCHEMA,
+            LEGACY_VANTA_WORKFLOW_EVIDENCE_SCHEMA,
+            True,
+        ),
+    ),
+)
+def test_workflow_schema_names_transition_verify(
+    tmp_path,
+    run_cli,
+    evidence_schema: str,
+    workflow_schema: str,
+    expects_warning: bool,
+):
+    fixture = _workflow_fixture(tmp_path, with_amendment=False)
+    fixture["document"]["schema"] = workflow_schema
+    export_file, manifest = write_signed_export(
+        tmp_path,
+        {"schema": evidence_schema, "records": []},
+        export_private_key=fixture["export_private"],
+        export_public_key=fixture["export_public"],
+        export_key_id=fixture["export_key_id"],
+    )
+    _workflow_path, sibling = _write_workflow_sibling(
+        tmp_path,
+        fixture,
+        fixture["document"],
+    )
+    manifest_doc = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_doc["sibling_artifacts"] = {"workflow_evidence": sibling}
+    write_json(manifest, manifest_doc)
+
+    result = run_cli(
+        "export",
+        str(export_file),
+        str(manifest),
+        "--key-manifest",
+        str(fixture["key_manifest"]),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "WORKFLOW-EVIDENCE: VERIFIED" in result.stdout
+    assert (
+        "legacy Vanta-prefixed evidence schema names" in result.stderr
+    ) is expects_warning
 
 
 def test_workflow_declaration_signature_tamper_fails(tmp_path, run_cli):
@@ -236,7 +294,7 @@ def test_permit_effective_intent_hash_mismatch_fails(tmp_path, run_cli):
     export_file, manifest = write_signed_export(
         tmp_path,
         {
-            "schema": "keel.vanta.evidence/v1",
+            "schema": EVIDENCE_SCHEMA,
             "records": [
                 {
                     "permit_id": "permit_123",
