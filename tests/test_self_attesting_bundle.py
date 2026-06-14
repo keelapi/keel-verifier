@@ -10,6 +10,7 @@ from typing import Any
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
+import keel_verifier.verifier as verifier_module
 from keel_verifier.verifier import (
     _bundle_canonical_json_bytes,
     _content_hash,
@@ -205,6 +206,7 @@ def test_legacy_split_file_export_still_verifies_with_warning(
     tmp_path: Path,
     capsys,
 ) -> None:
+    verifier_module._LEGACY_SPLIT_EXPORT_WARNING_EMITTED = False
     private_key, public_key, key_id = _signing_material()
     export_path = tmp_path / "export.json"
     export_path.write_text('{"records":[]}', encoding="utf-8")

@@ -1,0 +1,56 @@
+{
+  "id": "keel.evidence_bundle.self_attesting.v1",
+  "version": "v1",
+  "kind": "evidence_bundle_self_attesting_recipe",
+  "status": "released",
+  "body": {
+    "wrapper_schema": {
+      "schema_version": "keel.evidence_bundle/v1",
+      "required_top_level_fields": [
+        "schema_version",
+        "body",
+        "signature_envelope"
+      ],
+      "body_type": "object",
+      "signature_envelope_type": "object"
+    },
+    "artifact_ref_digest": {
+      "field": "body.artifact_ref.digest",
+      "algorithm": "sha256",
+      "canonicalization": "JSON sort_keys=true separators=(comma,colon) ensure_ascii=false allow_nan=false",
+      "material": "body with artifact_ref removed and family-specific anchor removed",
+      "compare_to": "body.artifact_ref.digest exact string equality"
+    },
+    "content_hash": {
+      "field": "signature_envelope.content_hash",
+      "algorithm": "sha256",
+      "canonicalization": "JSON sort_keys=true separators=(comma,colon) ensure_ascii=false allow_nan=false",
+      "material": "final body including artifact_ref and any anchor",
+      "compare_to": "signature_envelope.content_hash exact string equality"
+    },
+    "signature": {
+      "signature_field": "signature_envelope.signature",
+      "public_key_field": "signature_envelope.public_key",
+      "signed_message": "signature_envelope.content_hash encoded as UTF-8",
+      "verification": {
+        "public_key_decode": "remove optional ed25519: prefix, base64-decode remaining text, Ed25519PublicKey.from_public_bytes",
+        "signature_decode": "remove optional ed25519: prefix, base64-decode remaining text",
+        "invalid_handling": "any exception means verification false"
+      }
+    },
+    "tsa_receipts": {
+      "field": "signature_envelope.tsa_receipts",
+      "missing_receipts": "warning only because TSA is plan-tiered",
+      "receipt_bytes_fields": [
+        "receipt_b64",
+        "tsa_response_base64"
+      ],
+      "anchor_hash_resolution": [
+        "body.anchor.composite_hash when anchor.kind is published_checkpoint",
+        "body.anchor.chain_head_hash when anchor.kind is chain_head_timestamp",
+        "body.composite_hash for checkpoint envelope bodies"
+      ],
+      "verification": "when receipts are present, each RFC 3161 MessageImprint must equal the resolved anchor hash bytes"
+    }
+  }
+}
