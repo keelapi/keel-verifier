@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
@@ -156,6 +157,66 @@ def test_bundle_signature_mismatch_fails_clearly(tmp_path: Path) -> None:
     assert report.ok is False
     assert report.error == "bundle signature verification failed"
     assert report.claims[0].reason_code == "BUNDLE_SIGNATURE_INVALID"
+
+
+def test_export_command_accepts_voice_chain_head_timestamp_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_key, public_key, key_id = _signing_material()
+    chain_head_hash = "sha256:" + "8" * 64
+    receipt = {"provider": "tsa.test", "tsa_response_base64": "receipt-bytes"}
+    body = {
+        "schema": "keel.voice.attestation.phase_a",
+        "artifact_version": "1.2.0",
+        "schema_version": 3,
+        "session_metadata": {"session_id": "session_voice_bundle"},
+        "project_chain_head": {
+            "chain_scope": "project:11111111-1111-4111-8111-111111111111",
+            "content_hash": chain_head_hash,
+            "sequence": 7,
+        },
+        "timestamp_receipts": [receipt],
+    }
+    body["artifact_ref"] = _artifact_ref(
+        artifact_type="voice_session_attestation",
+        artifact_id="session_voice_bundle",
+        body=body,
+    )
+    body["anchor"] = {
+        "kind": "chain_head_timestamp",
+        "chain_scope_key": body["project_chain_head"]["chain_scope"],
+        "chain_head_hash": chain_head_hash,
+        "sequence_number": body["project_chain_head"]["sequence"],
+        "timestamp_receipts": [receipt],
+    }
+    bundle = _bundle(body, private_key, public_key, key_id)
+    bundle["signature_envelope"]["tsa_receipts"] = [receipt]
+    bundle["signature_envelope"]["tsa_attempts"] = [
+        {"provider": "tsa.test", "status": "ok"}
+    ]
+    checked_imprints: list[tuple[str, str]] = []
+
+    def _fake_verify_tsa_receipt(receipt_b64: str, expected_hash_hex: str):
+        checked_imprints.append((receipt_b64, expected_hash_hex))
+        return True, "ok"
+
+    monkeypatch.setattr(
+        verifier_module,
+        "_verify_tsa_receipt",
+        _fake_verify_tsa_receipt,
+    )
+    path = _write(
+        tmp_path / "voice_bundle.json",
+        bundle,
+    )
+
+    report = verify_export_structured(_export_args(path))
+
+    assert report.ok is True
+    assert report.error is None
+    assert report.claims[0].reason_code == "EVIDENCE_BUNDLE_SUPPORTED"
+    assert checked_imprints == [("receipt-bytes", "8" * 64)]
 
 
 def test_checkpoint_command_verifies_self_attesting_checkpoint_bundle(tmp_path: Path) -> None:
