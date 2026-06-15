@@ -11,6 +11,10 @@
 - Accept self-attesting checkpoint bundles in `keel-verify checkpoint` by
   validating the wrapper first, then running the existing checkpoint
   composite-hash, signature, and TSA checks against `bundle.body`.
+- CLI auto-detects self-attesting bundles when invoked with a bare file path
+  (`python -m keel_verifier <bundle.json>`) and routes to the `export`
+  subcommand. Previously the bare form fell through to legacy verification
+  and produced a confusing `missing or malformed composite_hash` error.
 
 ## 3.4.0
 
