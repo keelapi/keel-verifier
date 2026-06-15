@@ -118,6 +118,60 @@ def test_export_command_accepts_single_file_self_attesting_bundle(tmp_path: Path
     assert any("bundle has no TSA receipts" in item for item in report.diagnostics)
 
 
+def test_export_command_accepts_self_attesting_bundle_without_anchor(
+    tmp_path: Path,
+    capsys,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    private_key, public_key, key_id = _signing_material()
+    body = {
+        "schema": "keel.evidence/v1",
+        "source": "keel",
+        "generated_at": "2026-06-14T12:00:00Z",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "export_id": "22222222-2222-4222-8222-222222222222",
+        "decision_source": "Decision made by Keel",
+        "record_count": 0,
+        "records": [],
+    }
+    body["artifact_ref"] = _artifact_ref(
+        artifact_type="compliance_export",
+        artifact_id=body["export_id"],
+        body=body,
+    )
+    bundle = _bundle(body, private_key, public_key, key_id)
+    bundle["signature_envelope"]["tsa_receipts"] = [
+        {"provider": "tsa.test", "receipt_b64": "receipt-bytes"}
+    ]
+    path = _write(
+        tmp_path / "export_bundle_without_anchor.json",
+        bundle,
+    )
+
+    def _fail_tsa_check(receipt_b64: str, expected_hash_hex: str):
+        raise AssertionError("TSA verification should be skipped without anchor")
+
+    monkeypatch.setattr(
+        verifier_module,
+        "_verify_tsa_receipt",
+        _fail_tsa_check,
+    )
+
+    report = verify_export_structured(_export_args(path))
+
+    assert report.ok is True
+    assert report.error is None
+    assert "anchor" not in bundle["body"]
+    assert report.claims[0].reason_code == "EVIDENCE_BUNDLE_SUPPORTED"
+    assert any("no anchor" in item for item in report.diagnostics)
+    assert any("skipping TSA imprint verification" in item for item in report.diagnostics)
+
+    assert cmd_export(_export_args(path, as_json=False)) == 0
+    captured = capsys.readouterr()
+    assert "no anchor" in captured.err
+    assert "VERIFIED" in captured.out
+
+
 def test_bundle_content_hash_mismatch_fails_clearly(tmp_path: Path) -> None:
     private_key, public_key, key_id = _signing_material()
     body = {"schema": "keel.evidence/v1", "records": []}

@@ -30,7 +30,7 @@
     "keel_verifier/data/semantics/closure/digest_rules_v1.json": "eca06d960a9e16468a622938a17b77244d487b58459be4dce3e55ef006f29454",
     "keel_verifier/data/semantics/closure/format_v1.json": "b208b82fbf8187ecdc85410630fbfa30f86f34c4da28d4b418c5788a8ec893ba",
     "keel_verifier/data/semantics/closure/format_v2.json": "476b9aaf8f1b3e0fd46b9cfae522062e803ecbb1c24fdbb6ec60775b979d59f1",
-    "keel_verifier/data/semantics/evidence_bundle/self_attesting_v1.json": "f5776d8782901bd9815c181bdbd27b2eeed311b22637b2bff6424bcea1d3d153",
+    "keel_verifier/data/semantics/evidence_bundle/self_attesting_v1.json": "67895a0df3d227eaec27c567637d3fef04241b3ed0b3e0033512cf7172913f6f",
     "keel_verifier/data/semantics/export/scope_faithfulness_v1.json": "75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1",
     "keel_verifier/data/semantics/export_manifest/integrity_v1.json": "d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76",
     "keel_verifier/data/semantics/governance_chain/record_hash_v1.json": "a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707",

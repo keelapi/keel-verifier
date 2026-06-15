@@ -1094,67 +1094,60 @@ def _verify_self_attesting_bundle_payload(
     receipts = envelope.get("tsa_receipts")
     receipt_list = [r for r in receipts if isinstance(r, dict)] if isinstance(receipts, list) else []
     anchor_hash = _bundle_anchor_hash(body)
+    if anchor_hash is None:
+        diagnostics.append(
+            "INFO: bundle has no anchor; verified as self-attesting without external chain anchoring"
+        )
     if not receipt_list:
         diagnostics.append("WARNING: bundle has no TSA receipts; TSA is plan-tiered")
     elif check_tsa:
         if anchor_hash is None:
-            message = "bundle TSA receipts present but no anchor hash is available"
-            return (
-                False,
-                message,
-                body,
-                [
-                    _self_attesting_bundle_claim(
-                        subject_type="tsa_receipts",
-                        subject_id=artifact_id,
-                        verdict="insufficient_evidence",
-                        reason_code="BUNDLE_TSA_ANCHOR_MISSING",
-                        message=message,
+            diagnostics.append(
+                "WARNING: bundle TSA receipts present but no anchor hash is available; "
+                "skipping TSA imprint verification"
+            )
+        else:
+            for index, receipt in enumerate(receipt_list, start=1):
+                receipt_b64 = _bundle_receipt_b64(receipt)
+                label = _bundle_receipt_label(receipt, index)
+                if receipt_b64 is None:
+                    message = f"TSA receipt {index} is missing receipt bytes"
+                    return (
+                        False,
+                        message,
+                        body,
+                        [
+                            _self_attesting_bundle_claim(
+                                subject_type="tsa_receipts",
+                                subject_id=label,
+                                verdict="insufficient_evidence",
+                                reason_code="BUNDLE_TSA_RECEIPT_MISSING",
+                                message=message,
+                            )
+                        ],
+                        diagnostics,
                     )
-                ],
-                diagnostics,
-            )
-        for index, receipt in enumerate(receipt_list, start=1):
-            receipt_b64 = _bundle_receipt_b64(receipt)
-            label = _bundle_receipt_label(receipt, index)
-            if receipt_b64 is None:
-                message = f"TSA receipt {index} is missing receipt bytes"
-                return (
-                    False,
-                    message,
-                    body,
-                    [
-                        _self_attesting_bundle_claim(
-                            subject_type="tsa_receipts",
-                            subject_id=label,
-                            verdict="insufficient_evidence",
-                            reason_code="BUNDLE_TSA_RECEIPT_MISSING",
-                            message=message,
-                        )
-                    ],
-                    diagnostics,
+                ok, reason = _verify_tsa_receipt(
+                    receipt_b64,
+                    anchor_hash.removeprefix("sha256:"),
                 )
-            ok, reason = _verify_tsa_receipt(
-                receipt_b64,
-                anchor_hash.removeprefix("sha256:"),
-            )
-            if not ok:
-                message = f"TSA: {label}: {reason}"
-                return (
-                    False,
-                    message,
-                    body,
-                    [
-                        _self_attesting_bundle_claim(
-                            subject_type="tsa_receipts",
-                            subject_id=label,
-                            verdict="disproved",
-                            reason_code="BUNDLE_TSA_IMPRINT_MISMATCH",
-                            message=message,
-                        )
-                    ],
-                    diagnostics,
-                )
+                if not ok:
+                    message = f"TSA: {label}: {reason}"
+                    return (
+                        False,
+                        message,
+                        body,
+                        [
+                            _self_attesting_bundle_claim(
+                                subject_type="tsa_receipts",
+                                subject_id=label,
+                                verdict="disproved",
+                                reason_code="BUNDLE_TSA_IMPRINT_MISMATCH",
+                                message=message,
+                            )
+                        ],
+                        diagnostics,
+                    )
 
     return (
         True,
@@ -1166,7 +1159,10 @@ def _verify_self_attesting_bundle_payload(
                 subject_id=str(artifact_ref.get("id") or artifact_id or ""),
                 verdict="supported",
                 reason_code="EVIDENCE_BUNDLE_SUPPORTED",
-                message="self-attesting bundle content hash, signature, artifact_ref, and TSA receipts verified",
+                message=(
+                    "self-attesting bundle content hash, signature, artifact_ref, "
+                    "and available TSA receipt checks completed"
+                ),
             )
         ],
         diagnostics,
