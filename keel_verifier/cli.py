@@ -682,8 +682,42 @@ def _main_legacy(argv: list[str]) -> int:
     return 0 if result.ok else 1
 
 
+_SELF_ATTESTING_BUNDLE_SCHEMA_VERSION = "keel.evidence_bundle/v1"
+
+
+def _looks_like_self_attesting_bundle(path: str) -> bool:
+    """Peek at a JSON file to detect the self-attesting bundle shape.
+
+    Returns False on any read/parse failure — caller falls through to the
+    legacy verifier, which prints a more accurate error for whatever the
+    file actually is.
+    """
+    try:
+        candidate = Path(path)
+        if not candidate.is_file():
+            return False
+        with candidate.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    return (
+        data.get("schema_version") == _SELF_ATTESTING_BUNDLE_SCHEMA_VERSION
+        and isinstance(data.get("body"), dict)
+        and isinstance(data.get("signature_envelope"), dict)
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
+    if (
+        raw
+        and raw[0] not in LEGACY_COMMANDS
+        and raw[0] not in {"-h", "--help", "--version"}
+        and _looks_like_self_attesting_bundle(raw[0])
+    ):
+        raw = ["export", *raw]
     if raw and raw[0] not in LEGACY_COMMANDS and raw[0] not in {"-h", "--help", "--version"}:
         return _main_legacy(raw)
 
