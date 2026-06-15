@@ -21,6 +21,7 @@ LEGACY_PROFILE_WARNING = (
 )
 
 EXPORT_MANIFEST_INTEGRITY_ID = "keel.export_manifest.integrity.v1"
+EVIDENCE_BUNDLE_SELF_ATTESTING_ID = "keel.evidence_bundle.self_attesting.v1"
 GOVERNANCE_RECORD_HASH_ID = "keel.governance_chain.record_hash.v1"
 CLOSURE_FORMAT_V1_ID = "keel.closure.format.v1"
 CLOSURE_FORMAT_V2_ID = "keel.closure.format.v2"
@@ -49,13 +50,14 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08"
+    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c"
+    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c",
     "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215",
     "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235",
     "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
@@ -63,6 +65,9 @@ CLAIM_REGISTRY_HISTORICAL_HASHES = (
 )
 EXPORT_MANIFEST_INTEGRITY_HASH = (
     "sha256:d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76"
+)
+EVIDENCE_BUNDLE_SELF_ATTESTING_HASH = (
+    "sha256:f5776d8782901bd9815c181bdbd27b2eeed311b22637b2bff6424bcea1d3d153"
 )
 GOVERNANCE_RECORD_HASH_HASH = (
     "sha256:a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707"
@@ -163,6 +168,7 @@ AuthorityEnvelopeComparator = Callable[..., Any]
 
 CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "export.integrity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
+    "evidence_bundle.self_attesting.v1": (EVIDENCE_BUNDLE_SELF_ATTESTING_ID,),
     "export.scope_identity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "governance_chain.local_continuity.v1": (GOVERNANCE_RECORD_HASH_ID,),
     "permit_chain.delegation_denied_correctly.v1": (
@@ -232,6 +238,9 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CLAIM_REGISTRY_ID: "claim_registry/v0.json",
     EXPORT_MANIFEST_INTEGRITY_ID: "semantics/export_manifest/integrity_v1.json",
+    EVIDENCE_BUNDLE_SELF_ATTESTING_ID: (
+        "semantics/evidence_bundle/self_attesting_v1.json"
+    ),
     GOVERNANCE_RECORD_HASH_ID: "semantics/governance_chain/record_hash_v1.json",
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: (
         "semantics/governance_event/integrity_digest_v1.json"
@@ -274,6 +283,7 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
 RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID: EXPORT_MANIFEST_INTEGRITY_HASH,
+    EVIDENCE_BUNDLE_SELF_ATTESTING_ID: EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
     GOVERNANCE_RECORD_HASH_ID: GOVERNANCE_RECORD_HASH_HASH,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
     CLOSURE_FORMAT_V1_ID: CLOSURE_FORMAT_V1_HASH,
@@ -1292,6 +1302,11 @@ def make_permanent_allowlist(
             EXPORT_MANIFEST_INTEGRITY_ID,
             EXPORT_MANIFEST_INTEGRITY_HASH,
             "export_manifest_integrity",
+        ),
+        SemanticImplementation(
+            EVIDENCE_BUNDLE_SELF_ATTESTING_ID,
+            EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
+            "evidence_bundle_self_attesting",
         ),
         SemanticImplementation(
             GOVERNANCE_RECORD_HASH_ID,

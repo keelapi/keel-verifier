@@ -23,6 +23,17 @@
       ]
     },
     {
+      "name": "evidence_bundle.self_attesting.v1",
+      "assertion": "A self-attesting evidence bundle has a valid wrapper schema, ArtifactRef digest, canonical body content_hash, Ed25519 signature over that content_hash, and RFC 3161 TSA imprint verification when receipts are present.",
+      "required_evidence": "Bundle body, body.artifact_ref, signature_envelope content_hash/signature/public_key, and bundled TSA receipts when present.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "export.scope_identity.v1",
       "assertion": "Manifest identity fields describe the signed artifact: export_id, project_id, export_type, format, compressed, record_count.",
       "required_evidence": "Manifest plus export payload shape/count.",

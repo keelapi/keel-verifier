@@ -155,6 +155,8 @@ LEGACY_VANTA_SCHEMA_WARNING = (
 )
 _legacy_artifact_ref_warning_printed = False
 _legacy_vanta_schema_warning_printed = False
+SELF_ATTESTING_BUNDLE_SCHEMA_VERSION = "keel.evidence_bundle/v1"
+_LEGACY_SPLIT_EXPORT_WARNING_EMITTED = False
 
 
 def _content_hash(data: bytes) -> str:
@@ -849,6 +851,326 @@ def _canonical_json(value: Any) -> str:
 
 def _canonical_json_bytes(value: Any) -> bytes:
     return _canonical_json(value).encode("utf-8")
+
+
+def _bundle_canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+
+
+def _is_self_attesting_bundle(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and value.get("schema_version") == SELF_ATTESTING_BUNDLE_SCHEMA_VERSION
+        and isinstance(value.get("body"), dict)
+        and isinstance(value.get("signature_envelope"), dict)
+    )
+
+
+def _artifact_ref_digest_for_body(value: Any) -> str:
+    return f"sha256:{hashlib.sha256(_bundle_canonical_json_bytes(value)).hexdigest()}"
+
+
+def _bundle_artifact_ref_material(body: Mapping[str, Any]) -> dict[str, Any]:
+    material = dict(body)
+    material.pop("artifact_ref", None)
+    # Bundles resolve anchors after artifact_ref issuance. The signature
+    # envelope content_hash covers the final body including anchor.
+    material.pop("anchor", None)
+    return material
+
+
+def _bundle_anchor_hash(body: Mapping[str, Any]) -> str | None:
+    anchor = body.get("anchor")
+    if isinstance(anchor, Mapping):
+        kind = anchor.get("kind")
+        if kind == "published_checkpoint":
+            value = anchor.get("composite_hash")
+        elif kind == "chain_head_timestamp":
+            value = anchor.get("chain_head_hash")
+        else:
+            value = None
+        return value if isinstance(value, str) and value.startswith("sha256:") else None
+    composite = body.get("composite_hash")
+    if isinstance(composite, str) and composite.startswith("sha256:"):
+        return composite
+    return None
+
+
+def _bundle_receipt_b64(receipt: Mapping[str, Any]) -> str | None:
+    for field in ("receipt_b64", "tsa_response_base64"):
+        value = receipt.get(field)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
+def _bundle_receipt_label(receipt: Mapping[str, Any], index: int) -> str:
+    for field in ("provider", "url", "tsa"):
+        value = receipt.get(field)
+        if isinstance(value, str) and value.strip():
+            return value
+    return f"receipt {index}"
+
+
+def _self_attesting_bundle_claim(
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+) -> ClaimVerdict:
+    return _single_subject_claim(
+        "evidence_bundle.self_attesting.v1",
+        subject_type=subject_type,
+        subject_id=subject_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=[
+            "bundle.body",
+            "bundle.body.artifact_ref",
+            "bundle.signature_envelope",
+        ],
+    )
+
+
+def _verify_self_attesting_bundle_payload(
+    bundle: Mapping[str, Any],
+    *,
+    artifact_id: str | None = None,
+    check_tsa: bool = True,
+) -> tuple[bool, str | None, dict[str, Any] | None, list[ClaimVerdict], list[str]]:
+    diagnostics: list[str] = []
+    if bundle.get("schema_version") != SELF_ATTESTING_BUNDLE_SCHEMA_VERSION:
+        message = "unsupported evidence bundle schema_version"
+        return (
+            False,
+            message,
+            None,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="bundle_schema",
+                    subject_id=artifact_id,
+                    verdict="unverifiable_scope",
+                    reason_code="BUNDLE_SCHEMA_UNSUPPORTED",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+
+    body = bundle.get("body")
+    envelope = bundle.get("signature_envelope")
+    if not isinstance(body, dict) or not isinstance(envelope, dict):
+        message = "bundle must contain object body and signature_envelope"
+        return (
+            False,
+            message,
+            None,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="bundle_shape",
+                    subject_id=artifact_id,
+                    verdict="insufficient_evidence",
+                    reason_code="BUNDLE_SHAPE_INVALID",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+
+    artifact_ref = body.get("artifact_ref")
+    if not isinstance(artifact_ref, dict) or not isinstance(
+        artifact_ref.get("digest"), str
+    ):
+        message = "body.artifact_ref.digest is missing"
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="artifact_ref",
+                    subject_id=artifact_id,
+                    verdict="insufficient_evidence",
+                    reason_code="ARTIFACT_REF_MISSING",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+    expected_artifact_digest = artifact_ref.get("digest")
+    actual_artifact_digest = _artifact_ref_digest_for_body(
+        _bundle_artifact_ref_material(body)
+    )
+    if expected_artifact_digest != actual_artifact_digest:
+        message = (
+            "artifact_ref.digest mismatch: "
+            f"expected={expected_artifact_digest} actual={actual_artifact_digest}"
+        )
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="artifact_ref",
+                    subject_id=str(artifact_ref.get("id") or artifact_id or ""),
+                    verdict="disproved",
+                    reason_code="ARTIFACT_REF_DIGEST_MISMATCH",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+
+    expected_content_hash = envelope.get("content_hash")
+    actual_content_hash = _content_hash(_bundle_canonical_json_bytes(body))
+    if expected_content_hash != actual_content_hash:
+        message = (
+            "content_hash mismatch: "
+            f"expected={expected_content_hash} actual={actual_content_hash}"
+        )
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="signature_envelope",
+                    subject_id=artifact_id,
+                    verdict="disproved",
+                    reason_code="BUNDLE_CONTENT_HASH_MISMATCH",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+
+    public_key = envelope.get("public_key")
+    signature = envelope.get("signature")
+    if not isinstance(public_key, str) or not isinstance(signature, str):
+        message = "signature_envelope public_key/signature missing"
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="signature_envelope",
+                    subject_id=artifact_id,
+                    verdict="insufficient_evidence",
+                    reason_code="BUNDLE_SIGNATURE_MISSING",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+    if not _verify_ed25519(public_key, actual_content_hash.encode("utf-8"), signature):
+        message = "bundle signature verification failed"
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="signature_envelope",
+                    subject_id=str(envelope.get("public_key_id") or artifact_id or ""),
+                    verdict="disproved",
+                    reason_code="BUNDLE_SIGNATURE_INVALID",
+                    message=message,
+                )
+            ],
+            diagnostics,
+        )
+
+    receipts = envelope.get("tsa_receipts")
+    receipt_list = [r for r in receipts if isinstance(r, dict)] if isinstance(receipts, list) else []
+    anchor_hash = _bundle_anchor_hash(body)
+    if not receipt_list:
+        diagnostics.append("WARNING: bundle has no TSA receipts; TSA is plan-tiered")
+    elif check_tsa:
+        if anchor_hash is None:
+            message = "bundle TSA receipts present but no anchor hash is available"
+            return (
+                False,
+                message,
+                body,
+                [
+                    _self_attesting_bundle_claim(
+                        subject_type="tsa_receipts",
+                        subject_id=artifact_id,
+                        verdict="insufficient_evidence",
+                        reason_code="BUNDLE_TSA_ANCHOR_MISSING",
+                        message=message,
+                    )
+                ],
+                diagnostics,
+            )
+        for index, receipt in enumerate(receipt_list, start=1):
+            receipt_b64 = _bundle_receipt_b64(receipt)
+            label = _bundle_receipt_label(receipt, index)
+            if receipt_b64 is None:
+                message = f"TSA receipt {index} is missing receipt bytes"
+                return (
+                    False,
+                    message,
+                    body,
+                    [
+                        _self_attesting_bundle_claim(
+                            subject_type="tsa_receipts",
+                            subject_id=label,
+                            verdict="insufficient_evidence",
+                            reason_code="BUNDLE_TSA_RECEIPT_MISSING",
+                            message=message,
+                        )
+                    ],
+                    diagnostics,
+                )
+            ok, reason = _verify_tsa_receipt(
+                receipt_b64,
+                anchor_hash.removeprefix("sha256:"),
+            )
+            if not ok:
+                message = f"TSA: {label}: {reason}"
+                return (
+                    False,
+                    message,
+                    body,
+                    [
+                        _self_attesting_bundle_claim(
+                            subject_type="tsa_receipts",
+                            subject_id=label,
+                            verdict="disproved",
+                            reason_code="BUNDLE_TSA_IMPRINT_MISMATCH",
+                            message=message,
+                        )
+                    ],
+                    diagnostics,
+                )
+
+    return (
+        True,
+        None,
+        body,
+        [
+            _self_attesting_bundle_claim(
+                subject_type="evidence_bundle",
+                subject_id=str(artifact_ref.get("id") or artifact_id or ""),
+                verdict="supported",
+                reason_code="EVIDENCE_BUNDLE_SUPPORTED",
+                message="self-attesting bundle content hash, signature, artifact_ref, and TSA receipts verified",
+            )
+        ],
+        diagnostics,
+    )
 
 
 def _compute_record_hash(
@@ -8414,7 +8736,63 @@ def _closure_claims_from_output(
 
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
-    manifest_path = Path(args.manifest)
+    manifest_arg = getattr(args, "manifest", None)
+    manifest_path = Path(manifest_arg) if manifest_arg else None
+    if manifest_path is None:
+        artifact = {
+            "kind": "evidence_bundle",
+            "payload_path": str(export_path),
+        }
+        if not export_path.exists():
+            return _export_report(
+                ok=False,
+                exit_code=1,
+                artifact=artifact,
+                claims=[],
+                error=f"Export file not found: {export_path}",
+            )
+        export_data = export_path.read_bytes()
+        artifact["payload_hash"] = _content_hash(export_data)
+        try:
+            bundle = json.loads(export_data.decode("utf-8"))
+        except Exception as exc:
+            return _export_report(
+                ok=False,
+                exit_code=1,
+                artifact=artifact,
+                claims=[],
+                error=(
+                    "manifest is required for legacy split-file export input; "
+                    f"single-file bundle JSON parse failed: {exc}"
+                ),
+            )
+        if not _is_self_attesting_bundle(bundle):
+            return _export_report(
+                ok=False,
+                exit_code=1,
+                artifact=artifact,
+                claims=[],
+                error=(
+                    "manifest is required for legacy split-file export input; "
+                    "input is not keel.evidence_bundle/v1"
+                ),
+            )
+        ok, error, body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+            bundle,
+            artifact_id=export_path.name,
+            check_tsa=True,
+        )
+        if body is not None:
+            artifact["body_schema"] = body.get("schema")
+            artifact["artifact_ref"] = body.get("artifact_ref")
+        return _export_report(
+            ok=ok,
+            exit_code=0 if ok else 1,
+            artifact=artifact,
+            claims=claims,
+            error=error,
+            diagnostics=diagnostics,
+        )
     artifact = _export_artifact_dict(
         export_path=export_path,
         manifest_path=manifest_path,
@@ -8436,6 +8814,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             claims=[],
             error=f"Manifest file not found: {manifest_path}",
         )
+    _warn_legacy_split_export()
 
     manifest_data = manifest_path.read_bytes()
     export_data = export_path.read_bytes()
@@ -9343,6 +9722,18 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
     return 1
 
 
+def _warn_legacy_split_export() -> None:
+    global _LEGACY_SPLIT_EXPORT_WARNING_EMITTED
+    if _LEGACY_SPLIT_EXPORT_WARNING_EMITTED:
+        return
+    _LEGACY_SPLIT_EXPORT_WARNING_EMITTED = True
+    print(
+        "WARNING: legacy split-file export input is deprecated; "
+        "use a single keel.evidence_bundle/v1 file when available.",
+        file=sys.stderr,
+    )
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     if getattr(args, "as_json", False):
         report = verify_export_structured(args)
@@ -9352,14 +9743,55 @@ def cmd_export(args: argparse.Namespace) -> int:
         return report.exit_code
 
     export_path = Path(args.export_file)
-    manifest_path = Path(args.manifest)
+    manifest_arg = getattr(args, "manifest", None)
+    manifest_path = Path(manifest_arg) if manifest_arg else None
 
     if not export_path.exists():
         print(f"FAILED: Export file not found: {export_path}", file=sys.stderr)
         return 1
+    if manifest_path is None:
+        try:
+            bundle = json.loads(export_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            print(
+                "FAILED: manifest is required for legacy split-file export input; "
+                f"single-file bundle JSON parse failed: {exc}",
+                file=sys.stderr,
+            )
+            return 1
+        if not _is_self_attesting_bundle(bundle):
+            print(
+                "FAILED: manifest is required for legacy split-file export input; "
+                "input is not keel.evidence_bundle/v1",
+                file=sys.stderr,
+            )
+            return 1
+        ok, error, body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+            bundle,
+            artifact_id=export_path.name,
+            check_tsa=True,
+        )
+        for diagnostic in diagnostics:
+            print(diagnostic, file=sys.stderr)
+        if not ok:
+            print(f"FAILED: {error}", file=sys.stderr)
+            return 1
+        envelope = bundle["signature_envelope"]
+        artifact_ref = body.get("artifact_ref") if isinstance(body, dict) else {}
+        print("VERIFIED")
+        print(f"  Bundle:       {export_path.name}")
+        print(f"  Schema:       {bundle.get('schema_version')}")
+        print(f"  Body schema:  {body.get('schema') if isinstance(body, dict) else None}")
+        print(f"  Artifact ref: {artifact_ref.get('urn') if isinstance(artifact_ref, dict) else None}")
+        print(f"  Content hash: {envelope.get('content_hash')}")
+        print(f"  Public key:   {envelope.get('public_key')}")
+        print(f"  Key id:       {envelope.get('public_key_id')}")
+        print(f"  Checks:       {', '.join(claim.reason_code for claim in claims)}")
+        return 0
     if not manifest_path.exists():
         print(f"FAILED: Manifest file not found: {manifest_path}", file=sys.stderr)
         return 1
+    _warn_legacy_split_export()
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     export_data = export_path.read_bytes()
@@ -10037,6 +10469,8 @@ def _load_checkpoint_body_for_tsa_trust(path: str | Path) -> dict[str, Any] | No
         body = json.loads(Path(path).read_text(encoding="utf-8"))
     except Exception:
         return None
+    if _is_self_attesting_bundle(body):
+        body = body.get("body")
     return body if isinstance(body, dict) else None
 
 
@@ -10858,9 +11292,35 @@ def _verify_checkpoint_core(
             error="top-level JSON must be an object",
             artifact=artifact,
         )
+    bundle_claims: list[ClaimVerdict] = []
+    bundle_diagnostics: list[str] = []
+    if _is_self_attesting_bundle(body):
+        artifact["kind"] = "checkpoint_bundle"
+        ok, error, bundle_body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+            body,
+            artifact_id=path.name,
+            check_tsa=check_tsa,
+        )
+        bundle_claims = claims
+        bundle_diagnostics = diagnostics
+        if not ok or bundle_body is None:
+            return VerifyResult(
+                ok=False,
+                error=error,
+                artifact=artifact,
+                diagnostics=bundle_diagnostics,
+                claims=bundle_claims,
+            )
+        body = bundle_body
     artifact, artifact_ref_error = _attach_artifact_ref(artifact, body)
     if artifact_ref_error is not None:
-        return VerifyResult(ok=False, error=artifact_ref_error, artifact=artifact)
+        return VerifyResult(
+            ok=False,
+            error=artifact_ref_error,
+            artifact=artifact,
+            diagnostics=bundle_diagnostics,
+            claims=bundle_claims,
+        )
 
     default_claims = ("checkpoint.composite_hash.v1", "checkpoint.signature.v1")
     semantics = resolve_pack_semantics(
@@ -10877,15 +11337,21 @@ def _verify_checkpoint_core(
             ok=False,
             error=failure.top_level_error or failure.message,
             artifact=artifact,
-            claims=_semantic_failure_claims(
-                semantics,
-                default_claim_names=default_claims,
-                subject_type="semantic_resolution",
-                subject_id=path.name,
-                evidence=["checkpoint.claim_set", "checkpoint.semantics_pins"],
-            ),
+            claims=[
+                *bundle_claims,
+                *_semantic_failure_claims(
+                    semantics,
+                    default_claim_names=default_claims,
+                    subject_type="semantic_resolution",
+                    subject_id=path.name,
+                    evidence=["checkpoint.claim_set", "checkpoint.semantics_pins"],
+                ),
+            ],
             semantics=semantics,
-            diagnostics=[failure.diagnostic] if failure.diagnostic else None,
+            diagnostics=[
+                *bundle_diagnostics,
+                *([failure.diagnostic] if failure.diagnostic else []),
+            ],
         )
     semantics_dispatch = semantics.dispatch()
 
@@ -10903,6 +11369,7 @@ def _verify_checkpoint_core(
             error="missing or malformed composite_hash",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="insufficient_evidence",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_MISSING",
@@ -10911,6 +11378,7 @@ def _verify_checkpoint_core(
                 )
             ],
             semantics=semantics,
+            diagnostics=bundle_diagnostics,
         )
     if not isinstance(chain_heads_raw, dict):
         return _checkpoint_base_result(
@@ -10919,6 +11387,7 @@ def _verify_checkpoint_core(
             error="chain_heads must be an object",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="insufficient_evidence",
                     reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
@@ -10928,6 +11397,7 @@ def _verify_checkpoint_core(
             ],
             semantics=semantics,
             composite_hash=composite,
+            diagnostics=bundle_diagnostics,
         )
 
     for scope_key, head in chain_heads_raw.items():
@@ -10938,6 +11408,7 @@ def _verify_checkpoint_core(
                 error=f"chain_heads[{scope_key}] must be an object",
                 artifact=artifact,
                 claims=[
+                    *bundle_claims,
                     _checkpoint_composite_claim(
                         verdict="insufficient_evidence",
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
@@ -10948,6 +11419,7 @@ def _verify_checkpoint_core(
                 semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
+                diagnostics=bundle_diagnostics,
             )
         if not isinstance(head.get("sequence_number"), int):
             return _checkpoint_base_result(
@@ -10956,6 +11428,7 @@ def _verify_checkpoint_core(
                 error=f"chain_heads[{scope_key}].sequence_number must be an int",
                 artifact=artifact,
                 claims=[
+                    *bundle_claims,
                     _checkpoint_composite_claim(
                         verdict="insufficient_evidence",
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
@@ -10966,6 +11439,7 @@ def _verify_checkpoint_core(
                 semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
+                diagnostics=bundle_diagnostics,
             )
         if not isinstance(head.get("last_record_hash"), str):
             return _checkpoint_base_result(
@@ -10974,6 +11448,7 @@ def _verify_checkpoint_core(
                 error=f"chain_heads[{scope_key}].last_record_hash must be a string",
                 artifact=artifact,
                 claims=[
+                    *bundle_claims,
                     _checkpoint_composite_claim(
                         verdict="insufficient_evidence",
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
@@ -10984,6 +11459,7 @@ def _verify_checkpoint_core(
                 semantics=semantics,
                 composite_hash=composite,
                 chain_heads_count=len(chain_heads_raw),
+                diagnostics=bundle_diagnostics,
             )
 
     try:
@@ -10997,6 +11473,7 @@ def _verify_checkpoint_core(
             error=f"could not recompute composite_hash: {exc}",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="insufficient_evidence",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_RECOMPUTE_FAILED",
@@ -11007,6 +11484,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
     if recomputed != composite:
         return _checkpoint_base_result(
@@ -11019,6 +11497,7 @@ def _verify_checkpoint_core(
             ),
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="disproved",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_MISMATCH",
@@ -11029,6 +11508,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
 
     if not isinstance(signature, str):
@@ -11038,6 +11518,7 @@ def _verify_checkpoint_core(
             error="export is unsigned (no signature field)",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="supported",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11054,6 +11535,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
 
     if expected_public_key is not None and not expected_public_key.startswith("ed25519:"):
@@ -11063,6 +11545,7 @@ def _verify_checkpoint_core(
             error="--public-key must start with 'ed25519:'",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="supported",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11079,6 +11562,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
 
     signing_time = _parse_iso_or_none(body.get("computed_at"))
@@ -11100,6 +11584,7 @@ def _verify_checkpoint_core(
             error=err or "could not resolve trust root",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="supported",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11116,6 +11601,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
 
     if isinstance(embedded_pub, str) and embedded_pub != trusted_pub:
@@ -11129,6 +11615,7 @@ def _verify_checkpoint_core(
             ),
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="supported",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11145,6 +11632,7 @@ def _verify_checkpoint_core(
             semantics=semantics,
             composite_hash=composite,
             chain_heads_count=len(chain_heads_raw),
+            diagnostics=bundle_diagnostics,
         )
 
     if not _verify_ed25519(trusted_pub, composite.encode("utf-8"), signature):
@@ -11154,6 +11642,7 @@ def _verify_checkpoint_core(
             error="signature verification failed",
             artifact=artifact,
             claims=[
+                *bundle_claims,
                 _checkpoint_composite_claim(
                     verdict="supported",
                     reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11174,6 +11663,7 @@ def _verify_checkpoint_core(
             key_id=artifact_key_id or _public_key_fingerprint(trusted_pub),
             trust_source=trust_source,
             self_attested=trust_source.startswith("self-attested"),
+            diagnostics=bundle_diagnostics,
         )
 
     tsa_inputs = _checkpoint_tsa_receipts(body)
@@ -11204,6 +11694,7 @@ def _verify_checkpoint_core(
                 error=f"TSA: {receipt_result['reason']}",
                 artifact=artifact,
                 claims=[
+                    *bundle_claims,
                     _checkpoint_composite_claim(
                         verdict="supported",
                         reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11232,6 +11723,7 @@ def _verify_checkpoint_core(
                 tsa_url=receipt_result["url"],
                 tsa_requested_at=receipt_result["requested_at"],
                 tsa_receipts=tsa_receipts,
+                diagnostics=bundle_diagnostics,
             )
         ok, reason = _verify_tsa_receipt(receipt["receipt_b64"], hex_hash)
         receipt_result["verified"] = ok
@@ -11244,6 +11736,7 @@ def _verify_checkpoint_core(
                 error=f"TSA: {label}: {reason}",
                 artifact=artifact,
                 claims=[
+                    *bundle_claims,
                     _checkpoint_composite_claim(
                         verdict="supported",
                         reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11272,6 +11765,7 @@ def _verify_checkpoint_core(
                 tsa_url=receipt_result["url"],
                 tsa_requested_at=receipt_result["requested_at"],
                 tsa_receipts=tsa_receipts,
+                diagnostics=bundle_diagnostics,
             )
 
     first_receipt = tsa_receipts[0] if tsa_receipts else None
@@ -11291,6 +11785,7 @@ def _verify_checkpoint_core(
         )
 
     success_claims = [
+        *bundle_claims,
         _checkpoint_composite_claim(
             verdict="supported",
             reason_code="CHECKPOINT_COMPOSITE_HASH_SUPPORTED",
@@ -11336,6 +11831,7 @@ def _verify_checkpoint_core(
             else None
         ),
         tsa_receipts=tsa_receipts,
+        diagnostics=bundle_diagnostics,
     )
 
 
