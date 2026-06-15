@@ -41,6 +41,7 @@
     "tsa_receipts": {
       "field": "signature_envelope.tsa_receipts",
       "missing_receipts": "warning only because TSA is plan-tiered",
+      "missing_anchor": "non-fatal observation; the bundle remains self-attesting via body plus signature_envelope but lacks external chain anchoring",
       "receipt_bytes_fields": [
         "receipt_b64",
         "tsa_response_base64"
