@@ -212,7 +212,7 @@ def _subject(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
 ) -> VerdictSubject:
@@ -232,7 +232,7 @@ def _single_subject_claim(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
     required: bool = True,
@@ -557,6 +557,8 @@ PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
 PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
     "permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
+AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
@@ -595,6 +597,56 @@ PERMIT_V2_BUYER_KEY_PURPOSES = frozenset(
         "audit_attestation",
     }
 )
+AUTHORITY_CHAIN_VERSION = "authority_chain.v1"
+AUTHORITY_EDGE_VERSION = "authority_edge.v1"
+AUTHORITY_CHAIN_SUPPORTED_CODE = "AUTHORITY_CHAIN_SUPPORTED"
+AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE = "AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED"
+AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
+    {
+        "requires_human_approval",
+        "max_recipients",
+        "max_item_amount_usd_micros",
+        "allow_domains",
+        "deny_external_domains",
+        "allowed_hours",
+        "purpose",
+    }
+)
+AUTHORITY_CHAIN_DIRECT_SUBJECT_TYPES = frozenset(
+    {"user", "service_principal", "system"}
+)
+AUTHORITY_CHAIN_AGENT_SUBJECT_TYPE = "agent"
+AUTHORITY_CHAIN_CODE_VERDICTS = {
+    "authority_chain.typed_absence": "unverifiable_scope",
+    "authority_chain.evidence_incomplete": "insufficient_evidence",
+    "authority_chain.edge_digest_mismatch": "disproved",
+    "authority_chain.edge_signature_invalid": "disproved",
+    "authority_chain.signing_key_not_valid_at_signed_at": "disproved",
+    "authority_chain.unknown_constraint_key": "disproved",
+    "authority_chain.chain_digest_mismatch": "disproved",
+    "authority_chain.leaf_subject_mismatch": "disproved",
+    "authority_chain.root_anchor_invalid": "disproved",
+    "authority_chain.parent_edge_digest_broken": "disproved",
+    "authority_chain.cycle_detected": "disproved",
+    "authority_chain.broadened_verbs": "disproved",
+    "authority_chain.broadened_classes": "disproved",
+    "authority_chain.broadened_resources": "disproved",
+    "authority_chain.broadened_data_classes": "disproved",
+    "authority_chain.constraint_not_stricter": "disproved",
+    "authority_chain.budget_parent_envelope_mismatch": "disproved",
+    "authority_chain.budget_exceeds_parent": "disproved",
+    "authority_chain.remaining_depth_not_strict": "disproved",
+    "authority_chain.max_children_exceeds_parent": "disproved",
+    "authority_chain.validity_not_subset": "disproved",
+    "authority_chain.expired_at_resolution": "disproved",
+    "authority_chain.unmapped_action_kind": "unverifiable_scope",
+    "authority_chain.action_outside_chain_scope": "disproved",
+    "authority_chain.agent_without_chain": "insufficient_evidence",
+}
+AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS = {
+    "authority_revocation.signed_at_at_or_after_revoked_at": "disproved",
+    "authority_revocation.compromised_key_retroactive_taint": "disproved",
+}
 _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_version",
     "permit_id",
@@ -2868,7 +2920,7 @@ def _permit_claim(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
     epistemic_state: dict[str, str] | None = None,
@@ -2885,6 +2937,683 @@ def _permit_claim(
     if epistemic_state is None:
         return claim
     return replace(claim, epistemic_state=epistemic_state)
+
+
+def _authority_rfc8785_bytes(value: Any) -> bytes:
+    encoded = rfc8785.dumps(value)
+    return encoded if isinstance(encoded, bytes) else encoded.encode("utf-8")
+
+
+def _authority_sha256_hex(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _authority_claim(
+    claim_name: str,
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+    epistemic_state: dict[str, str] | None = None,
+) -> ClaimVerdict:
+    permit = input_doc.get("permit") if isinstance(input_doc.get("permit"), dict) else {}
+    permit_id = _string_field(permit.get("permit_id"), permit.get("id"))
+    return _permit_claim(
+        claim_name,
+        subject_type=(
+            "authority_chain"
+            if claim_name == PERMIT_AUTHORITY_CHAIN_CLAIM_NAME
+            else "authority_revocation_temporal"
+        ),
+        subject_id=permit_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["permit", "authority_chain", "authority_edges", "trust_root"],
+        epistemic_state=epistemic_state,
+    )
+
+
+def _authority_chain_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        PERMIT_AUTHORITY_CHAIN_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={"authority_chain": "verified" if verdict == "supported" else "observed"},
+    )
+
+
+def _authority_revocation_temporal_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={
+            "authority_revocation_temporal": "verified"
+            if verdict == "supported"
+            else "observed"
+        },
+    )
+
+
+def _authority_code_verdict(code: str, *, revocation_temporal: bool = False) -> str:
+    table = (
+        AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS
+        if revocation_temporal
+        else AUTHORITY_CHAIN_CODE_VERDICTS
+    )
+    return table[code]
+
+
+def _authority_key_records(
+    *,
+    trust_root: dict[str, Any] | None,
+    key_manifest_source: str | None,
+) -> dict[str, dict[str, Any]]:
+    if trust_root is not None and isinstance(trust_root.get("keys"), list):
+        entries = [entry for entry in trust_root["keys"] if isinstance(entry, dict)]
+    elif key_manifest_source is not None:
+        try:
+            entries = _load_key_manifest(key_manifest_source)
+        except Exception:
+            entries = []
+    else:
+        entries = []
+    records: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        key_id = entry.get("key_id")
+        if isinstance(key_id, str) and key_id:
+            records[key_id] = entry
+    return records
+
+
+def _authority_public_key(record: dict[str, Any]) -> str | None:
+    for key in ("public_key_bytes", "public_key"):
+        value = record.get(key)
+        if isinstance(value, str) and value.startswith("ed25519:"):
+            return value
+    return None
+
+
+def _authority_edge_payload_bytes(edge: dict[str, Any]) -> bytes:
+    return _authority_rfc8785_bytes(edge["payload"])
+
+
+def _authority_chain_payload_for_edges(edges: list[dict[str, Any]]) -> dict[str, Any]:
+    payloads = [edge["payload"] for edge in edges]
+    return {
+        "chain_version": AUTHORITY_CHAIN_VERSION,
+        "org_id": payloads[0]["org_id"],
+        "project_id": payloads[0]["project_id"],
+        "edge_digests": [edge["edge_digest"] for edge in edges],
+        "leaf_principal_id": payloads[-1]["delegate"]["principal_id"],
+        "effective_not_before": max(payload["validity"]["not_before"] for payload in payloads),
+        "effective_not_after": min(payload["validity"]["not_after"] for payload in payloads),
+        "policy_version": payloads[-1]["policy_version"],
+    }
+
+
+def _authority_set_subset(child: Any, parent: Any) -> bool:
+    return isinstance(child, list) and isinstance(parent, list) and set(child).issubset(set(parent))
+
+
+def _authority_resource_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, dict) or not isinstance(parent, dict):
+        return False
+    for key, child_value in child.items():
+        if not isinstance(child_value, str) or key not in parent:
+            return False
+        parent_value = parent[key]
+        if not isinstance(parent_value, str):
+            return False
+        if parent_value.endswith("*"):
+            if not child_value.startswith(parent_value[:-1]):
+                return False
+        elif child_value != parent_value:
+            return False
+    return True
+
+
+def _authority_constraints_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, dict) or not isinstance(parent, dict):
+        return False
+    if any(key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in child):
+        return False
+    if any(key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in parent):
+        return False
+    if parent.get("requires_human_approval") is True and child.get("requires_human_approval") is not True:
+        return False
+    if (
+        "max_recipients" in child
+        and "max_recipients" in parent
+        and child["max_recipients"] > parent["max_recipients"]
+    ):
+        return False
+    if (
+        "max_item_amount_usd_micros" in child
+        and "max_item_amount_usd_micros" in parent
+        and child["max_item_amount_usd_micros"] > parent["max_item_amount_usd_micros"]
+    ):
+        return False
+    if (
+        "allow_domains" in child
+        and "allow_domains" in parent
+        and not set(child["allow_domains"]).issubset(set(parent["allow_domains"]))
+    ):
+        return False
+    if (
+        "deny_external_domains" in child
+        and "deny_external_domains" in parent
+        and not set(child["deny_external_domains"]).issuperset(set(parent["deny_external_domains"]))
+    ):
+        return False
+    if "allowed_hours" in child and "allowed_hours" in parent:
+        child_hours = child["allowed_hours"]
+        parent_hours = parent["allowed_hours"]
+        if not isinstance(child_hours, dict) or not isinstance(parent_hours, dict):
+            return False
+        if (
+            child_hours.get("tz") != parent_hours.get("tz")
+            or child_hours.get("start") < parent_hours.get("start")
+            or child_hours.get("end") > parent_hours.get("end")
+        ):
+            return False
+    if parent.get("purpose") is not None and child.get("purpose") != parent.get("purpose"):
+        return False
+    return True
+
+
+def _authority_chain_edges_in_order(
+    input_doc: dict[str, Any],
+    records: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    chain = input_doc.get("authority_chain")
+    if not isinstance(chain, dict) or not isinstance(chain.get("payload"), dict):
+        return None
+    edge_digests = chain["payload"].get("edge_digests")
+    if not isinstance(edge_digests, list):
+        return None
+    supplied_edges = input_doc.get("authority_edges")
+    if not isinstance(supplied_edges, list):
+        return None
+    edge_by_digest = {
+        edge.get("edge_digest"): edge
+        for edge in supplied_edges
+        if isinstance(edge, dict) and isinstance(edge.get("edge_digest"), str)
+    }
+    ordered: list[dict[str, Any]] = []
+    for digest in edge_digests:
+        if not isinstance(digest, str):
+            return None
+        edge = edge_by_digest.get(digest)
+        if edge is None or not isinstance(edge.get("payload"), dict):
+            return None
+        signing_key = edge["payload"].get("signing_key")
+        key_id = signing_key.get("key_id") if isinstance(signing_key, dict) else None
+        if not isinstance(key_id, str) or key_id not in records:
+            return None
+        ordered.append(edge)
+    return ordered
+
+
+def _authority_signing_key_validity_code(
+    payload: dict[str, Any],
+    record: dict[str, Any],
+) -> str | None:
+    signed_at = _parse_iso_or_none(payload.get("signed_at"))
+    valid_from = _parse_iso_or_none(record.get("valid_from") or record.get("active_from"))
+    valid_until = _parse_iso_or_none(
+        record.get("valid_until") if "valid_until" in record else record.get("valid_to")
+    )
+    if signed_at is None or valid_from is None:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    if signed_at < valid_from:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    if valid_until is not None and signed_at >= valid_until:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    signing_key = payload.get("signing_key")
+    custody_tier = signing_key.get("custody_tier") if isinstance(signing_key, dict) else None
+    if custody_tier != record.get("custody_tier"):
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    return None
+
+
+def _authority_revocation_temporal_code(
+    payload: dict[str, Any],
+    record: dict[str, Any],
+) -> str | None:
+    signed_at = _parse_iso_or_none(payload.get("signed_at"))
+    if signed_at is None:
+        return None
+    revoked_at = _parse_iso_or_none(record.get("revoked_at"))
+    if revoked_at is not None and signed_at >= revoked_at:
+        return "authority_revocation.signed_at_at_or_after_revoked_at"
+    compromised_at = _parse_iso_or_none(record.get("compromised_at"))
+    if compromised_at is not None and signed_at >= compromised_at:
+        return "authority_revocation.compromised_key_retroactive_taint"
+    return None
+
+
+def _authority_subject_type(permit: dict[str, Any]) -> str | None:
+    value = permit.get("subject_type")
+    return value.strip().lower() if isinstance(value, str) and value.strip() else None
+
+
+def _authority_digest(permit: dict[str, Any]) -> str | None:
+    value = permit.get("authority_chain_digest")
+    return value if isinstance(value, str) and _SHA256_HEX_RE.fullmatch(value) else None
+
+
+def _adjudicate_permit_authority_chain_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    input_doc = export_document
+    permit = input_doc.get("permit")
+    if not isinstance(permit, dict):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_chain.evidence_incomplete",
+            message="permit authority-chain evidence is missing",
+            evidence=["permit"],
+        )
+
+    binding_version = _permit_v2_envelope_version(permit)
+    chain_digest = _authority_digest(permit)
+    if binding_version != "v7":
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.typed_absence"),
+            reason_code="authority_chain.typed_absence",
+            message="binding version does not carry v7 authority-chain subject fields",
+            evidence=["permit.binding_version"],
+        )
+    if chain_digest is None:
+        if _authority_subject_type(permit) == AUTHORITY_CHAIN_AGENT_SUBJECT_TYPE:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.agent_without_chain"),
+                reason_code="authority_chain.agent_without_chain",
+                message="v7 agent permit carries no authority-chain evidence",
+                evidence=["permit.subject_type", "permit.authority_chain_digest"],
+            )
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.typed_absence"),
+            reason_code="authority_chain.typed_absence",
+            message="non-agent v7 permit claims no delegation chain",
+            evidence=["permit.subject_type", "permit.authority_chain_digest"],
+        )
+
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    chain = input_doc.get("authority_chain")
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    if not isinstance(chain, dict) or edges is None:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.evidence_incomplete"),
+            reason_code="authority_chain.evidence_incomplete",
+            message="authority chain, edge, or signing-key evidence is incomplete",
+            evidence=["authority_chain", "authority_edges", "trust_root"],
+        )
+
+    for edge in edges:
+        payload = edge["payload"]
+        payload_bytes = _authority_edge_payload_bytes(edge)
+        if _authority_sha256_hex(payload_bytes) != edge.get("edge_digest"):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_digest_mismatch"),
+                reason_code="authority_chain.edge_digest_mismatch",
+                message="edge digest does not match RFC 8785 payload bytes",
+                evidence=["authority_edges.edge_digest", "authority_edges.payload"],
+            )
+        signing_key = payload["signing_key"]
+        record = records[signing_key["key_id"]]
+        if record.get("signer_id") != payload.get("delegator", {}).get("principal_id"):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_signature_invalid"),
+                reason_code="authority_chain.edge_signature_invalid",
+                message="edge signing key is not bound to the delegator principal",
+                evidence=["authority_edges.payload.delegator", "trust_root.keys"],
+            )
+        public_key = _authority_public_key(record)
+        if public_key is None or not _verify_ed25519(public_key, payload_bytes, str(edge.get("signature"))):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_signature_invalid"),
+                reason_code="authority_chain.edge_signature_invalid",
+                message="edge signature does not verify over RFC 8785 payload bytes",
+                evidence=["authority_edges.signature", "trust_root.keys"],
+            )
+        validity_code = _authority_signing_key_validity_code(payload, record)
+        if validity_code is not None:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(validity_code),
+                reason_code=validity_code,
+                message="edge signing key was not valid at signed_at",
+                evidence=["authority_edges.payload.signed_at", "trust_root.keys"],
+            )
+        constraints = payload.get("scope", {}).get("constraints")
+        if not isinstance(constraints, dict) or any(
+            key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in constraints
+        ):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.unknown_constraint_key"),
+                reason_code="authority_chain.unknown_constraint_key",
+                message="edge scope contains a constraint key outside the v1 vocabulary",
+                evidence=["authority_edges.payload.scope.constraints"],
+            )
+
+    chain_payload = chain.get("payload")
+    if not isinstance(chain_payload, dict):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.evidence_incomplete"),
+            reason_code="authority_chain.evidence_incomplete",
+            message="authority_chain.payload is missing",
+            evidence=["authority_chain.payload"],
+        )
+    if _authority_sha256_hex(_authority_rfc8785_bytes(chain_payload)) != chain_digest:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
+            reason_code="authority_chain.chain_digest_mismatch",
+            message="authority_chain_digest does not match chain payload bytes",
+            evidence=["permit.authority_chain_digest", "authority_chain.payload"],
+        )
+    if chain_payload != _authority_chain_payload_for_edges(edges):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
+            reason_code="authority_chain.chain_digest_mismatch",
+            message="authority_chain.payload does not match the ordered edge payloads",
+            evidence=["authority_chain.payload", "authority_edges"],
+        )
+
+    if chain_payload.get("leaf_principal_id") != permit.get("subject_id"):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.leaf_subject_mismatch"),
+            reason_code="authority_chain.leaf_subject_mismatch",
+            message="authority-chain leaf principal does not match permit subject_id",
+            evidence=["authority_chain.payload.leaf_principal_id", "permit.subject_id"],
+        )
+
+    root_payload = edges[0]["payload"]
+    if root_payload.get("parent_edge_digest") is not None or root_payload.get("delegator", {}).get(
+        "principal_type"
+    ) not in {"user", "service_principal"}:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.root_anchor_invalid"),
+            reason_code="authority_chain.root_anchor_invalid",
+            message="root edge is not anchored by a user or service-principal delegator",
+            evidence=["authority_edges[0].payload.delegator", "authority_edges[0].payload.parent_edge_digest"],
+        )
+
+    seen_principals = {root_payload["delegator"]["principal_id"]}
+    for index, edge in enumerate(edges):
+        payload = edge["payload"]
+        if index > 0:
+            previous_edge = edges[index - 1]
+            previous = previous_edge["payload"]
+            if payload.get("delegator") != previous.get("delegate"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.parent_edge_digest_broken"),
+                    reason_code="authority_chain.parent_edge_digest_broken",
+                    message="edge delegator does not equal the previous edge delegate",
+                    evidence=["authority_edges.payload.delegator"],
+                )
+            if payload.get("parent_edge_digest") != previous_edge.get("edge_digest"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.parent_edge_digest_broken"),
+                    reason_code="authority_chain.parent_edge_digest_broken",
+                    message="edge parent_edge_digest does not equal the previous edge digest",
+                    evidence=["authority_edges.payload.parent_edge_digest"],
+                )
+        delegate_id = payload.get("delegate", {}).get("principal_id")
+        if delegate_id in seen_principals:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.cycle_detected"),
+                reason_code="authority_chain.cycle_detected",
+                message="authority chain delegates back to an upstream principal",
+                evidence=["authority_edges.payload.delegate"],
+            )
+        seen_principals.add(delegate_id)
+        if index == 0:
+            continue
+
+        previous = edges[index - 1]["payload"]
+        parent_scope = previous["scope"]
+        child_scope = payload["scope"]
+        if not _authority_set_subset(child_scope.get("action_verbs"), parent_scope.get("action_verbs")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_verbs"),
+                reason_code="authority_chain.broadened_verbs",
+                message="child edge broadens action verbs beyond the parent",
+                evidence=["authority_edges.payload.scope.action_verbs"],
+            )
+        if not _authority_set_subset(child_scope.get("action_classes"), parent_scope.get("action_classes")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_classes"),
+                reason_code="authority_chain.broadened_classes",
+                message="child edge broadens action classes beyond the parent",
+                evidence=["authority_edges.payload.scope.action_classes"],
+            )
+        if not _authority_resource_subset(child_scope.get("resources"), parent_scope.get("resources")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_resources"),
+                reason_code="authority_chain.broadened_resources",
+                message="child edge broadens resources beyond the parent",
+                evidence=["authority_edges.payload.scope.resources"],
+            )
+        if not _authority_set_subset(child_scope.get("data_classes"), parent_scope.get("data_classes")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_data_classes"),
+                reason_code="authority_chain.broadened_data_classes",
+                message="child edge broadens data classes beyond the parent",
+                evidence=["authority_edges.payload.scope.data_classes"],
+            )
+        if not _authority_constraints_subset(child_scope.get("constraints"), parent_scope.get("constraints")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.constraint_not_stricter"),
+                reason_code="authority_chain.constraint_not_stricter",
+                message="child edge constraints are not stricter than the parent",
+                evidence=["authority_edges.payload.scope.constraints"],
+            )
+
+        parent_budget = previous.get("budget_partition")
+        child_budget = payload.get("budget_partition")
+        if isinstance(parent_budget, dict) and isinstance(child_budget, dict):
+            if child_budget.get("parent_budget_envelope_id") != parent_budget.get("budget_envelope_id"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.budget_parent_envelope_mismatch"),
+                    reason_code="authority_chain.budget_parent_envelope_mismatch",
+                    message="child budget parent envelope does not match parent budget envelope",
+                    evidence=["authority_edges.payload.budget_partition"],
+                )
+        if parent_budget is None and child_budget is not None:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.budget_parent_envelope_mismatch"),
+                reason_code="authority_chain.budget_parent_envelope_mismatch",
+                message="child carries a budget partition when parent has none",
+                evidence=["authority_edges.payload.budget_partition"],
+            )
+        if isinstance(parent_budget, dict) and isinstance(child_budget, dict):
+            if child_budget.get("allocated_usd_micros") > parent_budget.get("allocated_usd_micros"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.budget_exceeds_parent"),
+                    reason_code="authority_chain.budget_exceeds_parent",
+                    message="child budget allocation exceeds the parent allocation",
+                    evidence=["authority_edges.payload.budget_partition.allocated_usd_micros"],
+                )
+
+        if payload["creation_policy"]["remaining_depth"] >= previous["creation_policy"]["remaining_depth"]:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.remaining_depth_not_strict"),
+                reason_code="authority_chain.remaining_depth_not_strict",
+                message="child remaining_depth is not strictly less than parent remaining_depth",
+                evidence=["authority_edges.payload.creation_policy.remaining_depth"],
+            )
+        parent_max = previous["creation_policy"]["max_children"]
+        child_max = payload["creation_policy"]["max_children"]
+        if parent_max is not None and child_max is not None and child_max > parent_max:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.max_children_exceeds_parent"),
+                reason_code="authority_chain.max_children_exceeds_parent",
+                message="child max_children exceeds parent max_children",
+                evidence=["authority_edges.payload.creation_policy.max_children"],
+            )
+        if (
+            _parse_iso_or_none(payload["validity"]["not_before"])
+            < _parse_iso_or_none(previous["validity"]["not_before"])
+            or _parse_iso_or_none(payload["validity"]["not_after"])
+            > _parse_iso_or_none(previous["validity"]["not_after"])
+        ):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.validity_not_subset"),
+                reason_code="authority_chain.validity_not_subset",
+                message="child validity window is not contained in parent validity window",
+                evidence=["authority_edges.payload.validity"],
+            )
+
+    resolution_time = _parse_iso_or_none(input_doc.get("resolution_time"))
+    effective_not_before = _parse_iso_or_none(chain_payload.get("effective_not_before"))
+    effective_not_after = _parse_iso_or_none(chain_payload.get("effective_not_after"))
+    if (
+        resolution_time is None
+        or effective_not_before is None
+        or effective_not_after is None
+        or resolution_time < effective_not_before
+        or resolution_time > effective_not_after
+    ):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.expired_at_resolution"),
+            reason_code="authority_chain.expired_at_resolution",
+            message="resolution time is outside the effective chain validity window",
+            evidence=["resolution_time", "authority_chain.payload.effective_not_before", "authority_chain.payload.effective_not_after"],
+        )
+
+    requested_action = input_doc.get("requested_action")
+    action_class_map = input_doc.get("action_class_map")
+    requested_kind = requested_action.get("kind") if isinstance(requested_action, dict) else None
+    if not isinstance(action_class_map, dict) or not isinstance(requested_kind, str) or requested_kind not in action_class_map:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.unmapped_action_kind"),
+            reason_code="authority_chain.unmapped_action_kind",
+            message="requested action kind is absent from the action-class map",
+            evidence=["requested_action.kind", "action_class_map"],
+        )
+    leaf_scope = edges[-1]["payload"]["scope"]
+    requested_classes = action_class_map[requested_kind]
+    if (
+        not _authority_set_subset(requested_classes, leaf_scope.get("action_classes"))
+        or requested_kind not in leaf_scope.get("action_verbs", [])
+    ):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.action_outside_chain_scope"),
+            reason_code="authority_chain.action_outside_chain_scope",
+            message="requested action is outside the leaf edge scope",
+            evidence=["requested_action", "authority_edges[-1].payload.scope"],
+        )
+
+    return _authority_chain_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=AUTHORITY_CHAIN_SUPPORTED_CODE,
+        message="authority chain structure, signatures, attenuation, liveness, and action scope are supported",
+    )
+
+
+def _adjudicate_authority_revocation_temporal_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    input_doc = export_document
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    if edges is None:
+        return _authority_revocation_temporal_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code=None,
+            message="authority chain, edge, or signing-key evidence is incomplete",
+            evidence=["authority_chain", "authority_edges", "trust_root"],
+        )
+
+    for edge in edges:
+        payload = edge["payload"]
+        record = records[payload["signing_key"]["key_id"]]
+        temporal_code = _authority_revocation_temporal_code(payload, record)
+        if temporal_code is not None:
+            return _authority_revocation_temporal_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(temporal_code, revocation_temporal=True),
+                reason_code=temporal_code,
+                message="edge signed_at is at or after signing-key revocation or compromise",
+                evidence=["authority_edges.payload.signed_at", "trust_root.keys"],
+            )
+
+    return _authority_revocation_temporal_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE,
+        message="authority edge signatures predate signing-key revocation and compromise instants",
+    )
 
 
 def _entry_payload_any(entry: dict[str, Any]) -> dict[str, Any]:
@@ -9088,6 +9817,16 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
     )
+    permit_authority_chain_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_AUTHORITY_CHAIN_CLAIM_NAME,
+    )
+    authority_revocation_temporal_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME,
+    )
     operator_approval_pinned = _pinned_claim_requested(
         semantics,
         requested,
@@ -9135,6 +9874,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         permit_decision_requested
         or permit_revoked_requested
         or permit_absence_requested
+        or permit_authority_chain_requested
+        or authority_revocation_temporal_requested
         or permit_v2_pinned_requested
         or should_try_auto_permit_v2
     ):
@@ -9146,6 +9887,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 permit_decision_requested
                 or permit_revoked_requested
                 or permit_absence_requested
+                or permit_authority_chain_requested
+                or authority_revocation_temporal_requested
                 or permit_v2_pinned_requested
             ):
                 diagnostics.append(f"permit claim evidence is not JSON: {exc}")
@@ -9267,6 +10010,42 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     explicit_checkpoint=getattr(args, "checkpoint", None),
                     scope_claims=scope_claims,
                     revocation_claim=revocation_claim,
+                )
+            )
+    if permit_authority_chain_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_chain_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_chain.evidence_incomplete",
+                    message="authority-chain claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_authority_chain_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if authority_revocation_temporal_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_revocation_temporal_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_chain.evidence_incomplete",
+                    message="authority revocation-temporal claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_authority_revocation_temporal_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
     if operator_approval_requested:

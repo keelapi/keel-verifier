@@ -341,6 +341,34 @@
       ]
     },
     {
+      "name": "permit.authority_chain.v1",
+      "status": "implemented",
+      "description": "Adjudicates v7 permit authority-chain evidence in the R2c first-fault order: version-scoped typed absence, pack completeness, edge integrity, chain digest, leaf-to-subject binding, root anchor, linkage, attenuation, liveness, and action scope.",
+      "depends_on_semantics": [
+        "keel.permit.authority_chain.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "authority.revocation_temporal.v1",
+      "status": "implemented",
+      "description": "Adjudicates signing-time-only authority-edge key revocation and compromise timestamps; grant revocation and execution-time taint remain outside this claim.",
+      "depends_on_semantics": [
+        "keel.authority.revocation_temporal.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approval.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
@@ -581,6 +609,33 @@
       "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
       "PERMIT_REVOKED_ACTOR_PII_DETECTED",
       "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED",
+      "authority_chain.typed_absence",
+      "authority_chain.agent_without_chain",
+      "authority_chain.evidence_incomplete",
+      "authority_chain.edge_digest_mismatch",
+      "authority_chain.edge_signature_invalid",
+      "authority_chain.signing_key_not_valid_at_signed_at",
+      "authority_chain.unknown_constraint_key",
+      "authority_chain.chain_digest_mismatch",
+      "authority_chain.leaf_subject_mismatch",
+      "authority_chain.root_anchor_invalid",
+      "authority_chain.parent_edge_digest_broken",
+      "authority_chain.cycle_detected",
+      "authority_chain.broadened_verbs",
+      "authority_chain.broadened_classes",
+      "authority_chain.broadened_resources",
+      "authority_chain.broadened_data_classes",
+      "authority_chain.constraint_not_stricter",
+      "authority_chain.budget_parent_envelope_mismatch",
+      "authority_chain.budget_exceeds_parent",
+      "authority_chain.remaining_depth_not_strict",
+      "authority_chain.max_children_exceeds_parent",
+      "authority_chain.validity_not_subset",
+      "authority_chain.expired_at_resolution",
+      "authority_chain.unmapped_action_kind",
+      "authority_chain.action_outside_chain_scope",
+      "authority_revocation.signed_at_at_or_after_revoked_at",
+      "authority_revocation.compromised_key_retroactive_taint",
       "PERMIT_OPERATOR_APPROVAL_INVALID",
       "PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
       "PERMIT_OPERATOR_APPROVAL_SIGNER_MISMATCH",
@@ -608,11 +663,13 @@
       "Record-hash chain continuity within bundled chain entries; sequence-inversion detection.",
       "Closure-binding consistency for dispatched executions (closure_v2 dispatch_request_digest_v1 cross-reference).",
       "Workflow declaration and amendment signature validity (workflow_intent_v1).",
+      "Pinned R2c authority-chain adjudication for v7 permits, including first-fault ordering and signing-time key revocation temporal checks.",
       "Pack-pinned semantic integrity: declared semantic artifacts resolve and validate against a permanent, append-only allowlist."
     ],
     "does_not_prove": [
       "Pre-signing manipulation by a privileged Keel operator at evidence-creation time.",
       "Historical TSA certificate revocation status \u2014 TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
+      "Authority grant revocation or execution-time authority-edge revocation beyond the signing-time revocation-temporal claim.",
       "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
       "Provider or tool actually performing the action correctly in the real world \u2014 the verifier validates recorded evidence."
     ],
@@ -702,6 +759,16 @@
     {
       "id": "keel.permit.dispatch_absence_after_revocation.v1",
       "hash": "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.authority_chain.v1",
+      "hash": "sha256:04727b6fe312e01b3bcc37cbccf208f99b01df039b2a7219ced3c6d82cb4fe61",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.authority.revocation_temporal.v1",
+      "hash": "sha256:879072a50e2e00f11c81151f5271a3207d791a042a39787e73ee462079fb300b",
       "status": "allowlisted"
     },
     {

@@ -1,0 +1,33 @@
+{
+  "body": {
+    "claim": "authority.revocation_temporal.v1",
+    "failure_codes": [
+      {
+        "code": "authority_revocation.signed_at_at_or_after_revoked_at",
+        "step": "4.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_revocation.compromised_key_retroactive_taint",
+        "step": "4.2",
+        "verdict": "disproved"
+      }
+    ],
+    "required_pack_inputs": [
+      "authority_edges.signed_at",
+      "trust_root.keys.revoked_at",
+      "trust_root.keys.compromised_at"
+    ],
+    "scope_note": "Signing-time only; grant/edge revocation and execution-time checks belong to authority.edge_revocation.v1 in a later release.",
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.authority.revocation_temporal.v1",
+  "kind": "authority_revocation_temporal_recipe",
+  "status": "released",
+  "version": "v1"
+}

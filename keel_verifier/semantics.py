@@ -41,6 +41,8 @@ PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
     "keel.permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_AUTHORITY_CHAIN_ID = "keel.permit.authority_chain.v1"
+AUTHORITY_REVOCATION_TEMPORAL_ID = "keel.authority.revocation_temporal.v1"
 PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_ID = "keel.permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
@@ -50,13 +52,14 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6"
+    "sha256:3a50f2a6175ac6417caab3c732b32fbe09bce77bb6a4de8daef097f6862ee8d1"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08"
+    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
     "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c",
     "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215",
     "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235",
@@ -137,6 +140,12 @@ PERMIT_REVOKED_EVENT_HASH = (
 )
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH = (
     "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4"
+)
+PERMIT_AUTHORITY_CHAIN_HASH = (
+    "sha256:04727b6fe312e01b3bcc37cbccf208f99b01df039b2a7219ced3c6d82cb4fe61"
+)
+AUTHORITY_REVOCATION_TEMPORAL_HASH = (
+    "sha256:879072a50e2e00f11c81151f5271a3207d791a042a39787e73ee462079fb300b"
 )
 PERMIT_OPERATOR_APPROVAL_HASH = (
     "sha256:66c6f811aee132c1e93d16708f5a8bbb1b9ca36efa07eaab63aae59894351a63"
@@ -224,6 +233,8 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.dispatch_absence_after_revocation.v1": (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
     ),
+    "permit.authority_chain.v1": (PERMIT_AUTHORITY_CHAIN_ID,),
+    "authority.revocation_temporal.v1": (AUTHORITY_REVOCATION_TEMPORAL_ID,),
     "permit.operator_approval.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signature.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.audit_attestation.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
@@ -267,6 +278,10 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         "semantics/permit/dispatch_absence_after_revocation_v1.json"
     ),
+    PERMIT_AUTHORITY_CHAIN_ID: "semantics/permit/authority_chain_v1.json",
+    AUTHORITY_REVOCATION_TEMPORAL_ID: (
+        "semantics/permit/authority_revocation_temporal_v1.json"
+    ),
     PERMIT_OPERATOR_APPROVAL_ID: (
         "semantics/permit/permit.operator_approval.v1.json"
     ),
@@ -304,6 +319,8 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH
     ),
+    PERMIT_AUTHORITY_CHAIN_ID: PERMIT_AUTHORITY_CHAIN_HASH,
+    AUTHORITY_REVOCATION_TEMPORAL_ID: AUTHORITY_REVOCATION_TEMPORAL_HASH,
     PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
     PERMIT_COUNTER_SIGNATURE_ID: PERMIT_COUNTER_SIGNATURE_HASH,
     PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
@@ -1433,6 +1450,16 @@ def make_permanent_allowlist(
             PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
             PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH,
             "permit_dispatch_absence_after_revocation",
+        ),
+        SemanticImplementation(
+            PERMIT_AUTHORITY_CHAIN_ID,
+            PERMIT_AUTHORITY_CHAIN_HASH,
+            "permit_authority_chain",
+        ),
+        SemanticImplementation(
+            AUTHORITY_REVOCATION_TEMPORAL_ID,
+            AUTHORITY_REVOCATION_TEMPORAL_HASH,
+            "authority_revocation_temporal",
         ),
         SemanticImplementation(
             PERMIT_OPERATOR_APPROVAL_ID,

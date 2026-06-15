@@ -254,28 +254,6 @@
       ]
     },
     {
-      "name": "permit.authority_chain.v1",
-      "assertion": "A v7 permit is authorized by a structurally valid, properly attenuated authority_chain.v1 rooted at a user or service principal, with each edge signed by a key in service at signing time and the chain leaf bound to the permit subject.",
-      "required_evidence": "Permit with binding_version and signed subject fields, authority_chain.v1 payload, every referenced authority_edge.v1 artifact, signing-key records for each edge, resolution_time, requested_action, action_class_map, and pinned authority-chain semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "authority.revocation_temporal.v1",
-      "assertion": "Every authority edge was signed strictly before the signing key's revoked_at and compromised_at instants; this claim is signing-time-only and does not adjudicate grant or edge revocation at dispatch.",
-      "required_evidence": "Authority edges with signed_at timestamps, signing-key records carrying revoked_at and compromised_at, and pinned authority revocation-temporal semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "permit.operator_approval.v1",
       "assertion": "A Permit v2 operator_approval slot is a valid issuer-organization dual-control signature over the slot-specific canonical payload and is bound to the permit, issuer signature evidence, permit canonical hash, operator signer, and signing time.",
       "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, and pinned operator-approval semantics.",

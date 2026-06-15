@@ -12,6 +12,8 @@ import json
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _metadata_version
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,31 @@ from keel_verifier.semantics import (
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
+
+
+def _source_tree_version() -> str | None:
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    if not pyproject.is_file():
+        return None
+    current_section: str | None = None
+    for raw_line in pyproject.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line.strip("[]")
+            continue
+        if current_section == "project" and line.startswith("version "):
+            _, value = line.split("=", 1)
+            return value.strip().strip('"')
+    return None
+
+
+def verifier_version() -> str:
+    try:
+        return _metadata_version("keel-verifier")
+    except PackageNotFoundError:
+        return _source_tree_version() or "unknown"
 
 
 @dataclass(frozen=True)
@@ -181,6 +208,7 @@ class VerdictSubject:
                 "reason_code": self.reason_code,
                 "message": self.message,
                 "evidence": list(self.evidence),
+                "verifier_version": verifier_version(),
             }
         )
 
@@ -261,6 +289,7 @@ class ClaimVerdict:
                 ),
                 "reason_code": reason_code,
                 "message": message,
+                "verifier_version": verifier_version(),
                 "diagnostics": list(self.diagnostics),
             }
         )
@@ -342,6 +371,7 @@ def verdict_output_json_schema() -> dict[str, Any]:
                         "semantics": {"type": "array"},
                         "reason_code": {"type": "string"},
                         "message": {"type": "string"},
+                        "verifier_version": {"type": "string"},
                         "subjects": {"type": "array"},
                         "evidence": {"type": "array"},
                         "epistemic_state": {

@@ -1,0 +1,152 @@
+{
+  "body": {
+    "adjudication_order_note": "Order is descriptive; keel-verifier hard-codes the first-fault walk in Python.",
+    "claim": "permit.authority_chain.v1",
+    "failure_codes": [
+      {
+        "code": "authority_chain.typed_absence",
+        "step": "V10",
+        "verdict": "unverifiable_scope"
+      },
+      {
+        "code": "authority_chain.agent_without_chain",
+        "step": "V10",
+        "verdict": "insufficient_evidence"
+      },
+      {
+        "code": "authority_chain.evidence_incomplete",
+        "step": "A.1",
+        "verdict": "insufficient_evidence"
+      },
+      {
+        "code": "authority_chain.edge_digest_mismatch",
+        "step": "B.2",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.edge_signature_invalid",
+        "step": "B.3",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.signing_key_not_valid_at_signed_at",
+        "step": "B.4",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.unknown_constraint_key",
+        "step": "B.5",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.chain_digest_mismatch",
+        "step": "C.6",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.leaf_subject_mismatch",
+        "step": "C.6b",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.root_anchor_invalid",
+        "step": "C.7",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.parent_edge_digest_broken",
+        "step": "C.8",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.cycle_detected",
+        "step": "C.9",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.broadened_verbs",
+        "step": "D.10",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.broadened_classes",
+        "step": "D.11",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.broadened_resources",
+        "step": "D.12",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.broadened_data_classes",
+        "step": "D.13",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.constraint_not_stricter",
+        "step": "D.14",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.budget_parent_envelope_mismatch",
+        "step": "D.15",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.budget_exceeds_parent",
+        "step": "D.16",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.remaining_depth_not_strict",
+        "step": "D.17",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.max_children_exceeds_parent",
+        "step": "D.18",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.validity_not_subset",
+        "step": "D.19",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.expired_at_resolution",
+        "step": "E.20",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_chain.unmapped_action_kind",
+        "step": "F.21",
+        "verdict": "unverifiable_scope"
+      },
+      {
+        "code": "authority_chain.action_outside_chain_scope",
+        "step": "F.22",
+        "verdict": "disproved"
+      }
+    ],
+    "required_pack_inputs": [
+      "permit",
+      "authority_chain",
+      "authority_edges",
+      "trust_root",
+      "resolution_time",
+      "requested_action",
+      "action_class_map"
+    ],
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.permit.authority_chain.v1",
+  "kind": "permit_authority_chain_recipe",
+  "status": "released",
+  "version": "v1"
+}
