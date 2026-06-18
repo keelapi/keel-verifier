@@ -238,11 +238,12 @@ def signed_closure_v2(
     dispatch_digest: str,
     provider_digest: str,
     client_digest: str,
+    binding_version: str = "closure_v2",
 ) -> dict[str, Any]:
     signed_at = datetime(2026, 5, 7, 12, 0, 30, tzinfo=timezone.utc)
     base = signed_at - timedelta(seconds=10)
     payload = {
-        "binding_version": "closure_v2",
+        "binding_version": binding_version,
         "permit_id": "permit_123",
         "execution_id": "exec_123",
         "correlation_id": "corr_123",

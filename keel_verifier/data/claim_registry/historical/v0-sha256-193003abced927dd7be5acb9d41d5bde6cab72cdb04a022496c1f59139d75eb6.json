@@ -210,17 +210,6 @@
       ]
     },
     {
-      "name": "key.status.completeness.v1",
-      "assertion": "A signed key-status manifest is fresh relative to a signed comparison instant, signed by a pinned permit-binding key, and complete for key.status.v1 events up to a supported checkpoint scope-state boundary.",
-      "required_evidence": "Signed key-status manifest, signed comparison instant, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned permit-binding, scope-state, and integrity-checkpoint trust-root keys.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "export.scope_faithfulness.v1",
       "assertion": "A signed export pack is a scope-faithful slice of the recorded chain for the declared population or declared sample up to the declared checkpoint boundary, and supports auditor testing of the completeness assertion for the declared evidence population and the accuracy assertion for records inside the declared scope.",
       "required_evidence": "export.integrity.v1 evidence; signed export-payload scope_faithfulness block; checkpoint.scope_state.v1 sidecar evidence; referenced checkpoint JSON; chain entries separated into disclosure records and proof bridge records; pinned governance-chain, export scope-faithfulness, and scope-state Merkle semantics.",
@@ -265,28 +254,6 @@
       ]
     },
     {
-      "name": "permit.authority_chain.v1",
-      "assertion": "A v7 permit is authorized by a structurally valid, properly attenuated authority_chain.v1 rooted at a user or service principal, with each edge signed by a key in service at signing time and the chain leaf bound to the permit subject.",
-      "required_evidence": "Permit with binding_version and signed subject fields, authority_chain.v1 payload, every referenced authority_edge.v1 artifact, signing-key records for each edge, resolution_time, requested_action, action_class_map, and pinned authority-chain semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "authority.revocation_temporal.v1",
-      "assertion": "Every authority edge was signed strictly before the signing key's revoked_at and compromised_at instants; this claim is signing-time-only and does not adjudicate grant or edge revocation at dispatch.",
-      "required_evidence": "Authority edges with signed_at timestamps, signing-key records carrying revoked_at and compromised_at, and pinned authority revocation-temporal semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "permit.operator_approval.v1",
       "assertion": "A Permit v2 operator_approval slot is a valid issuer-organization dual-control signature over the slot-specific canonical payload and is bound to the permit, issuer signature evidence, permit canonical hash, operator signer, and signing time.",
       "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, and pinned operator-approval semantics.",
@@ -312,39 +279,6 @@
       "name": "permit.audit_attestation.v1",
       "assertion": "A Permit v2 audit_attestation slot is a valid buyer-principal post-hoc signature over the slot-specific canonical payload and is bound to the permit, issuer signature evidence, permit canonical hash, buyer principal, audit batch, and signing time.",
       "required_evidence": "Permit v2 object with audit_attestation slot, issuer signature evidence, permit canonical hash input, batch_id resolving to a known audit batch, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, and pinned audit-attestation semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.operator_approval.v2",
-      "assertion": "A Permit v2 operator_approval slot is valid only when the slot signature verifies and key.status.completeness.v1 supports that the exact operator key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned operator-approval plus key-status completeness semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.counter_signature.v2",
-      "assertion": "A Permit v2 counter_signature slot is valid only when the slot signature and execution-intent binding verify and key.status.completeness.v1 supports that the exact buyer-principal key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with counter_signature slot, issuer signature evidence, permit canonical hash input, execution_intent_hash, dispatch intent evidence, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned counter-signature plus key-status completeness semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.audit_attestation.v2",
-      "assertion": "A Permit v2 audit_attestation slot is valid only when the slot signature and batch binding verify and key.status.completeness.v1 supports that the exact buyer-principal key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with audit_attestation slot, issuer signature evidence, permit canonical hash input, batch_id resolving to a known audit batch, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned audit-attestation plus key-status completeness semantics.",
       "verdict_enum": [
         "supported",
         "disproved",

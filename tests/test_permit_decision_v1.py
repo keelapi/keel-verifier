@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import argparse
 import base64
 import copy
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+import pytest
 
 from conftest import (
     keypair as export_keypair,
@@ -18,6 +24,7 @@ from step4_permit_helpers import (
     write_permit_trust_root,
 )
 from keel_verifier.canonical import permit_binding
+from keel_verifier import verifier
 from keel_verifier.semantics import (
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
@@ -28,8 +35,10 @@ from keel_verifier.semantics import (
     RELEASED_ARTIFACT_PATHS,
 )
 from keel_verifier.verifier import (
+    _adjudicate_permit_operator_approval_v1,
     _adjudicate_permit_decision_v1,
     _binding_key_id_from_public_key,
+    verify_export_structured,
 )
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
@@ -114,6 +123,126 @@ def _claim(evidence: dict, trust_root: Path):
         export_document={"permit_decision": evidence},
         key_manifest_source=str(trust_root),
     )
+
+
+def _ed25519_public_key(public_key: str) -> Ed25519PublicKey:
+    raw = base64.b64decode(public_key.removeprefix("ed25519:"), validate=True)
+    return Ed25519PublicKey.from_public_bytes(raw)
+
+
+def _assert_ed25519_signature(
+    *,
+    public_key: str,
+    signature: str,
+    signed_bytes: bytes,
+) -> None:
+    signature_bytes = base64.b64decode(
+        signature.removeprefix("ed25519:"),
+        validate=True,
+    )
+    try:
+        _ed25519_public_key(public_key).verify(signature_bytes, signed_bytes)
+    except InvalidSignature as exc:  # pragma: no cover - assertion detail
+        raise AssertionError("golden vector signature does not verify") from exc
+
+
+def _fixture_binding_public_keys(fixture: dict[str, Any]) -> list[str]:
+    keys = [fixture["binding_public_key"]]
+    keys.extend(fixture.get("additional_binding_public_keys", []))
+    return keys
+
+
+def _vector_binding_public_key(fixture: dict[str, Any], item: dict[str, Any]) -> str:
+    return item.get("binding_public_key") or fixture["binding_public_key"]
+
+
+def _write_permit_trust_root_for_fixture(
+    tmp_path: Path,
+    fixture: dict[str, Any],
+) -> Path:
+    return write_json(
+        tmp_path / "permit-binding-trust-root.json",
+        {
+            "keys": [
+                {
+                    "key_id": _binding_key_id_from_public_key(public_key),
+                    "algorithm": "ed25519",
+                    "public_key": public_key,
+                    "purpose": "permit_binding_signing",
+                    "status": "active",
+                    "valid_from": "2026-01-01T00:00:00Z",
+                    "valid_to": None,
+                }
+                for public_key in _fixture_binding_public_keys(fixture)
+            ]
+        },
+    )
+
+
+def _assert_permit_v2_slot_vector(
+    item: dict[str, Any],
+    *,
+    tmp_path: Path,
+) -> None:
+    slot_vector = item.get("permit_v2_slot")
+    if slot_vector is None:
+        return
+
+    signed_payload = slot_vector["signed_payload"]
+    payload_bytes = verifier._permit_v2_canonical_bytes(
+        slot_vector["envelope_version"],
+        signed_payload,
+    )
+    assert (
+        hashlib.sha256(payload_bytes).hexdigest()
+        == slot_vector["signed_payload_bytes_sha256"]
+    )
+    slot = slot_vector["export_document"]["operator_approval"]
+    _assert_ed25519_signature(
+        public_key=slot_vector["signer_public_key"],
+        signature=slot["signature"],
+        signed_bytes=payload_bytes,
+    )
+
+    key_manifest = write_json(
+        tmp_path / f"{item['id']}-permit-v2-keys.json",
+        slot_vector["key_manifest"],
+    )
+    claim = _adjudicate_permit_operator_approval_v1(
+        export_document=slot_vector["export_document"],
+        manifest=slot_vector["manifest"],
+        key_manifest_source=str(key_manifest),
+    )
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_OPERATOR_APPROVAL_SUPPORTED"
+
+
+def _verify_export_args(
+    export_file: Path,
+    manifest: Path,
+    key_manifest: Path,
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        export_file=str(export_file),
+        manifest=str(manifest),
+        key_manifest=str(key_manifest),
+        key_manifest_url=None,
+        expected_public_key=None,
+        public_key=None,
+        self_attested=False,
+        offline=False,
+        allow_unsigned=False,
+        walk_events=False,
+        verify_closure=False,
+        as_json=True,
+    )
+
+
+def _report_claim(report, name: str) -> dict[str, Any]:
+    for claim in report.to_dict()["claims"]:
+        if claim["name"] == name:
+            return claim
+    raise AssertionError(f"missing claim {name}")
 
 
 def _binding_payload(
@@ -207,6 +336,29 @@ def _binding_payload(
     raise AssertionError(f"unsupported test binding version: {version}")
 
 
+def _v7_binding_payload(
+    public_key: str,
+    *,
+    resource_attributes: dict[str, Any] | None = None,
+    final_request_hash: str | None = None,
+) -> dict[str, Any]:
+    payload = _binding_payload(
+        public_key,
+        version="v6",
+        resource_attributes=resource_attributes,
+    )
+    payload["binding_version"] = "v7"
+    payload["authority_chain_digest"] = "sha256:" + "6" * 64
+    payload["quota_reservation_id"] = None
+    payload["subject_id"] = "agent_v7_negative_corpus"
+    payload["subject_type"] = "agent"
+    payload["account_id"] = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    payload["org_id"] = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    if final_request_hash is not None:
+        payload["final_request_hash"] = final_request_hash
+    return payload
+
+
 def _binding_evidence(
     private_key,
     public_key: str,
@@ -275,11 +427,11 @@ def _add_permit_decision_pins(manifest_path: Path) -> None:
     write_json(manifest_path, manifest)
 
 
-def test_golden_permit_decision_vectors_v1_to_v6_supported(tmp_path: Path) -> None:
+def test_golden_permit_decision_vectors_v1_to_v7_supported(tmp_path: Path) -> None:
     fixture = json.loads(
         PERMIT_DECISION_GOLDEN_VECTOR_PATH.read_text(encoding="utf-8")
     )
-    trust_root = write_permit_trust_root(tmp_path, fixture["binding_public_key"])
+    trust_root = _write_permit_trust_root_for_fixture(tmp_path, fixture)
 
     assert fixture["schema_version"] == "permit_decision_binding_golden_vectors.v1"
     assert [item["binding_version"] for item in fixture["vectors"]] == [
@@ -289,18 +441,41 @@ def test_golden_permit_decision_vectors_v1_to_v6_supported(tmp_path: Path) -> No
         "v4",
         "v5",
         "v6",
+        "v7",
+        "v7",
+        "v7",
+        "v7",
+        "v7",
+        "v7",
+        "v7",
     ]
     for item in fixture["vectors"]:
         artifact = item["artifact"]
+        payload = artifact["canonical_payload"]
+        binding_version = item["binding_version"]
+        schema_error = verifier._permit_decision_schema_error(artifact)
+
+        assert schema_error is None
         assert (
-            permit_binding.compute_canonical_binding_hash(
-                artifact["canonical_payload"]
-            )
+            permit_binding.compute_canonical_binding_hash(payload)
             == artifact["binding_canonical_hash"]
+        )
+        canonical_bytes = permit_binding.canonical_binding_bytes(
+            binding_version,
+            payload,
+        )
+        assert hashlib.sha256(canonical_bytes).hexdigest() == artifact[
+            "binding_canonical_hash"
+        ]
+        _assert_ed25519_signature(
+            public_key=_vector_binding_public_key(fixture, item),
+            signature=artifact["binding_signature"],
+            signed_bytes=artifact["binding_canonical_hash"].encode("utf-8"),
         )
         claim = _claim(artifact, trust_root)
         assert claim.aggregate_verdict == item["expected_verdict"]
         assert claim.reason_code == item["expected_reason_code"]
+        _assert_permit_v2_slot_vector(item, tmp_path=tmp_path)
 
 
 def test_cli_verifies_v6_golden_permit_decision_offline(
@@ -541,6 +716,107 @@ def test_v5_permit_recompute_succeeds_with_wire_body_evidence(
 
     assert claim.aggregate_verdict == "supported"
     assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
+def test_full_verify_rejects_unsigned_binding_request_hash_masking_signed_final_request_hash(
+    tmp_path: Path,
+) -> None:
+    export_private, export_public, export_key_id = export_keypair()
+    binding_private, binding_public = keypair(b"c5" * 16)
+    key_manifest = write_combined_key_manifest(
+        tmp_path,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+        binding_public_key=binding_public,
+    )
+    signed_request_body = {
+        "model": "gpt-5",
+        "temperature": 0.2,
+        "messages": [{"role": "user", "content": "signed request"}],
+    }
+    attacker_wire_body = {
+        "model": "gpt-5",
+        "temperature": 1.0,
+        "messages": [{"role": "user", "content": "unsigned evidence"}],
+    }
+    signed_request_hash = permit_binding.canonical_provider_wire_body_hash(
+        signed_request_body,
+        binding_request_canonical_version="v5",
+    )
+    unsigned_evidence_hash = permit_binding.canonical_provider_wire_body_hash(
+        attacker_wire_body,
+        binding_request_canonical_version="v5",
+    )
+    assert signed_request_hash != unsigned_evidence_hash
+    payload = _binding_payload(binding_public, version="v5")
+    payload["final_request_hash"] = "sha256:" + signed_request_hash
+    evidence = _binding_evidence(
+        binding_private,
+        binding_public,
+        version="v5",
+        payload=payload,
+    )
+    evidence["binding_request_hash"] = unsigned_evidence_hash
+    evidence["binding_request_canonical_version"] = "v5"
+    evidence["binding_request_body"] = attacker_wire_body
+    export_file, manifest = write_signed_export(
+        tmp_path,
+        {"permit_decision": evidence},
+        export_private_key=export_private,
+        export_public_key=export_public,
+        export_key_id=export_key_id,
+    )
+    _add_permit_decision_pins(manifest)
+
+    report = verify_export_structured(
+        _verify_export_args(export_file, manifest, key_manifest)
+    )
+    claim = _report_claim(report, "permit.decision.v1")
+
+    assert report.exit_code == 1
+    assert claim["verdict"] == "disproved"
+    assert claim["reason_code"] == "permit.binding.v5.wire_body_hash_mismatch"
+
+
+def test_permit_decision_wire_body_json_is_single_plain_parse(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    private_key, public_key = keypair(b"c6" * 16)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    wire_body = {
+        "model": "gpt-5",
+        "messages": [{"role": "user", "content": "single parse"}],
+    }
+    wire_body_json = json.dumps(wire_body, sort_keys=True, separators=(",", ":"))
+    wire_hash = permit_binding.canonical_provider_wire_body_hash(
+        wire_body,
+        binding_request_canonical_version="v2",
+    )
+    payload = _binding_payload(public_key, version="v2")
+    payload["final_request_hash"] = "sha256:" + wire_hash
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v2",
+        payload=payload,
+    )
+    evidence["binding_request_body_json"] = wire_body_json
+    parse_kwargs: list[dict[str, Any]] = []
+    original_loads = verifier.json.loads
+
+    def tracking_loads(raw, *args, **kwargs):
+        if raw == wire_body_json:
+            parse_kwargs.append(dict(kwargs))
+        return original_loads(raw, *args, **kwargs)
+
+    monkeypatch.setattr(verifier.json, "loads", tracking_loads)
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+    assert parse_kwargs == [{}]
 
 
 def test_v5_permit_recompute_rejects_tampered_wire_body(tmp_path: Path) -> None:
@@ -789,12 +1065,189 @@ def test_v5_permit_does_not_enter_v6_resource_hash_recompute_path(
     assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
 
 
+def test_v7_permit_decision_is_supported_after_verifier_support(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"7" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    payload = _v7_binding_payload(public_key)
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v7", payload=payload),
+        trust_root,
+    )
+
+    assert "v7" in permit_binding.SUPPORTED_BINDING_VERSIONS
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+
+
+def test_v7_signed_request_hash_rejects_unsigned_wire_body_substitution(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"8" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    signed_request_body = {
+        "model": "gpt-5",
+        "messages": [{"role": "user", "content": "signed request"}],
+        "temperature": 0.2,
+    }
+    attacker_wire_body = {
+        "model": "gpt-5",
+        "messages": [{"role": "user", "content": "unsigned request"}],
+        "temperature": 1.0,
+    }
+    signed_request_hash = permit_binding.canonical_provider_wire_body_hash(
+        signed_request_body,
+        binding_request_canonical_version="v5",
+    )
+    unsigned_request_hash = permit_binding.canonical_provider_wire_body_hash(
+        attacker_wire_body,
+        binding_request_canonical_version="v5",
+    )
+    assert signed_request_hash != unsigned_request_hash
+    payload = _v7_binding_payload(
+        public_key,
+        final_request_hash="sha256:" + signed_request_hash,
+    )
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v7",
+        payload=payload,
+    )
+    evidence["binding_request_hash"] = unsigned_request_hash
+    evidence["binding_request_canonical_version"] = "v5"
+    evidence["binding_request_body"] = attacker_wire_body
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "permit.binding.v7.wire_body_hash_mismatch"
+
+
+def test_v7_rejects_unsigned_legacy_request_canonicalizer_metadata(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"9" * 32)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    wire_body = {"value": 1.0, "messages": [{"role": "user", "content": "ok"}]}
+    rfc8785_hash = permit_binding.canonical_provider_wire_body_hash(
+        wire_body,
+        binding_request_canonical_version="v5",
+    )
+    legacy_hash = permit_binding.canonical_provider_wire_body_hash(
+        wire_body,
+        binding_request_canonical_version="v1",
+    )
+    assert rfc8785_hash != legacy_hash
+    payload = _v7_binding_payload(
+        public_key,
+        final_request_hash="sha256:" + rfc8785_hash,
+    )
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v7",
+        payload=payload,
+    )
+    evidence["binding_request_canonical_version"] = "v1"
+    evidence["binding_request_body"] = wire_body
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "permit.binding.v7.request_canonical_version_mismatch"
+    assert "canonical" in claim.message.lower()
+    assert "version" in claim.message.lower()
+
+
+def test_v7_rejects_missing_resource_attributes_canonical_hash(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"a7" * 16)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    payload = _v7_binding_payload(public_key)
+    payload.pop("resource_attributes_canonical_hash")
+
+    claim = _claim(
+        _binding_evidence(private_key, public_key, version="v7", payload=payload),
+        trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v7.resource_attributes_canonical_hash_missing"
+    )
+
+
+@pytest.mark.parametrize(
+    ("case_name", "mutate"),
+    [
+        ("resource_attributes", lambda attrs: attrs.update({"tap": {"amount": 9999}})),
+        ("spend_scope", lambda attrs: attrs["spend_scope"].update({"amount_max": 9999})),
+        (
+            "delegation_policy",
+            lambda attrs: attrs["delegation_policy"]["delegations"][0].update(
+                {"amount_max": 9999}
+            ),
+        ),
+    ],
+)
+def test_v7_rejects_resource_authority_tamper_after_signing(
+    tmp_path: Path,
+    case_name: str,
+    mutate,
+) -> None:
+    private_key, public_key = keypair(b"b7" * 16)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _binding_evidence(
+        private_key,
+        public_key,
+        version="v7",
+        payload=_v7_binding_payload(public_key),
+    )
+    canonical_payload = evidence["canonical_payload"]
+    resource_attributes = json.loads(evidence["resource_attributes_json"])
+
+    mutate(resource_attributes)
+    evidence["resource_attributes_json"] = json.dumps(resource_attributes)
+
+    assert (
+        permit_binding.canonical_resource_attributes_payload(resource_attributes)
+        != canonical_payload["resource_attributes_canonical_hash"]
+    )
+    if case_name == "spend_scope":
+        assert (
+            permit_binding.canonical_spend_scope_payload(
+                resource_attributes["spend_scope"]
+            )
+            != canonical_payload["spend_scope_hash"]
+        )
+    if case_name == "delegation_policy":
+        assert (
+            permit_binding.canonical_delegation_policy_payload(
+                resource_attributes["delegation_policy"]
+            )
+            != canonical_payload["delegation_policy_hash"]
+        )
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "disproved"
+    assert (
+        claim.reason_code
+        == "permit.binding.v7.resource_attributes_canonical_hash_mismatch"
+    )
+
+
 def test_unknown_binding_version_rejected(tmp_path: Path) -> None:
     private_key, public_key = keypair(b"h" * 32)
     trust_root = write_permit_trust_root(tmp_path, public_key)
     evidence = decision_evidence(private_key, public_key)
     evidence["canonical_payload"] = copy.deepcopy(evidence["canonical_payload"])
-    evidence["canonical_payload"]["binding_version"] = "v7"
+    evidence["canonical_payload"]["binding_version"] = "v8"
 
     claim = _claim(evidence, trust_root)
 

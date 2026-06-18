@@ -280,6 +280,23 @@
       ]
     },
     {
+      "name": "key.status.completeness.v1",
+      "status": "implemented",
+      "description": "Verifies a signed key-status manifest against pinned permit-binding trust roots and a supported checkpoint.scope_state.v1 boundary for key.status.v1 event completeness.",
+      "depends_on_semantics": [
+        "keel.scope_state.sidecar_format.v1",
+        "keel.scope_state.merkle.v1",
+        "keel.checkpoint.composite_hash.v1",
+        "keel.checkpoint.signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "export.scope_faithfulness.v1",
       "status": "implemented",
       "description": "Adjudicates whether a signed export pack is a scope-faithful slice of the recorded chain for the declared population or declared sample up to the declared checkpoint boundary, and supports auditor testing of the completeness assertion for the declared evidence population and the accuracy assertion for records inside the declared scope.",
@@ -341,6 +358,34 @@
       ]
     },
     {
+      "name": "permit.authority_chain.v1",
+      "status": "implemented",
+      "description": "Adjudicates v7 permit authority-chain evidence in the R2c first-fault order: version-scoped typed absence, pack completeness, edge integrity, chain digest, leaf-to-subject binding, root anchor, linkage, attenuation, liveness, and action scope.",
+      "depends_on_semantics": [
+        "keel.permit.authority_chain.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "authority.revocation_temporal.v1",
+      "status": "implemented",
+      "description": "Adjudicates signing-time-only authority-edge key revocation and compromise timestamps; grant revocation and execution-time taint remain outside this claim.",
+      "depends_on_semantics": [
+        "keel.authority.revocation_temporal.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approval.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
@@ -374,6 +419,60 @@
       "description": "Verifies a Permit v2 audit_attestation slot as a distinct buyer-principal post-hoc signature bound to a known audit batch.",
       "depends_on_semantics": [
         "keel.permit.audit_attestation.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.operator_approval.v2",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 operator_approval slot and requires supported key.status.completeness.v1 for the exact signer key at the signed slot timestamp.",
+      "depends_on_semantics": [
+        "keel.permit.operator_approval.v2",
+        "keel.scope_state.sidecar_format.v1",
+        "keel.scope_state.merkle.v1",
+        "keel.checkpoint.composite_hash.v1",
+        "keel.checkpoint.signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.counter_signature.v2",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 counter_signature slot and requires supported key.status.completeness.v1 for the exact signer key at the signed slot timestamp.",
+      "depends_on_semantics": [
+        "keel.permit.counter_signature.v2",
+        "keel.scope_state.sidecar_format.v1",
+        "keel.scope_state.merkle.v1",
+        "keel.checkpoint.composite_hash.v1",
+        "keel.checkpoint.signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.audit_attestation.v2",
+      "status": "implemented",
+      "description": "Verifies a Permit v2 audit_attestation slot and requires supported key.status.completeness.v1 for the exact signer key at the signed slot timestamp.",
+      "depends_on_semantics": [
+        "keel.permit.audit_attestation.v2",
+        "keel.scope_state.sidecar_format.v1",
+        "keel.scope_state.merkle.v1",
+        "keel.checkpoint.composite_hash.v1",
+        "keel.checkpoint.signature.v1"
       ],
       "verdicts": [
         "supported",
@@ -525,6 +624,23 @@
       "CHECKPOINT_SCOPE_STATE_COMMITMENT_PROFILE_UNKNOWN",
       "CHECKPOINT_SCOPE_STATE_PREDICATE_HASH_MISMATCH",
       "CHECKPOINT_SCOPE_STATE_COMMITMENT_PREDICATE_DUPLICATE",
+      "KEY_STATUS_COMPLETENESS_SUBJECT_MISSING",
+      "KEY_STATUS_COMPLETENESS_MANIFEST_MISSING",
+      "KEY_STATUS_COMPLETENESS_MANIFEST_INVALID",
+      "KEY_STATUS_COMPLETENESS_MANIFEST_SIGNATURE_INVALID",
+      "KEY_STATUS_COMPLETENESS_STALE_MANIFEST",
+      "KEY_STATUS_COMPLETENESS_SUBJECT_MISMATCH",
+      "KEY_STATUS_COMPLETENESS_SCOPE_STATE_UNSUPPORTED",
+      "KEY_STATUS_COMPLETENESS_SCOPE_BOUNDARY_INVALID",
+      "KEY_STATUS_COMPLETENESS_SCOPE_COMMITMENT_MISSING",
+      "KEY_STATUS_COMPLETENESS_EVENT_REF_OUT_OF_SCOPE",
+      "KEY_STATUS_COMPLETENESS_EVENT_REF_DUPLICATE",
+      "KEY_STATUS_COMPLETENESS_EVENT_REF_COUNT_MISMATCH",
+      "KEY_STATUS_COMPLETENESS_KEY_MISSING",
+      "KEY_STATUS_COMPLETENESS_STATUS_NOT_REVOKED",
+      "KEY_STATUS_COMPLETENESS_REVOKED_AFTER_COMPARISON",
+      "KEY_STATUS_COMPLETENESS_EVENT_REF_MISSING",
+      "KEY_STATUS_COMPLETENESS_SUPPORTED",
       "EXPORT_SCOPE_DECLARATION_MISSING",
       "EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID",
       "EXPORT_SCOPE_PREDICATE_UNSUPPORTED",
@@ -581,18 +697,48 @@
       "PERMIT_REVOKED_EFFECTIVE_AT_MISMATCH",
       "PERMIT_REVOKED_ACTOR_PII_DETECTED",
       "PERMIT_REVOKED_ACTOR_KIND_UNSUPPORTED",
+      "authority_chain.typed_absence",
+      "authority_chain.agent_without_chain",
+      "authority_chain.evidence_incomplete",
+      "authority_chain.edge_digest_mismatch",
+      "authority_chain.edge_signature_invalid",
+      "authority_chain.signing_key_not_valid_at_signed_at",
+      "authority_chain.unknown_constraint_key",
+      "authority_chain.chain_digest_mismatch",
+      "authority_chain.leaf_subject_mismatch",
+      "authority_chain.root_anchor_invalid",
+      "authority_chain.parent_edge_digest_broken",
+      "authority_chain.cycle_detected",
+      "authority_chain.broadened_verbs",
+      "authority_chain.broadened_classes",
+      "authority_chain.broadened_resources",
+      "authority_chain.broadened_data_classes",
+      "authority_chain.constraint_not_stricter",
+      "authority_chain.budget_parent_envelope_mismatch",
+      "authority_chain.budget_exceeds_parent",
+      "authority_chain.remaining_depth_not_strict",
+      "authority_chain.max_children_exceeds_parent",
+      "authority_chain.validity_not_subset",
+      "authority_chain.expired_at_resolution",
+      "authority_chain.unmapped_action_kind",
+      "authority_chain.action_outside_chain_scope",
+      "authority_revocation.signed_at_at_or_after_revoked_at",
+      "authority_revocation.compromised_key_retroactive_taint",
       "PERMIT_OPERATOR_APPROVAL_INVALID",
       "PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
       "PERMIT_OPERATOR_APPROVAL_SIGNER_MISMATCH",
+      "PERMIT_OPERATOR_APPROVAL_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
       "PERMIT_COUNTER_SIGNATURE_INVALID",
       "PERMIT_COUNTER_SIGNATURE_KEY_NOT_TRUSTED",
       "PERMIT_COUNTER_SIGNATURE_SIGNER_MISMATCH",
       "PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_MISSING",
+      "PERMIT_COUNTER_SIGNATURE_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
       "counter_signature.execution_intent_mismatch",
       "PERMIT_AUDIT_ATTESTATION_INVALID",
       "PERMIT_AUDIT_ATTESTATION_KEY_NOT_TRUSTED",
       "PERMIT_AUDIT_ATTESTATION_SIGNER_MISMATCH",
       "PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
+      "PERMIT_AUDIT_ATTESTATION_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
       "PAYLOAD_TYPE_MISMATCH",
       "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
       "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
@@ -608,11 +754,13 @@
       "Record-hash chain continuity within bundled chain entries; sequence-inversion detection.",
       "Closure-binding consistency for dispatched executions (closure_v2 dispatch_request_digest_v1 cross-reference).",
       "Workflow declaration and amendment signature validity (workflow_intent_v1).",
+      "Pinned R2c authority-chain adjudication for v7 permits, including first-fault ordering and signing-time key revocation temporal checks.",
       "Pack-pinned semantic integrity: declared semantic artifacts resolve and validate against a permanent, append-only allowlist."
     ],
     "does_not_prove": [
       "Pre-signing manipulation by a privileged Keel operator at evidence-creation time.",
       "Historical TSA certificate revocation status \u2014 TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
+      "Authority grant revocation or execution-time authority-edge revocation beyond the signing-time revocation-temporal claim.",
       "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
       "Provider or tool actually performing the action correctly in the real world \u2014 the verifier validates recorded evidence."
     ],
@@ -691,7 +839,7 @@
     },
     {
       "id": "keel.permit.decision.v1",
-      "hash": "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d",
+      "hash": "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb",
       "status": "allowlisted"
     },
     {
@@ -702,6 +850,16 @@
     {
       "id": "keel.permit.dispatch_absence_after_revocation.v1",
       "hash": "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.authority_chain.v1",
+      "hash": "sha256:04727b6fe312e01b3bcc37cbccf208f99b01df039b2a7219ced3c6d82cb4fe61",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.authority.revocation_temporal.v1",
+      "hash": "sha256:879072a50e2e00f11c81151f5271a3207d791a042a39787e73ee462079fb300b",
       "status": "allowlisted"
     },
     {
@@ -718,6 +876,21 @@
       "id": "keel.permit.audit_attestation.v1",
       "hash": "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f",
       "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.operator_approval.v2",
+      "hash": "sha256:e23087de01ed8837d3f3a339a7eea2df1b651a33ebfaa666a5b04f7cf744da83",
+      "status": "vendor_soak"
+    },
+    {
+      "id": "keel.permit.counter_signature.v2",
+      "hash": "sha256:e9d83d01a5e15bd607702c53293185fa3f2d7cab84374e1d6256a67d6027a951",
+      "status": "vendor_soak"
+    },
+    {
+      "id": "keel.permit.audit_attestation.v2",
+      "hash": "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2",
+      "status": "vendor_soak"
     }
   ]
 }

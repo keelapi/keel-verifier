@@ -31,6 +31,9 @@ jobs:
           python -m pip install --upgrade build twine cyclonedx-bom
           python -m pip install -e ".[dev]"
 
+      - name: Gate GitHub trust-root publication
+        run: python scripts/check_release_trust_root.py --source github
+
       - name: Generate embedded release manifest
         run: python scripts/generate_release_manifest.py embedded --tag "${GITHUB_REF_NAME}"
 

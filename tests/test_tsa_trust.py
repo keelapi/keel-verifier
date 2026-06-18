@@ -29,6 +29,14 @@ def _write_checkpoint(tmp_path: Path, checkpoint: dict) -> Path:
     return checkpoint_path
 
 
+def test_checkpoint_tsa_claim_empty_subject_domain_is_insufficient() -> None:
+    claim = verifier._checkpoint_tsa_claim([])
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "CHECKPOINT_TSA_IMPRINT_MISSING"
+    assert claim.subjects == []
+
+
 def _run_openssl(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["openssl", *args],

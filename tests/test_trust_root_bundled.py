@@ -42,6 +42,29 @@ def test_bundled_trust_root_includes_active_permit_binding_key():
         assert re.fullmatch(r"[0-9a-f]{16}", entry.get("key_id", ""))
 
 
+def test_bundled_trust_root_includes_active_scope_state_key():
+    entries = _load_key_manifest(str(DEFAULT_TRUST_ROOT_PATH))
+
+    active_scope_state_keys = [
+        entry
+        for entry in entries
+        if entry.get("purpose") == "scope_state"
+        and entry.get("status") == "active"
+    ]
+    active_checkpoint_keys = [
+        entry
+        for entry in entries
+        if entry.get("purpose") == "integrity_checkpoint"
+        and entry.get("status") == "active"
+    ]
+
+    assert len(active_scope_state_keys) == 1
+    assert len(active_checkpoint_keys) == 1
+    assert active_scope_state_keys[0]["public_key"].startswith("ed25519:")
+    assert active_scope_state_keys[0]["key_id"] == active_checkpoint_keys[0]["key_id"]
+    assert active_scope_state_keys[0]["purpose"] != active_checkpoint_keys[0]["purpose"]
+
+
 def test_bundled_permit_binding_key_id_matches_recorded_wire_response():
     entries = _load_key_manifest(str(DEFAULT_TRUST_ROOT_PATH))
 

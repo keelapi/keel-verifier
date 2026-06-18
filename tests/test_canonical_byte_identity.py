@@ -322,6 +322,48 @@ def test_canonical_binding_payload_v6_byte_identity_with_rfc8785():
     )
 
 
+def test_canonical_binding_payload_v7_account_fields_byte_identity_with_rfc8785():
+    resource_attributes_hash = permit_binding.canonical_resource_attributes_payload(
+        PERMIT_BINDING_RESOURCE_ATTRIBUTES
+    )
+    account_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    payload = permit_binding.canonical_binding_payload_v7(
+        **PERMIT_BINDING_BASE_FIELDS,
+        **PERMIT_BINDING_V2_FIELDS,
+        spend_scope_hash=permit_binding.canonical_spend_scope_payload(
+            PERMIT_BINDING_SPEND_SCOPE
+        ),
+        delegation_policy_hash=permit_binding.canonical_delegation_policy_payload(
+            PERMIT_BINDING_DELEGATION_POLICY
+        ),
+        resource_attributes_canonical_hash=resource_attributes_hash,
+        authority_chain_digest="SHA256:" + "F" * 64,
+        quota_reservation_id="50000000-0000-4000-8000-000000000666",
+        subject_id="agent_123",
+        subject_type="agent",
+        account_id=account_id,
+        org_id=account_id,
+    )
+
+    assert list(payload)[-6:] == [
+        "authority_chain_digest",
+        "quota_reservation_id",
+        "subject_id",
+        "subject_type",
+        "account_id",
+        "org_id",
+    ]
+    assert payload["binding_version"] == "v7"
+    assert payload["account_id"] == account_id
+    assert payload["org_id"] == account_id
+    assert permit_binding.canonical_binding_bytes("v7", payload) == rfc8785.dumps(
+        payload
+    )
+    assert permit_binding.compute_canonical_binding_hash(payload) == hashlib.sha256(
+        rfc8785.dumps(payload)
+    ).hexdigest()
+
+
 def test_provider_wire_body_v5_byte_identity_with_rfc8785():
     payload = {
         "model": "gpt-5",
@@ -344,6 +386,12 @@ def test_provider_wire_body_v5_byte_identity_with_rfc8785():
             permit_binding.binding_request_canonical_version_for_binding("v6")
         ),
     ) == rfc8785.dumps(expected_payload)
+    assert permit_binding.canonical_provider_wire_body(
+        payload,
+        binding_request_canonical_version=(
+            permit_binding.binding_request_canonical_version_for_binding("v7")
+        ),
+    ) == rfc8785.dumps(expected_payload)
 
 
 def test_permit_v2_envelope_v5_byte_identity_with_rfc8785():
@@ -360,6 +408,9 @@ def test_permit_v2_envelope_v5_byte_identity_with_rfc8785():
         payload
     )
     assert verifier._permit_v2_canonical_bytes("v6", payload) == rfc8785.dumps(
+        payload
+    )
+    assert verifier._permit_v2_canonical_bytes("v7", payload) == rfc8785.dumps(
         payload
     )
     assert verifier._permit_v2_canonical_bytes("v4", payload) == (

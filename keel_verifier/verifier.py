@@ -212,7 +212,7 @@ def _subject(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
 ) -> VerdictSubject:
@@ -232,7 +232,7 @@ def _single_subject_claim(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
     required: bool = True,
@@ -557,12 +557,47 @@ PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
 PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
     "permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
+AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
+PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME = "permit.operator_approval.v2"
+PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME = "permit.counter_signature.v2"
+PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME = "permit.audit_attestation.v2"
 PERMIT_OPERATOR_APPROVED_CLAIM_NAME = "permit.operator_approved.v1"
 PERMIT_COUNTER_SIGNED_CLAIM_NAME = "permit.counter_signed.v1"
 PERMIT_AUDIT_ATTESTED_CLAIM_NAME = "permit.audit_attested.v1"
+KEY_STATUS_COMPLETENESS_CLAIM_NAME = "key.status.completeness.v1"
+KEY_STATUS_EVENT_TYPE = "key.status.v1"
+KEY_STATUS_MANIFEST_TYPE = "permit_v2.key_status_manifest.v1"
+KEY_STATUS_MANIFEST_CANONICALIZATION_PROFILE = "keel.canonical_json.payload.v1"
+KEY_STATUS_MANIFEST_SCOPES = (
+    "operator",
+    "buyer_principal",
+    "mcp_server",
+    "provider_principal",
+)
+KEY_STATUS_MANIFEST_SIGNED_FIELDS = (
+    "manifest_type",
+    "canonicalization_profile",
+    "computed_at",
+    "account_id",
+    "key_scopes",
+    "keys",
+    "signer",
+)
+KEY_STATUS_MANIFEST_FIELDS = (
+    *KEY_STATUS_MANIFEST_SIGNED_FIELDS,
+    "manifest_hash",
+    "signature",
+)
+KEY_STATUS_COMPLETENESS_PREDICATE = {
+    "version": "keel.scope_predicate.v1",
+    "operator": "and",
+    "equals": {"event_type": KEY_STATUS_EVENT_TYPE},
+    "ranges": {},
+}
 PERMIT_DECISION_ARTIFACT_TYPE = "permit_decision_binding"
 PERMIT_DECISION_ARTIFACT_VERSION = "permit.decision.v1"
 PERMIT_REVOKED_EVENT_TYPE = "permit.revoked"
@@ -595,6 +630,56 @@ PERMIT_V2_BUYER_KEY_PURPOSES = frozenset(
         "audit_attestation",
     }
 )
+AUTHORITY_CHAIN_VERSION = "authority_chain.v1"
+AUTHORITY_EDGE_VERSION = "authority_edge.v1"
+AUTHORITY_CHAIN_SUPPORTED_CODE = "AUTHORITY_CHAIN_SUPPORTED"
+AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE = "AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED"
+AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
+    {
+        "requires_human_approval",
+        "max_recipients",
+        "max_item_amount_usd_micros",
+        "allow_domains",
+        "deny_external_domains",
+        "allowed_hours",
+        "purpose",
+    }
+)
+AUTHORITY_CHAIN_DIRECT_SUBJECT_TYPES = frozenset(
+    {"user", "service_principal", "system"}
+)
+AUTHORITY_CHAIN_AGENT_SUBJECT_TYPE = "agent"
+AUTHORITY_CHAIN_CODE_VERDICTS = {
+    "authority_chain.typed_absence": "unverifiable_scope",
+    "authority_chain.evidence_incomplete": "insufficient_evidence",
+    "authority_chain.edge_digest_mismatch": "disproved",
+    "authority_chain.edge_signature_invalid": "disproved",
+    "authority_chain.signing_key_not_valid_at_signed_at": "disproved",
+    "authority_chain.unknown_constraint_key": "disproved",
+    "authority_chain.chain_digest_mismatch": "disproved",
+    "authority_chain.leaf_subject_mismatch": "disproved",
+    "authority_chain.root_anchor_invalid": "disproved",
+    "authority_chain.parent_edge_digest_broken": "disproved",
+    "authority_chain.cycle_detected": "disproved",
+    "authority_chain.broadened_verbs": "disproved",
+    "authority_chain.broadened_classes": "disproved",
+    "authority_chain.broadened_resources": "disproved",
+    "authority_chain.broadened_data_classes": "disproved",
+    "authority_chain.constraint_not_stricter": "disproved",
+    "authority_chain.budget_parent_envelope_mismatch": "disproved",
+    "authority_chain.budget_exceeds_parent": "disproved",
+    "authority_chain.remaining_depth_not_strict": "disproved",
+    "authority_chain.max_children_exceeds_parent": "disproved",
+    "authority_chain.validity_not_subset": "disproved",
+    "authority_chain.expired_at_resolution": "disproved",
+    "authority_chain.unmapped_action_kind": "unverifiable_scope",
+    "authority_chain.action_outside_chain_scope": "disproved",
+    "authority_chain.agent_without_chain": "insufficient_evidence",
+}
+AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS = {
+    "authority_revocation.signed_at_at_or_after_revoked_at": "disproved",
+    "authority_revocation.compromised_key_retroactive_taint": "disproved",
+}
 _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_version",
     "permit_id",
@@ -639,6 +724,15 @@ _PERMIT_DECISION_V6_CANONICAL_FIELDS = (
     *_PERMIT_DECISION_V4_CANONICAL_FIELDS,
     "resource_attributes_canonical_hash",
 )
+_PERMIT_DECISION_V7_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_V6_CANONICAL_FIELDS,
+    "authority_chain_digest",
+    "quota_reservation_id",
+    "subject_id",
+    "subject_type",
+    "account_id",
+    "org_id",
+)
 _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v1": _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS,
     "v2": _PERMIT_DECISION_V2_CANONICAL_FIELDS,
@@ -646,6 +740,7 @@ _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v4": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
     "v5": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
     "v6": _PERMIT_DECISION_V6_CANONICAL_FIELDS,
+    "v7": _PERMIT_DECISION_V7_CANONICAL_FIELDS,
 }
 _PERMIT_REVOKED_REQUIRED_FIELDS = (
     "permit_id",
@@ -680,6 +775,8 @@ class PermitV2SlotSpec:
     supported_code: str
     extra_field: str | None = None
     extra_mismatch_code: str | None = None
+    requires_key_status_completeness: bool = False
+    completeness_unsupported_code: str | None = None
 
 
 PERMIT_V2_OPERATOR_APPROVAL_SPEC = PermitV2SlotSpec(
@@ -722,6 +819,24 @@ PERMIT_V2_AUDIT_ATTESTATION_SPEC = PermitV2SlotSpec(
     extra_field="batch_id",
     extra_mismatch_code="PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
 )
+PERMIT_V2_OPERATOR_APPROVAL_V2_SPEC = replace(
+    PERMIT_V2_OPERATOR_APPROVAL_SPEC,
+    claim_name=PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME,
+    requires_key_status_completeness=True,
+    completeness_unsupported_code="PERMIT_OPERATOR_APPROVAL_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
+)
+PERMIT_V2_COUNTER_SIGNATURE_V2_SPEC = replace(
+    PERMIT_V2_COUNTER_SIGNATURE_SPEC,
+    claim_name=PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME,
+    requires_key_status_completeness=True,
+    completeness_unsupported_code="PERMIT_COUNTER_SIGNATURE_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
+)
+PERMIT_V2_AUDIT_ATTESTATION_V2_SPEC = replace(
+    PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    claim_name=PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME,
+    requires_key_status_completeness=True,
+    completeness_unsupported_code="PERMIT_AUDIT_ATTESTATION_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
+)
 PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC = replace(
     PERMIT_V2_OPERATOR_APPROVAL_SPEC,
     claim_name=PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
@@ -738,6 +853,11 @@ PERMIT_V2_SLOT_SPECS = {
     PERMIT_OPERATOR_APPROVAL_SLOT: PERMIT_V2_OPERATOR_APPROVAL_SPEC,
     PERMIT_COUNTER_SIGNATURE_SLOT: PERMIT_V2_COUNTER_SIGNATURE_SPEC,
     PERMIT_AUDIT_ATTESTATION_SLOT: PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+}
+PERMIT_V2_SLOT_V2_SPECS = {
+    PERMIT_OPERATOR_APPROVAL_SLOT: PERMIT_V2_OPERATOR_APPROVAL_V2_SPEC,
+    PERMIT_COUNTER_SIGNATURE_SLOT: PERMIT_V2_COUNTER_SIGNATURE_V2_SPEC,
+    PERMIT_AUDIT_ATTESTATION_SLOT: PERMIT_V2_AUDIT_ATTESTATION_V2_SPEC,
 }
 
 
@@ -1877,24 +1997,114 @@ def _filter_by_active_window(
     return matches
 
 
-def _load_key_manifest(source: str) -> list[dict[str, Any]]:
-    """Load a Keel public key manifest from a local file path or URL."""
-    if source.startswith(("http://", "https://")):
-        with urllib.request.urlopen(source, timeout=10) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+def _entry_not_terminal_at(entry: Mapping[str, Any], signing_time: datetime | None) -> bool:
+    if signing_time is None:
+        return entry.get("status") not in {"revoked", "compromised"}
+    revoked_at = _parse_iso_or_none(entry.get("revoked_at"))
+    compromised_at = _parse_iso_or_none(entry.get("compromised_at"))
+    if revoked_at is not None and revoked_at <= signing_time:
+        return False
+    if compromised_at is not None and compromised_at <= signing_time:
+        return False
+    return entry.get("status") not in {"revoked", "compromised"}
+
+
+def _select_pinned_trust_key(
+    entries: list[dict[str, Any]],
+    *,
+    key_id: str,
+    purpose: str,
+    signing_time: datetime | None,
+) -> tuple[str | None, str | None]:
+    matches = [
+        entry
+        for entry in entries
+        if entry.get("key_id") == key_id and entry.get("purpose") == purpose
+    ]
+    if signing_time is not None:
+        matches = _filter_by_active_window(matches, signing_time)
+    matches = [entry for entry in matches if _entry_not_terminal_at(entry, signing_time)]
+    if len(matches) != 1:
+        return None, "no unique active pinned trust key resolved"
+    public_key = matches[0].get("public_key")
+    if not isinstance(public_key, str) or not public_key.startswith("ed25519:"):
+        return None, "pinned trust key has no Ed25519 public_key"
+    return public_key, None
+
+
+def _manifest_signature_payload_bytes(manifest: Mapping[str, Any]) -> bytes:
+    return _canonical_json_bytes(
+        {
+            "manifest_version": manifest["manifest_version"],
+            "canonicalization_profile": manifest["canonicalization_profile"],
+            "keys": manifest["keys"],
+        }
+    )
+
+
+def _remote_key_manifest_requires_signature(source: str) -> bool:
+    return source.startswith(("http://", "https://"))
+
+
+def _verify_public_key_manifest_signature(
+    body: Mapping[str, Any],
+    *,
+    source: str,
+) -> None:
+    if body.get("manifest_version") != "keel.public_key_manifest.v1":
+        if "manifest_signature" in body or _remote_key_manifest_requires_signature(source):
+            raise ValueError("public key manifests must use keel.public_key_manifest.v1")
+        return
+    if body.get("canonicalization_profile") != "keel.canonical_json.payload.v1":
+        raise ValueError("public key manifest canonicalization_profile is unsupported")
+    signature = body.get("manifest_signature")
+    if not isinstance(signature, Mapping):
+        raise ValueError("public key manifest is missing manifest_signature")
+    if signature.get("signature_type") != "ed25519.content_hash.v1":
+        raise ValueError("public key manifest signature_type is unsupported")
+    if signature.get("purpose") != "export_signing":
+        raise ValueError("public key manifest must be signed by export_signing")
+    signer_key_id = signature.get("key_id")
+    content_hash_value = signature.get("content_hash")
+    signature_value = signature.get("signature")
+    if not (
+        isinstance(signer_key_id, str)
+        and isinstance(content_hash_value, str)
+        and isinstance(signature_value, str)
+    ):
+        raise ValueError("public key manifest signature fields are incomplete")
+
+    payload_bytes = _manifest_signature_payload_bytes(body)
+    actual_hash = _content_hash(payload_bytes)
+    if actual_hash != content_hash_value:
+        raise ValueError("public key manifest content_hash does not match signed fields")
+
+    if str(Path(source)) == str(DEFAULT_TRUST_ROOT_PATH):
+        trust_entries = _normalize_key_manifest_entries(body)
     else:
-        body = json.loads(Path(source).read_text(encoding="utf-8"))
+        trust_entries = _load_key_manifest(str(DEFAULT_TRUST_ROOT_PATH))
+    signing_time = _parse_iso_or_none(body.get("generated_at"))
+    public_key, error = _select_pinned_trust_key(
+        trust_entries,
+        key_id=signer_key_id,
+        purpose="export_signing",
+        signing_time=signing_time,
+    )
+    if public_key is None:
+        raise ValueError(error or "public key manifest signer is not pinned")
+    if not _verify_ed25519(public_key, actual_hash.encode("utf-8"), signature_value):
+        raise ValueError("public key manifest signature does not verify")
 
-    if not isinstance(body, dict) or not isinstance(body.get("keys"), list):
-        raise ValueError(
-            f"Key manifest at {source!r} must be a JSON object with a 'keys' list"
-        )
 
+def _normalize_key_manifest_entries(body: Mapping[str, Any]) -> list[dict[str, Any]]:
     default_purpose = (
         body.get("purpose") if isinstance(body.get("purpose"), str) else None
     )
+    keys = body.get("keys")
     entries: list[dict[str, Any]] = []
-    for entry in body["keys"]:
+    if not isinstance(keys, list):
+        return entries
+    for entry in keys:
         if not isinstance(entry, dict):
             continue
         normalized = dict(entry)
@@ -1919,8 +2129,30 @@ def _load_key_manifest(source: str) -> list[dict[str, Any]]:
                 "active" if normalized.get("valid_to") is None else "retired"
             )
         entries.append(normalized)
-
     return entries
+
+
+def _load_key_manifest(source: str) -> list[dict[str, Any]]:
+    """Load a Keel public key manifest from a local file path or URL."""
+    if source.startswith(("http://", "https://")):
+        with urllib.request.urlopen(source, timeout=10) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    else:
+        body = json.loads(Path(source).read_text(encoding="utf-8"))
+
+    if not isinstance(body, dict) or not isinstance(body.get("keys"), list):
+        raise ValueError(
+            f"Key manifest at {source!r} must be a JSON object with a 'keys' list"
+        )
+
+    if (
+        body.get("manifest_version") == "keel.public_key_manifest.v1"
+        or "manifest_signature" in body
+        or _remote_key_manifest_requires_signature(source)
+    ):
+        _verify_public_key_manifest_signature(body, source=source)
+
+    return _normalize_key_manifest_entries(body)
 
 
 def _resolve_from_manifest(
@@ -2084,6 +2316,10 @@ def _bundled_key_manifest_source() -> str | None:
 def _cached_key_manifest_source() -> str | None:
     """Path to the user-refreshed manifest at ``~/.keel-verifier/trust-root.json`` if present."""
     return str(CACHED_TRUST_ROOT_PATH) if CACHED_TRUST_ROOT_PATH.exists() else None
+
+
+def _pinned_key_manifest_source() -> str | None:
+    return _cached_key_manifest_source() or _bundled_key_manifest_source()
 
 
 def _key_manifest_source_for_args(args: argparse.Namespace) -> str | None:
@@ -2868,7 +3104,7 @@ def _permit_claim(
     subject_type: str,
     subject_id: str | None,
     verdict: str,
-    reason_code: str,
+    reason_code: str | None,
     message: str,
     evidence: list[str] | None = None,
     epistemic_state: dict[str, str] | None = None,
@@ -2885,6 +3121,683 @@ def _permit_claim(
     if epistemic_state is None:
         return claim
     return replace(claim, epistemic_state=epistemic_state)
+
+
+def _authority_rfc8785_bytes(value: Any) -> bytes:
+    encoded = rfc8785.dumps(value)
+    return encoded if isinstance(encoded, bytes) else encoded.encode("utf-8")
+
+
+def _authority_sha256_hex(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _authority_claim(
+    claim_name: str,
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+    epistemic_state: dict[str, str] | None = None,
+) -> ClaimVerdict:
+    permit = input_doc.get("permit") if isinstance(input_doc.get("permit"), dict) else {}
+    permit_id = _string_field(permit.get("permit_id"), permit.get("id"))
+    return _permit_claim(
+        claim_name,
+        subject_type=(
+            "authority_chain"
+            if claim_name == PERMIT_AUTHORITY_CHAIN_CLAIM_NAME
+            else "authority_revocation_temporal"
+        ),
+        subject_id=permit_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["permit", "authority_chain", "authority_edges", "trust_root"],
+        epistemic_state=epistemic_state,
+    )
+
+
+def _authority_chain_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        PERMIT_AUTHORITY_CHAIN_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={"authority_chain": "verified" if verdict == "supported" else "observed"},
+    )
+
+
+def _authority_revocation_temporal_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={
+            "authority_revocation_temporal": "verified"
+            if verdict == "supported"
+            else "observed"
+        },
+    )
+
+
+def _authority_code_verdict(code: str, *, revocation_temporal: bool = False) -> str:
+    table = (
+        AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS
+        if revocation_temporal
+        else AUTHORITY_CHAIN_CODE_VERDICTS
+    )
+    return table[code]
+
+
+def _authority_key_records(
+    *,
+    trust_root: dict[str, Any] | None,
+    key_manifest_source: str | None,
+) -> dict[str, dict[str, Any]]:
+    if trust_root is not None and isinstance(trust_root.get("keys"), list):
+        entries = [entry for entry in trust_root["keys"] if isinstance(entry, dict)]
+    elif key_manifest_source is not None:
+        try:
+            entries = _load_key_manifest(key_manifest_source)
+        except Exception:
+            entries = []
+    else:
+        entries = []
+    records: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        key_id = entry.get("key_id")
+        if isinstance(key_id, str) and key_id:
+            records[key_id] = entry
+    return records
+
+
+def _authority_public_key(record: dict[str, Any]) -> str | None:
+    for key in ("public_key_bytes", "public_key"):
+        value = record.get(key)
+        if isinstance(value, str) and value.startswith("ed25519:"):
+            return value
+    return None
+
+
+def _authority_edge_payload_bytes(edge: dict[str, Any]) -> bytes:
+    return _authority_rfc8785_bytes(edge["payload"])
+
+
+def _authority_chain_payload_for_edges(edges: list[dict[str, Any]]) -> dict[str, Any]:
+    payloads = [edge["payload"] for edge in edges]
+    return {
+        "chain_version": AUTHORITY_CHAIN_VERSION,
+        "org_id": payloads[0]["org_id"],
+        "project_id": payloads[0]["project_id"],
+        "edge_digests": [edge["edge_digest"] for edge in edges],
+        "leaf_principal_id": payloads[-1]["delegate"]["principal_id"],
+        "effective_not_before": max(payload["validity"]["not_before"] for payload in payloads),
+        "effective_not_after": min(payload["validity"]["not_after"] for payload in payloads),
+        "policy_version": payloads[-1]["policy_version"],
+    }
+
+
+def _authority_set_subset(child: Any, parent: Any) -> bool:
+    return isinstance(child, list) and isinstance(parent, list) and set(child).issubset(set(parent))
+
+
+def _authority_resource_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, dict) or not isinstance(parent, dict):
+        return False
+    for key, child_value in child.items():
+        if not isinstance(child_value, str) or key not in parent:
+            return False
+        parent_value = parent[key]
+        if not isinstance(parent_value, str):
+            return False
+        if parent_value.endswith("*"):
+            if not child_value.startswith(parent_value[:-1]):
+                return False
+        elif child_value != parent_value:
+            return False
+    return True
+
+
+def _authority_constraints_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, dict) or not isinstance(parent, dict):
+        return False
+    if any(key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in child):
+        return False
+    if any(key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in parent):
+        return False
+    if parent.get("requires_human_approval") is True and child.get("requires_human_approval") is not True:
+        return False
+    if (
+        "max_recipients" in child
+        and "max_recipients" in parent
+        and child["max_recipients"] > parent["max_recipients"]
+    ):
+        return False
+    if (
+        "max_item_amount_usd_micros" in child
+        and "max_item_amount_usd_micros" in parent
+        and child["max_item_amount_usd_micros"] > parent["max_item_amount_usd_micros"]
+    ):
+        return False
+    if (
+        "allow_domains" in child
+        and "allow_domains" in parent
+        and not set(child["allow_domains"]).issubset(set(parent["allow_domains"]))
+    ):
+        return False
+    if (
+        "deny_external_domains" in child
+        and "deny_external_domains" in parent
+        and not set(child["deny_external_domains"]).issuperset(set(parent["deny_external_domains"]))
+    ):
+        return False
+    if "allowed_hours" in child and "allowed_hours" in parent:
+        child_hours = child["allowed_hours"]
+        parent_hours = parent["allowed_hours"]
+        if not isinstance(child_hours, dict) or not isinstance(parent_hours, dict):
+            return False
+        if (
+            child_hours.get("tz") != parent_hours.get("tz")
+            or child_hours.get("start") < parent_hours.get("start")
+            or child_hours.get("end") > parent_hours.get("end")
+        ):
+            return False
+    if parent.get("purpose") is not None and child.get("purpose") != parent.get("purpose"):
+        return False
+    return True
+
+
+def _authority_chain_edges_in_order(
+    input_doc: dict[str, Any],
+    records: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]] | None:
+    chain = input_doc.get("authority_chain")
+    if not isinstance(chain, dict) or not isinstance(chain.get("payload"), dict):
+        return None
+    edge_digests = chain["payload"].get("edge_digests")
+    if not isinstance(edge_digests, list):
+        return None
+    supplied_edges = input_doc.get("authority_edges")
+    if not isinstance(supplied_edges, list):
+        return None
+    edge_by_digest = {
+        edge.get("edge_digest"): edge
+        for edge in supplied_edges
+        if isinstance(edge, dict) and isinstance(edge.get("edge_digest"), str)
+    }
+    ordered: list[dict[str, Any]] = []
+    for digest in edge_digests:
+        if not isinstance(digest, str):
+            return None
+        edge = edge_by_digest.get(digest)
+        if edge is None or not isinstance(edge.get("payload"), dict):
+            return None
+        signing_key = edge["payload"].get("signing_key")
+        key_id = signing_key.get("key_id") if isinstance(signing_key, dict) else None
+        if not isinstance(key_id, str) or key_id not in records:
+            return None
+        ordered.append(edge)
+    return ordered
+
+
+def _authority_signing_key_validity_code(
+    payload: dict[str, Any],
+    record: dict[str, Any],
+) -> str | None:
+    signed_at = _parse_iso_or_none(payload.get("signed_at"))
+    valid_from = _parse_iso_or_none(record.get("valid_from") or record.get("active_from"))
+    valid_until = _parse_iso_or_none(
+        record.get("valid_until") if "valid_until" in record else record.get("valid_to")
+    )
+    if signed_at is None or valid_from is None:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    if signed_at < valid_from:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    if valid_until is not None and signed_at >= valid_until:
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    signing_key = payload.get("signing_key")
+    custody_tier = signing_key.get("custody_tier") if isinstance(signing_key, dict) else None
+    if custody_tier != record.get("custody_tier"):
+        return "authority_chain.signing_key_not_valid_at_signed_at"
+    return None
+
+
+def _authority_revocation_temporal_code(
+    payload: dict[str, Any],
+    record: dict[str, Any],
+) -> str | None:
+    signed_at = _parse_iso_or_none(payload.get("signed_at"))
+    if signed_at is None:
+        return None
+    revoked_at = _parse_iso_or_none(record.get("revoked_at"))
+    if revoked_at is not None and signed_at >= revoked_at:
+        return "authority_revocation.signed_at_at_or_after_revoked_at"
+    compromised_at = _parse_iso_or_none(record.get("compromised_at"))
+    if compromised_at is not None and signed_at >= compromised_at:
+        return "authority_revocation.compromised_key_retroactive_taint"
+    return None
+
+
+def _authority_subject_type(permit: dict[str, Any]) -> str | None:
+    value = permit.get("subject_type")
+    return value.strip().lower() if isinstance(value, str) and value.strip() else None
+
+
+def _authority_digest(permit: dict[str, Any]) -> str | None:
+    value = permit.get("authority_chain_digest")
+    return value if isinstance(value, str) and _SHA256_HEX_RE.fullmatch(value) else None
+
+
+def _adjudicate_permit_authority_chain_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    input_doc = export_document
+    permit = input_doc.get("permit")
+    if not isinstance(permit, dict):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_chain.evidence_incomplete",
+            message="permit authority-chain evidence is missing",
+            evidence=["permit"],
+        )
+
+    binding_version = _permit_v2_envelope_version(permit)
+    chain_digest = _authority_digest(permit)
+    if binding_version != "v7":
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.typed_absence"),
+            reason_code="authority_chain.typed_absence",
+            message="binding version does not carry v7 authority-chain subject fields",
+            evidence=["permit.binding_version"],
+        )
+    if chain_digest is None:
+        if _authority_subject_type(permit) == AUTHORITY_CHAIN_AGENT_SUBJECT_TYPE:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.agent_without_chain"),
+                reason_code="authority_chain.agent_without_chain",
+                message="v7 agent permit carries no authority-chain evidence",
+                evidence=["permit.subject_type", "permit.authority_chain_digest"],
+            )
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.typed_absence"),
+            reason_code="authority_chain.typed_absence",
+            message="non-agent v7 permit claims no delegation chain",
+            evidence=["permit.subject_type", "permit.authority_chain_digest"],
+        )
+
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    chain = input_doc.get("authority_chain")
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    if not isinstance(chain, dict) or edges is None:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.evidence_incomplete"),
+            reason_code="authority_chain.evidence_incomplete",
+            message="authority chain, edge, or signing-key evidence is incomplete",
+            evidence=["authority_chain", "authority_edges", "trust_root"],
+        )
+
+    for edge in edges:
+        payload = edge["payload"]
+        payload_bytes = _authority_edge_payload_bytes(edge)
+        if _authority_sha256_hex(payload_bytes) != edge.get("edge_digest"):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_digest_mismatch"),
+                reason_code="authority_chain.edge_digest_mismatch",
+                message="edge digest does not match RFC 8785 payload bytes",
+                evidence=["authority_edges.edge_digest", "authority_edges.payload"],
+            )
+        signing_key = payload["signing_key"]
+        record = records[signing_key["key_id"]]
+        if record.get("signer_id") != payload.get("delegator", {}).get("principal_id"):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_signature_invalid"),
+                reason_code="authority_chain.edge_signature_invalid",
+                message="edge signing key is not bound to the delegator principal",
+                evidence=["authority_edges.payload.delegator", "trust_root.keys"],
+            )
+        public_key = _authority_public_key(record)
+        if public_key is None or not _verify_ed25519(public_key, payload_bytes, str(edge.get("signature"))):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.edge_signature_invalid"),
+                reason_code="authority_chain.edge_signature_invalid",
+                message="edge signature does not verify over RFC 8785 payload bytes",
+                evidence=["authority_edges.signature", "trust_root.keys"],
+            )
+        validity_code = _authority_signing_key_validity_code(payload, record)
+        if validity_code is not None:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(validity_code),
+                reason_code=validity_code,
+                message="edge signing key was not valid at signed_at",
+                evidence=["authority_edges.payload.signed_at", "trust_root.keys"],
+            )
+        constraints = payload.get("scope", {}).get("constraints")
+        if not isinstance(constraints, dict) or any(
+            key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in constraints
+        ):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.unknown_constraint_key"),
+                reason_code="authority_chain.unknown_constraint_key",
+                message="edge scope contains a constraint key outside the v1 vocabulary",
+                evidence=["authority_edges.payload.scope.constraints"],
+            )
+
+    chain_payload = chain.get("payload")
+    if not isinstance(chain_payload, dict):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.evidence_incomplete"),
+            reason_code="authority_chain.evidence_incomplete",
+            message="authority_chain.payload is missing",
+            evidence=["authority_chain.payload"],
+        )
+    if _authority_sha256_hex(_authority_rfc8785_bytes(chain_payload)) != chain_digest:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
+            reason_code="authority_chain.chain_digest_mismatch",
+            message="authority_chain_digest does not match chain payload bytes",
+            evidence=["permit.authority_chain_digest", "authority_chain.payload"],
+        )
+    if chain_payload != _authority_chain_payload_for_edges(edges):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
+            reason_code="authority_chain.chain_digest_mismatch",
+            message="authority_chain.payload does not match the ordered edge payloads",
+            evidence=["authority_chain.payload", "authority_edges"],
+        )
+
+    if chain_payload.get("leaf_principal_id") != permit.get("subject_id"):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.leaf_subject_mismatch"),
+            reason_code="authority_chain.leaf_subject_mismatch",
+            message="authority-chain leaf principal does not match permit subject_id",
+            evidence=["authority_chain.payload.leaf_principal_id", "permit.subject_id"],
+        )
+
+    root_payload = edges[0]["payload"]
+    if root_payload.get("parent_edge_digest") is not None or root_payload.get("delegator", {}).get(
+        "principal_type"
+    ) not in {"user", "service_principal"}:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.root_anchor_invalid"),
+            reason_code="authority_chain.root_anchor_invalid",
+            message="root edge is not anchored by a user or service-principal delegator",
+            evidence=["authority_edges[0].payload.delegator", "authority_edges[0].payload.parent_edge_digest"],
+        )
+
+    seen_principals = {root_payload["delegator"]["principal_id"]}
+    for index, edge in enumerate(edges):
+        payload = edge["payload"]
+        if index > 0:
+            previous_edge = edges[index - 1]
+            previous = previous_edge["payload"]
+            if payload.get("delegator") != previous.get("delegate"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.parent_edge_digest_broken"),
+                    reason_code="authority_chain.parent_edge_digest_broken",
+                    message="edge delegator does not equal the previous edge delegate",
+                    evidence=["authority_edges.payload.delegator"],
+                )
+            if payload.get("parent_edge_digest") != previous_edge.get("edge_digest"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.parent_edge_digest_broken"),
+                    reason_code="authority_chain.parent_edge_digest_broken",
+                    message="edge parent_edge_digest does not equal the previous edge digest",
+                    evidence=["authority_edges.payload.parent_edge_digest"],
+                )
+        delegate_id = payload.get("delegate", {}).get("principal_id")
+        if delegate_id in seen_principals:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.cycle_detected"),
+                reason_code="authority_chain.cycle_detected",
+                message="authority chain delegates back to an upstream principal",
+                evidence=["authority_edges.payload.delegate"],
+            )
+        seen_principals.add(delegate_id)
+        if index == 0:
+            continue
+
+        previous = edges[index - 1]["payload"]
+        parent_scope = previous["scope"]
+        child_scope = payload["scope"]
+        if not _authority_set_subset(child_scope.get("action_verbs"), parent_scope.get("action_verbs")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_verbs"),
+                reason_code="authority_chain.broadened_verbs",
+                message="child edge broadens action verbs beyond the parent",
+                evidence=["authority_edges.payload.scope.action_verbs"],
+            )
+        if not _authority_set_subset(child_scope.get("action_classes"), parent_scope.get("action_classes")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_classes"),
+                reason_code="authority_chain.broadened_classes",
+                message="child edge broadens action classes beyond the parent",
+                evidence=["authority_edges.payload.scope.action_classes"],
+            )
+        if not _authority_resource_subset(child_scope.get("resources"), parent_scope.get("resources")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_resources"),
+                reason_code="authority_chain.broadened_resources",
+                message="child edge broadens resources beyond the parent",
+                evidence=["authority_edges.payload.scope.resources"],
+            )
+        if not _authority_set_subset(child_scope.get("data_classes"), parent_scope.get("data_classes")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.broadened_data_classes"),
+                reason_code="authority_chain.broadened_data_classes",
+                message="child edge broadens data classes beyond the parent",
+                evidence=["authority_edges.payload.scope.data_classes"],
+            )
+        if not _authority_constraints_subset(child_scope.get("constraints"), parent_scope.get("constraints")):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.constraint_not_stricter"),
+                reason_code="authority_chain.constraint_not_stricter",
+                message="child edge constraints are not stricter than the parent",
+                evidence=["authority_edges.payload.scope.constraints"],
+            )
+
+        parent_budget = previous.get("budget_partition")
+        child_budget = payload.get("budget_partition")
+        if isinstance(parent_budget, dict) and isinstance(child_budget, dict):
+            if child_budget.get("parent_budget_envelope_id") != parent_budget.get("budget_envelope_id"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.budget_parent_envelope_mismatch"),
+                    reason_code="authority_chain.budget_parent_envelope_mismatch",
+                    message="child budget parent envelope does not match parent budget envelope",
+                    evidence=["authority_edges.payload.budget_partition"],
+                )
+        if parent_budget is None and child_budget is not None:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.budget_parent_envelope_mismatch"),
+                reason_code="authority_chain.budget_parent_envelope_mismatch",
+                message="child carries a budget partition when parent has none",
+                evidence=["authority_edges.payload.budget_partition"],
+            )
+        if isinstance(parent_budget, dict) and isinstance(child_budget, dict):
+            if child_budget.get("allocated_usd_micros") > parent_budget.get("allocated_usd_micros"):
+                return _authority_chain_claim(
+                    input_doc=input_doc,
+                    verdict=_authority_code_verdict("authority_chain.budget_exceeds_parent"),
+                    reason_code="authority_chain.budget_exceeds_parent",
+                    message="child budget allocation exceeds the parent allocation",
+                    evidence=["authority_edges.payload.budget_partition.allocated_usd_micros"],
+                )
+
+        if payload["creation_policy"]["remaining_depth"] >= previous["creation_policy"]["remaining_depth"]:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.remaining_depth_not_strict"),
+                reason_code="authority_chain.remaining_depth_not_strict",
+                message="child remaining_depth is not strictly less than parent remaining_depth",
+                evidence=["authority_edges.payload.creation_policy.remaining_depth"],
+            )
+        parent_max = previous["creation_policy"]["max_children"]
+        child_max = payload["creation_policy"]["max_children"]
+        if parent_max is not None and child_max is not None and child_max > parent_max:
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.max_children_exceeds_parent"),
+                reason_code="authority_chain.max_children_exceeds_parent",
+                message="child max_children exceeds parent max_children",
+                evidence=["authority_edges.payload.creation_policy.max_children"],
+            )
+        if (
+            _parse_iso_or_none(payload["validity"]["not_before"])
+            < _parse_iso_or_none(previous["validity"]["not_before"])
+            or _parse_iso_or_none(payload["validity"]["not_after"])
+            > _parse_iso_or_none(previous["validity"]["not_after"])
+        ):
+            return _authority_chain_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict("authority_chain.validity_not_subset"),
+                reason_code="authority_chain.validity_not_subset",
+                message="child validity window is not contained in parent validity window",
+                evidence=["authority_edges.payload.validity"],
+            )
+
+    resolution_time = _parse_iso_or_none(input_doc.get("resolution_time"))
+    effective_not_before = _parse_iso_or_none(chain_payload.get("effective_not_before"))
+    effective_not_after = _parse_iso_or_none(chain_payload.get("effective_not_after"))
+    if (
+        resolution_time is None
+        or effective_not_before is None
+        or effective_not_after is None
+        or resolution_time < effective_not_before
+        or resolution_time > effective_not_after
+    ):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.expired_at_resolution"),
+            reason_code="authority_chain.expired_at_resolution",
+            message="resolution time is outside the effective chain validity window",
+            evidence=["resolution_time", "authority_chain.payload.effective_not_before", "authority_chain.payload.effective_not_after"],
+        )
+
+    requested_action = input_doc.get("requested_action")
+    action_class_map = input_doc.get("action_class_map")
+    requested_kind = requested_action.get("kind") if isinstance(requested_action, dict) else None
+    if not isinstance(action_class_map, dict) or not isinstance(requested_kind, str) or requested_kind not in action_class_map:
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.unmapped_action_kind"),
+            reason_code="authority_chain.unmapped_action_kind",
+            message="requested action kind is absent from the action-class map",
+            evidence=["requested_action.kind", "action_class_map"],
+        )
+    leaf_scope = edges[-1]["payload"]["scope"]
+    requested_classes = action_class_map[requested_kind]
+    if (
+        not _authority_set_subset(requested_classes, leaf_scope.get("action_classes"))
+        or requested_kind not in leaf_scope.get("action_verbs", [])
+    ):
+        return _authority_chain_claim(
+            input_doc=input_doc,
+            verdict=_authority_code_verdict("authority_chain.action_outside_chain_scope"),
+            reason_code="authority_chain.action_outside_chain_scope",
+            message="requested action is outside the leaf edge scope",
+            evidence=["requested_action", "authority_edges[-1].payload.scope"],
+        )
+
+    return _authority_chain_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=AUTHORITY_CHAIN_SUPPORTED_CODE,
+        message="authority chain structure, signatures, attenuation, liveness, and action scope are supported",
+    )
+
+
+def _adjudicate_authority_revocation_temporal_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    input_doc = export_document
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    if not edges:
+        return _authority_revocation_temporal_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code=None,
+            message="authority chain, edge, or signing-key evidence is incomplete",
+            evidence=["authority_chain", "authority_edges", "trust_root"],
+        )
+
+    for edge in edges:
+        payload = edge["payload"]
+        record = records[payload["signing_key"]["key_id"]]
+        temporal_code = _authority_revocation_temporal_code(payload, record)
+        if temporal_code is not None:
+            return _authority_revocation_temporal_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(temporal_code, revocation_temporal=True),
+                reason_code=temporal_code,
+                message="edge signed_at is at or after signing-key revocation or compromise",
+                evidence=["authority_edges.payload.signed_at", "trust_root.keys"],
+            )
+
+    return _authority_revocation_temporal_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE,
+        message="authority edge signatures predate signing-key revocation and compromise instants",
+    )
 
 
 def _entry_payload_any(entry: dict[str, Any]) -> dict[str, Any]:
@@ -2981,6 +3894,84 @@ def _permit_v2_slot_claim(
     )
 
 
+def _permit_v2_key_scope_for_slot(spec: PermitV2SlotSpec) -> str:
+    if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT:
+        return "operator"
+    return "buyer_principal"
+
+
+def _first_dict_from_sources(
+    sources: tuple[Mapping[str, Any] | None, ...],
+    keys: tuple[str, ...],
+) -> dict[str, Any] | None:
+    for source in sources:
+        if not isinstance(source, Mapping):
+            continue
+        for key in keys:
+            value = source.get(key)
+            if isinstance(value, dict):
+                return value
+    return None
+
+
+def _permit_v2_key_status_evidence_from_documents(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    sources: tuple[Mapping[str, Any] | None, ...] = (export_document, manifest)
+    key_status_manifest = _first_dict_from_sources(
+        sources,
+        (
+            "key_status_manifest",
+            "key_status_manifest_v1",
+            "permit_v2_key_status_manifest",
+        ),
+    )
+    sidecar = _first_dict_from_sources(
+        sources,
+        (
+            "checkpoint_scope_state",
+            "scope_state_sidecar",
+            "key_status_scope_state",
+            "key_status_scope_state_sidecar",
+        ),
+    )
+    checkpoint = _first_dict_from_sources(
+        sources,
+        (
+            "key_status_checkpoint",
+            "integrity_checkpoint",
+            "checkpoint",
+        ),
+    )
+    return key_status_manifest, sidecar, checkpoint
+
+
+def _adjudicate_permit_v2_slot_key_status_completeness(
+    *,
+    account_id: str,
+    slot: Mapping[str, Any],
+    spec: PermitV2SlotSpec,
+    key_status_manifest: dict[str, Any] | None,
+    key_status_sidecar: dict[str, Any] | None,
+    key_status_checkpoint: dict[str, Any] | None,
+) -> ClaimVerdict:
+    return _adjudicate_key_status_completeness_v1(
+        key_status_manifest=key_status_manifest,
+        subject={
+            "account_id": account_id,
+            "key_scope": _permit_v2_key_scope_for_slot(spec),
+            "key_id": str(slot.get("key_id")),
+            "comparison_instant": str(slot.get("signed_at")),
+            "comparison_instant_source": "signed_bytes",
+            "expected_status": "not_revoked",
+        },
+        sidecar=key_status_sidecar,
+        checkpoint=key_status_checkpoint,
+    )
+
+
 def _permit_v2_required_envelope_fields(spec: PermitV2SlotSpec) -> set[str]:
     fields = {
         "payload_type",
@@ -3054,7 +4045,7 @@ def _permit_v2_canonical_bytes(
     envelope_version: str | None,
     payload: Mapping[str, Any],
 ) -> bytes:
-    if str(envelope_version or "").strip() in {"v5", "v6"}:
+    if str(envelope_version or "").strip() in {"v5", "v6", "v7"}:
         return rfc8785.dumps(dict(payload))
     return _canonical_json_bytes(dict(payload))
 
@@ -3064,18 +4055,62 @@ def _permit_v2_permit_id(permit: dict[str, Any]) -> str | None:
     return value if _is_uuid_text(value) else None
 
 
+def _permit_v2_identity_value(
+    source: Mapping[str, Any] | None,
+    fields: tuple[str, ...],
+) -> tuple[str | None, str | None]:
+    if not isinstance(source, Mapping):
+        return None, None
+    for field in fields:
+        value = source.get(field)
+        if _is_uuid_text(value):
+            return str(value), field
+    return None, None
+
+
 def _permit_v2_account_id(
     *,
     permit: dict[str, Any],
     manifest: dict[str, Any],
-) -> str | None:
-    fields = ("account_id", "organization_id", "org_id", "tenant_id", "project_id")
-    for source in (permit, manifest):
-        for field in fields:
-            value = source.get(field)
-            if _is_uuid_text(value):
-                return str(value)
-    return None
+) -> tuple[str | None, str | None]:
+    envelope_version = str(_permit_v2_envelope_version(permit) or "").strip()
+    manifest_id, manifest_field = _permit_v2_identity_value(
+        manifest,
+        ("account_id", "organization_id", "org_id", "tenant_id", "project_id"),
+    )
+    if envelope_version == "v7":
+        canonical_payload = permit.get("canonical_payload")
+        signed_id, signed_field = _permit_v2_identity_value(
+            canonical_payload if isinstance(canonical_payload, Mapping) else None,
+            ("account_id", "org_id", "organization_id"),
+        )
+        if signed_id is None:
+            signed_id, signed_field = _permit_v2_identity_value(
+                permit,
+                ("account_id", "org_id", "organization_id"),
+            )
+        if signed_id is None:
+            return (
+                None,
+                "signed canonical_payload.account_id is required to resolve permit v2 signer keys",
+            )
+        if manifest_id is not None and manifest_id != signed_id:
+            return (
+                None,
+                (
+                    f"manifest {manifest_field or 'account_id'} does not match "
+                    f"signed {signed_field or 'canonical_payload.account_id'}"
+                ),
+            )
+        return signed_id, None
+
+    permit_id, _permit_field = _permit_v2_identity_value(
+        permit,
+        ("account_id", "organization_id", "org_id", "tenant_id", "project_id"),
+    )
+    if permit_id is not None:
+        return permit_id, None
+    return manifest_id, None
 
 
 def _iter_permit_v2_candidates(
@@ -3114,15 +4149,111 @@ def _find_permit_v2_slot(
     return None, None, fallback
 
 
+def _iter_permit_v2_present_slots(
+    document: dict[str, Any],
+) -> list[tuple[dict[str, Any], dict[str, Any], PermitV2SlotSpec, str]]:
+    present: list[tuple[dict[str, Any], dict[str, Any], PermitV2SlotSpec, str]] = []
+    for permit, path in _iter_permit_v2_candidates(document):
+        for slot_name, spec in PERMIT_V2_SLOT_SPECS.items():
+            slot = permit.get(slot_name)
+            if isinstance(slot, dict):
+                present.append((permit, slot, spec, f"{path}.{slot_name}"))
+    return present
+
+
 def _permit_v2_auto_required_claims(document: dict[str, Any] | None) -> set[str]:
     if document is None:
         return set()
     claims: set[str] = set()
-    for permit, _path in _iter_permit_v2_candidates(document):
-        for slot_name, spec in PERMIT_V2_SLOT_SPECS.items():
-            if isinstance(permit.get(slot_name), dict):
-                claims.add(spec.claim_name)
+    for _permit, _slot, spec, _path in _iter_permit_v2_present_slots(document):
+        claims.add(spec.claim_name)
+        claims.add(PERMIT_V2_SLOT_V2_SPECS[spec.slot_name].claim_name)
+        claims.add(KEY_STATUS_COMPLETENESS_CLAIM_NAME)
     return claims
+
+
+def _adjudicate_permit_v2_auto_key_status_completeness_claims(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+) -> list[ClaimVerdict]:
+    key_status_manifest, sidecar, checkpoint = _permit_v2_key_status_evidence_from_documents(
+        export_document=export_document,
+        manifest=manifest,
+    )
+    claims: list[ClaimVerdict] = []
+    for permit, slot, spec, _path in _iter_permit_v2_present_slots(export_document):
+        account_id, _account_error = _permit_v2_account_id(
+            permit=permit,
+            manifest=manifest,
+        )
+        subject = {
+            "account_id": account_id,
+            "key_scope": _permit_v2_key_scope_for_slot(spec),
+            "key_id": slot.get("key_id"),
+            "comparison_instant": slot.get("signed_at"),
+            "comparison_instant_source": "signed_bytes",
+            "expected_status": "not_revoked",
+        }
+        claims.append(
+            _adjudicate_key_status_completeness_v1(
+                key_status_manifest=key_status_manifest,
+                subject=subject,
+                sidecar=sidecar,
+                checkpoint=checkpoint,
+            )
+        )
+    return claims
+
+
+def _synthesize_missing_bundled_required_claims(
+    *,
+    claims: list[ClaimVerdict],
+    required_names: set[str],
+    semantics: ResolvedSemantics,
+    subject_id: str | None,
+) -> list[ClaimVerdict]:
+    emitted = {claim.name for claim in claims}
+    missing = [
+        _missing_required_claim(
+            name,
+            semantics=semantics,
+            subject_type="permit_v2_auto_required_claim",
+            subject_id=subject_id,
+            evidence=["permit_v2.slot_presence"],
+        )
+        for name in sorted(required_names)
+        if name not in emitted
+    ]
+    if not missing:
+        return claims
+    return _merge_claims([*claims, *missing])
+
+
+def _permit_v2_required_claim_priority(name: str) -> int:
+    first_order_claims = {
+        PERMIT_OPERATOR_APPROVAL_CLAIM_NAME,
+        PERMIT_COUNTER_SIGNATURE_CLAIM_NAME,
+        PERMIT_AUDIT_ATTESTATION_CLAIM_NAME,
+        PERMIT_OPERATOR_APPROVED_CLAIM_NAME,
+        PERMIT_COUNTER_SIGNED_CLAIM_NAME,
+        PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
+    }
+    second_order_claims = {
+        KEY_STATUS_COMPLETENESS_CLAIM_NAME,
+    }
+    third_order_claims = {
+        PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME,
+        PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME,
+        PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME,
+    }
+    if name in first_order_claims:
+        return 0
+    if name in second_order_claims:
+        return 1
+    if name in third_order_claims:
+        return 2
+    return 3
 
 
 def _permit_v2_slot_schema_error(
@@ -3674,6 +4805,9 @@ def _adjudicate_permit_v2_signature_slot(
     manifest: dict[str, Any],
     key_manifest_source: str | None,
     spec: PermitV2SlotSpec,
+    key_status_manifest: dict[str, Any] | None = None,
+    key_status_sidecar: dict[str, Any] | None = None,
+    key_status_checkpoint: dict[str, Any] | None = None,
 ) -> ClaimVerdict:
     permit, slot, evidence_path = _find_permit_v2_slot(export_document, spec.slot_name)
     if permit is None or slot is None:
@@ -3746,6 +4880,36 @@ def _adjudicate_permit_v2_signature_slot(
             message=message,
             evidence=[evidence_path, "canonical_payload"],
         )
+
+    account_id: str | None = None
+    if _permit_v2_envelope_version(permit) == "v7":
+        account_id, account_error = _permit_v2_account_id(
+            permit=permit,
+            manifest=manifest,
+        )
+        if account_error is not None:
+            account_drift = "does not match" in account_error
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="disproved" if account_drift else "insufficient_evidence",
+                reason_code=(
+                    spec.invalid_code if account_drift else spec.key_not_trusted_code
+                ),
+                message=account_error,
+                evidence=[evidence_path, "key_registry", "account_id"],
+                epistemic_state=None if account_drift else "unverifiable",
+            )
+        if account_id is None:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="insufficient_evidence",
+                reason_code=spec.key_not_trusted_code,
+                message="account_id is required to resolve permit v2 signer keys",
+                evidence=[evidence_path, "key_registry"],
+                epistemic_state="unverifiable",
+            )
 
     payload_bytes = _permit_v2_canonical_bytes(
         _permit_v2_envelope_version(permit),
@@ -3836,17 +5000,34 @@ def _adjudicate_permit_v2_signature_slot(
                 evidence=[evidence_path, "audit_batches"],
             )
 
-    account_id = _permit_v2_account_id(permit=permit, manifest=manifest)
     if account_id is None:
-        return _permit_v2_slot_claim(
-            spec,
-            permit_id=permit_id,
-            verdict="insufficient_evidence",
-            reason_code=spec.key_not_trusted_code,
-            message="account_id is required to resolve permit v2 signer keys",
-            evidence=[evidence_path, "key_registry"],
-            epistemic_state="unverifiable",
+        account_id, account_error = _permit_v2_account_id(
+            permit=permit,
+            manifest=manifest,
         )
+        if account_error is not None:
+            account_drift = "does not match" in account_error
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="disproved" if account_drift else "insufficient_evidence",
+                reason_code=(
+                    spec.invalid_code if account_drift else spec.key_not_trusted_code
+                ),
+                message=account_error,
+                evidence=[evidence_path, "key_registry", "account_id"],
+                epistemic_state=None if account_drift else "unverifiable",
+            )
+        if account_id is None:
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="insufficient_evidence",
+                reason_code=spec.key_not_trusted_code,
+                message="account_id is required to resolve permit v2 signer keys",
+                evidence=[evidence_path, "key_registry"],
+                epistemic_state="unverifiable",
+            )
     public_key, key_error = _resolve_permit_v2_slot_key(
         slot=slot,
         spec=spec,
@@ -3875,13 +5056,60 @@ def _adjudicate_permit_v2_signature_slot(
             evidence=[evidence_path, "signature", "key_registry"],
         )
 
+    supported_evidence = [evidence_path, "key_registry"]
+    if spec.requires_key_status_completeness:
+        if key_status_manifest is None or key_status_sidecar is None or key_status_checkpoint is None:
+            (
+                discovered_manifest,
+                discovered_sidecar,
+                discovered_checkpoint,
+            ) = _permit_v2_key_status_evidence_from_documents(
+                export_document=export_document,
+                manifest=manifest,
+            )
+            key_status_manifest = key_status_manifest or discovered_manifest
+            key_status_sidecar = key_status_sidecar or discovered_sidecar
+            key_status_checkpoint = key_status_checkpoint or discovered_checkpoint
+        completeness_claim = _adjudicate_permit_v2_slot_key_status_completeness(
+            account_id=account_id,
+            slot=slot,
+            spec=spec,
+            key_status_manifest=key_status_manifest,
+            key_status_sidecar=key_status_sidecar,
+            key_status_checkpoint=key_status_checkpoint,
+        )
+        if completeness_claim.aggregate_verdict != verdict_value("supported"):
+            return _permit_v2_slot_claim(
+                spec,
+                permit_id=permit_id,
+                verdict="insufficient_evidence",
+                reason_code=(
+                    spec.completeness_unsupported_code
+                    or f"{spec.slot_name}.key_status_completeness_unsupported"
+                ),
+                message=(
+                    "Permit v2 signature slot requires supported "
+                    f"{KEY_STATUS_COMPLETENESS_CLAIM_NAME}: "
+                    f"{completeness_claim.reason_code or completeness_claim.message}"
+                ),
+                evidence=[
+                    evidence_path,
+                    "key_registry",
+                    KEY_STATUS_COMPLETENESS_CLAIM_NAME,
+                    "key_status_manifest",
+                    "checkpoint_scope_state",
+                ],
+                epistemic_state="unverifiable",
+            )
+        supported_evidence.append(KEY_STATUS_COMPLETENESS_CLAIM_NAME)
+
     return _permit_v2_slot_claim(
         spec,
         permit_id=permit_id,
         verdict="supported",
         reason_code=spec.supported_code,
         message=f"Permit v2 {spec.slot_name} payload hash, signer key, timing, and signature are supported",
-        evidence=[evidence_path, "key_registry"],
+        evidence=supported_evidence,
     )
 
 
@@ -3924,6 +5152,66 @@ def _adjudicate_permit_audit_attestation_v1(
         manifest=manifest,
         key_manifest_source=key_manifest_source,
         spec=PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+    )
+
+
+def _adjudicate_permit_operator_approval_v2(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+    key_status_manifest: dict[str, Any] | None = None,
+    key_status_sidecar: dict[str, Any] | None = None,
+    key_status_checkpoint: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_OPERATOR_APPROVAL_V2_SPEC,
+        key_status_manifest=key_status_manifest,
+        key_status_sidecar=key_status_sidecar,
+        key_status_checkpoint=key_status_checkpoint,
+    )
+
+
+def _adjudicate_permit_counter_signature_v2(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+    key_status_manifest: dict[str, Any] | None = None,
+    key_status_sidecar: dict[str, Any] | None = None,
+    key_status_checkpoint: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_COUNTER_SIGNATURE_V2_SPEC,
+        key_status_manifest=key_status_manifest,
+        key_status_sidecar=key_status_sidecar,
+        key_status_checkpoint=key_status_checkpoint,
+    )
+
+
+def _adjudicate_permit_audit_attestation_v2(
+    *,
+    export_document: dict[str, Any],
+    manifest: dict[str, Any],
+    key_manifest_source: str | None,
+    key_status_manifest: dict[str, Any] | None = None,
+    key_status_sidecar: dict[str, Any] | None = None,
+    key_status_checkpoint: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    return _adjudicate_permit_v2_signature_slot(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=key_manifest_source,
+        spec=PERMIT_V2_AUDIT_ATTESTATION_V2_SPEC,
+        key_status_manifest=key_status_manifest,
+        key_status_sidecar=key_status_sidecar,
+        key_status_checkpoint=key_status_checkpoint,
     )
 
 
@@ -4033,14 +5321,15 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
         return "canonical_payload must be an object"
     binding_version = canonical_payload.get("binding_version")
     if binding_version not in SUPPORTED_PERMIT_BINDING_VERSIONS:
-        return "binding_version must be one of v1, v2, v3, v4, v5, or v6"
+        supported = ", ".join(sorted(SUPPORTED_PERMIT_BINDING_VERSIONS))
+        return f"binding_version must be one of {supported}"
     required = set(_PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION[str(binding_version)])
     if set(canonical_payload.keys()) != required:
         missing = sorted(required - set(canonical_payload.keys()))
         extra = sorted(set(canonical_payload.keys()) - required)
         if missing:
             if (
-                binding_version == "v6"
+                binding_version in {"v6", "v7"}
                 and missing == ["resource_attributes_canonical_hash"]
                 and not extra
             ):
@@ -4052,6 +5341,23 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
     for field in ("permit_id", "project_id", "issued_at", "binding_key_id"):
         if not _is_nonempty_str(canonical_payload.get(field)):
             return f"canonical_payload.{field} must be a non-empty string"
+    if binding_version == "v7":
+        if not _is_nonempty_str(canonical_payload.get("subject_id")):
+            return "canonical_payload.subject_id must be a non-empty string"
+        if canonical_payload.get("subject_type") not in {
+            "agent",
+            "user",
+            "service_principal",
+            "system",
+        }:
+            return (
+                "canonical_payload.subject_type must be agent, user, "
+                "service_principal, or system"
+            )
+        for field in ("account_id", "org_id"):
+            value = canonical_payload.get(field)
+            if value is not None and not _is_uuid_text(value):
+                return f"canonical_payload.{field} must be a UUID string or null"
     if not _is_nonempty_str(evidence.get("binding_canonical_hash")):
         return "binding_canonical_hash must be a non-empty string"
     signature = evidence.get("binding_signature")
@@ -4126,6 +5432,8 @@ def _permit_decision_wire_body(
         if isinstance(raw, Mapping):
             return raw, field, None
         if isinstance(raw, str):
+            # c5 byte-equivalence floor: parse once; this object feeds both
+            # canonical hash recomputation and verdict logic without hooks.
             try:
                 decoded = json.loads(raw)
             except json.JSONDecodeError as exc:
@@ -4147,30 +5455,19 @@ def _permit_decision_wire_body(
 
 
 def _permit_decision_binding_request_hash(
-    evidence: dict[str, Any],
+    _evidence: dict[str, Any],
     canonical_payload: dict[str, Any],
 ) -> tuple[str | None, str | None]:
-    for source, prefix in ((evidence, ""), (canonical_payload, "canonical_payload.")):
-        for field in (
-            "binding_request_hash",
-            "final_request_hash",
-            "dispatch_request_hash",
-            "dispatch_request_digest_v1",
-        ):
-            value = _permit_v2_sha256_hexish(source.get(field))
-            if value is not None:
-                return value, prefix + field
+    value = _permit_v2_sha256_hexish(canonical_payload.get("final_request_hash"))
+    if value is not None:
+        return value, "canonical_payload.final_request_hash"
     return None, None
 
 
 def _permit_decision_binding_request_canonical_version(
-    evidence: dict[str, Any],
+    _evidence: dict[str, Any],
     canonical_payload: dict[str, Any],
 ) -> str:
-    for source in (evidence, canonical_payload):
-        value = source.get("binding_request_canonical_version")
-        if isinstance(value, str) and value.strip():
-            return value.strip()
     return binding_request_canonical_version_for_binding(
         str(canonical_payload.get("binding_version") or "")
     )
@@ -4195,13 +5492,35 @@ def _permit_decision_binding_recompute_failure(
             return _PermitDecisionBindingFailure(
                 verdict="insufficient_evidence",
                 reason_code="permit.binding.wire_body_hash_missing",
-                message="wire-body evidence is present but binding_request_hash is absent",
+                message=(
+                    "wire-body evidence is present but signed "
+                    "canonical_payload.final_request_hash is absent or malformed"
+                ),
                 evidence=[wire_field or "binding_request_body"],
             )
         canonical_version = _permit_decision_binding_request_canonical_version(
             evidence,
             canonical_payload,
         )
+        unsigned_canonical_version = evidence.get("binding_request_canonical_version")
+        if (
+            version == "v7"
+            and unsigned_canonical_version is not None
+            and str(unsigned_canonical_version).strip() != canonical_version
+        ):
+            return _PermitDecisionBindingFailure(
+                verdict="disproved",
+                reason_code="permit.binding.v7.request_canonical_version_mismatch",
+                message=(
+                    "unsigned binding_request_canonical_version does not match "
+                    "the signed v7 request canonicalizer"
+                ),
+                evidence=[
+                    evidence_path,
+                    "binding_request_canonical_version",
+                    "canonical_payload.binding_version",
+                ],
+            )
         actual_hash = canonical_provider_wire_body_hash(
             wire_body,
             binding_request_canonical_version=canonical_version,
@@ -4209,7 +5528,7 @@ def _permit_decision_binding_recompute_failure(
         if actual_hash != expected_hash:
             reason = (
                 f"permit.binding.{version}.wire_body_hash_mismatch"
-                if version in {"v5", "v6"}
+                if version in {"v5", "v6", "v7"}
                 else "permit.binding.wire_body_hash_mismatch"
             )
             return _PermitDecisionBindingFailure(
@@ -4223,23 +5542,25 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v3", "v4", "v5", "v6"}:
+    if version not in {"v3", "v4", "v5", "v6", "v7"}:
         return None
 
     resource_attributes, resource_failure = _permit_decision_resource_attributes(evidence)
 
-    if version == "v6":
+    if version in {"v6", "v7"}:
         resource_attributes_canonical_hash = canonical_payload.get(
             "resource_attributes_canonical_hash"
         )
         if resource_attributes_canonical_hash is None:
+            reason_version = str(version)
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
-                    "permit.binding.v6.resource_attributes_canonical_hash_missing"
+                    "permit.binding."
+                    f"{reason_version}.resource_attributes_canonical_hash_missing"
                 ),
                 message=(
-                    "v6 canonical_payload is missing "
+                    f"{reason_version} canonical_payload is missing "
                     "resource_attributes_canonical_hash"
                 ),
                 evidence=[evidence_path, "canonical_payload.resource_attributes_canonical_hash"],
@@ -4251,10 +5572,12 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes
         )
         if recomputed_resource_attributes_hash != resource_attributes_canonical_hash:
+            reason_version = str(version)
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
-                    "permit.binding.v6.resource_attributes_canonical_hash_mismatch"
+                    "permit.binding."
+                    f"{reason_version}.resource_attributes_canonical_hash_mismatch"
                 ),
                 message=(
                     "canonical_payload.resource_attributes_canonical_hash does not "
@@ -4276,7 +5599,9 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes.get("spend_scope")
         )
         if recomputed_spend_scope_hash != spend_scope_hash:
-            spend_reason_version = str(version) if version in {"v5", "v6"} else "v3"
+            spend_reason_version = (
+                str(version) if version in {"v5", "v6", "v7"} else "v3"
+            )
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
@@ -4293,7 +5618,7 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v4", "v5", "v6"}:
+    if version not in {"v4", "v5", "v6", "v7"}:
         return None
 
     delegation_policy_hash = canonical_payload.get("delegation_policy_hash")
@@ -4306,7 +5631,9 @@ def _permit_decision_binding_recompute_failure(
         resource_attributes.get("delegation_policy")
     )
     if recomputed_delegation_policy_hash != delegation_policy_hash:
-        delegation_reason_version = str(version) if version in {"v5", "v6"} else "v4"
+        delegation_reason_version = (
+            str(version) if version in {"v5", "v6", "v7"} else "v4"
+        )
         return _PermitDecisionBindingFailure(
             verdict="disproved",
             reason_code=(
@@ -6933,6 +8260,34 @@ def _scope_state_claim(
     )
 
 
+def _key_status_completeness_claim(
+    *,
+    subject: Mapping[str, Any] | None,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    subject_id = None
+    if isinstance(subject, Mapping):
+        parts = [
+            subject.get("account_id"),
+            subject.get("key_scope"),
+            subject.get("key_id"),
+        ]
+        if all(isinstance(part, str) and part for part in parts):
+            subject_id = ":".join(str(part) for part in parts)
+    return _scope_claim(
+        KEY_STATUS_COMPLETENESS_CLAIM_NAME,
+        subject_type="key_status",
+        subject_id=subject_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence or ["key_status_manifest", "checkpoint_scope_state"],
+    )
+
+
 def _export_scope_claim(
     *,
     segment_id: str | None,
@@ -6967,6 +8322,16 @@ def _is_hash(value: Any) -> bool:
 
 def _is_nonempty_str(value: Any) -> bool:
     return isinstance(value, str) and bool(value)
+
+
+def _is_uuid_str(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        return False
+    return True
 
 
 def _is_nonbool_int(value: Any) -> bool:
@@ -7560,6 +8925,402 @@ def _adjudicate_checkpoint_scope_state_v1(
         message="scope-state sidecar signature, checkpoint binding, predicate grammar, and commitment profile are supported",
     )
     return ScopeClaimResult(claim=claim, sidecar=sidecar)
+
+
+def _key_status_manifest_hash_from_payload(manifest: Mapping[str, Any]) -> str:
+    unsigned = {field: manifest[field] for field in KEY_STATUS_MANIFEST_SIGNED_FIELDS}
+    return hashlib.sha256(_canonical_json_bytes(unsigned)).hexdigest()
+
+
+def _key_status_manifest_schema_error(manifest: Any) -> str | None:
+    if not _exact_keys(manifest, set(KEY_STATUS_MANIFEST_FIELDS)):
+        return "key-status manifest top-level fields do not match v1"
+    if manifest.get("manifest_type") != KEY_STATUS_MANIFEST_TYPE:
+        return "key-status manifest_type is unsupported"
+    if manifest.get("canonicalization_profile") != KEY_STATUS_MANIFEST_CANONICALIZATION_PROFILE:
+        return "key-status canonicalization_profile is unsupported"
+    if _parse_iso_or_none(manifest.get("computed_at")) is None:
+        return "key-status computed_at is missing or malformed"
+    if manifest.get("account_id") is not None and not _is_uuid_str(manifest.get("account_id")):
+        return "key-status account_id must be a UUID string or null"
+    if manifest.get("key_scopes") != list(KEY_STATUS_MANIFEST_SCOPES):
+        return "key-status key_scopes do not match v1"
+    signer = manifest.get("signer")
+    if not _exact_keys(signer, {"purpose", "key_id", "algorithm"}):
+        return "key-status signer fields do not match v1"
+    if signer.get("purpose") != PERMIT_BINDING_SIGNING_PURPOSE:
+        return "key-status manifest signer purpose must be permit_binding_signing"
+    if signer.get("algorithm") != "ed25519" or not _is_nonempty_str(signer.get("key_id")):
+        return "key-status manifest signer is malformed"
+    if not _SHA256_HEX_RE.fullmatch(str(manifest.get("manifest_hash") or "")):
+        return "key-status manifest_hash must be lowercase sha256 hex"
+    if not _is_nonempty_str(manifest.get("signature")):
+        return "key-status signature is missing"
+    keys = manifest.get("keys")
+    if not isinstance(keys, list):
+        return "key-status keys must be an array"
+    for index, entry in enumerate(keys):
+        if not isinstance(entry, dict):
+            return f"key-status keys[{index}] must be an object"
+        required = {
+            "account_id",
+            "key_scope",
+            "key_id",
+            "algorithm",
+            "public_key",
+            "status",
+            "valid_from",
+            "valid_until",
+            "revoked_at",
+            "compromised_at",
+            "metadata",
+            "event_refs",
+            "principal",
+        }
+        if set(entry) != required:
+            return f"key-status keys[{index}] fields do not match v1"
+        if not _is_uuid_str(entry.get("account_id")):
+            return f"key-status keys[{index}].account_id must be a UUID string"
+        if entry.get("key_scope") not in KEY_STATUS_MANIFEST_SCOPES:
+            return f"key-status keys[{index}].key_scope is unsupported"
+        if not _SHA256_HEX_RE.fullmatch(str(entry.get("key_id") or "")):
+            return f"key-status keys[{index}].key_id must be lowercase sha256 hex"
+        if entry.get("algorithm") != "ed25519" or not _is_nonempty_str(entry.get("public_key")):
+            return f"key-status keys[{index}] public key is malformed"
+        status = entry.get("status")
+        if status not in {"active", "revoked", "compromised"}:
+            return f"key-status keys[{index}].status is unsupported"
+        if _parse_iso_or_none(entry.get("valid_from")) is None:
+            return f"key-status keys[{index}].valid_from is malformed"
+        for optional_time in ("valid_until", "revoked_at", "compromised_at"):
+            if entry.get(optional_time) is not None and _parse_iso_or_none(entry.get(optional_time)) is None:
+                return f"key-status keys[{index}].{optional_time} is malformed"
+        if status == "revoked" and entry.get("revoked_at") is None:
+            return f"key-status keys[{index}] revoked status requires revoked_at"
+        if status == "compromised" and entry.get("compromised_at") is None:
+            return f"key-status keys[{index}] compromised status requires compromised_at"
+        if not isinstance(entry.get("event_refs"), list):
+            return f"key-status keys[{index}].event_refs must be an array"
+        if not isinstance(entry.get("metadata"), dict) or not isinstance(entry.get("principal"), dict):
+            return f"key-status keys[{index}].metadata and principal must be objects"
+        for ref_index, ref in enumerate(entry["event_refs"]):
+            if not _exact_keys(ref, {"event_type", "event_id", "record_hash", "sequence_number", "status"}):
+                return f"key-status keys[{index}].event_refs[{ref_index}] fields do not match v1"
+            if ref.get("event_type") != KEY_STATUS_EVENT_TYPE:
+                return f"key-status keys[{index}].event_refs[{ref_index}].event_type is unsupported"
+            if not _is_nonempty_str(ref.get("event_id")) or not _SHA256_HEX_RE.fullmatch(str(ref.get("record_hash") or "")):
+                return f"key-status keys[{index}].event_refs[{ref_index}] identity fields are malformed"
+            if not _is_nonbool_int(ref.get("sequence_number")) or int(ref["sequence_number"]) < 1:
+                return f"key-status keys[{index}].event_refs[{ref_index}].sequence_number must be positive"
+            if ref.get("status") not in {"revoked", "compromised"}:
+                return f"key-status keys[{index}].event_refs[{ref_index}].status is unsupported"
+    return None
+
+
+def _verify_key_status_manifest_signature(
+    manifest: Mapping[str, Any],
+    *,
+    pinned_key_manifest_source: str | None,
+) -> tuple[bool, str | None]:
+    computed_at = _parse_iso_or_none(manifest.get("computed_at"))
+    if computed_at is None:
+        return False, "key-status computed_at is missing or malformed"
+    recomputed = _key_status_manifest_hash_from_payload(manifest)
+    if recomputed != manifest.get("manifest_hash"):
+        return False, "key-status manifest_hash does not match signed fields"
+    source = pinned_key_manifest_source or _pinned_key_manifest_source()
+    if source is None:
+        return False, "no pinned trust root available for key-status manifest"
+    try:
+        trust_entries = _load_key_manifest(source)
+    except Exception as exc:
+        return False, f"could not load pinned trust root: {exc}"
+    signer = manifest["signer"]
+    public_key, error = _select_pinned_trust_key(
+        trust_entries,
+        key_id=str(signer["key_id"]),
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+        signing_time=computed_at,
+    )
+    if public_key is None:
+        return False, error or "key-status signer is not pinned"
+    if not _verify_ed25519(public_key, recomputed.encode("utf-8"), str(manifest["signature"])):
+        return False, "key-status manifest signature does not verify"
+    return True, None
+
+
+def _flatten_key_status_event_refs(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    for entry in manifest.get("keys", []):
+        if not isinstance(entry, dict):
+            continue
+        for ref in entry.get("event_refs", []):
+            if isinstance(ref, dict):
+                refs.append(ref)
+    return refs
+
+
+def _find_key_status_entry(
+    manifest: Mapping[str, Any],
+    *,
+    account_id: str,
+    key_scope: str,
+    key_id: str,
+) -> dict[str, Any] | None:
+    for entry in manifest.get("keys", []):
+        if not isinstance(entry, dict):
+            continue
+        if (
+            entry.get("account_id") == account_id
+            and entry.get("key_scope") == key_scope
+            and entry.get("key_id") == key_id
+        ):
+            return entry
+    return None
+
+
+def _key_status_predicate_for_head(head_sequence: int) -> dict[str, Any]:
+    predicate = json.loads(_canonical_json(KEY_STATUS_COMPLETENESS_PREDICATE))
+    predicate["ranges"] = {"sequence_number": {"gte": 0, "lte": head_sequence}}
+    return predicate
+
+
+def _key_status_scope_commitment(
+    sidecar: Mapping[str, Any],
+    *,
+    head_sequence: int,
+) -> Mapping[str, Any] | None:
+    expected_hash = _predicate_hash(_key_status_predicate_for_head(head_sequence))
+    for commitment in sidecar.get("scope_commitments", []):
+        if not isinstance(commitment, dict):
+            continue
+        if commitment.get("predicate_value_hash") == expected_hash:
+            return commitment
+    return None
+
+
+def _key_status_subject_error(subject: Any) -> str | None:
+    if not isinstance(subject, Mapping):
+        return "key-status subject is missing"
+    required = {
+        "account_id",
+        "key_scope",
+        "key_id",
+        "comparison_instant",
+        "comparison_instant_source",
+    }
+    if not required <= set(subject):
+        return "key-status subject is missing required fields"
+    if not _is_uuid_str(subject.get("account_id")):
+        return "key-status subject account_id must be a UUID string"
+    if not all(_is_nonempty_str(subject.get(field)) for field in ("key_scope", "key_id")):
+        return "key-status subject identity fields are malformed"
+    if subject.get("key_scope") not in KEY_STATUS_MANIFEST_SCOPES:
+        return "key-status subject key_scope is unsupported"
+    if not _SHA256_HEX_RE.fullmatch(str(subject.get("key_id") or "")):
+        return "key-status subject key_id must be lowercase sha256 hex"
+    if subject.get("comparison_instant_source") != "signed_bytes":
+        return "key-status comparison_instant must be resolved from signed bytes"
+    if _parse_iso_or_none(subject.get("comparison_instant")) is None:
+        return "key-status comparison_instant is malformed"
+    expected_status = subject.get("expected_status", "revoked")
+    if expected_status not in {"revoked", "not_revoked"}:
+        return "key-status expected_status is unsupported"
+    return None
+
+
+def _adjudicate_key_status_completeness_v1(
+    *,
+    key_status_manifest: dict[str, Any] | None,
+    subject: Mapping[str, Any] | None,
+    sidecar: dict[str, Any] | None,
+    checkpoint: dict[str, Any] | None,
+    pinned_key_manifest_source: str | None = None,
+    semantics_dispatch: SemanticsDispatch | None = None,
+) -> ClaimVerdict:
+    subject_error = _key_status_subject_error(subject)
+    if subject_error is not None:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="insufficient_evidence",
+            reason_code="KEY_STATUS_COMPLETENESS_SUBJECT_MISSING",
+            message=subject_error,
+        )
+    assert subject is not None
+    comparison_instant = _parse_iso_or_none(subject.get("comparison_instant"))
+    assert comparison_instant is not None
+
+    if key_status_manifest is None or not isinstance(key_status_manifest, dict):
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="insufficient_evidence",
+            reason_code="KEY_STATUS_COMPLETENESS_MANIFEST_MISSING",
+            message="key-status manifest evidence is absent",
+        )
+    schema_error = _key_status_manifest_schema_error(key_status_manifest)
+    if schema_error is not None:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="disproved",
+            reason_code="KEY_STATUS_COMPLETENESS_MANIFEST_INVALID",
+            message=schema_error,
+        )
+    signature_ok, signature_error = _verify_key_status_manifest_signature(
+        key_status_manifest,
+        pinned_key_manifest_source=pinned_key_manifest_source,
+    )
+    if not signature_ok:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="disproved",
+            reason_code="KEY_STATUS_COMPLETENESS_MANIFEST_SIGNATURE_INVALID",
+            message=signature_error or "key-status manifest signature is invalid",
+        )
+
+    computed_at = _parse_iso_or_none(key_status_manifest["computed_at"])
+    assert computed_at is not None
+    if computed_at <= comparison_instant:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="insufficient_evidence",
+            reason_code="KEY_STATUS_COMPLETENESS_STALE_MANIFEST",
+            message="key-status manifest computed_at must be strictly after comparison_instant",
+        )
+    manifest_account_id = key_status_manifest.get("account_id")
+    if manifest_account_id is not None and manifest_account_id != subject["account_id"]:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="disproved",
+            reason_code="KEY_STATUS_COMPLETENESS_SUBJECT_MISMATCH",
+            message="key-status manifest account_id does not match subject account_id",
+        )
+
+    scope_result = _adjudicate_checkpoint_scope_state_v1(
+        sidecar,
+        checkpoint=checkpoint,
+        key_manifest_source=pinned_key_manifest_source or _pinned_key_manifest_source(),
+        semantics_dispatch=semantics_dispatch,
+    )
+    if scope_result.claim.aggregate_verdict != verdict_value("supported"):
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict=scope_result.claim.aggregate_verdict,
+            reason_code=scope_result.claim.reason_code or "KEY_STATUS_COMPLETENESS_SCOPE_STATE_UNSUPPORTED",
+            message=scope_result.claim.message or "checkpoint.scope_state.v1 did not support key-status completeness",
+            evidence=["checkpoint.scope_state.v1", "key_status_manifest"],
+        )
+    assert sidecar is not None and checkpoint is not None
+    chain_heads = checkpoint.get("chain_heads") if isinstance(checkpoint, dict) else {}
+    head = chain_heads.get(sidecar.get("chain_scope")) if isinstance(chain_heads, dict) else None
+    head_sequence = head.get("sequence_number") if isinstance(head, dict) else None
+    if not _is_nonbool_int(head_sequence) or int(head_sequence) < 0:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="disproved",
+            reason_code="KEY_STATUS_COMPLETENESS_SCOPE_BOUNDARY_INVALID",
+            message="checkpoint head sequence_number is malformed",
+        )
+    commitment = _key_status_scope_commitment(sidecar, head_sequence=int(head_sequence))
+    if commitment is None:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="insufficient_evidence",
+            reason_code="KEY_STATUS_COMPLETENESS_SCOPE_COMMITMENT_MISSING",
+            message="scope-state sidecar has no [0, head] key.status.v1 commitment",
+        )
+
+    event_refs = _flatten_key_status_event_refs(key_status_manifest)
+    seen_refs: set[tuple[str, str]] = set()
+    for ref in event_refs:
+        seq = ref.get("sequence_number")
+        if not _is_nonbool_int(seq) or int(seq) < 1 or int(seq) > int(head_sequence):
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="disproved",
+                reason_code="KEY_STATUS_COMPLETENESS_EVENT_REF_OUT_OF_SCOPE",
+                message="key-status event_ref sequence_number is outside [1, checkpoint head]",
+            )
+        identity = (str(ref.get("event_id")), str(ref.get("record_hash")))
+        if identity in seen_refs:
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="disproved",
+                reason_code="KEY_STATUS_COMPLETENESS_EVENT_REF_DUPLICATE",
+                message="key-status manifest contains duplicate event_refs",
+            )
+        seen_refs.add(identity)
+
+    matching_count = commitment.get("matching_count")
+    if not _is_nonbool_int(matching_count) or int(matching_count) != len(event_refs):
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="disproved",
+            reason_code="KEY_STATUS_COMPLETENESS_EVENT_REF_COUNT_MISMATCH",
+            message="key-status manifest event_refs do not match scope-state key.status.v1 count",
+        )
+
+    entry = _find_key_status_entry(
+        key_status_manifest,
+        account_id=str(subject["account_id"]),
+        key_scope=str(subject["key_scope"]),
+        key_id=str(subject["key_id"]),
+    )
+    if entry is None:
+        return _key_status_completeness_claim(
+            subject=subject,
+            verdict="insufficient_evidence",
+            reason_code="KEY_STATUS_COMPLETENESS_KEY_MISSING",
+            message="key-status manifest has no entry for the subject key",
+        )
+    expected_status = subject.get("expected_status", "revoked")
+    if expected_status == "revoked":
+        if entry.get("status") != "revoked":
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="disproved",
+                reason_code="KEY_STATUS_COMPLETENESS_STATUS_NOT_REVOKED",
+                message="subject key status is not revoked in the signed key-status manifest",
+            )
+        revoked_at = _parse_iso_or_none(entry.get("revoked_at"))
+        if revoked_at is None or revoked_at > comparison_instant:
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="disproved",
+                reason_code="KEY_STATUS_COMPLETENESS_REVOKED_AFTER_COMPARISON",
+                message="subject key was not revoked at or before the signed comparison instant",
+            )
+        subject_refs = [
+            ref
+            for ref in entry.get("event_refs", [])
+            if isinstance(ref, dict) and ref.get("status") == "revoked"
+        ]
+        if not subject_refs:
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="insufficient_evidence",
+                reason_code="KEY_STATUS_COMPLETENESS_EVENT_REF_MISSING",
+                message="revoked subject key has no key.status.v1 event_ref",
+            )
+    else:
+        terminal_times = [
+            parsed
+            for field in ("revoked_at", "compromised_at")
+            if (parsed := _parse_iso_or_none(entry.get(field))) is not None
+        ]
+        if any(terminal_time <= comparison_instant for terminal_time in terminal_times):
+            return _key_status_completeness_claim(
+                subject=subject,
+                verdict="disproved",
+                reason_code="KEY_STATUS_COMPLETENESS_TERMINAL_STATUS_AT_COMPARISON",
+                message="subject key was revoked or compromised at or before the signed comparison instant",
+            )
+
+    return _key_status_completeness_claim(
+        subject=subject,
+        verdict="supported",
+        reason_code="KEY_STATUS_COMPLETENESS_SUPPORTED",
+        message="signed key-status manifest is fresh, pinned, and complete against checkpoint scope-state count",
+    )
 
 
 def _load_json_file_if_present(path: Path) -> tuple[dict[str, Any] | None, bytes | None]:
@@ -9088,6 +10849,16 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_DISPATCH_ABSENCE_CLAIM_NAME,
     )
+    permit_authority_chain_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_AUTHORITY_CHAIN_CLAIM_NAME,
+    )
+    authority_revocation_temporal_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME,
+    )
     operator_approval_pinned = _pinned_claim_requested(
         semantics,
         requested,
@@ -9102,6 +10873,21 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         semantics,
         requested,
         PERMIT_AUDIT_ATTESTATION_CLAIM_NAME,
+    )
+    operator_approval_v2_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME,
+    )
+    counter_signature_v2_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME,
+    )
+    audit_attestation_v2_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME,
     )
     legacy_operator_approved_pinned = _pinned_claim_requested(
         semantics,
@@ -9126,6 +10912,9 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         operator_approval_pinned
         or counter_signature_pinned
         or audit_attestation_pinned
+        or operator_approval_v2_pinned
+        or counter_signature_v2_pinned
+        or audit_attestation_v2_pinned
         or legacy_operator_approved_pinned
         or legacy_counter_signed_pinned
         or legacy_audit_attested_pinned
@@ -9135,6 +10924,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         permit_decision_requested
         or permit_revoked_requested
         or permit_absence_requested
+        or permit_authority_chain_requested
+        or authority_revocation_temporal_requested
         or permit_v2_pinned_requested
         or should_try_auto_permit_v2
     ):
@@ -9146,6 +10937,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 permit_decision_requested
                 or permit_revoked_requested
                 or permit_absence_requested
+                or permit_authority_chain_requested
+                or authority_revocation_temporal_requested
                 or permit_v2_pinned_requested
             ):
                 diagnostics.append(f"permit claim evidence is not JSON: {exc}")
@@ -9163,6 +10956,21 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     audit_attestation_requested = (
         audit_attestation_pinned
         or PERMIT_AUDIT_ATTESTATION_CLAIM_NAME in permit_v2_auto_required
+    )
+    operator_approval_v2_requested = (
+        operator_approval_v2_pinned
+        or PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME in permit_v2_auto_required
+    )
+    counter_signature_v2_requested = (
+        counter_signature_v2_pinned
+        or PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME in permit_v2_auto_required
+    )
+    audit_attestation_v2_requested = (
+        audit_attestation_v2_pinned
+        or PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME in permit_v2_auto_required
+    )
+    key_status_completeness_auto_required = (
+        KEY_STATUS_COMPLETENESS_CLAIM_NAME in permit_v2_auto_required
     )
 
     should_verify_scope_faithfulness = _scope_export_declaration_present(export_data) or (
@@ -9269,6 +11077,42 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     revocation_claim=revocation_claim,
                 )
             )
+    if permit_authority_chain_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_chain_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_chain.evidence_incomplete",
+                    message="authority-chain claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_authority_chain_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if authority_revocation_temporal_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_revocation_temporal_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_chain.evidence_incomplete",
+                    message="authority revocation-temporal claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_authority_revocation_temporal_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
     if operator_approval_requested:
         if export_document_for_claims is None:
             permit_claims.append(
@@ -9285,6 +11129,45 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         else:
             permit_claims.append(
                 _adjudicate_permit_operator_approval_v1(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if key_status_completeness_auto_required:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _missing_required_claim(
+                    KEY_STATUS_COMPLETENESS_CLAIM_NAME,
+                    semantics=semantics,
+                    subject_type="permit_v2_auto_required_claim",
+                    subject_id=manifest_path.name,
+                    evidence=["permit_v2.slot_presence"],
+                )
+            )
+        else:
+            permit_claims.extend(
+                _adjudicate_permit_v2_auto_key_status_completeness_claims(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                )
+            )
+    if operator_approval_v2_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_OPERATOR_APPROVAL_V2_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_OPERATOR_APPROVAL_INVALID",
+                    message="operator_approval v2 claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_operator_approval_v2(
                     export_document=export_document_for_claims,
                     manifest=manifest,
                     key_manifest_source=_key_manifest_source_for_args(args),
@@ -9332,6 +11215,27 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
+    if counter_signature_v2_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_COUNTER_SIGNATURE_V2_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_COUNTER_SIGNATURE_INVALID",
+                    message="counter_signature v2 claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_counter_signature_v2(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
     if legacy_counter_signed_pinned:
         if export_document_for_claims is None:
             permit_claims.append(
@@ -9374,6 +11278,27 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
+    if audit_attestation_v2_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_v2_slot_claim(
+                    PERMIT_V2_AUDIT_ATTESTATION_V2_SPEC,
+                    permit_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_AUDIT_ATTESTATION_INVALID",
+                    message="audit_attestation v2 claim requires a JSON export payload",
+                    evidence=["export"],
+                    epistemic_state="unverifiable",
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_audit_attestation_v2(
+                    export_document=export_document_for_claims,
+                    manifest=manifest,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
     if legacy_audit_attested_pinned:
         if export_document_for_claims is None:
             permit_claims.append(
@@ -9397,11 +11322,28 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             )
     claims.extend(permit_claims)
     required_permit_claim_names = requested | permit_v2_auto_required
+    emitted_permit_claim_names = {claim.name for claim in permit_claims}
+    claims = _synthesize_missing_bundled_required_claims(
+        claims=claims,
+        required_names=permit_v2_auto_required,
+        semantics=semantics,
+        subject_id=manifest_path.name,
+    )
     unsupported_permit_claims = [
         claim
-        for claim in permit_claims
-        if claim.name in required_permit_claim_names
-        and claim.aggregate_verdict != verdict_value("supported")
+        for _priority, _index, claim in sorted(
+            (
+                (_permit_v2_required_claim_priority(claim.name), index, claim)
+                for index, claim in enumerate(claims)
+                if claim.name in required_permit_claim_names
+                and (
+                    claim.name in emitted_permit_claim_names
+                    or claim.name in permit_v2_auto_required
+                )
+                and claim.aggregate_verdict != verdict_value("supported")
+            ),
+            key=lambda item: (item[0], item[1]),
+        )
     ]
     if unsupported_permit_claims:
         first = unsupported_permit_claims[0]
@@ -9598,6 +11540,9 @@ def verify_permit_v2_signature_claim(
     export_file: str,
     manifest: str | None = None,
     key_manifest: str | None = None,
+    key_status_manifest: str | None = None,
+    key_status_sidecar: str | None = None,
+    key_status_checkpoint: str | None = None,
 ) -> dict[str, Any]:
     spec_by_claim_type = {
         "operator_approval": PERMIT_V2_OPERATOR_APPROVAL_SPEC,
@@ -9606,6 +11551,9 @@ def verify_permit_v2_signature_claim(
         PERMIT_COUNTER_SIGNATURE_CLAIM_NAME: PERMIT_V2_COUNTER_SIGNATURE_SPEC,
         "audit_attestation": PERMIT_V2_AUDIT_ATTESTATION_SPEC,
         PERMIT_AUDIT_ATTESTATION_CLAIM_NAME: PERMIT_V2_AUDIT_ATTESTATION_SPEC,
+        PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME: PERMIT_V2_OPERATOR_APPROVAL_V2_SPEC,
+        PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME: PERMIT_V2_COUNTER_SIGNATURE_V2_SPEC,
+        PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME: PERMIT_V2_AUDIT_ATTESTATION_V2_SPEC,
         "operator_approved": PERMIT_V2_OPERATOR_APPROVAL_SPEC,
         PERMIT_OPERATOR_APPROVED_CLAIM_NAME: PERMIT_V2_LEGACY_OPERATOR_APPROVED_SPEC,
         "counter_signed": PERMIT_V2_COUNTER_SIGNATURE_SPEC,
@@ -9623,12 +11571,33 @@ def verify_permit_v2_signature_claim(
         if not isinstance(loaded_manifest, dict):
             raise ValueError("manifest must be a JSON object")
         manifest_body = loaded_manifest
+    key_status_manifest_body: dict[str, Any] | None = None
+    key_status_sidecar_body: dict[str, Any] | None = None
+    key_status_checkpoint_body: dict[str, Any] | None = None
+    if key_status_manifest is not None:
+        loaded_key_status_manifest = _load_json_evidence(key_status_manifest)
+        if not isinstance(loaded_key_status_manifest, dict):
+            raise ValueError("key-status manifest must be a JSON object")
+        key_status_manifest_body = loaded_key_status_manifest
+    if key_status_sidecar is not None:
+        loaded_key_status_sidecar = _load_json_evidence(key_status_sidecar)
+        if not isinstance(loaded_key_status_sidecar, dict):
+            raise ValueError("key-status sidecar must be a JSON object")
+        key_status_sidecar_body = loaded_key_status_sidecar
+    if key_status_checkpoint is not None:
+        loaded_key_status_checkpoint = _load_json_evidence(key_status_checkpoint)
+        if not isinstance(loaded_key_status_checkpoint, dict):
+            raise ValueError("key-status checkpoint must be a JSON object")
+        key_status_checkpoint_body = loaded_key_status_checkpoint
 
     claim = _adjudicate_permit_v2_signature_slot(
         export_document=export_document,
         manifest=manifest_body,
         key_manifest_source=key_manifest,
         spec=spec,
+        key_status_manifest=key_status_manifest_body,
+        key_status_sidecar=key_status_sidecar_body,
+        key_status_checkpoint=key_status_checkpoint_body,
     )
 
     return {
@@ -9682,6 +11651,8 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
             continue
         try:
             key_count = _validate_manifest_payload(payload)
+            if _remote_key_manifest_requires_signature(url):
+                _verify_public_key_manifest_signature(payload, source=url)
         except ValueError as exc:
             last_error = f"{name}: invalid manifest: {exc}"
             print(f"  invalid manifest: {exc}", file=sys.stderr)
@@ -11154,6 +13125,15 @@ def _checkpoint_tsa_claim(receipts: list[dict[str, Any]]) -> ClaimVerdict:
                 ),
                 evidence=["checkpoint.tsa", "checkpoint.tsa_receipts"],
             )
+        )
+    if not subjects:
+        return ClaimVerdict(
+            name="checkpoint.tsa_imprint.v1",
+            subjects=subjects,
+            verdict="insufficient_evidence",
+            reason_code="CHECKPOINT_TSA_IMPRINT_MISSING",
+            message="checkpoint TSA imprint claim requires at least one TSA receipt",
+            evidence=["checkpoint.tsa", "checkpoint.tsa_receipts"],
         )
     verdict = "supported" if all(subject.verdict == verdict_value("supported") for subject in subjects) else None
     return ClaimVerdict(

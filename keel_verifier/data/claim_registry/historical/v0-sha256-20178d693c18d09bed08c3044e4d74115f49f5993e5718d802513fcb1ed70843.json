@@ -320,39 +320,6 @@
       ]
     },
     {
-      "name": "permit.operator_approval.v2",
-      "assertion": "A Permit v2 operator_approval slot is valid only when the slot signature verifies and key.status.completeness.v1 supports that the exact operator key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned operator-approval plus key-status completeness semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.counter_signature.v2",
-      "assertion": "A Permit v2 counter_signature slot is valid only when the slot signature and execution-intent binding verify and key.status.completeness.v1 supports that the exact buyer-principal key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with counter_signature slot, issuer signature evidence, permit canonical hash input, execution_intent_hash, dispatch intent evidence, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned counter-signature plus key-status completeness semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.audit_attestation.v2",
-      "assertion": "A Permit v2 audit_attestation slot is valid only when the slot signature and batch binding verify and key.status.completeness.v1 supports that the exact buyer-principal key was not revoked or compromised at the signed slot timestamp.",
-      "required_evidence": "Permit v2 object with audit_attestation slot, issuer signature evidence, permit canonical hash input, batch_id resolving to a known audit batch, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, signed key-status manifest, checkpoint.scope_state.v1 sidecar evidence, referenced checkpoint JSON, and pinned audit-attestation plus key-status completeness semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "permit.operator_approved.v1",
       "assertion": "A Permit v2 operator_approval slot is a valid issuer-organization dual-control signature over the slot-specific canonical payload and is bound to the permit, issuer signature evidence, permit canonical hash, operator signer, and signing time.",
       "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, and pinned operator-approval semantics.",

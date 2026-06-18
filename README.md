@@ -233,7 +233,13 @@ keel-verify export export.json manifest.json \
   --verify-closure
 ```
 
-The bundled trust root lives at `keel_verifier/data/trust_root.json`. It includes the production export and checkpoint signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`, plus the production permit-binding key served by `https://api.keelapi.com/v1/integrity/permit-binding-public-keys`.
+The bundled trust root lives at `keel_verifier/data/trust_root.json`. It is the
+unsigned wheel-bundled anchor and includes the production export and checkpoint
+signing keys currently served by `https://api.keelapi.com/v1/compliance/keys`,
+plus the production permit-binding key served by
+`https://api.keelapi.com/v1/integrity/permit-binding-public-keys`. The GitHub
+trust-root publication must be signed as `keel.public_key_manifest.v1` by the
+real production export-signing key during the Christian/key-ops publish step.
 
 ## Workflow Intent Verification
 

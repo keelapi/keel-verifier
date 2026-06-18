@@ -185,6 +185,21 @@ def _cmd_claim_permit_v2_signature(
             key_manifest = pack / "key_manifest.json"
             if args.key_manifest is None and key_manifest.exists():
                 args.key_manifest = str(key_manifest)
+            key_status_manifest = pack / "key_status_manifest.json"
+            if args.key_status_manifest is None and key_status_manifest.exists():
+                args.key_status_manifest = str(key_status_manifest)
+            key_status_sidecar_candidates = (
+                pack / "checkpoint_scope_state.json",
+                pack / "sidecars" / "checkpoint-scope-state-v1.json",
+            )
+            if args.key_status_sidecar is None:
+                for candidate in key_status_sidecar_candidates:
+                    if candidate.exists():
+                        args.key_status_sidecar = str(candidate)
+                        break
+            key_status_checkpoint = pack / "checkpoint.json"
+            if args.key_status_checkpoint is None and key_status_checkpoint.exists():
+                args.key_status_checkpoint = str(key_status_checkpoint)
         elif args.export_file is None:
             args.export_file = str(pack)
     if not args.export_file:
@@ -194,6 +209,9 @@ def _cmd_claim_permit_v2_signature(
         export_file=args.export_file,
         manifest=args.manifest,
         key_manifest=args.key_manifest,
+        key_status_manifest=args.key_status_manifest,
+        key_status_sidecar=args.key_status_sidecar,
+        key_status_checkpoint=args.key_status_checkpoint,
     )
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return 0 if result["status"] == "supported" else 1
@@ -478,6 +496,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "Verify a Permit v2 audit_attestation signature slot.",
         ),
         (
+            "permit.operator_approval.v2",
+            "Verify a Permit v2 operator_approval signature slot with witnessed key-status completeness.",
+        ),
+        (
+            "permit.counter_signature.v2",
+            "Verify a Permit v2 counter_signature signature slot with witnessed key-status completeness.",
+        ),
+        (
+            "permit.audit_attestation.v2",
+            "Verify a Permit v2 audit_attestation signature slot with witnessed key-status completeness.",
+        ),
+        (
             "operator_approval",
             "Verify a Permit v2 operator_approval signature slot.",
         ),
@@ -507,6 +537,9 @@ def _build_parser() -> argparse.ArgumentParser:
         p_permit_v2.add_argument("--export-file")
         p_permit_v2.add_argument("--manifest")
         p_permit_v2.add_argument("--key-manifest")
+        p_permit_v2.add_argument("--key-status-manifest")
+        p_permit_v2.add_argument("--key-status-sidecar")
+        p_permit_v2.add_argument("--key-status-checkpoint")
         p_permit_v2.add_argument(
             "--json",
             action="store_true",

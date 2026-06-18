@@ -346,6 +346,7 @@ def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
         for claim in inv["claims"]
         for semantic_id in claim["depends_on_semantics"]
         if semantic_id.startswith("keel.permit.")
+        or semantic_id.startswith("keel.authority.")
         or semantic_id.startswith("keel.scope_state.")
         or semantic_id == "keel.export.scope_faithfulness.v1"
     }

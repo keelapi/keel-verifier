@@ -15,14 +15,13 @@
         "v3",
         "v4",
         "v5",
-        "v6",
-        "v7"
+        "v6"
       ]
     },
     "scope": "issuance_only",
     "issuer_key_purpose": "permit_binding_signing",
     "canonical_payload": {
-      "source": "The issuance-time v1-v7 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
+      "source": "The issuance-time v1-v6 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
       "required_fields": [
         "binding_version",
         "permit_id",
@@ -63,20 +62,11 @@
         ],
         "v6": [
           "resource_attributes_canonical_hash"
-        ],
-        "v7": [
-          "resource_attributes_canonical_hash",
-          "authority_chain_digest",
-          "quota_reservation_id",
-          "subject_id",
-          "subject_type",
-          "account_id",
-          "org_id"
         ]
       },
-      "subhash_recompute_rule": "For v3/v4/v5/v6/v7 payloads carrying spend_scope_hash or delegation_policy_hash, verifiers recompute the hash from exported resource_attributes_json.spend_scope or resource_attributes_json.delegation_policy before accepting the signed decision. For v6/v7 payloads, verifiers additionally require resource_attributes_canonical_hash and recompute SHA-256(rfc8785.dumps(resource_attributes_json)) before accepting the signed decision.",
+      "subhash_recompute_rule": "For v3/v4/v5/v6 payloads carrying spend_scope_hash or delegation_policy_hash, verifiers recompute the hash from exported resource_attributes_json.spend_scope or resource_attributes_json.delegation_policy before accepting the signed decision. For v6 payloads, verifiers additionally require resource_attributes_canonical_hash and recompute SHA-256(rfc8785.dumps(resource_attributes_json)) before accepting the signed decision.",
       "decision_rule": "canonical_payload.decision is the only decision adjudicated by this claim and must be one of allow, deny, or challenge after issuer binding normalization.",
-      "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project. For v7, canonical_payload.account_id and canonical_payload.org_id bind the decision to the signed c7 account selector and must be preferred over unsigned manifest account selectors.",
+      "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project.",
       "row_state_rule": "Verifiers MUST NOT adjudicate a later mutable permit row as the issuance decision unless the pack supplies evidence that the reconstructed payload is the original issuance-time signed payload."
     },
     "hash_rule": {

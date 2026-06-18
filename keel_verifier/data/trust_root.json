@@ -26,6 +26,15 @@
       "valid_to": null
     },
     {
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
+      "algorithm": "ed25519",
+      "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
+      "purpose": "scope_state",
+      "status": "active",
+      "valid_from": "2026-04-27T02:03:12.371544+00:00",
+      "valid_to": null
+    },
+    {
       "key_id": "157c11203f46bfdc",
       "algorithm": "ed25519",
       "public_key": "ed25519:OV8hlgXauPxS9m1M/qkoJRnSGr5uYgeoIrGujr4m0PI=",

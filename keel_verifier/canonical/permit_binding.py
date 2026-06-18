@@ -20,10 +20,10 @@ from typing import Any
 
 import rfc8785
 
-SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5", "v6"})
+SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5", "v6", "v7"})
 CLOSURE_RFC8785_BINDING_VERSION = "closure_v3"
 _RFC8785_SIGNED_SURFACE_VERSIONS = frozenset(
-    {"v5", "v6", CLOSURE_RFC8785_BINDING_VERSION}
+    {"v5", "v6", "v7", CLOSURE_RFC8785_BINDING_VERSION}
 )
 LEGACY_CHAIN_CANONICAL_VERSIONS = frozenset({"v1", "closure_v1", "closure_v2"})
 RFC8785_CHAIN_CANONICAL_VERSIONS = frozenset({"closure_v3", "chain_v3"})
@@ -33,6 +33,41 @@ _V5_BINDING_FIELD_NAMES: frozenset[str] = frozenset()
 _V6_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
     {"resource_attributes_canonical_hash"}
 )
+_V7_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
+    {
+        "authority_chain_digest",
+        "quota_reservation_id",
+        "subject_id",
+        "subject_type",
+        "account_id",
+        "org_id",
+    }
+)
+CANONICAL_PERMIT_SUBJECT_TYPES: frozenset[str] = frozenset(
+    {"agent", "user", "service_principal", "system"}
+)
+_PERMIT_SUBJECT_TYPE_ALIASES: dict[str, str] = {
+    "agent": "agent",
+    "agent_principal": "agent",
+    "ai_agent": "agent",
+    "user": "user",
+    "human": "user",
+    "person": "user",
+    "service_account": "service_principal",
+    "service-account": "service_principal",
+    "service account": "service_principal",
+    "service_principal": "service_principal",
+    "service-principal": "service_principal",
+    "service principal": "service_principal",
+    "serviceprincipal": "service_principal",
+    "service_token": "service_principal",
+    "service-token": "service_principal",
+    "api_key": "service_principal",
+    "api-key": "service_principal",
+    "apikey": "service_principal",
+    "system": "system",
+    "internal": "system",
+}
 
 _VOLATILE_REQUEST_KEYS = frozenset(
     {
@@ -74,7 +109,7 @@ def canonical_binding_bytes(binding_version: str, payload: Mapping[str, Any]) ->
     normalized = str(binding_version or "").strip()
     if normalized in {"v1", "v2", "v3", "v4"}:
         return _legacy_canonical_json_v1_to_v4(payload)
-    if normalized in {"v5", "v6"}:
+    if normalized in {"v5", "v6", "v7"}:
         return rfc8785.dumps(payload)
     raise ValueError(f"Unsupported binding_version: {binding_version}")
 
@@ -93,7 +128,7 @@ def binding_request_canonical_version_for_binding(
 ) -> str:
     return (
         RFC8785_BINDING_REQUEST_CANONICAL_VERSION
-        if str(binding_version or "").strip() in {"v5", "v6"}
+        if str(binding_version or "").strip() in {"v5", "v6", "v7"}
         else LEGACY_BINDING_REQUEST_CANONICAL_VERSION
     )
 
@@ -195,6 +230,30 @@ def _normalize_uuid(value: Any) -> str | None:
         return str(uuid.UUID(str(value)))
     except (ValueError, AttributeError, TypeError):
         return None
+
+
+def normalize_permit_subject_type_for_binding(value: Any) -> str:
+    raw = str(value or "").strip()
+    normalized = raw.lower().replace("_", " ")
+    normalized = " ".join(normalized.split())
+    aliases = {
+        key.lower().replace("_", " "): canonical
+        for key, canonical in _PERMIT_SUBJECT_TYPE_ALIASES.items()
+    }
+    canonical = aliases.get(normalized)
+    if canonical in CANONICAL_PERMIT_SUBJECT_TYPES:
+        return canonical
+    raise ValueError(
+        "v7 permit binding subject_type must be one of "
+        f"{sorted(CANONICAL_PERMIT_SUBJECT_TYPES)}."
+    )
+
+
+def _normalize_required_text(value: Any, *, field_name: str) -> str:
+    normalized = str(value or "").strip()
+    if not normalized:
+        raise ValueError(f"v7 permit binding requires {field_name}.")
+    return normalized
 
 
 def _normalize_target_list(targets: Iterable[Any] | None) -> list[dict[str, str]]:
@@ -436,6 +495,40 @@ def canonical_binding_payload_v6(
     return payload
 
 
+def canonical_binding_payload_v7(
+    *,
+    authority_chain_digest: str | None,
+    quota_reservation_id: str | None = None,
+    subject_id: str,
+    subject_type: str,
+    account_id: uuid.UUID | str | None = None,
+    org_id: uuid.UUID | str | None = None,
+    resource_attributes_canonical_hash: str | None,
+    **v5_fields: Any,
+) -> dict[str, Any]:
+    payload = canonical_binding_payload_v6(
+        resource_attributes_canonical_hash=resource_attributes_canonical_hash,
+        **v5_fields,
+    )
+    payload["binding_version"] = "v7"
+    payload["authority_chain_digest"] = (
+        (authority_chain_digest or "").strip().lower() or None
+    )
+    payload["quota_reservation_id"] = (
+        _normalize_uuid(quota_reservation_id)
+        if quota_reservation_id is not None
+        else None
+    )
+    payload["subject_id"] = _normalize_required_text(
+        subject_id,
+        field_name="subject_id",
+    )
+    payload["subject_type"] = normalize_permit_subject_type_for_binding(subject_type)
+    payload["account_id"] = _normalize_uuid(account_id)
+    payload["org_id"] = _normalize_uuid(org_id)
+    return payload
+
+
 CANONICAL_PAYLOAD_BUILDERS = {
     "v1": canonical_binding_payload_v1,
     "v2": canonical_binding_payload_v2,
@@ -443,6 +536,7 @@ CANONICAL_PAYLOAD_BUILDERS = {
     "v4": canonical_binding_payload_v4,
     "v5": canonical_binding_payload_v5,
     "v6": canonical_binding_payload_v6,
+    "v7": canonical_binding_payload_v7,
 }
 
 
@@ -634,6 +728,8 @@ __all__ = [
     "RFC8785_BINDING_REQUEST_CANONICAL_VERSION",
     "_V5_BINDING_FIELD_NAMES",
     "_V6_BINDING_FIELD_NAMES",
+    "_V7_BINDING_FIELD_NAMES",
+    "CANONICAL_PERMIT_SUBJECT_TYPES",
     "_legacy_canonical_json_v1_to_v4",
     "binding_request_canonical_version_for_binding",
     "canonical_binding_bytes",
@@ -644,6 +740,7 @@ __all__ = [
     "canonical_binding_payload_v4",
     "canonical_binding_payload_v5",
     "canonical_binding_payload_v6",
+    "canonical_binding_payload_v7",
     "canonical_delegation_policy_payload",
     "canonical_provider_wire_body",
     "canonical_provider_wire_body_hash",
@@ -651,4 +748,5 @@ __all__ = [
     "canonical_spend_scope_payload",
     "chain_canonical_bytes",
     "compute_canonical_binding_hash",
+    "normalize_permit_subject_type_for_binding",
 ]

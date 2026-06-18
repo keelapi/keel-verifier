@@ -12,6 +12,22 @@ Pre-flight:
   the intended release.
 - Confirm every historical `claim_registry` artifact remains bundled, and no pinned
   semantics or trust-root artifacts were pruned from the distribution package.
+- Confirm `GITHUB_TRUST_ROOT_URL` serves a signed
+  `keel.public_key_manifest.v1` trust root before publishing. `refresh-keys`
+  requires signed manifests for every HTTP(S) channel, so an unsigned GitHub
+  mirror will fail for `refresh-keys --source github` and auto fallback.
+- Before publishing, Christian/key-ops must sign the GitHub trust-root file
+  with the real production export-signing key:
+
+  ```bash
+  KEEL_EXPORT_SIGNING_KEY=<key-ops-ed25519-seed> \
+    python scripts/sign_public_key_manifest.py
+  ```
+
+  The release workflow runs `scripts/check_release_trust_root.py --source github`
+  before building artifacts. It fails closed unless the served trust root is a
+  signed `keel.public_key_manifest.v1` whose signer is an allowlisted real
+  production export-signing key.
 - For PERMIT_V2 slot-signature releases, confirm the vendored
   `permit.operator_approval.v1`, `permit.counter_signature.v1`, and
   `permit.audit_attestation.v1` semantics hashes still match keel-api main,

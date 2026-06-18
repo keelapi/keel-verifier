@@ -41,22 +41,30 @@ PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
     "keel.permit.dispatch_absence_after_revocation.v1"
 )
+PERMIT_AUTHORITY_CHAIN_ID = "keel.permit.authority_chain.v1"
+AUTHORITY_REVOCATION_TEMPORAL_ID = "keel.authority.revocation_temporal.v1"
 PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_ID = "keel.permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
+PERMIT_OPERATOR_APPROVAL_V2_ID = "keel.permit.operator_approval.v2"
+PERMIT_COUNTER_SIGNATURE_V2_ID = "keel.permit.counter_signature.v2"
+PERMIT_AUDIT_ATTESTATION_V2_ID = "keel.permit.audit_attestation.v2"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
     "keel.governance_event.integrity_digest.v1"
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6"
+    "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08"
+    "sha256:20178d693c18d09bed08c3044e4d74115f49f5993e5718d802513fcb1ed70843"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:3a50f2a6175ac6417caab3c732b32fbe09bce77bb6a4de8daef097f6862ee8d1",
+    "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6",
+    "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
     "sha256:c766e8d11c5e15925884a35727af90eaa28cac8b00caed7f409328041696453c",
     "sha256:8da29094827fda581ee8fb3a1466934182e572a91b7940d2ef1cb3c28c1ec215",
     "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235",
@@ -121,6 +129,9 @@ EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = (
+    "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb"
+)
+PERMIT_DECISION_V33_HASH = (
     "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d"
 )
 PERMIT_DECISION_PREVIOUS_HASH = (
@@ -138,6 +149,12 @@ PERMIT_REVOKED_EVENT_HASH = (
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH = (
     "sha256:529f17bf4de5ab0ae4a85b89dd66894ddc65923825defae41d5e8af57d0cc0c4"
 )
+PERMIT_AUTHORITY_CHAIN_HASH = (
+    "sha256:04727b6fe312e01b3bcc37cbccf208f99b01df039b2a7219ced3c6d82cb4fe61"
+)
+AUTHORITY_REVOCATION_TEMPORAL_HASH = (
+    "sha256:879072a50e2e00f11c81151f5271a3207d791a042a39787e73ee462079fb300b"
+)
 PERMIT_OPERATOR_APPROVAL_HASH = (
     "sha256:66c6f811aee132c1e93d16708f5a8bbb1b9ca36efa07eaab63aae59894351a63"
 )
@@ -146,6 +163,15 @@ PERMIT_COUNTER_SIGNATURE_HASH = (
 )
 PERMIT_AUDIT_ATTESTATION_HASH = (
     "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f"
+)
+PERMIT_OPERATOR_APPROVAL_V2_HASH = (
+    "sha256:e23087de01ed8837d3f3a339a7eea2df1b651a33ebfaa666a5b04f7cf744da83"
+)
+PERMIT_COUNTER_SIGNATURE_V2_HASH = (
+    "sha256:e9d83d01a5e15bd607702c53293185fa3f2d7cab84374e1d6256a67d6027a951"
+)
+PERMIT_AUDIT_ATTESTATION_V2_HASH = (
+    "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2"
 )
 LEGACY_PROFILE_HASH = (
     "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
@@ -211,6 +237,12 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
         CHECKPOINT_COMPOSITE_HASH_ID,
         CHECKPOINT_SIGNATURE_ID,
     ),
+    "key.status.completeness.v1": (
+        SCOPE_STATE_SIDECAR_FORMAT_ID,
+        SCOPE_STATE_MERKLE_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
     "export.scope_faithfulness.v1": (
         EXPORT_MANIFEST_INTEGRITY_ID,
         EXPORT_SCOPE_FAITHFULNESS_ID,
@@ -224,9 +256,32 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.dispatch_absence_after_revocation.v1": (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
     ),
+    "permit.authority_chain.v1": (PERMIT_AUTHORITY_CHAIN_ID,),
+    "authority.revocation_temporal.v1": (AUTHORITY_REVOCATION_TEMPORAL_ID,),
     "permit.operator_approval.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signature.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.audit_attestation.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
+    "permit.operator_approval.v2": (
+        PERMIT_OPERATOR_APPROVAL_V2_ID,
+        SCOPE_STATE_SIDECAR_FORMAT_ID,
+        SCOPE_STATE_MERKLE_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
+    "permit.counter_signature.v2": (
+        PERMIT_COUNTER_SIGNATURE_V2_ID,
+        SCOPE_STATE_SIDECAR_FORMAT_ID,
+        SCOPE_STATE_MERKLE_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
+    "permit.audit_attestation.v2": (
+        PERMIT_AUDIT_ATTESTATION_V2_ID,
+        SCOPE_STATE_SIDECAR_FORMAT_ID,
+        SCOPE_STATE_MERKLE_ID,
+        CHECKPOINT_COMPOSITE_HASH_ID,
+        CHECKPOINT_SIGNATURE_ID,
+    ),
     "permit.operator_approved.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signed.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.audit_attested.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
@@ -267,6 +322,10 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         "semantics/permit/dispatch_absence_after_revocation_v1.json"
     ),
+    PERMIT_AUTHORITY_CHAIN_ID: "semantics/permit/authority_chain_v1.json",
+    AUTHORITY_REVOCATION_TEMPORAL_ID: (
+        "semantics/permit/authority_revocation_temporal_v1.json"
+    ),
     PERMIT_OPERATOR_APPROVAL_ID: (
         "semantics/permit/permit.operator_approval.v1.json"
     ),
@@ -275,6 +334,15 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     ),
     PERMIT_AUDIT_ATTESTATION_ID: (
         "semantics/permit/permit.audit_attestation.v1.json"
+    ),
+    PERMIT_OPERATOR_APPROVAL_V2_ID: (
+        "semantics/permit/permit.operator_approval.v2.json"
+    ),
+    PERMIT_COUNTER_SIGNATURE_V2_ID: (
+        "semantics/permit/permit.counter_signature.v2.json"
+    ),
+    PERMIT_AUDIT_ATTESTATION_V2_ID: (
+        "semantics/permit/permit.audit_attestation.v2.json"
     ),
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
@@ -304,9 +372,14 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH
     ),
+    PERMIT_AUTHORITY_CHAIN_ID: PERMIT_AUTHORITY_CHAIN_HASH,
+    AUTHORITY_REVOCATION_TEMPORAL_ID: AUTHORITY_REVOCATION_TEMPORAL_HASH,
     PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
     PERMIT_COUNTER_SIGNATURE_ID: PERMIT_COUNTER_SIGNATURE_HASH,
     PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
+    PERMIT_OPERATOR_APPROVAL_V2_ID: PERMIT_OPERATOR_APPROVAL_V2_HASH,
+    PERMIT_COUNTER_SIGNATURE_V2_ID: PERMIT_COUNTER_SIGNATURE_V2_HASH,
+    PERMIT_AUDIT_ATTESTATION_V2_ID: PERMIT_AUDIT_ATTESTATION_V2_HASH,
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
 }
@@ -1411,6 +1484,11 @@ def make_permanent_allowlist(
         ),
         SemanticImplementation(
             PERMIT_DECISION_ID,
+            PERMIT_DECISION_V33_HASH,
+            "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_DECISION_ID,
             PERMIT_DECISION_PREVIOUS_HASH,
             "permit_decision",
         ),
@@ -1435,6 +1513,16 @@ def make_permanent_allowlist(
             "permit_dispatch_absence_after_revocation",
         ),
         SemanticImplementation(
+            PERMIT_AUTHORITY_CHAIN_ID,
+            PERMIT_AUTHORITY_CHAIN_HASH,
+            "permit_authority_chain",
+        ),
+        SemanticImplementation(
+            AUTHORITY_REVOCATION_TEMPORAL_ID,
+            AUTHORITY_REVOCATION_TEMPORAL_HASH,
+            "authority_revocation_temporal",
+        ),
+        SemanticImplementation(
             PERMIT_OPERATOR_APPROVAL_ID,
             PERMIT_OPERATOR_APPROVAL_HASH,
             "permit_operator_approval",
@@ -1447,6 +1535,21 @@ def make_permanent_allowlist(
         SemanticImplementation(
             PERMIT_AUDIT_ATTESTATION_ID,
             PERMIT_AUDIT_ATTESTATION_HASH,
+            "permit_audit_attestation",
+        ),
+        SemanticImplementation(
+            PERMIT_OPERATOR_APPROVAL_V2_ID,
+            PERMIT_OPERATOR_APPROVAL_V2_HASH,
+            "permit_operator_approval",
+        ),
+        SemanticImplementation(
+            PERMIT_COUNTER_SIGNATURE_V2_ID,
+            PERMIT_COUNTER_SIGNATURE_V2_HASH,
+            "permit_counter_signature",
+        ),
+        SemanticImplementation(
+            PERMIT_AUDIT_ATTESTATION_V2_ID,
+            PERMIT_AUDIT_ATTESTATION_V2_HASH,
             "permit_audit_attestation",
         ),
         SemanticImplementation(
