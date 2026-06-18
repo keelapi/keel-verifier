@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import copy
 import json
 from typing import Any
 
@@ -188,19 +189,26 @@ def test_refresh_keys_rejects_unsigned_github_manifest(monkeypatch, cache_path):
     assert not cache_path.exists()
 
 
-def test_bundled_trust_root_requires_signed_github_publication_before_refresh():
+def test_bundled_trust_root_is_signed_for_github_publication_before_refresh():
     assert verifier._remote_key_manifest_requires_signature(
         verifier.GITHUB_TRUST_ROOT_URL
     )
     body = json.loads(verifier.DEFAULT_TRUST_ROOT_PATH.read_text(encoding="utf-8"))
-    assert body.get("manifest_version") != "keel.public_key_manifest.v1"
+    assert body.get("manifest_version") == "keel.public_key_manifest.v1"
+    verifier._verify_public_key_manifest_signature(
+        body,
+        source=verifier.GITHUB_TRUST_ROOT_URL,
+    )
 
+    unsigned_body = copy.deepcopy(body)
+    unsigned_body.pop("manifest_version", None)
+    unsigned_body.pop("manifest_signature", None)
     with pytest.raises(
         ValueError,
         match="public key manifests must use keel.public_key_manifest.v1",
     ):
         verifier._verify_public_key_manifest_signature(
-            body,
+            unsigned_body,
             source=verifier.GITHUB_TRUST_ROOT_URL,
         )
 

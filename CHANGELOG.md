@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased — self-attesting evidence bundle support
+## 3.4.1
+
+- Add witnessed key-status revocation governance over signed key-status
+  manifests, including status-transition coverage for production trust roots.
+- Add v7 permit-binding verification support with selector-audit guarding,
+  negative corpus coverage, golden vectors, and byte-equivalence floors.
+- Add R2c authority-chain and revocation-temporal adjudicators for delegated
+  authority evidence.
+- Enforce the trust-root publication gate and bundle the now-signed production
+  trust root.
+
+## 3.4.0 — self-attesting evidence bundle support
 
 - Add `keel.evidence_bundle/v1` parsing before legacy split-file export
   verification. Single-file bundles verify `artifact_ref.v1`,
@@ -15,9 +26,6 @@
   (`python -m keel_verifier <bundle.json>`) and routes to the `export`
   subcommand. Previously the bare form fell through to legacy verification
   and produced a confusing `missing or malformed composite_hash` error.
-
-## 3.4.0
-
 - Parse `artifact_ref` (artifact_ref.v1 schema) from new-format bundles
 - Surface URN as stable artifact identity in verbose output
 - Verification is offline-first: URL reachability is diagnostic, never a verification gate

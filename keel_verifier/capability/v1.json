@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.4.0",
+    "version": "3.4.1",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"

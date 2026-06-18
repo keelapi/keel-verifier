@@ -18,6 +18,13 @@ def _bundled_trust_root() -> dict:
     return json.loads(TRUST_ROOT.read_text(encoding="utf-8"))
 
 
+def _unsigned_manifest() -> dict:
+    manifest = copy.deepcopy(_bundled_trust_root())
+    manifest.pop("manifest_version", None)
+    manifest.pop("manifest_signature", None)
+    return manifest
+
+
 def _test_signed_manifest() -> dict:
     manifest = copy.deepcopy(_bundled_trust_root())
     manifest["manifest_version"] = "keel.public_key_manifest.v1"
@@ -49,7 +56,7 @@ def _test_signed_manifest() -> dict:
 def test_release_trust_root_gate_rejects_unsigned_bundled_anchor() -> None:
     with pytest.raises(ValueError, match="keel.public_key_manifest.v1"):
         validate_release_trust_root(
-            _bundled_trust_root(),
+            _unsigned_manifest(),
             source=verifier.GITHUB_TRUST_ROOT_URL,
         )
 
