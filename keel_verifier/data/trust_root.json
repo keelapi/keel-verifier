@@ -1,15 +1,10 @@
 {
-  "schema_version": 1,
+  "canonicalization_profile": "keel.canonical_json.payload.v1",
   "generated_at": "2026-05-08T00:05:07Z",
-  "sources": {
-    "compliance_keys": "https://api.keelapi.com/v1/compliance/keys",
-    "checkpoint_public_key": "https://api.keelapi.com/v1/integrity/checkpoint-public-key",
-    "permit_binding_public_keys": "https://api.keelapi.com/v1/integrity/permit-binding-public-keys"
-  },
   "keys": [
     {
-      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "algorithm": "ed25519",
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
       "purpose": "export_signing",
       "status": "active",
@@ -17,8 +12,8 @@
       "valid_to": null
     },
     {
-      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "algorithm": "ed25519",
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
       "purpose": "integrity_checkpoint",
       "status": "active",
@@ -26,8 +21,8 @@
       "valid_to": null
     },
     {
-      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "algorithm": "ed25519",
+      "key_id": "sha256:341fe2190d167abc491db6d041da0677",
       "public_key": "ed25519:3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
       "purpose": "scope_state",
       "status": "active",
@@ -35,13 +30,28 @@
       "valid_to": null
     },
     {
-      "key_id": "157c11203f46bfdc",
       "algorithm": "ed25519",
+      "key_id": "157c11203f46bfdc",
       "public_key": "ed25519:OV8hlgXauPxS9m1M/qkoJRnSGr5uYgeoIrGujr4m0PI=",
       "purpose": "permit_binding_signing",
       "status": "active",
       "valid_from": "2026-05-08T00:02:39.852542Z",
       "valid_to": null
     }
-  ]
+  ],
+  "manifest_signature": {
+    "content_hash": "sha256:6737f68d40fb9cdce5f07081032b025d4c4118b937fe8273aae317073aabf4d5",
+    "key_id": "sha256:341fe2190d167abc491db6d041da0677",
+    "purpose": "export_signing",
+    "signature": "ed25519:tSjWFYKFFwNfpxiRjIuPFpGVwbSHgvPJy1kmr/vAG4KBT2cOA8j4IwFE/beeOPEnci71vL4IR4TOLwxdFWZ+Dw==",
+    "signature_type": "ed25519.content_hash.v1"
+  },
+  "manifest_version": "keel.public_key_manifest.v1",
+  "publication_note": "GitHub trust-root publications must be signed by export_signing. Before production publish, Christian/key-ops re-runs scripts/sign_public_key_manifest.py with the real KEEL_EXPORT_SIGNING_KEY.",
+  "schema_version": 1,
+  "sources": {
+    "checkpoint_public_key": "https://api.keelapi.com/v1/integrity/checkpoint-public-key",
+    "compliance_keys": "https://api.keelapi.com/v1/compliance/keys",
+    "permit_binding_public_keys": "https://api.keelapi.com/v1/integrity/permit-binding-public-keys"
+  }
 }
