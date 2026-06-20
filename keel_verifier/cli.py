@@ -9,6 +9,7 @@ from pathlib import Path
 
 from keel_verifier import __version__
 from keel_verifier.doctor import run_doctor
+from keel_verifier.monitor import DEFAULT_CONSISTENCY_URL, cmd_monitor
 from keel_verifier.self_check import run_self_check
 from keel_verifier.verifier_output_render import (
     OUTCOME_RENDER_MAPPINGS,
@@ -34,6 +35,7 @@ from keel_verifier.verifier import (
 LEGACY_COMMANDS = {
     "export",
     "checkpoint",
+    "monitor",
     "refresh-keys",
     "claim",
     "self-check",
@@ -317,6 +319,58 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))
+
+    p_monitor = sub.add_parser(
+        "monitor",
+        help="Monitor the public checkpoint consistency surface for divergence.",
+    )
+    p_monitor.add_argument(
+        "--consistency-url",
+        default=DEFAULT_CONSISTENCY_URL,
+        help=(
+            "Checkpoint consistency endpoint. Defaults to "
+            f"{DEFAULT_CONSISTENCY_URL}."
+        ),
+    )
+    p_monitor.add_argument(
+        "--state-file",
+        help=(
+            "Local monitor state file. Defaults to "
+            "~/.keel-verifier/checkpoint-monitor-state.json."
+        ),
+    )
+    p_monitor.add_argument(
+        "--pin-file",
+        help=(
+            "Customer-pinned checkpoint root JSON. Expected fields: "
+            "checkpoint_log_tree_size and checkpoint_log_root_hash."
+        ),
+    )
+    p_monitor.add_argument(
+        "--require-rekor",
+        action="store_true",
+        help="Alarm unless every returned checkpoint log entry has Rekor inclusion material.",
+    )
+    p_monitor.add_argument(
+        "--cycles",
+        type=int,
+        default=1,
+        help="Number of monitor cycles to run. Defaults to one.",
+    )
+    p_monitor.add_argument(
+        "--interval",
+        type=float,
+        default=60.0,
+        help="Seconds between cycles when --cycles is greater than one.",
+    )
+    p_monitor.add_argument(
+        "--timeout",
+        type=float,
+        default=10.0,
+        help="HTTP timeout in seconds for each consistency fetch.",
+    )
+    p_monitor.add_argument("--json", action="store_true", dest="as_json")
+    p_monitor.set_defaults(func=cmd_monitor)
 
     refresh_choices = ["auto"] + [slug for slug, _, _ in REFRESH_KEYS_SOURCES]
     p_refresh = sub.add_parser(

@@ -67,3 +67,12 @@ def test_release_trust_root_gate_rejects_test_signed_manifest() -> None:
             _test_signed_manifest(),
             source=verifier.GITHUB_TRUST_ROOT_URL,
         )
+
+
+def test_release_trust_root_gate_can_require_rekor_witness() -> None:
+    with pytest.raises(ValueError, match="Rekor witness invalid"):
+        validate_release_trust_root(
+            _bundled_trust_root(),
+            source=verifier.GITHUB_TRUST_ROOT_URL,
+            require_rekor=True,
+        )

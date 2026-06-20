@@ -11,6 +11,7 @@ import argparse
 import base64
 import json
 import os
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from keel_verifier import verifier
+
+REKOR_ENTRY_KIND = "hashedrekord"
+REKOR_WITNESS_VERSION = "keel.rekor_witness.v1"
 
 
 def _error(message: str) -> SystemExit:
@@ -34,6 +38,15 @@ def _public_key(private_key: Ed25519PrivateKey) -> str:
 
 def _signature(private_key: Ed25519PrivateKey, message: bytes) -> str:
     return "ed25519:" + base64.b64encode(private_key.sign(message)).decode("ascii")
+
+
+def _canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
 
 
 def _private_key_from_env() -> Ed25519PrivateKey:
@@ -116,6 +129,75 @@ def _signed_manifest(
     return signed
 
 
+def _rekor_enabled() -> bool:
+    return os.getenv("KEEL_REKOR_ENABLED", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _rekor_url() -> str:
+    return (os.getenv("KEEL_REKOR_URL") or "https://rekor.sigstore.dev").rstrip("/")
+
+
+def _rekor_entry_for_hash(content_hash: str) -> dict[str, Any]:
+    return {
+        "apiVersion": "0.0.1",
+        "kind": REKOR_ENTRY_KIND,
+        "spec": {
+            "data": {
+                "hash": {
+                    "algorithm": "sha256",
+                    "value": content_hash.removeprefix("sha256:"),
+                }
+            }
+        },
+    }
+
+
+def _anchor_manifest_in_rekor(signed: dict[str, Any]) -> dict[str, Any] | None:
+    if not _rekor_enabled():
+        return None
+    content_hash = signed["manifest_signature"]["content_hash"]
+    entry = _rekor_entry_for_hash(content_hash)
+    request = urllib.request.Request(
+        f"{_rekor_url()}/api/v1/log/entries",
+        data=_canonical_json_bytes(entry),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    timeout = float(os.getenv("KEEL_REKOR_TIMEOUT_S") or "10")
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not isinstance(payload, dict) or not payload:
+        raise _error("Rekor response must be a non-empty JSON object")
+    rekor_uuid, rekor_entry = next(iter(payload.items()))
+    if not isinstance(rekor_entry, dict):
+        raise _error("Rekor response entry must be a JSON object")
+    verification = rekor_entry.get("verification")
+    inclusion_proof = (
+        verification.get("inclusionProof") if isinstance(verification, dict) else None
+    )
+    witness: dict[str, Any] = {
+        "witness_version": REKOR_WITNESS_VERSION,
+        "witness_type": "rekor",
+        "status": "included",
+        "log_url": _rekor_url(),
+        "entry_kind": REKOR_ENTRY_KIND,
+        "artifact_type": "keel.public_key_manifest.v1",
+        "artifact_hash": content_hash,
+        "rekor_uuid": str(rekor_uuid),
+        "log_index": rekor_entry.get("logIndex"),
+        "integrated_time": rekor_entry.get("integratedTime"),
+        "log_id": rekor_entry.get("logID"),
+    }
+    if isinstance(inclusion_proof, dict):
+        witness["inclusion_proof"] = inclusion_proof
+    return witness
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Sign a keel.public_key_manifest.v1 trust-root manifest."
@@ -143,6 +225,9 @@ def main() -> int:
         private_key=private_key,
         signer_key_id=signer_key_id,
     )
+    witness = _anchor_manifest_in_rekor(signed)
+    if witness is not None:
+        signed["transparency"] = witness
     verification_source = (
         str(verifier.DEFAULT_TRUST_ROOT_PATH)
         if args.output.resolve() == verifier.DEFAULT_TRUST_ROOT_PATH.resolve()
