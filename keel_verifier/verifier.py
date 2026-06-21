@@ -4796,6 +4796,14 @@ def _resolve_permit_v2_slot_key(
         return None, "resolved permit v2 key has no public_key"
     if _permit_v2_public_key_b64(public_key) is None:
         return None, "resolved permit v2 key is not a valid Ed25519 public key"
+    # Defense-in-depth invariant: a resolved key_id must commit to its public
+    # key (key_id == sha256(public_key)). Mirrors the binding-key guard. NOTE:
+    # this is NOT a forgery closure — a caller that controls the slot can present
+    # a self-consistent (key_id, public_key, signature) triple. Closing that
+    # requires the signer-key manifest to be signed / anchored to a trusted
+    # source (not yet enforced; see the signer-key trust-root work).
+    if _permit_v2_key_id_from_public_key(public_key) != str(slot["key_id"]):
+        return None, "permit v2 signer key_id does not match resolved public key"
     return public_key, None
 
 

@@ -389,6 +389,43 @@ def test_direct_counter_signature_adjudicator_happy_and_failure() -> None:
     assert failure_claim.reason_code == "PERMIT_COUNTER_SIGNATURE_INVALID"
 
 
+def test_direct_counter_signature_rejects_key_id_public_key_mismatch(tmp_path) -> None:
+    # Defense-in-depth invariant: the resolver must reject a key manifest entry
+    # whose public_key does not hash to its key_id. (This is not by itself a
+    # forgery closure — a caller controlling the slot can present a consistent
+    # key/signature; closing that needs a signed/anchored signer-key manifest.)
+    happy = _record("counter_signature_positive_01")
+    export_document = _json(_path(happy, "export_file"))
+    manifest = _json(_path(happy, "manifest"))
+    key_manifest = _json(_path(happy, "key_manifest"))
+
+    genuine = _adjudicate_permit_counter_signature_v1(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=str(_path(happy, "key_manifest")),
+    )
+    assert genuine.aggregate_verdict == "supported"
+
+    attacker_pub = "ed25519:" + base64.b64encode(
+        Ed25519PrivateKey.generate()
+        .public_key()
+        .public_bytes(Encoding.Raw, PublicFormat.Raw)
+    ).decode("ascii")
+    tampered = copy.deepcopy(key_manifest)
+    for entry in tampered["keys"]:
+        entry["public_key"] = attacker_pub  # key_id left unchanged
+    tampered_path = tmp_path / "key_manifest.json"
+    tampered_path.write_text(json.dumps(tampered, sort_keys=True), encoding="utf-8")
+
+    claim = _adjudicate_permit_counter_signature_v1(
+        export_document=export_document,
+        manifest=manifest,
+        key_manifest_source=str(tampered_path),
+    )
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code.endswith("KEY_NOT_TRUSTED")
+
+
 def test_direct_counter_signature_execution_intent_mismatch() -> None:
     record = _record("counter_signature_negative_execution_intent_mismatch")
 
