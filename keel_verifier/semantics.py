@@ -22,6 +22,8 @@ LEGACY_PROFILE_WARNING = (
 
 EXPORT_MANIFEST_INTEGRITY_ID = "keel.export_manifest.integrity.v1"
 EVIDENCE_BUNDLE_SELF_ATTESTING_ID = "keel.evidence_bundle.self_attesting.v1"
+QUOTA_RESERVATION_LINKAGE_ID = "keel.quota.reservation_linkage.v1"
+BUDGET_PARTITION_LEDGER_ID = "keel.budget.partition_ledger.v1"
 GOVERNANCE_RECORD_HASH_ID = "keel.governance_chain.record_hash.v1"
 CLOSURE_FORMAT_V1_ID = "keel.closure.format.v1"
 CLOSURE_FORMAT_V2_ID = "keel.closure.format.v2"
@@ -55,13 +57,14 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7"
+    "sha256:4be808c13849d2737bd0f40da0f522d8a6c4b672c29e3ac2c0b43cdc8e6be5c7"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:20178d693c18d09bed08c3044e4d74115f49f5993e5718d802513fcb1ed70843"
+    "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:20178d693c18d09bed08c3044e4d74115f49f5993e5718d802513fcb1ed70843",
     "sha256:3a50f2a6175ac6417caab3c732b32fbe09bce77bb6a4de8daef097f6862ee8d1",
     "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6",
     "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
@@ -76,6 +79,12 @@ EXPORT_MANIFEST_INTEGRITY_HASH = (
 )
 EVIDENCE_BUNDLE_SELF_ATTESTING_HASH = (
     "sha256:67895a0df3d227eaec27c567637d3fef04241b3ed0b3e0033512cf7172913f6f"
+)
+QUOTA_RESERVATION_LINKAGE_HASH = (
+    "sha256:42c505642283286bef5067d54b4b6e81e9d43bf31e4e7d5d5dedbfb8403a521c"
+)
+BUDGET_PARTITION_LEDGER_HASH = (
+    "sha256:ab76d2cbb6000283fbf91d6196a33ff60d74508cbea4aedbb0a6258c60aac0c8"
 )
 GOVERNANCE_RECORD_HASH_HASH = (
     "sha256:a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707"
@@ -174,7 +183,7 @@ PERMIT_AUDIT_ATTESTATION_V2_HASH = (
     "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2"
 )
 LEGACY_PROFILE_HASH = (
-    "sha256:8475b44ef4141b58687dd04ef3a59cc39619a7ab1083a629192b57ac5cf084fe"
+    "sha256:67a26994d6d73b460adc0aa05f823c42e512d952372e6eb9a73f560fbbec186c"
 )
 AUTHORITY_ENVELOPE_V0_HASH = (
     "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2"
@@ -195,6 +204,14 @@ AuthorityEnvelopeComparator = Callable[..., Any]
 CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "export.integrity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "evidence_bundle.self_attesting.v1": (EVIDENCE_BUNDLE_SELF_ATTESTING_ID,),
+    "quota.reservation_linkage.v1": (
+        QUOTA_RESERVATION_LINKAGE_ID,
+        EVIDENCE_BUNDLE_SELF_ATTESTING_ID,
+    ),
+    "budget.partition_ledger.v1": (
+        BUDGET_PARTITION_LEDGER_ID,
+        EVIDENCE_BUNDLE_SELF_ATTESTING_ID,
+    ),
     "export.scope_identity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "governance_chain.local_continuity.v1": (GOVERNANCE_RECORD_HASH_ID,),
     "permit_chain.delegation_denied_correctly.v1": (
@@ -296,6 +313,10 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: (
         "semantics/evidence_bundle/self_attesting_v1.json"
     ),
+    QUOTA_RESERVATION_LINKAGE_ID: (
+        "semantics/quota/reservation_linkage_v1.json"
+    ),
+    BUDGET_PARTITION_LEDGER_ID: "semantics/budget/partition_ledger_v1.json",
     GOVERNANCE_RECORD_HASH_ID: "semantics/governance_chain/record_hash_v1.json",
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: (
         "semantics/governance_event/integrity_digest_v1.json"
@@ -352,6 +373,8 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID: EXPORT_MANIFEST_INTEGRITY_HASH,
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
+    QUOTA_RESERVATION_LINKAGE_ID: QUOTA_RESERVATION_LINKAGE_HASH,
+    BUDGET_PARTITION_LEDGER_ID: BUDGET_PARTITION_LEDGER_HASH,
     GOVERNANCE_RECORD_HASH_ID: GOVERNANCE_RECORD_HASH_HASH,
     GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH,
     CLOSURE_FORMAT_V1_ID: CLOSURE_FORMAT_V1_HASH,
@@ -428,6 +451,7 @@ class ResolvedArtifact:
 class ClaimRequest:
     name: str
     required: bool = True
+    minimum_trust_grade: str | None = None
 
 
 @dataclass(frozen=True)
@@ -471,6 +495,12 @@ class ResolvedSemantics:
             if request.name == name:
                 return request.required
         return True
+
+    def minimum_trust_grade_for(self, name: str) -> str | None:
+        for request in self.requested_claims:
+            if request.name == name:
+                return request.minimum_trust_grade
+        return None
 
     def requested_names(self) -> set[str]:
         return {request.name for request in self.requested_claims}
@@ -879,13 +909,27 @@ def _claim_requests_from_claim_set(
             raise ValueError(f"claim_set.claims[{index}] must be an object")
         name = item.get("name")
         required = item.get("required")
+        minimum_trust_grade = item.get("minimum_trust_grade")
         if not isinstance(name, str) or not name:
             raise ValueError(f"claim_set.claims[{index}].name must be a string")
         if not isinstance(required, bool):
             raise ValueError(f"claim_set.claims[{index}].required must be a boolean")
+        if minimum_trust_grade is not None and not isinstance(
+            minimum_trust_grade,
+            str,
+        ):
+            raise ValueError(
+                f"claim_set.claims[{index}].minimum_trust_grade must be a string"
+            )
         if name not in registry_claims:
             raise ValueError(f"claim {name!r} is not in the resolved registry")
-        requests.append(ClaimRequest(name=name, required=required))
+        requests.append(
+            ClaimRequest(
+                name=name,
+                required=required,
+                minimum_trust_grade=minimum_trust_grade,
+            )
+        )
     return tuple(requests)
 
 
@@ -1380,6 +1424,16 @@ def make_permanent_allowlist(
             EVIDENCE_BUNDLE_SELF_ATTESTING_ID,
             EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
             "evidence_bundle_self_attesting",
+        ),
+        SemanticImplementation(
+            QUOTA_RESERVATION_LINKAGE_ID,
+            QUOTA_RESERVATION_LINKAGE_HASH,
+            "quota_reservation_linkage",
+        ),
+        SemanticImplementation(
+            BUDGET_PARTITION_LEDGER_ID,
+            BUDGET_PARTITION_LEDGER_HASH,
+            "budget_partition_ledger",
         ),
         SemanticImplementation(
             GOVERNANCE_RECORD_HASH_ID,

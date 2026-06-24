@@ -43,6 +43,36 @@
       ]
     },
     {
+      "name": "quota.reservation_linkage.v1",
+      "status": "implemented",
+      "description": "Reconciles per-permit budget allocation ledger rows with a machine-readable attestation grade; anchored unsigned rows emit keel_attested_unsigned and unanchored unsigned rows emit only keel_self_signed_unanchored.",
+      "depends_on_semantics": [
+        "keel.quota.reservation_linkage.v1",
+        "keel.evidence_bundle.self_attesting.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "budget.partition_ledger.v1",
+      "status": "implemented",
+      "description": "Adjudicates cap-lifecycle budget allocation ledger rows as replayable partition-ledger evidence.",
+      "depends_on_semantics": [
+        "keel.budget.partition_ledger.v1",
+        "keel.evidence_bundle.self_attesting.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "export.scope_identity.v1",
       "status": "implemented",
       "description": "Verifies the export's manifest identity fields against the signed payload shape: export_id, project_id, export_type, format, compressed, and record_count.",
@@ -835,6 +865,16 @@
     {
       "id": "keel.export.scope_faithfulness.v1",
       "hash": "sha256:75dfd47a61addb6d8b7f8d49499aa0525aa9696b85c9a92c5ac6c273bff969e1",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.quota.reservation_linkage.v1",
+      "hash": "sha256:42c505642283286bef5067d54b4b6e81e9d43bf31e4e7d5d5dedbfb8403a521c",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.budget.partition_ledger.v1",
+      "hash": "sha256:ab76d2cbb6000283fbf91d6196a33ff60d74508cbea4aedbb0a6258c60aac0c8",
       "status": "allowlisted"
     },
     {

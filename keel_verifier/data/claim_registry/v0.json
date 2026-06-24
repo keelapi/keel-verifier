@@ -34,6 +34,28 @@
       ]
     },
     {
+      "name": "quota.reservation_linkage.v1",
+      "assertion": "Quota reservation ledger rows reconcile the linkage between a reservation and the permit or execution row that consumed it, with an explicit attestation grade distinguishing signed identity, anchored unsigned Keel-attested rows, and unanchored self-signed rows.",
+      "required_evidence": "Signed reservation-linkage tuple evidence or budget_allocation_events per-permit rows inside a verified self-attesting compliance export bundle; bundle body anchor state for unsigned-row grades.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "budget.partition_ledger.v1",
+      "assertion": "Budget allocation cap-lifecycle ledger rows are replayable as partition evidence for per-agent budget cap accounting.",
+      "required_evidence": "budget_allocation_events cap lifecycle rows {cap_allocate, cap_update, cap_deactivate} carried inside the verified compliance export evidence substrate.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "export.scope_identity.v1",
       "assertion": "Manifest identity fields describe the signed artifact: export_id, project_id, export_type, format, compressed, record_count.",
       "required_evidence": "Manifest plus export payload shape/count.",
