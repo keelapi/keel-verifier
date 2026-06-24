@@ -157,6 +157,25 @@ _legacy_artifact_ref_warning_printed = False
 _legacy_vanta_schema_warning_printed = False
 SELF_ATTESTING_BUNDLE_SCHEMA_VERSION = "keel.evidence_bundle/v1"
 _LEGACY_SPLIT_EXPORT_WARNING_EMITTED = False
+QUOTA_RESERVATION_LINKAGE_CLAIM_NAME = "quota.reservation_linkage.v1"
+BUDGET_PARTITION_LEDGER_CLAIM_NAME = "budget.partition_ledger.v1"
+RESERVATION_LINKAGE_TRUST_ORDER = {
+    "keel_self_signed_unanchored": 10,
+    "keel_attested_unsigned": 20,
+    "signed_identity": 30,
+}
+
+
+@dataclass(frozen=True)
+class BundleTrustContext:
+    bundle_valid: bool
+    signature_valid: bool
+    anchor_present: bool
+    anchor_kind: str | None
+    anchor_hash: str | None
+    tsa_receipts_present: bool
+    tsa_imprint_status: str
+    artifact_ref_digest_valid: bool
 
 
 def _content_hash(data: bytes) -> str:
@@ -391,6 +410,81 @@ def _missing_required_claim(
     )
 
 
+def _reservation_linkage_grade_satisfies(
+    actual: str | None,
+    minimum: str | None,
+) -> bool:
+    if minimum is None:
+        return True
+    actual_rank = RESERVATION_LINKAGE_TRUST_ORDER.get(str(actual or ""))
+    minimum_rank = RESERVATION_LINKAGE_TRUST_ORDER.get(str(minimum))
+    if actual_rank is None or minimum_rank is None:
+        return False
+    return actual_rank >= minimum_rank
+
+
+def _minimum_grade_failure_claims(
+    claims: list[ClaimVerdict],
+    semantics: ResolvedSemantics,
+    *,
+    subject_type: str,
+    subject_id: str | None,
+    evidence: list[str],
+) -> list[ClaimVerdict]:
+    failures: list[ClaimVerdict] = []
+    by_name = {claim.name: claim for claim in claims}
+    for request in semantics.requested_claims:
+        if (
+            request.name != QUOTA_RESERVATION_LINKAGE_CLAIM_NAME
+            or request.minimum_trust_grade is None
+        ):
+            continue
+        claim = by_name.get(request.name)
+        if claim is None or claim.aggregate_verdict != verdict_value("supported"):
+            continue
+        epistemic = claim.epistemic_state or {}
+        actual = epistemic.get("trust_grade") or epistemic.get("attestation_grade")
+        if _reservation_linkage_grade_satisfies(
+            actual,
+            request.minimum_trust_grade,
+        ):
+            continue
+        failures.append(
+            ClaimVerdict(
+                name=request.name,
+                required=request.required,
+                verdict="insufficient_evidence",
+                semantics=semantics.semantics_for_claim(request.name),
+                subjects=[
+                    _subject(
+                        subject_type=subject_type,
+                        subject_id=subject_id,
+                        verdict="insufficient_evidence",
+                        reason_code="RESERVATION_LINKAGE_TRUST_GRADE_BELOW_MINIMUM",
+                        message=(
+                            "quota reservation linkage support grade "
+                            f"{actual or 'unknown'} is below required minimum "
+                            f"{request.minimum_trust_grade}"
+                        ),
+                        evidence=evidence,
+                    )
+                ],
+                epistemic_state={
+                    "trust_grade": str(actual or ""),
+                    "minimum_trust_grade": request.minimum_trust_grade,
+                },
+                reason_code="RESERVATION_LINKAGE_TRUST_GRADE_BELOW_MINIMUM",
+                message=(
+                    "quota reservation linkage support grade "
+                    f"{actual or 'unknown'} is below required minimum "
+                    f"{request.minimum_trust_grade}"
+                ),
+                evidence=evidence,
+            )
+        )
+    return failures
+
+
 def _enforce_required_claims(
     *,
     claims: list[ClaimVerdict],
@@ -428,6 +522,16 @@ def _enforce_required_claims(
     ]
     if missing:
         merged = _merge_claims([*merged, *missing])
+
+    grade_failures = _minimum_grade_failure_claims(
+        merged,
+        semantics,
+        subject_type=subject_type,
+        subject_id=subject_id,
+        evidence=evidence,
+    )
+    if grade_failures:
+        merged = _merge_claims([*merged, *grade_failures])
 
     unsupported = [
         claim.name
@@ -1022,6 +1126,37 @@ def _bundle_anchor_hash(body: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _parse_bundle_anchor_timestamp(value: Any) -> bool:
+    if not isinstance(value, str) or not value.strip():
+        return False
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
+def _accepted_published_checkpoint_anchor(
+    body: Mapping[str, Any],
+) -> tuple[bool, str | None, str | None]:
+    anchor = body.get("anchor")
+    if not isinstance(anchor, Mapping):
+        return False, None, None
+    kind = anchor.get("kind")
+    checkpoint_id = anchor.get("checkpoint_id")
+    composite_hash = anchor.get("composite_hash")
+    if (
+        kind == "published_checkpoint"
+        and isinstance(checkpoint_id, str)
+        and bool(checkpoint_id.strip())
+        and isinstance(composite_hash, str)
+        and composite_hash.startswith("sha256:")
+        and _parse_bundle_anchor_timestamp(anchor.get("published_at"))
+    ):
+        return True, kind, composite_hash
+    return False, kind if isinstance(kind, str) else None, None
+
+
 def _bundle_receipt_b64(receipt: Mapping[str, Any]) -> str | None:
     for field in ("receipt_b64", "tsa_response_base64"):
         value = receipt.get(field)
@@ -1066,7 +1201,14 @@ def _verify_self_attesting_bundle_payload(
     *,
     artifact_id: str | None = None,
     check_tsa: bool = True,
-) -> tuple[bool, str | None, dict[str, Any] | None, list[ClaimVerdict], list[str]]:
+) -> tuple[
+    bool,
+    str | None,
+    dict[str, Any] | None,
+    list[ClaimVerdict],
+    list[str],
+    BundleTrustContext | None,
+]:
     diagnostics: list[str] = []
     if bundle.get("schema_version") != SELF_ATTESTING_BUNDLE_SCHEMA_VERSION:
         message = "unsupported evidence bundle schema_version"
@@ -1084,6 +1226,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
 
     body = bundle.get("body")
@@ -1104,6 +1247,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
 
     artifact_ref = body.get("artifact_ref")
@@ -1125,6 +1269,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
     expected_artifact_digest = artifact_ref.get("digest")
     actual_artifact_digest = _artifact_ref_digest_for_body(
@@ -1149,6 +1294,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
 
     expected_content_hash = envelope.get("content_hash")
@@ -1172,6 +1318,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
 
     public_key = envelope.get("public_key")
@@ -1192,6 +1339,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
     if not _verify_ed25519(public_key, actual_content_hash.encode("utf-8"), signature):
         message = "bundle signature verification failed"
@@ -1209,6 +1357,7 @@ def _verify_self_attesting_bundle_payload(
                 )
             ],
             diagnostics,
+            None,
         )
 
     receipts = envelope.get("tsa_receipts")
@@ -1246,6 +1395,7 @@ def _verify_self_attesting_bundle_payload(
                             )
                         ],
                         diagnostics,
+                        None,
                     )
                 ok, reason = _verify_tsa_receipt(
                     receipt_b64,
@@ -1267,7 +1417,30 @@ def _verify_self_attesting_bundle_payload(
                             )
                         ],
                         diagnostics,
+                        None,
                     )
+
+    anchor_present, anchor_kind, accepted_anchor_hash = (
+        _accepted_published_checkpoint_anchor(body)
+    )
+    if not receipt_list:
+        tsa_imprint_status = "not_present"
+    elif check_tsa and anchor_hash is None:
+        tsa_imprint_status = "skipped_no_anchor"
+    elif check_tsa:
+        tsa_imprint_status = "verified"
+    else:
+        tsa_imprint_status = "not_checked"
+    bundle_context = BundleTrustContext(
+        bundle_valid=True,
+        signature_valid=True,
+        anchor_present=anchor_present,
+        anchor_kind=anchor_kind,
+        anchor_hash=accepted_anchor_hash,
+        tsa_receipts_present=bool(receipt_list),
+        tsa_imprint_status=tsa_imprint_status,
+        artifact_ref_digest_valid=True,
+    )
 
     return (
         True,
@@ -1286,7 +1459,265 @@ def _verify_self_attesting_bundle_payload(
             )
         ],
         diagnostics,
+        bundle_context,
     )
+
+
+_PERMIT_LEDGER_TRANSITIONS = {"reserve", "reserve_adjust", "release", "commit"}
+_CAP_LEDGER_TRANSITIONS = {"cap_allocate", "cap_update", "cap_deactivate"}
+
+
+def _ledger_events_from_document(export_document: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw = export_document.get("budget_allocation_events")
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict)]
+
+
+def _signed_reservation_linkages_from_document(
+    export_document: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    for key in ("signed_reservation_linkages", "reservation_linkage_signed_identities"):
+        raw = export_document.get(key)
+        if isinstance(raw, list):
+            return [item for item in raw if isinstance(item, dict)]
+    return []
+
+
+def _signed_linkage_tuple(entry: Mapping[str, Any]) -> dict[str, Any] | None:
+    value = entry.get("tuple")
+    return dict(value) if isinstance(value, Mapping) else None
+
+
+def _verify_signed_reservation_linkage(entry: Mapping[str, Any]) -> bool:
+    tuple_payload = _signed_linkage_tuple(entry)
+    if tuple_payload is None:
+        return False
+    public_key = entry.get("public_key")
+    signature = entry.get("signature")
+    content_hash = entry.get("content_hash")
+    actual_hash = _content_hash(_canonical_json_bytes(tuple_payload))
+    if content_hash != actual_hash:
+        return False
+    if not isinstance(public_key, str) or not isinstance(signature, str):
+        return False
+    return _verify_ed25519(public_key, actual_hash.encode("utf-8"), signature)
+
+
+def _event_amount(event: Mapping[str, Any]) -> int | None:
+    try:
+        return int(event.get("amount"))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
+def _reservation_linkage_claim(
+    *,
+    verdict: str,
+    reason_code: str,
+    message: str,
+    trust_grade: str | None = None,
+    anchor_present: bool | None = None,
+    signed_identity: bool | None = None,
+) -> ClaimVerdict:
+    epistemic_state: dict[str, str] = {}
+    if trust_grade is not None:
+        epistemic_state["trust_grade"] = trust_grade
+        epistemic_state["attestation_grade"] = trust_grade
+    if anchor_present is not None:
+        epistemic_state["anchor_present"] = "true" if anchor_present else "false"
+    if signed_identity is not None:
+        epistemic_state["signed_identity"] = "true" if signed_identity else "false"
+    return ClaimVerdict(
+        name=QUOTA_RESERVATION_LINKAGE_CLAIM_NAME,
+        subjects=[
+            _subject(
+                subject_type="budget_allocation_events",
+                subject_id="reservation_linkage",
+                verdict=verdict,
+                reason_code=reason_code,
+                message=message,
+                evidence=[
+                    "bundle.body.budget_allocation_events",
+                    "bundle.body.anchor",
+                ],
+            )
+        ],
+        epistemic_state=epistemic_state or None,
+        reason_code=reason_code,
+        message=message,
+        evidence=["bundle.body.budget_allocation_events", "bundle.body.anchor"],
+    )
+
+
+def _unsigned_linkage_conflicts_with_signed_tuple(
+    events: list[dict[str, Any]],
+    signed_tuple: Mapping[str, Any],
+) -> bool:
+    reservation_id = signed_tuple.get("reservation_id")
+    permit_id = signed_tuple.get("permit_id")
+    if not reservation_id or not permit_id:
+        return False
+    for event in events:
+        if event.get("reservation_id") != reservation_id:
+            continue
+        event_permit_id = event.get("permit_id")
+        if event_permit_id and str(event_permit_id) != str(permit_id):
+            return True
+    return False
+
+
+def _unsigned_reservation_linkage_is_reconcilable(
+    events: list[dict[str, Any]],
+) -> tuple[bool, str | None]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for event in events:
+        if event.get("transition") not in _PERMIT_LEDGER_TRANSITIONS:
+            continue
+        reservation_id = event.get("reservation_id")
+        if not isinstance(reservation_id, str) or not reservation_id:
+            continue
+        grouped.setdefault(reservation_id, []).append(event)
+    if not grouped:
+        return False, "no per-permit reservation ledger rows were supplied"
+    for reservation_id, rows in grouped.items():
+        permit_ids = {str(row.get("permit_id")) for row in rows if row.get("permit_id")}
+        if len(permit_ids) > 1:
+            return False, f"reservation {reservation_id} has contradictory permit_id values"
+        reserved_balance = 0
+        for row in sorted(rows, key=lambda item: int(item.get("seq") or 0)):
+            amount = _event_amount(row)
+            if amount is None:
+                return False, f"reservation {reservation_id} has a non-integer amount"
+            transition = row.get("transition")
+            metric = row.get("metric")
+            if transition == "reserve":
+                reserved_balance += amount
+            elif transition == "reserve_adjust":
+                reserved_balance += amount
+            elif transition == "release":
+                reserved_balance -= amount
+            elif transition == "commit" and metric == "reserved_released_usd_micros":
+                reserved_balance -= amount
+            elif transition == "commit" and metric == "spent_added_usd_micros":
+                if amount < 0:
+                    return False, f"reservation {reservation_id} has negative spent_added"
+            if reserved_balance < 0:
+                return False, f"reservation {reservation_id} releases more than reserved"
+    return True, None
+
+
+def _adjudicate_quota_reservation_linkage_v1(
+    export_document: Mapping[str, Any],
+    *,
+    bundle_context: BundleTrustContext | None,
+) -> list[ClaimVerdict]:
+    events = _ledger_events_from_document(export_document)
+    signed_linkages = _signed_reservation_linkages_from_document(export_document)
+    if signed_linkages:
+        for entry in signed_linkages:
+            if not _verify_signed_reservation_linkage(entry):
+                return [
+                    _reservation_linkage_claim(
+                        verdict="disproved",
+                        reason_code="RESERVATION_LINKAGE_SIGNED_IDENTITY_INVALID",
+                        message="signed reservation-linkage tuple failed verification",
+                    )
+                ]
+            tuple_payload = _signed_linkage_tuple(entry) or {}
+            if _unsigned_linkage_conflicts_with_signed_tuple(events, tuple_payload):
+                return [
+                    _reservation_linkage_claim(
+                        verdict="disproved",
+                        reason_code="RESERVATION_LINKAGE_SIGNED_UNSIGNED_CONFLICT",
+                        message=(
+                            "signed reservation-linkage tuple conflicts with "
+                            "unsigned ledger rows"
+                        ),
+                    )
+                ]
+        return [
+            _reservation_linkage_claim(
+                verdict="supported",
+                reason_code="RESERVATION_LINKAGE_SIGNED_IDENTITY_SUPPORTED",
+                message=(
+                    "quota reservation linkage reconciled using signed identity "
+                    "evidence (attestation_grade=signed_identity)"
+                ),
+                trust_grade="signed_identity",
+                anchor_present=(
+                    bundle_context.anchor_present
+                    if bundle_context is not None
+                    else None
+                ),
+                signed_identity=True,
+            )
+        ]
+
+    ok, reason = _unsigned_reservation_linkage_is_reconcilable(events)
+    if not ok:
+        if not events:
+            return []
+        return [
+            _reservation_linkage_claim(
+                verdict="insufficient_evidence",
+                reason_code="RESERVATION_LINKAGE_UNSIGNED_ROWS_INSUFFICIENT",
+                message=reason or "reservation linkage rows are insufficient",
+            )
+        ]
+
+    anchor_present = bool(bundle_context and bundle_context.anchor_present)
+    grade = "keel_attested_unsigned" if anchor_present else "keel_self_signed_unanchored"
+    return [
+        _reservation_linkage_claim(
+            verdict="supported",
+            reason_code="RESERVATION_LINKAGE_RECONCILED",
+            message=(
+                "quota reservation linkage reconciled by Keel-attested "
+                f"event-reconciliation (attestation_grade={grade})"
+            ),
+            trust_grade=grade,
+            anchor_present=anchor_present,
+            signed_identity=False,
+        )
+    ]
+
+
+def _adjudicate_budget_partition_ledger_v1(
+    export_document: Mapping[str, Any],
+) -> list[ClaimVerdict]:
+    events = [
+        event
+        for event in _ledger_events_from_document(export_document)
+        if event.get("transition") in _CAP_LEDGER_TRANSITIONS
+    ]
+    if not events:
+        return []
+    for event in events:
+        amount = _event_amount(event)
+        if amount is None or amount < 0:
+            return [
+                _single_subject_claim(
+                    BUDGET_PARTITION_LEDGER_CLAIM_NAME,
+                    subject_type="budget_allocation_events",
+                    subject_id="cap_lifecycle",
+                    verdict="disproved",
+                    reason_code="BUDGET_PARTITION_LEDGER_CAP_EVENT_INVALID",
+                    message="cap-lifecycle event has invalid cap amount",
+                    evidence=["bundle.body.budget_allocation_events"],
+                )
+            ]
+    return [
+        _single_subject_claim(
+            BUDGET_PARTITION_LEDGER_CLAIM_NAME,
+            subject_type="budget_allocation_events",
+            subject_id="cap_lifecycle",
+            verdict="supported",
+            reason_code="BUDGET_PARTITION_LEDGER_CAP_EVENTS_REPLAYABLE",
+            message="cap-lifecycle ledger events are replayable for partition checks",
+            evidence=["bundle.body.budget_allocation_events"],
+        )
+    ]
 
 
 def _compute_record_hash(
@@ -10542,7 +10973,14 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     "input is not keel.evidence_bundle/v1"
                 ),
             )
-        ok, error, body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+        (
+            ok,
+            error,
+            body,
+            claims,
+            diagnostics,
+            bundle_context,
+        ) = _verify_self_attesting_bundle_payload(
             bundle,
             artifact_id=export_path.name,
             check_tsa=True,
@@ -10550,6 +10988,15 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if body is not None:
             artifact["body_schema"] = body.get("schema")
             artifact["artifact_ref"] = body.get("artifact_ref")
+        if bundle_context is not None:
+            claims = [
+                *claims,
+                *_adjudicate_quota_reservation_linkage_v1(
+                    body,
+                    bundle_context=bundle_context,
+                ),
+                *_adjudicate_budget_partition_ledger_v1(body),
+            ]
         return _export_report(
             ok=ok,
             exit_code=0 if ok else 1,
@@ -11741,7 +12188,14 @@ def cmd_export(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 1
-        ok, error, body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+        (
+            ok,
+            error,
+            body,
+            claims,
+            diagnostics,
+            _bundle_context,
+        ) = _verify_self_attesting_bundle_payload(
             bundle,
             artifact_id=export_path.name,
             check_tsa=True,
@@ -13280,7 +13734,14 @@ def _verify_checkpoint_core(
     bundle_diagnostics: list[str] = []
     if _is_self_attesting_bundle(body):
         artifact["kind"] = "checkpoint_bundle"
-        ok, error, bundle_body, claims, diagnostics = _verify_self_attesting_bundle_payload(
+        (
+            ok,
+            error,
+            bundle_body,
+            claims,
+            diagnostics,
+            _bundle_context,
+        ) = _verify_self_attesting_bundle_payload(
             body,
             artifact_id=path.name,
             check_tsa=check_tsa,

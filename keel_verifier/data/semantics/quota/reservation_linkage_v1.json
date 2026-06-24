@@ -1,0 +1,57 @@
+{
+  "id": "keel.quota.reservation_linkage.v1",
+  "kind": "quota_reservation_linkage_recipe",
+  "status": "released",
+  "version": "v1",
+  "body": {
+    "claim": "quota.reservation_linkage.v1",
+    "evidence_shapes": {
+      "signed_identity": {
+        "container": "signed_reservation_linkages[]",
+        "tuple_fields": [
+          "project_id",
+          "budget_envelope_id",
+          "permit_id",
+          "request_id",
+          "reserved_amount_usd_micros",
+          "reservation_id",
+          "signed_at",
+          "signing_key"
+        ],
+        "signature_rule": "content_hash must be the sha256 hash of the canonical tuple; signature must verify over content_hash"
+      },
+      "unsigned_rows": {
+        "container": "budget_allocation_events[]",
+        "transition_family": [
+          "reserve",
+          "reserve_adjust",
+          "release",
+          "commit"
+        ],
+        "tuple_fields": [
+          "project_id",
+          "envelope_id",
+          "allocation_id",
+          "permit_id",
+          "reservation_id",
+          "transition",
+          "metric",
+          "amount",
+          "seq"
+        ]
+      }
+    },
+    "trust_grade_order": [
+      "keel_self_signed_unanchored",
+      "keel_attested_unsigned",
+      "signed_identity"
+    ],
+    "anchor_dependency": {
+      "keel_attested_unsigned": "only when the verified self-attesting bundle body contains an accepted published_checkpoint anchor",
+      "keel_self_signed_unanchored": "used for unsigned rows in a verified self-attesting bundle without an accepted body anchor",
+      "signed_identity": "valid signed identity evidence outranks bundle anchor state"
+    },
+    "conflict_behavior": "contradictory signed and unsigned linkage tuples are disproved",
+    "minimum_grade_behavior": "a required minimum_trust_grade above the emitted grade is insufficient_evidence"
+  }
+}

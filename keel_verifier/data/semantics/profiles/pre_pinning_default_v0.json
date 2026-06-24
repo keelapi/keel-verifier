@@ -10,7 +10,7 @@
     "components": [
       {
         "id": "keel.verifier_claim_registry.v0",
-        "hash": "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
+        "hash": "sha256:4be808c13849d2737bd0f40da0f522d8a6c4b672c29e3ac2c0b43cdc8e6be5c7",
         "path": "claim_registry/v0.json"
       },
       {

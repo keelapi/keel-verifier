@@ -1,0 +1,32 @@
+{
+  "id": "keel.budget.partition_ledger.v1",
+  "kind": "budget_partition_ledger_recipe",
+  "status": "released",
+  "version": "v1",
+  "body": {
+    "claim": "budget.partition_ledger.v1",
+    "evidence_shapes": {
+      "cap_lifecycle_rows": {
+        "container": "budget_allocation_events[]",
+        "transition_family": [
+          "cap_allocate",
+          "cap_update",
+          "cap_deactivate"
+        ],
+        "tuple_fields": [
+          "project_id",
+          "envelope_id",
+          "allocation_id",
+          "is_active",
+          "transition",
+          "metric",
+          "amount",
+          "seq"
+        ]
+      }
+    },
+    "replay_rule": "cap lifecycle rows are replayed in seq order; active rows contribute cap_usd_micros and inactive rows contribute zero",
+    "substrate_rule": "the verifier reads the ledger rows from the verified compliance export evidence substrate, not from a live database",
+    "relationship_to_chain_claims": "partition evidence is a ledger claim and must be evaluated alongside existing chain and revocation claims when those are requested"
+  }
+}

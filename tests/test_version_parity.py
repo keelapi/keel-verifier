@@ -348,6 +348,8 @@ def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
         if semantic_id.startswith("keel.permit.")
         or semantic_id.startswith("keel.authority.")
         or semantic_id.startswith("keel.scope_state.")
+        or semantic_id.startswith("keel.quota.")
+        or semantic_id.startswith("keel.budget.")
         or semantic_id == "keel.export.scope_faithfulness.v1"
     }
     assert set(inventory_pins) == referenced
