@@ -17,6 +17,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Mapping
 
+from keel_verifier.monitor import verify_rekor_witness
 from keel_verifier import verifier
 
 
@@ -45,6 +46,7 @@ def validate_release_trust_root(
     *,
     source: str,
     allowed_key_ids: frozenset[str] = REAL_EXPORT_SIGNING_KEY_IDS,
+    require_rekor: bool = False,
 ) -> None:
     if body.get("manifest_version") != "keel.public_key_manifest.v1":
         raise ValueError("release trust root must be keel.public_key_manifest.v1")
@@ -64,6 +66,14 @@ def validate_release_trust_root(
         )
 
     verifier._verify_public_key_manifest_signature(body, source=source)
+    if require_rekor:
+        content_hash = signature.get("content_hash")
+        errors = verify_rekor_witness(
+            body.get("transparency") if isinstance(body.get("transparency"), Mapping) else None,
+            expected_artifact_hash=content_hash if isinstance(content_hash, str) else None,
+        )
+        if errors:
+            raise ValueError("release trust root Rekor witness invalid: " + "; ".join(errors))
 
 
 def main() -> int:
@@ -78,12 +88,17 @@ def main() -> int:
             "keel_verifier.verifier.GITHUB_TRUST_ROOT_URL."
         ),
     )
+    parser.add_argument(
+        "--require-rekor",
+        action="store_true",
+        help="Fail unless trust_root.json carries included Rekor witness material.",
+    )
     args = parser.parse_args()
     source = verifier.GITHUB_TRUST_ROOT_URL if args.source == "github" else args.source
 
     try:
         body = _load_json_source(args.source)
-        validate_release_trust_root(body, source=source)
+        validate_release_trust_root(body, source=source, require_rekor=args.require_rekor)
     except Exception as exc:
         print(f"FAILED: release trust-root gate: {exc}", file=sys.stderr)
         return 1
