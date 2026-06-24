@@ -127,6 +127,28 @@ def _signed_api_manifest_bytes(tmp_path, monkeypatch) -> bytes:
     return json.dumps(manifest, sort_keys=True).encode("utf-8")
 
 
+def test_load_key_manifest_rejects_unsigned_http_manifest(monkeypatch) -> None:
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self) -> bytes:
+            return VALID_MANIFEST_BYTES
+
+    def fake_urlopen(url: str, timeout: int):
+        assert url == "https://example.invalid/keys.json"
+        assert timeout == 10
+        return Response()
+
+    monkeypatch.setattr(verifier.urllib.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(ValueError, match="keel.public_key_manifest.v1"):
+        verifier._load_key_manifest("https://example.invalid/keys.json")
+
+
 def test_refresh_keys_writes_cache_from_api(monkeypatch, cache_path):
     signed_manifest = _signed_api_manifest_bytes(cache_path.parent, monkeypatch)
     monkeypatch.setattr(

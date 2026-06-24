@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.2
+
+- Harden permit v2 signer-slot key resolution by binding each resolved
+  signer `key_id` to the SHA-256 digest of the Ed25519 public key bytes.
+- Add checkpoint consistency monitoring and keep the release trust-root gate
+  closed over signed public-key manifests with Rekor-aware validation.
+
 ## 3.4.1
 
 - Add witnessed key-status revocation governance over signed key-status
