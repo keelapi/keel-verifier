@@ -1,0 +1,28 @@
+{
+  "id": "keel.budget.partition_ledger.v1",
+  "version": "v1",
+  "kind": "budget_partition_ledger_recipe",
+  "status": "released",
+  "body": {
+    "claim": "budget.partition_ledger.v1",
+    "assertion": "Within a budget envelope, the sum of active agent-allocation caps does not exceed the envelope capacity, recomputed from the append-only cap-lifecycle event family (not the mutable cap), and evidenced in the ledger rather than the chain.",
+    "evidence_shapes": {
+      "cap_lifecycle_events": "budget_allocation_events rows with metric=agent_allocation_cap and transition in {cap_allocate, cap_update, cap_deactivate}, carried inside a verified self-attesting compliance-export bundle."
+    },
+    "replay": {
+      "grouping_key": "allocation_id",
+      "rule": "For each allocation_id, the current cap and active state are the cap and is_active of the latest cap-lifecycle event by seq. An allocation contributes its cap to the partition sum only when its latest event leaves is_active = true.",
+      "invariant": "For each budget envelope: sum(latest active allocation caps) <= envelope total_budget_usd_micros.",
+      "no_mutable_counter": "The replay reads the cap-lifecycle events, never the mutable allocation.cap_usd_micros, so the claim is reproducible offline from the anchored event set."
+    },
+    "anchor_state_dependency": {
+      "rule": "Like quota.reservation_linkage.v1, the strength of this claim depends on the verified bundle body's anchor state. Over an unanchored bundle the event set carries only Keel's export signature; surface that via the same anchor-keyed grade discrimination and never imply external anchoring when body.anchor is absent."
+    },
+    "verdicts": {
+      "supported": "The active-cap sum recomputed from cap-lifecycle events is <= envelope capacity for every envelope in scope.",
+      "disproved": "The active-cap sum exceeds envelope capacity for some envelope when replayed from events.",
+      "insufficient_evidence": "Cap-lifecycle events or the envelope capacity for an in-scope allocation are missing, or the bundle wrapper/signature cannot be validated.",
+      "unverifiable_scope": "The canonicalization profile or bundle schema is unsupported."
+    }
+  }
+}

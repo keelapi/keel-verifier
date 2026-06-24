@@ -1,0 +1,68 @@
+{
+  "id": "keel.quota.reservation_linkage.v1",
+  "version": "v1",
+  "kind": "quota_reservation_linkage_recipe",
+  "status": "released",
+  "body": {
+    "claim": "quota.reservation_linkage.v1",
+    "assertion": "The reservation that authorized spend is linked to the permit or execution that consumed it, reconciled over the append-only budget-allocation event family grouped by reservation_id, with an explicit attestation grade that discriminates signed-identity vs unsigned-row evidence AND anchored vs unanchored row evidence.",
+    "evidence_shapes": {
+      "signed_identity": "A detached signed digest over the reservation-linkage tuple, verifiable against a trusted permit-binding key. NOT produced by this build; reserved for the signed grade.",
+      "unsigned_rows": "budget_allocation_events rows carried inside a verified self-attesting compliance-export bundle. The grouping key (reservation_id) is unsigned; the row SET's integrity derives from the bundle's anchor when present."
+    },
+    "signed_identity_tuple": {
+      "required_fields": [
+        "project_id",
+        "budget_envelope_id_or_cost_permit_id",
+        "permit_id_or_execution_id",
+        "request_id",
+        "reserved_amount",
+        "reservation_event_id_or_reservation_id",
+        "signing_time"
+      ],
+      "key_resolution": "Verify against a permit_binding_signing key from the supplied trust root active at signing_time."
+    },
+    "unsigned_row_tuple": {
+      "grouping_key": "reservation_id",
+      "per_permit_transitions": ["reserve", "reserve_adjust", "release", "commit"],
+      "linkage_fields": [
+        "permit_id",
+        "reservation_id",
+        "allocation_id",
+        "envelope_id"
+      ],
+      "reconciliation": "The reserve/reserve_adjust/release/commit events for a reservation_id reconcile a single reservation lifecycle. A re-price is a reserve_adjust under the SAME reservation_id (no supersede). A reservation is consumed by exactly one permit_id.",
+      "conservation": "reserved == sum(reserve + reserve_adjust amounts) - sum(release amounts) - sum(commit.reserved_released); spent == sum(commit.spent_added). commit.spent_added is the CLAMPED applied delta (min(actual, cap - spent)), not the raw actual."
+    },
+    "anchor_state_dependency": {
+      "rule": "The trust grade for unsigned-row evidence is contingent on the verified bundle body's anchor state, keyed off body.anchor only -- never off manifest text, API metadata, filenames, download route, caller flags, or producer-declared labels.",
+      "anchored": "The verified self-attesting bundle body carries an accepted anchor (anchor.kind == published_checkpoint with a non-empty checkpoint_id, a sha256: composite_hash, and a parseable published_at). The row SET is tamper-evident via that external anchor.",
+      "unanchored": "The verified self-attesting bundle body carries NO accepted anchor (e.g. the no-checkpoint self-attesting path). The only integrity is Keel's own export signature -- Keel-authored, not independently anchored.",
+      "tsa_note": "TSA receipts in the signature envelope WITHOUT body.anchor do NOT make the bundle anchored for this claim."
+    },
+    "trust_grade": {
+      "field": "epistemic_state.trust_grade",
+      "enum": ["signed_identity", "keel_attested_unsigned", "keel_self_signed_unanchored"],
+      "order": {
+        "keel_self_signed_unanchored": 10,
+        "keel_attested_unsigned": 20,
+        "signed_identity": 30
+      },
+      "meaning": {
+        "signed_identity": "The linkage tuple is signed or recoverable from signed canonical identity evidence. Outranks anchor state.",
+        "keel_attested_unsigned": "Unsigned grouping key, but the event SET is inside a verified bundle whose signed body carries an accepted anchor. Keel-attested with external anchor context, never 'independent'.",
+        "keel_self_signed_unanchored": "Unsigned grouping key AND no accepted body anchor. The report proves only that Keel self-signed the export, not that the row set is anchored to a published checkpoint."
+      }
+    },
+    "downgrade_or_withhold": {
+      "rule": "Over an unanchored bundle the verifier MUST NOT emit keel_attested_unsigned. It either withholds quota.reservation_linkage.v1 or emits it as supported with trust_grade=keel_self_signed_unanchored.",
+      "minimum_grade": "When a caller or pinned semantics requests minimum_trust_grade >= keel_attested_unsigned, unanchored unsigned evidence yields insufficient_evidence (fail-closed), never a downgraded supported claim that satisfies the requirement."
+    },
+    "verdicts": {
+      "supported": "A reservation lifecycle reconciles for a reservation_id and links to a single permit/execution, with the trust_grade set from evidence + anchor state.",
+      "disproved": "The signed-identity tuple conflicts with the unsigned-row tuple, conservation fails, or a reservation links to more than one permit.",
+      "insufficient_evidence": "The linkage tuple cannot be determined, the bundle wrapper/signature cannot be validated, or a requested minimum trust grade is not met by the available evidence.",
+      "unverifiable_scope": "The canonicalization profile, trust-root profile, or bundle schema is unsupported."
+    }
+  }
+}

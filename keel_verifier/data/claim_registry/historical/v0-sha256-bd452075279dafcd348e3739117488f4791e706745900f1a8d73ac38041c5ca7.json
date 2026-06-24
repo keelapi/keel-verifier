@@ -384,28 +384,6 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
-    },
-    {
-      "name": "quota.reservation_linkage.v1",
-      "assertion": "A quota/cost-permit reservation is linked to the permit or execution that consumed it, reconciled over the append-only budget-allocation event family grouped by reservation_id, with an explicit attestation grade that discriminates signed-identity vs unsigned-row evidence and anchored vs unanchored row evidence. The grade is keel_attested_unsigned only when the verified bundle body carries an accepted anchor; over an unanchored bundle the claim is withheld or emitted as keel_self_signed_unanchored, never keel_attested_unsigned.",
-      "required_evidence": "budget_allocation_events for the reservation (reserve, reserve_adjust, release, commit) carried inside a verified self-attesting compliance-export bundle, the bundle body anchor state, and pinned reservation-linkage semantics; or, for the signed grade, a signed reservation-linkage tuple verifiable against a trusted permit-binding key.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "budget.partition_ledger.v1",
-      "assertion": "Within a budget envelope, the sum of active agent-allocation caps does not exceed envelope capacity, recomputed from the append-only cap-lifecycle event family (cap_allocate, cap_update, cap_deactivate) rather than the mutable cap, and evidenced in the ledger rather than the chain.",
-      "required_evidence": "budget_allocation_events with metric agent_allocation_cap carried inside a verified self-attesting compliance-export bundle, the envelope capacity for in-scope allocations, and pinned partition-ledger semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
     }
   ]
 }

@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.4.1",
+    "version": "3.5.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -522,6 +522,34 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
+    },
+    {
+      "name": "quota.reservation_linkage.v1",
+      "status": "implemented",
+      "description": "Links a reservation to the permit/execution that consumed it, reconciled over the budget-allocation event family grouped by reservation_id, with an anchor-contingent attestation grade (signed_identity > keel_attested_unsigned > keel_self_signed_unanchored). keel_attested_unsigned is emitted only when the verified bundle body carries an accepted anchor.",
+      "depends_on_semantics": [
+        "keel.quota.reservation_linkage.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "budget.partition_ledger.v1",
+      "status": "implemented",
+      "description": "Verifies that the sum of active agent-allocation caps within a budget envelope does not exceed envelope capacity, replayed from the cap-lifecycle event family rather than the mutable cap.",
+      "depends_on_semantics": [
+        "keel.budget.partition_ledger.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
     }
   ],
   "artifact_formats": [
@@ -742,7 +770,11 @@
       "PAYLOAD_TYPE_MISMATCH",
       "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
       "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
-      "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE"
+      "EXPORT_SCOPE_BRIDGE_RECORD_MATCHES_PREDICATE",
+      "RESERVATION_LINKAGE_CONFLICT",
+      "RESERVATION_LINKAGE_INSUFFICIENT",
+      "PARTITION_LEDGER_OVERCOMMIT",
+      "PARTITION_LEDGER_INSUFFICIENT"
     ],
     "note": "This subset is hand-curated for capability_schema_version 1.0; a future schema version may extract programmatically from tests/code."
   },

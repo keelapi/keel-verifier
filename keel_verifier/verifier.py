@@ -1269,6 +1269,14 @@ def _verify_self_attesting_bundle_payload(
                         diagnostics,
                     )
 
+    bundle_context = BundleTrustContext(
+        bundle_valid=True,
+        signature_valid=True,
+        anchor_present=anchor_hash is not None,
+        anchor_kind=_bundle_anchor_kind(body),
+        anchor_hash=anchor_hash,
+        tsa_receipts_present=bool(receipt_list),
+    )
     return (
         True,
         None,
@@ -1283,10 +1291,435 @@ def _verify_self_attesting_bundle_payload(
                     "self-attesting bundle content hash, signature, artifact_ref, "
                     "and available TSA receipt checks completed"
                 ),
-            )
+            ),
+            # R4 LEDGER (prove half): adjudicate the budget-allocation ledger
+            # claims over the events AS PRESENT IN THIS VERIFIED BUNDLE, with the
+            # attestation grade keyed off the bundle's own anchor state.
+            *_adjudicate_budget_allocation_ledger_claims(
+                body, bundle_context=bundle_context
+            ),
         ],
         diagnostics,
     )
+
+
+RESERVATION_LINKAGE_TRUST_ORDER: dict[str, int] = {
+    "keel_self_signed_unanchored": 10,
+    "keel_attested_unsigned": 20,
+    "signed_identity": 30,
+}
+
+_PER_PERMIT_LEDGER_TRANSITIONS = frozenset(
+    {"reserve", "reserve_adjust", "release", "commit"}
+)
+
+
+@dataclass(frozen=True)
+class BundleTrustContext:
+    """Anchor / signature trust state of a verified self-attesting bundle.
+
+    ``anchor_present`` is keyed off the verified bundle body's ``anchor`` only
+    (via ``_bundle_anchor_hash``) -- never off manifest text, API metadata,
+    filenames, download route, caller flags, or producer-declared labels. The
+    content hash + signature already cover that body, so an anchor cannot be
+    edited in without invalidating the signature (verification fails first).
+    """
+
+    bundle_valid: bool
+    signature_valid: bool
+    anchor_present: bool
+    anchor_kind: str | None
+    anchor_hash: str | None
+    tsa_receipts_present: bool
+
+
+def reservation_linkage_grade_satisfies(grade: str, minimum: str | None) -> bool:
+    """True when ``grade`` is at least as strong as ``minimum`` (None => any)."""
+
+    if minimum is None:
+        return True
+    return RESERVATION_LINKAGE_TRUST_ORDER.get(
+        grade, 0
+    ) >= RESERVATION_LINKAGE_TRUST_ORDER.get(minimum, 0)
+
+
+def _bundle_anchor_kind(body: Mapping[str, Any]) -> str | None:
+    anchor = body.get("anchor")
+    if isinstance(anchor, Mapping):
+        kind = anchor.get("kind")
+        if isinstance(kind, str):
+            return kind
+    return None
+
+
+def _ledger_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _ledger_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _verify_signed_reservation_linkage(
+    body: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """The demand-gated ``signed_identity`` grade: a detached signed digest over
+    the reservation-linkage tuple, verifiable against the carried public key.
+
+    keel-api does not emit this yet (demand-gated, build-first), so it is absent
+    in practice; the hook is implemented for forward compatibility and so the
+    signed-vs-unsigned conflict path is testable.
+    """
+
+    attestation = body.get("reservation_linkage_attestation")
+    if not isinstance(attestation, Mapping):
+        return None
+    tuple_obj = attestation.get("tuple")
+    signature = attestation.get("signature")
+    public_key = attestation.get("public_key")
+    if (
+        not isinstance(tuple_obj, Mapping)
+        or not isinstance(signature, str)
+        or not isinstance(public_key, str)
+    ):
+        return None
+    message = _content_hash(_canonical_json_bytes(tuple_obj)).encode("utf-8")
+    if not _verify_ed25519(public_key, message, signature):
+        return None
+    return dict(tuple_obj)
+
+
+def _adjudicate_quota_reservation_linkage_v1(
+    body: Mapping[str, Any],
+    *,
+    bundle_context: BundleTrustContext,
+    minimum_trust_grade: str | None = None,
+) -> list[ClaimVerdict]:
+    events = body.get("budget_allocation_events")
+    if not isinstance(events, list):
+        return []
+    per_permit = [
+        e
+        for e in events
+        if isinstance(e, Mapping)
+        and _ledger_str(e.get("reservation_id")) is not None
+        and _ledger_str(e.get("transition")) in _PER_PERMIT_LEDGER_TRANSITIONS
+    ]
+    if not per_permit:
+        # legacy / shadow / off: no reservation_id => typed no-linkage. The claim
+        # is not applicable (omitted, never inferred from absence).
+        return []
+
+    signed_tuple = _verify_signed_reservation_linkage(body)
+
+    groups: dict[str, list[Mapping[str, Any]]] = {}
+    for event in per_permit:
+        groups.setdefault(str(_ledger_str(event.get("reservation_id"))), []).append(
+            event
+        )
+
+    subjects: list[VerdictSubject] = []
+    conflict = False
+    for reservation_id in sorted(groups):
+        evs = groups[reservation_id]
+        permit_ids = {
+            _ledger_str(e.get("permit_id"))
+            for e in evs
+            if _ledger_str(e.get("permit_id")) is not None
+        }
+        has_reserve = any(
+            _ledger_str(e.get("transition")) == "reserve" for e in evs
+        )
+        # Reconstruct allocation-axis reserved purely from events (I-L1).
+        reserved = 0
+        for e in evs:
+            transition = _ledger_str(e.get("transition"))
+            if transition in ("reserve", "reserve_adjust"):
+                reserved += _ledger_int(e.get("amount_usd_micros"))
+            elif transition == "release":
+                reserved -= _ledger_int(e.get("amount_usd_micros"))
+            elif transition == "commit":
+                reserved -= _ledger_int(e.get("reserved_released_usd_micros"))
+        if len(permit_ids) > 1:
+            conflict = True
+            subjects.append(
+                _subject(
+                    subject_type="reservation",
+                    subject_id=reservation_id,
+                    verdict="disproved",
+                    reason_code="RESERVATION_LINKAGE_CONFLICT",
+                    message=(
+                        f"reservation {reservation_id} links to multiple permits: "
+                        f"{sorted(p for p in permit_ids if p)}"
+                    ),
+                )
+            )
+        elif reserved < 0:
+            conflict = True
+            subjects.append(
+                _subject(
+                    subject_type="reservation",
+                    subject_id=reservation_id,
+                    verdict="disproved",
+                    reason_code="RESERVATION_LINKAGE_CONFLICT",
+                    message=(
+                        f"reservation {reservation_id} over-releases: "
+                        f"reconstructed reserved={reserved} < 0"
+                    ),
+                )
+            )
+        elif not has_reserve:
+            subjects.append(
+                _subject(
+                    subject_type="reservation",
+                    subject_id=reservation_id,
+                    verdict="insufficient_evidence",
+                    reason_code="RESERVATION_LINKAGE_INSUFFICIENT",
+                    message=(
+                        f"reservation {reservation_id} has no reserve event; "
+                        "lineage is incomplete"
+                    ),
+                )
+            )
+        else:
+            subjects.append(
+                _subject(
+                    subject_type="reservation",
+                    subject_id=reservation_id,
+                    verdict="supported",
+                    reason_code="RESERVATION_LINKAGE_SUPPORTED",
+                    message=(
+                        f"reservation {reservation_id} reconciles to a single "
+                        f"permit; reconstructed reserved={reserved}"
+                    ),
+                )
+            )
+
+    if signed_tuple is not None:
+        signed_reservation = _ledger_str(
+            signed_tuple.get("reservation_id")
+            or signed_tuple.get("reservation_event_id")
+        )
+        if signed_reservation is not None and signed_reservation not in groups:
+            conflict = True
+            subjects.append(
+                _subject(
+                    subject_type="reservation",
+                    subject_id=signed_reservation,
+                    verdict="disproved",
+                    reason_code="RESERVATION_LINKAGE_CONFLICT",
+                    message=(
+                        "signed reservation tuple does not match any unsigned-row "
+                        "reservation"
+                    ),
+                )
+            )
+
+    # Attestation grade. The unanchored, unsigned path is the round-5 invariant:
+    # NEVER keel_attested_unsigned without an accepted body anchor.
+    if signed_tuple is not None and not conflict:
+        grade = "signed_identity"
+    elif bundle_context.anchor_present:
+        grade = "keel_attested_unsigned"
+    else:
+        grade = "keel_self_signed_unanchored"
+
+    epistemic: dict[str, str] = {
+        "trust_grade": grade,
+        "anchor_present": "true" if bundle_context.anchor_present else "false",
+        "signed_identity": "true" if signed_tuple is not None else "false",
+    }
+    if minimum_trust_grade is not None:
+        epistemic["minimum_trust_grade"] = minimum_trust_grade
+
+    # Minimum-grade fail-closed (memo §4/§7): a pinned minimum the available
+    # evidence does not meet downgrades the whole claim to insufficient_evidence,
+    # so a low-grade supported claim can never satisfy a high-grade requirement.
+    if not conflict and not reservation_linkage_grade_satisfies(
+        grade, minimum_trust_grade
+    ):
+        return [
+            ClaimVerdict(
+                name="quota.reservation_linkage.v1",
+                subjects=[
+                    _subject(
+                        subject_type="reservation",
+                        subject_id=sorted(groups)[0],
+                        verdict="insufficient_evidence",
+                        reason_code="RESERVATION_LINKAGE_INSUFFICIENT",
+                        message=(
+                            f"trust grade {grade} is below the required minimum "
+                            f"{minimum_trust_grade}"
+                        ),
+                    )
+                ],
+                evidence=[
+                    "bundle.body.budget_allocation_events",
+                    "bundle.body.anchor",
+                ],
+                epistemic_state=epistemic,
+            )
+        ]
+
+    return [
+        ClaimVerdict(
+            name="quota.reservation_linkage.v1",
+            subjects=subjects,
+            evidence=[
+                "bundle.body.budget_allocation_events",
+                "bundle.body.anchor",
+            ],
+            epistemic_state=epistemic,
+        )
+    ]
+
+
+def _budget_envelope_capacities(body: Mapping[str, Any]) -> dict[str, int]:
+    capacities: dict[str, int] = {}
+    envelopes = body.get("budget_envelopes")
+    if isinstance(envelopes, list):
+        for env in envelopes:
+            if not isinstance(env, Mapping):
+                continue
+            env_id = _ledger_str(env.get("id") or env.get("envelope_id"))
+            total = env.get("total_budget_usd_micros")
+            if env_id is not None and total is not None:
+                capacities[env_id] = _ledger_int(total)
+    return capacities
+
+
+def _adjudicate_budget_partition_ledger_v1(
+    body: Mapping[str, Any],
+    *,
+    bundle_context: BundleTrustContext,
+) -> list[ClaimVerdict]:
+    events = body.get("budget_allocation_events")
+    if not isinstance(events, list):
+        return []
+    cap_events = [
+        e
+        for e in events
+        if isinstance(e, Mapping)
+        and _ledger_str(e.get("metric")) == "agent_allocation_cap"
+    ]
+    if not cap_events:
+        return []
+
+    # Latest cap-lifecycle event per allocation by seq wins.
+    latest: dict[str, Mapping[str, Any]] = {}
+    for e in cap_events:
+        alloc = _ledger_str(e.get("allocation_id"))
+        if alloc is None:
+            continue
+        if alloc not in latest or _ledger_int(e.get("seq")) >= _ledger_int(
+            latest[alloc].get("seq")
+        ):
+            latest[alloc] = e
+
+    by_envelope: dict[str, int] = {}
+    for e in latest.values():
+        if not e.get("is_active"):
+            continue
+        env = _ledger_str(e.get("envelope_id"))
+        if env is None:
+            continue
+        by_envelope[env] = by_envelope.get(env, 0) + _ledger_int(
+            e.get("amount_usd_micros")
+        )
+
+    capacities = _budget_envelope_capacities(body)
+    subjects: list[VerdictSubject] = []
+    for env in sorted(by_envelope):
+        active_sum = by_envelope[env]
+        capacity = capacities.get(env)
+        if capacity is None:
+            subjects.append(
+                _subject(
+                    subject_type="budget_envelope",
+                    subject_id=env,
+                    verdict="insufficient_evidence",
+                    reason_code="PARTITION_LEDGER_INSUFFICIENT",
+                    message=(
+                        f"envelope {env} capacity is not present in the bundle; "
+                        f"active-cap sum={active_sum}"
+                    ),
+                )
+            )
+        elif active_sum > capacity:
+            subjects.append(
+                _subject(
+                    subject_type="budget_envelope",
+                    subject_id=env,
+                    verdict="disproved",
+                    reason_code="PARTITION_LEDGER_OVERCOMMIT",
+                    message=(
+                        f"envelope {env} active-cap sum {active_sum} exceeds "
+                        f"capacity {capacity}"
+                    ),
+                )
+            )
+        else:
+            subjects.append(
+                _subject(
+                    subject_type="budget_envelope",
+                    subject_id=env,
+                    verdict="supported",
+                    reason_code="PARTITION_LEDGER_SUPPORTED",
+                    message=(
+                        f"envelope {env} active-cap sum {active_sum} <= capacity "
+                        f"{capacity}"
+                    ),
+                )
+            )
+
+    if not subjects:
+        return []
+
+    grade = (
+        "keel_attested_unsigned"
+        if bundle_context.anchor_present
+        else "keel_self_signed_unanchored"
+    )
+    return [
+        ClaimVerdict(
+            name="budget.partition_ledger.v1",
+            subjects=subjects,
+            evidence=[
+                "bundle.body.budget_allocation_events",
+                "bundle.body.anchor",
+            ],
+            epistemic_state={
+                "trust_grade": grade,
+                "anchor_present": (
+                    "true" if bundle_context.anchor_present else "false"
+                ),
+            },
+        )
+    ]
+
+
+def _adjudicate_budget_allocation_ledger_claims(
+    body: Mapping[str, Any],
+    *,
+    bundle_context: BundleTrustContext,
+    minimum_trust_grade: str | None = None,
+) -> list[ClaimVerdict]:
+    return [
+        *_adjudicate_quota_reservation_linkage_v1(
+            body,
+            bundle_context=bundle_context,
+            minimum_trust_grade=minimum_trust_grade,
+        ),
+        *_adjudicate_budget_partition_ledger_v1(
+            body, bundle_context=bundle_context
+        ),
+    ]
 
 
 def _compute_record_hash(

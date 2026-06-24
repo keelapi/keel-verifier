@@ -53,15 +53,18 @@ AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
     "keel.governance_event.integrity_digest.v1"
 )
+QUOTA_RESERVATION_LINKAGE_ID = "keel.quota.reservation_linkage.v1"
+BUDGET_PARTITION_LEDGER_ID = "keel.budget.partition_ledger.v1"
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7"
+    "sha256:c6f4d60047728c80ca021eeacbd837aa5c67f629c19564dad47ea4ccac3c6f3e"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:20178d693c18d09bed08c3044e4d74115f49f5993e5718d802513fcb1ed70843"
+    "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:20178d693c18d09bed08c3044e4d74115f49f5993e5718d802513fcb1ed70843",
     "sha256:3a50f2a6175ac6417caab3c732b32fbe09bce77bb6a4de8daef097f6862ee8d1",
     "sha256:193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6",
     "sha256:d2d0f7033bdbbfcee21e690c2f24903a5bfa98135c0c0b39df81738999c2bb08",
@@ -70,6 +73,12 @@ CLAIM_REGISTRY_HISTORICAL_HASHES = (
     "sha256:ee953bbdb67208d7e660eca9764d14bef4cbd4d28105614ec14c4e58cf502235",
     "sha256:d4ff07076f823d3f6a9bd7ce17f6096b035ca466b8ec71996d5417e4957ec7c8",
     "sha256:b315ef722a8e4fafe3d3807bc7c8ccaafd601cab0e7d7985230da8248124337b",
+)
+QUOTA_RESERVATION_LINKAGE_HASH = (
+    "sha256:e0e4dc8f822f15e7212216c782d6d8a457bb470e353ec768301ec996390dd559"
+)
+BUDGET_PARTITION_LEDGER_HASH = (
+    "sha256:43d49e5160494936dbf5afbb59df45889e7f6d392256059f63b67052eaadf658"
 )
 EXPORT_MANIFEST_INTEGRITY_HASH = (
     "sha256:d1d67dca7eb9a662d26463c3dec841f47f8791df2fafb21e911dd26a83dabb76"
@@ -288,6 +297,8 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "workflow_evidence.sibling_integrity.v1": (
         WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,
     ),
+    "quota.reservation_linkage.v1": (QUOTA_RESERVATION_LINKAGE_ID,),
+    "budget.partition_ledger.v1": (BUDGET_PARTITION_LEDGER_ID,),
 }
 
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
@@ -344,6 +355,10 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_AUDIT_ATTESTATION_V2_ID: (
         "semantics/permit/permit.audit_attestation.v2.json"
     ),
+    QUOTA_RESERVATION_LINKAGE_ID: (
+        "semantics/quota/reservation_linkage_v1.json"
+    ),
+    BUDGET_PARTITION_LEDGER_ID: "semantics/budget/partition_ledger_v1.json",
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
 }
@@ -380,6 +395,8 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_OPERATOR_APPROVAL_V2_ID: PERMIT_OPERATOR_APPROVAL_V2_HASH,
     PERMIT_COUNTER_SIGNATURE_V2_ID: PERMIT_COUNTER_SIGNATURE_V2_HASH,
     PERMIT_AUDIT_ATTESTATION_V2_ID: PERMIT_AUDIT_ATTESTATION_V2_HASH,
+    QUOTA_RESERVATION_LINKAGE_ID: QUOTA_RESERVATION_LINKAGE_HASH,
+    BUDGET_PARTITION_LEDGER_ID: BUDGET_PARTITION_LEDGER_HASH,
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
 }
@@ -1551,6 +1568,16 @@ def make_permanent_allowlist(
             PERMIT_AUDIT_ATTESTATION_V2_ID,
             PERMIT_AUDIT_ATTESTATION_V2_HASH,
             "permit_audit_attestation",
+        ),
+        SemanticImplementation(
+            QUOTA_RESERVATION_LINKAGE_ID,
+            QUOTA_RESERVATION_LINKAGE_HASH,
+            "quota_reservation_linkage",
+        ),
+        SemanticImplementation(
+            BUDGET_PARTITION_LEDGER_ID,
+            BUDGET_PARTITION_LEDGER_HASH,
+            "budget_partition_ledger",
         ),
         SemanticImplementation(
             LEGACY_PROFILE_ID,
