@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.4.3
+
+- Make `keel-verify export` default to the human-readable AI Permit
+  verification report, while preserving the legacy technical verifier output
+  behind `--raw`.
+- Keep `--report` as an explicit compatibility flag for scripts and leave
+  `--json` precedence unchanged.
+
 ## 3.4.2
 
 - Harden permit v2 signer-slot key resolution by binding each resolved
