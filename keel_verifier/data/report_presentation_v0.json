@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verifier Report Presentation Registry - v0",
+  "version": "report-presentation.v0",
+  "references_claim_registry": "verifier-claims.v0",
+  "description": "Presentation layer over claim_registry_v0.json. Maps engine claim names to human-facing report lines (dimension, label per verdict, provenance, forbidden wording). This artifact governs ONLY how already-computed verdicts are rendered. It does NOT define, alter, or contribute to verification semantics, and MUST never influence a verdict, an exit code, or the JSON output contract. It is intentionally not part of the pinned trust/semantics artifact set.",
+  "not_a_trust_input": true,
+  "invariants": [
+    "Every claim in claim_registry_v0.json appears exactly once across `assertions[].claim` or `not_surfaced`.",
+    "Every `assertions[].labels.supported` (the assurance label) must be weaker than or exactly equivalent to the referenced claim's `assertion` in claim_registry_v0.json. Never stronger.",
+    "Failure/risk labels (disproved) must be at least as severe as the underlying reason. Never softer.",
+    "No label may contain any phrase in `global_forbidden_wording` or the entry's `forbidden_wording`.",
+    "Every rendered line carries exactly one provenance class.",
+    "The presentation layer can reorder, group, and relabel; it can never derive a new verification conclusion."
+  ],
+  "provenance_classes": [
+    "SIGNED_FIELD",
+    "DERIVED_VERIFICATION_RESULT",
+    "SESSION_VALUE",
+    "ENRICHMENT"
+  ],
+  "verdict_keys": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "integrity_claims": [
+    "export.integrity.v1",
+    "evidence_bundle.self_attesting.v1",
+    "governance_chain.local_continuity.v1",
+    "checkpoint.composite_hash.v1",
+    "checkpoint.signature.v1",
+    "checkpoint.tsa_imprint.v1",
+    "permit.decision.v1",
+    "permit.operator_approval.v1",
+    "permit.operator_approval.v2",
+    "permit.operator_approved.v1",
+    "permit.counter_signature.v1",
+    "permit.counter_signature.v2",
+    "permit.counter_signed.v1",
+    "permit.audit_attestation.v1",
+    "permit.audit_attestation.v2",
+    "permit.audit_attested.v1",
+    "closure.signature.v1",
+    "closure.digest_consistency.v1",
+    "permit.revoked.v1",
+    "permit.authority_chain.v1",
+    "authority.revocation_temporal.v1",
+    "key.status.completeness.v1"
+  ],
+  "_integrity_claims_doc": "Claims whose `disproved` verdict means the evidence itself was forged or altered (a signature, hash, or chain-continuity failure). A required disproved integrity claim drives the Evidence line to TAMPERED; any other required disproved (non-violation) claim drives it to INVALID. Violation claims (violation_on_disproved) are excluded here and surface in the Finding line instead.",
+  "dimensions": [
+    {"id": "authenticity", "title": "Authenticity", "question": "Is this evidence real and unmodified?"},
+    {"id": "authorization", "title": "Authorization", "question": "What did the permit authorize, and who approved it?"},
+    {"id": "execution", "title": "Execution", "question": "Did the recorded action match the permit?"},
+    {"id": "revocation", "title": "Revocation", "question": "Was authority later withdrawn, and did anything run after?"},
+    {"id": "trust", "title": "Trust", "question": "What anchored the signing keys to a trusted root?"},
+    {"id": "completeness", "title": "Completeness", "question": "Was the evidence complete and in declared scope?"}
+  ],
+  "global_forbidden_wording": [
+    "legitimate",
+    "genuine",
+    "proper",
+    "properly executed",
+    "safe",
+    "fully verified",
+    "everything looks good",
+    "looks good",
+    "trustworthy",
+    "approved by"
+  ],
+  "trust_modes": [
+    {"id": "keel_root", "label": "Keel production trust root", "trusted": true, "trust_source_strings": ["embedded", "key manifest"]},
+    {"id": "pinned", "label": "Pinned key", "trusted": true, "trust_source_strings": ["user-supplied", "fetched from"]},
+    {"id": "self_attested", "label": "Self-attested (embedded key only)", "trusted": false, "trust_source_strings": ["self-attested (embedded public_key)"], "warning": "Proves internal consistency only. Does not prove Keel signed this artifact."},
+    {"id": "untrusted_signer", "label": "Untrusted signer", "trusted": false, "trust_source_strings": [], "warning": "Signature math is valid, but the signing key is not anchored to any accepted trust root."}
+  ],
+  "session_lines": [
+    {"id": "verifier_version", "label": "Verifier", "provenance": "SESSION_VALUE"},
+    {"id": "verified_at", "label": "Verified at", "provenance": "SESSION_VALUE"},
+    {"id": "trust_mode", "label": "Trust mode", "provenance": "SESSION_VALUE"},
+    {"id": "input_digest", "label": "Input", "provenance": "SESSION_VALUE"},
+    {"id": "trust_root_digest", "label": "Trust root", "provenance": "SESSION_VALUE"},
+    {"id": "semantics_profile", "label": "Semantics profile", "provenance": "SESSION_VALUE"}
+  ],
+  "artifact_lines": [
+    {"id": "permit_id", "label": "Permit", "provenance": "SIGNED_FIELD"},
+    {"id": "decision", "label": "Decision", "provenance": "SIGNED_FIELD", "values": ["ALLOW", "DENY"]},
+    {"id": "issued_at", "label": "Issued", "provenance": "SIGNED_FIELD"},
+    {"id": "expires_at", "label": "Expires", "provenance": "SIGNED_FIELD"},
+    {"id": "authorized_action", "label": "Action", "provenance": "SIGNED_FIELD"},
+    {"id": "provider", "label": "Provider", "provenance": "SIGNED_FIELD"},
+    {"id": "model", "label": "Model", "provenance": "SIGNED_FIELD"},
+    {"id": "scope", "label": "Scope", "provenance": "SIGNED_FIELD"},
+    {"id": "subject", "label": "Subject", "provenance": "SIGNED_FIELD"},
+    {"id": "account", "label": "Account", "provenance": "SIGNED_FIELD"},
+    {"id": "limits", "label": "Limits", "provenance": "SIGNED_FIELD"},
+    {"id": "policy", "label": "Policy", "provenance": "SIGNED_FIELD"}
+  ],
+  "_artifact_lines_doc": "Signed permit fields surfaced by the renderer from artifact.permit (lifted from the verified canonical payload). Rendered only when the permit's signature verified.",
+  "header_reduction": {
+    "note": "Deterministic projection of claims[] (and session/artifact lines) onto two header lines. Implemented in the renderer; encoded here so renderers stay consistent. `required` per-claim comes from the VerificationReport, not from this file.",
+    "evidence_line": {
+      "precedence": [
+        {"when": "any REQUIRED claim verdict == disproved (authenticity/integrity family)", "state": "TAMPERED", "stop": true},
+        {"when": "any other REQUIRED non-violation claim verdict == disproved", "state": "INVALID", "stop": true},
+        {"when": "trust_mode in [untrusted_signer]", "state": "UNTRUSTED SIGNER", "stop": true},
+        {"when": "report.error is present and claims[] is empty", "state": "INCOMPLETE", "stop": true},
+        {"when": "any REQUIRED claim verdict == insufficient_evidence", "state": "INCOMPLETE"},
+        {"when": "any claim verdict == unverifiable_scope", "state": "VERIFIED — partial coverage", "qualifier": "warn"},
+        {"when": "otherwise", "state": "VERIFIED"}
+      ],
+      "always_append_trust_mode": true
+    },
+    "finding_line": {
+      "note": "Describes what the (trusted) evidence says. VIOLATION takes precedence and must never be hidden by a passing Evidence line.",
+      "violation_when_any": [
+        "claim permit.dispatch_absence_after_revocation.v1 verdict == disproved",
+        "claim closure.dispatch_binding.v1 verdict == disproved",
+        "decision == DENY and an execution/dispatch record is present"
+      ]
+    }
+  },
+  "next_step_rules": {
+    "note": "Next Step is mechanical and attaches ONLY to evidence/session deficiencies. Findings (e.g. violations) are stated as fact and carry no advice.",
+    "rules": [
+      {"when": "trust_mode == self_attested", "next_step": "Re-run without --self-attested to verify against the Keel trust root."},
+      {"when": "claim checkpoint.tsa_imprint.v1 verdict == insufficient_evidence", "next_step": "Provide the timestamp receipt to enable timestamp verification."},
+      {"when": "evidence_line state == INCOMPLETE", "next_step": "Provide the missing evidence listed under the incomplete checks."},
+      {"when": "evidence_line qualifier == warn (partial coverage)", "next_step": "Upgrade keel-verifier; one or more claims are newer than this build understands."}
+    ]
+  },
+  "assertions": [
+    {
+      "claim": "export.integrity.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Export contents unchanged; manifest signature valid",
+        "disproved": "Export contents or manifest signature INVALID",
+        "insufficient_evidence": "Export integrity: insufficient evidence",
+        "unverifiable_scope": "Export integrity: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "evidence_bundle.self_attesting.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Evidence bundle structure and signature valid",
+        "disproved": "Evidence bundle signature INVALID",
+        "insufficient_evidence": "Evidence bundle: insufficient evidence",
+        "unverifiable_scope": "Evidence bundle: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "governance_chain.local_continuity.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Audit trail unbroken (hash chain continuous)",
+        "disproved": "Audit trail BROKEN (chain discontinuity or reorder)",
+        "insufficient_evidence": "Audit trail: insufficient evidence",
+        "unverifiable_scope": "Audit trail: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "checkpoint.composite_hash.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Checkpoint contents unchanged",
+        "disproved": "Checkpoint contents MODIFIED",
+        "insufficient_evidence": "Checkpoint contents: insufficient evidence",
+        "unverifiable_scope": "Checkpoint contents: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "checkpoint.signature.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Checkpoint signature valid",
+        "disproved": "Checkpoint signature INVALID",
+        "insufficient_evidence": "Checkpoint signature: insufficient evidence",
+        "unverifiable_scope": "Checkpoint signature: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "checkpoint.tsa_imprint.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "optional_assurance": true,
+      "labels": {
+        "supported": "Trusted timestamp matches the checkpoint",
+        "disproved": "Trusted timestamp does NOT match the checkpoint",
+        "insufficient_evidence": "Trusted timestamp: not provided",
+        "unverifiable_scope": "Trusted timestamp: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["proves the time", "wall-clock", "timestamp failed"]
+    },
+    {
+      "claim": "permit.decision.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Permit decision signed by the issuing key (issuance-time)",
+        "disproved": "Permit decision signature INVALID",
+        "insufficient_evidence": "Permit decision: insufficient evidence",
+        "unverifiable_scope": "Permit decision: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["permit is active", "permit is current", "permit is valid now"]
+    },
+    {
+      "claim": "permit.operator_approval.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Operator approval verified",
+        "disproved": "Operator approval INVALID",
+        "insufficient_evidence": "Operator approval: insufficient evidence",
+        "unverifiable_scope": "Operator approval: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.operator_approval.v2",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Operator approval verified (key in good standing at signing)",
+        "disproved": "Operator approval INVALID",
+        "insufficient_evidence": "Operator approval: insufficient evidence",
+        "unverifiable_scope": "Operator approval: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.operator_approved.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Operator approval verified",
+        "disproved": "Operator approval INVALID",
+        "insufficient_evidence": "Operator approval: insufficient evidence",
+        "unverifiable_scope": "Operator approval: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Buyer counter-signature verified",
+        "disproved": "Buyer counter-signature INVALID",
+        "insufficient_evidence": "Buyer counter-signature: insufficient evidence",
+        "unverifiable_scope": "Buyer counter-signature: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.counter_signature.v2",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Buyer counter-signature verified (key in good standing at signing)",
+        "disproved": "Buyer counter-signature INVALID",
+        "insufficient_evidence": "Buyer counter-signature: insufficient evidence",
+        "unverifiable_scope": "Buyer counter-signature: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.counter_signed.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Buyer counter-signature verified",
+        "disproved": "Buyer counter-signature INVALID",
+        "insufficient_evidence": "Buyer counter-signature: insufficient evidence",
+        "unverifiable_scope": "Buyer counter-signature: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Audit attestation verified",
+        "disproved": "Audit attestation INVALID",
+        "insufficient_evidence": "Audit attestation: insufficient evidence",
+        "unverifiable_scope": "Audit attestation: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.audit_attestation.v2",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Audit attestation verified (key in good standing at signing)",
+        "disproved": "Audit attestation INVALID",
+        "insufficient_evidence": "Audit attestation: insufficient evidence",
+        "unverifiable_scope": "Audit attestation: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.audit_attested.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Audit attestation verified",
+        "disproved": "Audit attestation INVALID",
+        "insufficient_evidence": "Audit attestation: insufficient evidence",
+        "unverifiable_scope": "Audit attestation: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "closure.signature.v1",
+      "dimension": "execution",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Completion record signed",
+        "disproved": "Completion record signature INVALID",
+        "insufficient_evidence": "Completion record: not provided",
+        "unverifiable_scope": "Completion record: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "closure.digest_consistency.v1",
+      "dimension": "execution",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Recorded response matches the evidence digests",
+        "disproved": "Recorded response does NOT match the evidence digests",
+        "insufficient_evidence": "Recorded response: insufficient evidence",
+        "unverifiable_scope": "Recorded response: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "closure.dispatch_binding.v1",
+      "dimension": "execution",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "violation_on_disproved": true,
+      "labels": {
+        "supported": "Dispatch matched the permit",
+        "disproved": "Dispatch did NOT match the permit",
+        "insufficient_evidence": "Dispatch binding: insufficient evidence",
+        "unverifiable_scope": "Dispatch binding: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["action was proper", "executed correctly"]
+    },
+    {
+      "claim": "permit.revoked.v1",
+      "dimension": "revocation",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Revocation event verified",
+        "disproved": "Revocation event INVALID",
+        "insufficient_evidence": "Revocation event: insufficient evidence",
+        "unverifiable_scope": "Revocation event: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.dispatch_absence_after_revocation.v1",
+      "dimension": "revocation",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "violation_on_disproved": true,
+      "labels": {
+        "supported": "No dispatch after revocation, within the verified scope",
+        "disproved": "VIOLATION: dispatch occurred AFTER revocation",
+        "insufficient_evidence": "Post-revocation dispatch absence: insufficient evidence",
+        "unverifiable_scope": "Post-revocation dispatch absence: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.authority_chain.v1",
+      "dimension": "trust",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Authority chain valid and narrowed at each step",
+        "disproved": "Authority chain INVALID",
+        "insufficient_evidence": "Authority chain: insufficient evidence",
+        "unverifiable_scope": "Authority chain: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "authority.revocation_temporal.v1",
+      "dimension": "trust",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Signing keys were in service when they signed",
+        "disproved": "A signing key was revoked or compromised before it signed",
+        "insufficient_evidence": "Signing-key timing: insufficient evidence",
+        "unverifiable_scope": "Signing-key timing: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "export.scope_faithfulness.v1",
+      "dimension": "completeness",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Export is a faithful slice of the recorded chain",
+        "disproved": "Export is NOT a faithful slice of the recorded chain",
+        "insufficient_evidence": "Scope faithfulness: insufficient evidence",
+        "unverifiable_scope": "Scope faithfulness: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "key.status.completeness.v1",
+      "dimension": "completeness",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Key-status evidence complete up to the checkpoint boundary",
+        "disproved": "Key-status evidence inconsistent",
+        "insufficient_evidence": "Key-status evidence: insufficient evidence",
+        "unverifiable_scope": "Key-status evidence: not checkable by this verifier version"
+      }
+    }
+  ],
+  "not_surfaced": [
+    {"claim": "export.scope_identity.v1", "reason": "Identity metadata; shown in --details, not a headline assurance."},
+    {"claim": "permit_chain.delegation_denied_correctly.v1", "reason": "Specialized negative-case adjudication; detail view only."},
+    {"claim": "workflow.declaration_signature.v1", "reason": "Workflow-specific; surfaced only for workflow artifacts in --details."},
+    {"claim": "workflow.amendment_signature.v1", "reason": "Workflow-specific; detail view only."},
+    {"claim": "workflow.effective_intent_hash.v1", "reason": "Workflow-specific; detail view only."},
+    {"claim": "workflow.permit_snapshot.v1", "reason": "Workflow-specific; detail view only."},
+    {"claim": "incident.bundle_manifest.v1", "reason": "Incident-bundle-specific; detail view only."},
+    {"claim": "workflow_evidence.sibling_integrity.v1", "reason": "Workflow-evidence-specific; detail view only."},
+    {"claim": "checkpoint.scope_state.v1", "reason": "Sidecar internal to scope-faithfulness/key-status; rolled up under Completeness."},
+    {"claim": "authority.root_status_temporal.v1", "reason": "Specialized authority-root key-status timing claim; detail view only."},
+    {"claim": "budget.partition_ledger.v1", "reason": "Budget ledger claim; detail view only (not part of the permit identity/action view)."},
+    {"claim": "quota.reservation_linkage.v1", "reason": "Quota reservation linkage claim; detail view only."}
+  ]
+}

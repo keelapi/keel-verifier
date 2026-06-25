@@ -92,6 +92,7 @@ from keel_verifier.verdicts import (
     VerdictSubject,
     legacy_semantics,
     verdict_value,
+    verifier_version,
 )
 from keel_verifier.semantics import (
     CLAIM_SEMANTICS,
@@ -103,6 +104,7 @@ from keel_verifier.semantics import (
     resolve_pack_semantics,
 )
 from keel_verifier.schemas.artifact_ref import ArtifactRef, parse_artifact_ref
+from keel_verifier.report_render import render_human
 
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -8717,6 +8719,99 @@ def _export_artifact_dict(
     return artifact
 
 
+_PERMIT_VIEW_CANONICAL_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("permit_id", ("permit_id",)),
+    ("decision", ("decision",)),
+    ("issued_at", ("issued_at",)),
+    ("expires_at", ("expires_at",)),
+    ("authorized_action", ("action_name", "operation")),
+    ("provider", ("provider",)),
+    ("model", ("model",)),
+    ("scope", ("project_id",)),
+    ("policy", ("policy_id", "reason")),
+    ("subject", ("subject_id",)),
+    ("account", ("account_id",)),
+)
+
+_PERMIT_VIEW_V2_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("permit_id", ("id", "permit_id")),
+    ("decision", ("decision",)),
+    ("issued_at", ("created_at", "issued_at")),
+    ("expires_at", ("expires_at",)),
+    ("authorized_action", ("action_name", "operation")),
+    ("provider", ("resource_provider", "provider")),
+    ("model", ("resource_model", "model")),
+    ("scope", ("project_id",)),
+    ("policy", ("policy_id", "reason")),
+    ("subject", ("subject_id",)),
+    ("account", ("account_id",)),
+)
+
+_PERMIT_V2_SLOT_CLAIMS: tuple[str, ...] = (
+    "permit.operator_approval.v1",
+    "permit.operator_approval.v2",
+    "permit.operator_approved.v1",
+    "permit.counter_signature.v1",
+    "permit.counter_signature.v2",
+    "permit.counter_signed.v1",
+    "permit.audit_attestation.v1",
+    "permit.audit_attestation.v2",
+    "permit.audit_attested.v1",
+)
+
+
+def _permit_view_fields(
+    source: dict[str, Any],
+    mapping: tuple[tuple[str, tuple[str, ...]], ...],
+) -> dict[str, Any]:
+    view: dict[str, Any] = {}
+    for key, names in mapping:
+        for name in names:
+            value = source.get(name)
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, str) and value:
+                view[key] = value
+                break
+            if isinstance(value, (int, float)):
+                view[key] = value
+                break
+    return view
+
+
+def _attach_permit_view(
+    artifact: dict[str, Any],
+    claims: list[ClaimVerdict],
+    export_document: Any,
+) -> None:
+    """Surface a permit's VERIFIED signed fields into ``artifact["permit"]``.
+
+    Populated only when the signature over those fields verified (the relevant
+    claim is ``supported``), so the human report never shows permit identity or
+    action fields the verifier did not actually authenticate. Purely additive to
+    the artifact dict; it does not affect any verdict, exit code, or claim.
+    """
+    if not isinstance(export_document, dict):
+        return
+    verdicts = {claim.name: claim.aggregate_verdict for claim in claims}
+
+    if verdicts.get(PERMIT_DECISION_CLAIM_NAME) == "supported":
+        evidence, _ = _find_permit_decision_evidence(export_document)
+        canonical = (
+            evidence.get("canonical_payload") if isinstance(evidence, dict) else None
+        )
+        if isinstance(canonical, dict):
+            view = _permit_view_fields(canonical, _PERMIT_VIEW_CANONICAL_FIELDS)
+            if view:
+                artifact["permit"] = view
+                return
+
+    if any(verdicts.get(name) == "supported" for name in _PERMIT_V2_SLOT_CLAIMS):
+        view = _permit_view_fields(export_document, _PERMIT_VIEW_V2_FIELDS)
+        if view:
+            artifact["permit"] = view
+
+
 def _export_report(
     *,
     ok: bool,
@@ -11520,6 +11615,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         key_manifest_source=_key_manifest_source_for_args(args),
         signing_time=signing_time,
     )
+    if trust_source:
+        artifact["trust_source"] = trust_source
     if err is not None or trusted_pub is None:
         message = str(err or "could not resolve trust root")
         claims.append(
@@ -12113,6 +12210,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 )
             )
     claims.extend(permit_claims)
+    _attach_permit_view(artifact, claims, export_document_for_claims)
     required_permit_claim_names = requested | permit_v2_auto_required
     emitted_permit_claim_names = {claim.name for claim in permit_claims}
     claims = _synthesize_missing_bundled_required_claims(
@@ -12493,12 +12591,43 @@ def _warn_legacy_split_export() -> None:
     )
 
 
+def _human_report_session(input_path: str | None) -> dict[str, Any]:
+    """Session values for the human report, computed at the call site.
+
+    Deliberately kept out of the pure renderer: wall-clock time and the input
+    digest are environment reads, not properties of the verification model.
+    """
+    session: dict[str, Any] = {
+        "verifier_version": verifier_version(),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if input_path:
+        try:
+            digest = hashlib.sha256(Path(input_path).read_bytes()).hexdigest()
+            session["input_digest"] = f"sha256:{digest}"
+        except OSError:
+            pass
+    return session
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     if getattr(args, "as_json", False):
         report = verify_export_structured(args)
         if report.ok and "artifact_ref" not in report.artifact:
             _emit_legacy_artifact_ref_warning_once()
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        return report.exit_code
+
+    if getattr(args, "as_report", False):
+        report = verify_export_structured(args)
+        if report.ok and "artifact_ref" not in report.artifact:
+            _emit_legacy_artifact_ref_warning_once()
+        print(
+            render_human(
+                report.to_dict(),
+                session=_human_report_session(args.export_file),
+            )
+        )
         return report.exit_code
 
     export_path = Path(args.export_file)
@@ -13308,6 +13437,16 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
             ca_bundle_path=args.tsa_ca_bundle,
         )
     result.exit_code = 1 if (not result.ok or _tsa_trust_has_failure(result.tsa_trust)) else 0
+    if getattr(args, "as_report", False) and not getattr(args, "as_json", False):
+        payload = result.to_dict()
+        payload.setdefault("artifact", {}).setdefault("kind", "checkpoint")
+        print(
+            render_human(
+                payload,
+                session=_human_report_session(args.checkpoint_file),
+            )
+        )
+        return result.exit_code
     if getattr(args, "as_json", False):
         print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
         return result.exit_code
