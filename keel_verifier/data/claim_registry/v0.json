@@ -309,6 +309,17 @@
       ]
     },
     {
+      "name": "authority.root_status_temporal.v1",
+      "assertion": "The authority-chain root was not suspended at the relevant dispatch or verification resolution time, as proven from signed root.status.v1 governance-chain evidence for the root principal.",
+      "required_evidence": "Authority chain root principal, signed root.status.v1 governance events for the same project and root principal, permit-binding trust root, resolution_time, and pinned authority root-status temporal semantics.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approval.v1",
       "assertion": "A Permit v2 operator_approval slot is a valid issuer-organization dual-control signature over the slot-specific canonical payload and is bound to the permit, issuer signature evidence, permit canonical hash, operator signer, and signing time.",
       "required_evidence": "Permit v2 object with operator_approval slot, issuer signature evidence, permit canonical hash input, account-scoped operator key registry evidence resolving (account_id, key_id) at signed_at, and pinned operator-approval semantics.",

@@ -1,0 +1,34 @@
+{
+  "body": {
+    "claim": "authority.root_status_temporal.v1",
+    "failure_codes": [
+      {
+        "code": "authority_root_status.root_suspended_at_resolution",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_root_status.status_evidence_missing",
+        "step": "5.2",
+        "verdict": "insufficient_evidence"
+      }
+    ],
+    "required_pack_inputs": [
+      "authority_chain.root_principal",
+      "root_status_events.root.status.v1",
+      "trust_root.permit_binding_signing_keys",
+      "resolution_time"
+    ],
+    "scope_note": "Dispatch-time root status only; restorable suspension is read from signed root.status.v1 governance-chain evidence. Grant/edge revocation checks remain authority.edge_revocation.v1 in-arc evidence.",
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.authority.root_status_temporal.v1",
+  "kind": "authority_root_status_temporal_recipe",
+  "status": "released",
+  "version": "v1"
+}
