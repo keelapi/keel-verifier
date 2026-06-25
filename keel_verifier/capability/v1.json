@@ -416,6 +416,20 @@
       ]
     },
     {
+      "name": "authority.root_status_temporal.v1",
+      "status": "implemented",
+      "description": "Adjudicates dispatch-time authority root status from signed root.status.v1 governance-chain evidence for the root principal in the authority chain.",
+      "depends_on_semantics": [
+        "keel.authority.root_status_temporal.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approval.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
@@ -754,6 +768,8 @@
       "authority_chain.action_outside_chain_scope",
       "authority_revocation.signed_at_at_or_after_revoked_at",
       "authority_revocation.compromised_key_retroactive_taint",
+      "authority_root_status.root_suspended_at_resolution",
+      "authority_root_status.status_evidence_missing",
       "PERMIT_OPERATOR_APPROVAL_INVALID",
       "PERMIT_OPERATOR_APPROVAL_KEY_NOT_TRUSTED",
       "PERMIT_OPERATOR_APPROVAL_SIGNER_MISMATCH",
@@ -900,6 +916,11 @@
     {
       "id": "keel.authority.revocation_temporal.v1",
       "hash": "sha256:879072a50e2e00f11c81151f5271a3207d791a042a39787e73ee462079fb300b",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.authority.root_status_temporal.v1",
+      "hash": "sha256:212f5d14d8604518c88de8bec32f7ccf6f8b130d7f1d6ebf762deb830984a3c0",
       "status": "allowlisted"
     },
     {

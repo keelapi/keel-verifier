@@ -12,11 +12,13 @@ from conftest import keypair, write_json, write_signed_export
 from keel_verifier import semantics
 from keel_verifier.verdicts import verifier_version
 from keel_verifier.verifier import (
+    _adjudicate_authority_root_status_temporal_v1,
     _adjudicate_authority_revocation_temporal_v1,
     _adjudicate_permit_authority_chain_v1,
     _authority_chain_payload_for_edges,
     _authority_rfc8785_bytes,
     _authority_sha256_hex,
+    _root_status_canonical_hash,
 )
 
 
@@ -66,6 +68,11 @@ def _adjudicate(input_doc: dict[str, Any], trust_root: dict[str, Any]):
             export_document=input_doc,
             trust_root=trust_root,
         )
+    if claim_name == "authority.root_status_temporal.v1":
+        return _adjudicate_authority_root_status_temporal_v1(
+            export_document=input_doc,
+            trust_root=trust_root,
+        )
     raise AssertionError(f"unexpected claim in cat-09 fixture: {claim_name}")
 
 
@@ -96,6 +103,7 @@ def _add_authority_pins(manifest_path: Path) -> None:
             {"name": "export.integrity.v1", "required": True},
             {"name": "permit.authority_chain.v1", "required": True},
             {"name": "authority.revocation_temporal.v1", "required": True},
+            {"name": "authority.root_status_temporal.v1", "required": True},
         ],
     }
     manifest["semantics_pins"] = {
@@ -105,6 +113,7 @@ def _add_authority_pins(manifest_path: Path) -> None:
             _semantic_ref(semantics.EXPORT_MANIFEST_INTEGRITY_ID),
             _semantic_ref(semantics.PERMIT_AUTHORITY_CHAIN_ID),
             _semantic_ref(semantics.AUTHORITY_REVOCATION_TEMPORAL_ID),
+            _semantic_ref(semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_ID),
         ],
     }
     write_json(manifest_path, manifest)
@@ -123,6 +132,41 @@ def _signed_authority_edge(
         "signature": "ed25519:"
         + base64.b64encode(private_key.sign(payload_bytes)).decode("ascii"),
     }
+
+
+def _signed_root_status_event(
+    *,
+    private_key: Any,
+    export_document: dict[str, Any],
+    status: str,
+    status_changed_at: str,
+    previous_status: str | None = None,
+) -> dict[str, Any]:
+    root_payload = export_document["authority_edges"][0]["payload"]
+    root = root_payload["delegator"]
+    event = {
+        "project_id": root_payload["project_id"],
+        "root_principal_type": root["principal_type"],
+        "root_principal_id": root["principal_id"],
+        "actor_id": "00000000-0000-0000-0000-000000000000",
+        "actor_kind": "system",
+        "previous_status": previous_status,
+        "status": status,
+        "status_changed_at": status_changed_at,
+        "effective_at": status_changed_at,
+        "last_attested_at": status_changed_at if status == "active" else None,
+        "attestation_valid_until": None,
+        "suspension_due_at": None,
+        "needs_reattestation_at": (
+            status_changed_at if status == "needs_reattestation" else None
+        ),
+        "suspended_at": status_changed_at if status == "suspended" else None,
+    }
+    canonical_hash = _root_status_canonical_hash(event)
+    event["signature"] = base64.b64encode(
+        private_key.sign(canonical_hash.encode("utf-8"))
+    ).decode("ascii")
+    return event
 
 
 def _supported_authority_export() -> tuple[dict[str, Any], dict[str, Any]]:
@@ -231,6 +275,15 @@ def _key_manifest_for_authority_export(
                     "valid_from": "2026-01-01T00:00:00Z",
                     "valid_to": None,
                 },
+                {
+                    "key_id": export_key_id,
+                    "algorithm": "ed25519",
+                    "public_key": export_public_key,
+                    "purpose": "permit_binding_signing",
+                    "status": "active",
+                    "valid_from": "2026-01-01T00:00:00Z",
+                    "valid_to": None,
+                },
                 *trust_root["keys"],
             ],
         },
@@ -270,6 +323,14 @@ def test_cli_full_verify_resolves_authority_claims_from_registry(
         export_key_id=export_key_id,
         trust_root=trust_root,
     )
+    input_doc["root_status_events"] = [
+        _signed_root_status_event(
+            private_key=export_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-05-01T00:00:00Z",
+        )
+    ]
     export_file, manifest = write_signed_export(
         tmp_path,
         input_doc,
@@ -299,6 +360,10 @@ def test_cli_full_verify_resolves_authority_claims_from_registry(
     assert claims["authority.revocation_temporal.v1"]["verdict"] == "supported"
     assert claims["authority.revocation_temporal.v1"]["reason_code"] == (
         "AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED"
+    )
+    assert claims["authority.root_status_temporal.v1"]["verdict"] == "supported"
+    assert claims["authority.root_status_temporal.v1"]["reason_code"] == (
+        "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
     )
 
 
@@ -336,6 +401,66 @@ def test_authority_revocation_temporal_empty_edge_domain_is_insufficient() -> No
     assert claim.subjects[0].verdict == "insufficient_evidence"
 
 
+def test_authority_root_status_temporal_suspended_root_is_disproved(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    input_doc["root_status_events"] = [
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-05-01T00:00:00Z",
+        ),
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            previous_status="active",
+            status="suspended",
+            status_changed_at="2026-06-01T00:00:00Z",
+        ),
+    ]
+
+    claim = _adjudicate_authority_root_status_temporal_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "authority_root_status.root_suspended_at_resolution"
+
+
+def test_authority_root_status_temporal_missing_status_evidence_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    del binding_private_key
+
+    claim = _adjudicate_authority_root_status_temporal_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_root_status.status_evidence_missing"
+
+
 def test_authority_chain_semantics_pin_scalar_failure_code_verdicts() -> None:
     authority_chain_path = (
         REPO_ROOT
@@ -349,20 +474,30 @@ def test_authority_chain_semantics_pin_scalar_failure_code_verdicts() -> None:
         / "data"
         / semantics.RELEASED_ARTIFACT_PATHS[semantics.AUTHORITY_REVOCATION_TEMPORAL_ID]
     )
+    root_status_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / semantics.RELEASED_ARTIFACT_PATHS[semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_ID]
+    )
     authority_chain = _load_json(authority_chain_path)
     revocation = _load_json(revocation_path)
+    root_status = _load_json(root_status_path)
 
     authority_failures = authority_chain["body"]["failure_codes"]
     revocation_failures = revocation["body"]["failure_codes"]
+    root_status_failures = root_status["body"]["failure_codes"]
 
     assert len(authority_failures) == 25
     assert len(revocation_failures) == 2
+    assert len(root_status_failures) == 2
     assert {
         item["code"]: item["verdict"]
         for item in authority_failures
     }["authority_chain.agent_without_chain"] == "insufficient_evidence"
     assert all(isinstance(item["verdict"], str) for item in authority_failures)
     assert all(isinstance(item["verdict"], str) for item in revocation_failures)
+    assert all(isinstance(item["verdict"], str) for item in root_status_failures)
 
 
 def test_authority_chain_verdict_outputs_render_verifier_version() -> None:
