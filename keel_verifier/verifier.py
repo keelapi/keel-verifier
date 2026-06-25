@@ -12618,7 +12618,7 @@ def cmd_export(args: argparse.Namespace) -> int:
         print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
         return report.exit_code
 
-    if getattr(args, "as_report", False):
+    if not getattr(args, "as_raw", False):
         report = verify_export_structured(args)
         if report.ok and "artifact_ref" not in report.artifact:
             _emit_legacy_artifact_ref_warning_once()
@@ -14927,6 +14927,12 @@ def main(argv: list[str] | None = None) -> int:
     p_export.add_argument("--export-file", required=True)
     p_export.add_argument("--manifest", required=True)
     p_export.add_argument("--json", action="store_true", dest="as_json")
+    p_export.add_argument(
+        "--raw",
+        action="store_true",
+        dest="as_raw",
+        help="Render the legacy technical verifier output instead of the AI Permit report.",
+    )
     p_export.add_argument(
         "--walk-events",
         action="store_true",

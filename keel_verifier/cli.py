@@ -273,9 +273,15 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="as_report",
         help=(
-            "Render a human-readable AI Permit verification report (opt-in; "
-            "experimental). --json and the default output are unchanged."
+            "Render the human-readable AI Permit verification report. This is "
+            "the default for export; preserved for explicit scripts."
         ),
+    )
+    p_export.add_argument(
+        "--raw",
+        action="store_true",
+        dest="as_raw",
+        help="Render the legacy technical verifier output instead of the AI Permit report.",
     )
     p_export.add_argument(
         "--walk-events",

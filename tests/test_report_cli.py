@@ -1,8 +1,8 @@
-"""CLI wiring for the opt-in `--report` human view on export/checkpoint.
+"""CLI wiring for the AI Permit human view on export/checkpoint.
 
 These exercise the real CLI (subprocess) to confirm:
-* `--report` renders the permit view and injects session values at the call site,
-* `--report` is opt-in: the default output and `--json` are unchanged,
+* export renders the permit view and injects session values at the call site,
+* `--raw` preserves the legacy technical output,
 * `--json` still emits valid JSON (not the report).
 
 The sample input has no manifest, so verification does not pass; that is fine --
@@ -30,8 +30,8 @@ def _run(*argv: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_export_report_renders_permit_view_with_session_footer() -> None:
-    result = _run("export", SAMPLE, "--report")
+def test_export_default_renders_permit_view_with_session_footer() -> None:
+    result = _run("export", SAMPLE)
     assert result.stdout.startswith("AI PERMIT — Verification Report")
     assert "Evidence:" in result.stdout
     # Session values are computed at the call site and surfaced in the footer.
@@ -41,14 +41,19 @@ def test_export_report_renders_permit_view_with_session_footer() -> None:
     assert result.returncode in (0, 1)
 
 
+def test_export_report_flag_still_renders_permit_view() -> None:
+    result = _run("export", SAMPLE, "--report")
+    assert result.stdout.startswith("AI PERMIT — Verification Report")
+
+
 def test_checkpoint_report_renders_audit_checkpoint() -> None:
     result = _run("checkpoint", SAMPLE, "--report")
     assert result.stdout.startswith("AUDIT CHECKPOINT")
     assert "Finding:" not in result.stdout
 
 
-def test_default_output_is_unchanged_without_report_flag() -> None:
-    result = _run("export", SAMPLE)
+def test_raw_output_preserves_legacy_export_view() -> None:
+    result = _run("export", SAMPLE, "--raw")
     assert "AI PERMIT" not in result.stdout
     # Legacy path reports the missing manifest on stderr.
     assert "FAILED" in (result.stdout + result.stderr)
