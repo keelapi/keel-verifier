@@ -841,12 +841,19 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     assert registry_bytes == legacy_bytes
 
     # The previous hash rolled into history, and its frozen snapshot is bundled.
+    # The rail.settlement_reconciled.v1 release rolled the edge-revocation
+    # registry (bfdc09a7...) into PREVIOUS; the prior a142fce... hash remains in
+    # the historical tuple behind it.
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
-        == "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba"
+        == "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
+        in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
+    )
+    assert (
+        "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba"
         in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
     )
     assert semantics.CLAIM_REGISTRY_HASH not in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES

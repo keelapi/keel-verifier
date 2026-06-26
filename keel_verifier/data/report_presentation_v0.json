@@ -426,6 +426,7 @@
     {"claim": "checkpoint.scope_state.v1", "reason": "Sidecar internal to scope-faithfulness/key-status; rolled up under Completeness."},
     {"claim": "authority.root_status_temporal.v1", "reason": "Specialized authority-root key-status timing claim; detail view only."},
     {"claim": "authority.edge_revocation.v1", "reason": "Specialized authority-edge key-status timing claim; detail view only."},
+    {"claim": "rail.settlement_reconciled.v1", "reason": "Specialized rail settlement-reconciliation claim; detail view only."},
     {"claim": "budget.partition_ledger.v1", "reason": "Budget ledger claim; detail view only (not part of the permit identity/action view)."},
     {"claim": "quota.reservation_linkage.v1", "reason": "Quota reservation linkage claim; detail view only."}
   ]

@@ -1,0 +1,47 @@
+{
+  "body": {
+    "claim": "rail.settlement_reconciled.v1",
+    "failure_codes": [
+      {
+        "code": "rail_settlement_reconciled.amount_exceeds_authority",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "rail_settlement_reconciled.reference_mismatch",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "rail_settlement_reconciled.settlement_not_successful",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "rail_settlement_reconciled.settlement_evidence_missing",
+        "step": "5.2",
+        "verdict": "insufficient_evidence"
+      }
+    ],
+    "required_pack_inputs": [
+      "rail_settlement.record.success",
+      "rail_settlement.record.transaction",
+      "rail_settlement.record.network",
+      "rail_settlement.record.amount",
+      "rail_settlement.reconciliation_digest",
+      "rail_settlement.source_class",
+      "permit.spend_authority.amount_max"
+    ],
+    "scope_note": "Facilitator-attested settlement reconciliation only, read from the x402 settlement record bound into the Keel receipt. source_class=facilitator_attested trusts the x402 facilitator (a third party distinct from Keel); source_class=chain_read (future) trusts the chain. This claim adjudicates that an authorized spend settled as claimed within the permit's spend authority; it does not adjudicate the AI decision (that remains permit.decision.v1) nor settlement finality beyond the supplied record.",
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.rail.settlement_reconciled.v1",
+  "kind": "rail_settlement_reconciled_recipe",
+  "status": "released",
+  "version": "v1"
+}
