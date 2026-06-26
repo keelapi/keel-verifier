@@ -139,6 +139,7 @@ def test_vanta_workflow_sibling_and_permit_snapshot_verify_clean(tmp_path, run_c
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -188,6 +189,7 @@ def test_workflow_schema_names_transition_verify(
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -215,6 +217,7 @@ def test_workflow_declaration_signature_tamper_fails(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -259,6 +262,7 @@ def test_workflow_amendment_order_tamper_fails(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -282,6 +286,7 @@ def test_workflow_amendment_signature_tamper_fails(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -331,6 +336,7 @@ def test_permit_effective_intent_hash_mismatch_fails(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -437,6 +443,7 @@ def test_incident_manifest_v2_with_workflows_verifies(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -484,6 +491,7 @@ def test_incident_manifest_v2_missing_auxiliary_files_fails(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -554,6 +562,7 @@ def test_incident_unknown_manifest_version_fails_gracefully(tmp_path, run_cli):
         str(manifest),
         "--key-manifest",
         str(fixture["key_manifest"]),
+        "--raw",
     )
 
     assert result.returncode == 1

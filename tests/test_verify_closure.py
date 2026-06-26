@@ -98,6 +98,7 @@ def test_verify_closure_verifies_clean_closure_v2(tmp_path, run_cli):
         str(key_manifest),
         "--walk-events",
         "--verify-closure",
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -135,6 +136,7 @@ def test_verify_closure_accepts_execution_completed_digest_alias(tmp_path, run_c
         "--key-manifest",
         str(key_manifest),
         "--verify-closure",
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -170,6 +172,7 @@ def test_verify_closure_detects_dispatch_digest_mismatch(tmp_path, run_cli):
         "--key-manifest",
         str(key_manifest),
         "--verify-closure",
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -206,6 +209,7 @@ def test_verify_closure_v3_detects_dispatch_digest_mismatch(tmp_path, run_cli):
         "--key-manifest",
         str(key_manifest),
         "--verify-closure",
+        "--raw",
     )
 
     assert result.returncode == 1
