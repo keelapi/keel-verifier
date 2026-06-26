@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.4.4
+
+- Add the `authority.edge_revocation.v1` adjudicator: offline-verifiable proof
+  that R3's dispatch-time authority-edge revocation was honored before dispatch
+  resolution. It adjudicates signed `key.status.v1` governance-chain evidence
+  (`key_scope=authority_edge`) for the edge digests in the authority chain,
+  recomputing the canonical `event_hash` and verifying the Ed25519 signature
+  under an active permit-binding key, and disproves when a verified revocation
+  for an in-chain edge digest is effective at or before the resolution time.
+  This is the offline mirror of the shipped `authority.root_status_temporal.v1`
+  claim and the runtime authority-edge liveness check. Additive only: the new
+  adjudicator fires only when the claim is explicitly pinned, no existing
+  claim's behavior or semantics hash changes, and the claim-registry hash is
+  re-pinned in lockstep with the prior registry snapshotted to history.
+
 ## 3.4.3
 
 - Make `keel-verify export` default to the human-readable AI Permit
