@@ -71,11 +71,18 @@ def _write(path: Path, payload: dict[str, Any]) -> Path:
     return path
 
 
-def _export_args(path: Path, *, manifest: Path | None = None, as_json: bool = True) -> argparse.Namespace:
+def _export_args(
+    path: Path,
+    *,
+    manifest: Path | None = None,
+    as_json: bool = True,
+    as_raw: bool = False,
+) -> argparse.Namespace:
     return argparse.Namespace(
         export_file=str(path),
         manifest=str(manifest) if manifest is not None else None,
         as_json=as_json,
+        as_raw=as_raw,
         expected_public_key=None,
         key_manifest=None,
         key_manifest_url=None,
@@ -277,7 +284,7 @@ def test_export_command_accepts_self_attesting_bundle_without_anchor(
     assert any("no anchor" in item for item in report.diagnostics)
     assert any("skipping TSA imprint verification" in item for item in report.diagnostics)
 
-    assert cmd_export(_export_args(path, as_json=False)) == 0
+    assert cmd_export(_export_args(path, as_json=False, as_raw=True)) == 0
     captured = capsys.readouterr()
     assert "no anchor" in captured.err
     assert "VERIFIED" in captured.out

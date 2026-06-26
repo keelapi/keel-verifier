@@ -40,6 +40,7 @@ def test_walk_events_verifies_clean_bundle(tmp_path, run_cli):
         str(manifest),
         "--self-attested",
         "--walk-events",
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -108,6 +109,7 @@ def test_walk_events_verifies_direct_governance_events_json_jsonl_and_gzip(tmp_p
             str(manifest),
             "--self-attested",
             "--walk-events",
+            "--raw",
         )
 
         assert result.returncode == 0, result.stderr
@@ -140,6 +142,7 @@ def test_walk_events_verifies_bundle_level_chain_entries(tmp_path, run_cli):
         str(manifest),
         "--self-attested",
         "--walk-events",
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
@@ -172,6 +175,7 @@ def test_walk_events_detects_array_reorder_inversion(tmp_path, run_cli):
         str(manifest),
         "--self-attested",
         "--walk-events",
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -205,6 +209,7 @@ def test_walk_events_detects_duplicate_sequence_number(tmp_path, run_cli):
         str(manifest),
         "--self-attested",
         "--walk-events",
+        "--raw",
     )
 
     assert result.returncode == 1
@@ -241,6 +246,7 @@ def test_walk_events_detects_record_hash_tampering(tmp_path, run_cli):
         str(manifest),
         "--self-attested",
         "--walk-events",
+        "--raw",
     )
 
     assert result.returncode == 1

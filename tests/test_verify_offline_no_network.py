@@ -71,6 +71,7 @@ def test_export_verification_succeeds_with_network_disabled(
             walk_events=False,
             verify_closure=False,
             as_json=False,
+            as_raw=True,
             sidecar=None,
             checkpoint=None,
         )
@@ -80,4 +81,11 @@ def test_export_verification_succeeds_with_network_disabled(
     assert rc == 0
     assert "VERIFIED" in captured.out
     assert "Artifact URN:" in captured.out
-    assert captured.err == ""
+    # The only stderr permitted on the legacy split-file raw path is the
+    # deprecation notice (emitted at most once per process). No network or
+    # verification error must appear.
+    assert captured.err in (
+        "",
+        "WARNING: legacy split-file export input is deprecated; "
+        "use a single keel.evidence_bundle/v1 file when available.\n",
+    )

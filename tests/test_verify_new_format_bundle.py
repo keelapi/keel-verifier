@@ -41,6 +41,7 @@ def test_new_format_bundle_verifies_and_surfaces_urn(tmp_path, run_cli) -> None:
         str(export_file),
         str(manifest),
         "--self-attested",
+        "--raw",
     )
 
     assert result.returncode == 0, result.stderr
