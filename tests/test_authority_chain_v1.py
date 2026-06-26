@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,12 +13,15 @@ from conftest import keypair, write_json, write_signed_export
 from keel_verifier import semantics
 from keel_verifier.verdicts import verifier_version
 from keel_verifier.verifier import (
+    _adjudicate_authority_edge_revocation_v1,
     _adjudicate_authority_root_status_temporal_v1,
     _adjudicate_authority_revocation_temporal_v1,
     _adjudicate_permit_authority_chain_v1,
     _authority_chain_payload_for_edges,
     _authority_rfc8785_bytes,
     _authority_sha256_hex,
+    _edge_status_canonical_hash,
+    _iter_edge_status_events,
     _root_status_canonical_hash,
 )
 
@@ -165,6 +169,43 @@ def _signed_root_status_event(
     canonical_hash = _root_status_canonical_hash(event)
     event["signature"] = base64.b64encode(
         private_key.sign(canonical_hash.encode("utf-8"))
+    ).decode("ascii")
+    return event
+
+
+def _signed_edge_status_event(
+    *,
+    private_key: Any,
+    account_id: str,
+    edge_digest: str,
+    revoked_at: str,
+    signer_key_id: str = "permit-binding-key",
+) -> dict[str, Any]:
+    """Build a signed ``key.status.v1`` edge-revocation event.
+
+    Byte-faithful to keel-api ``key_status_signing.sign_key_status_event``:
+    the signed payload is the seven canonical fields and the signature is over
+    the hex ``event_hash`` bytes.
+    """
+
+    payload = {
+        "event_type": "key.status.v1",
+        "account_id": account_id,
+        "key_scope": "authority_edge",
+        "key_id": edge_digest,
+        "status": "revoked",
+        "revoked_at": revoked_at,
+        "signer": {
+            "purpose": "permit_binding_signing",
+            "key_id": signer_key_id,
+            "algorithm": "ed25519",
+        },
+    }
+    event_hash = _edge_status_canonical_hash(payload)
+    event = dict(payload)
+    event["event_hash"] = event_hash
+    event["signature"] = base64.b64encode(
+        private_key.sign(event_hash.encode("utf-8"))
     ).decode("ascii")
     return event
 
@@ -508,3 +549,341 @@ def test_authority_chain_verdict_outputs_render_verifier_version() -> None:
     assert payload["reason_code"] == "authority_chain.leaf_subject_mismatch"
     assert payload["subjects"]
     assert all(subject["verifier_version"] == verifier_version() for subject in payload["subjects"])
+
+
+# ---------------------------------------------------------------------------
+# authority.edge_revocation.v1 — dispatch-time edge revocation from signed
+# key.status.v1 evidence. Mirror of the root_status_temporal tests above.
+# ---------------------------------------------------------------------------
+
+
+def _edge_digest_for(input_doc: dict[str, Any]) -> str:
+    return input_doc["authority_edges"][0]["edge_digest"]
+
+
+def _account_for(input_doc: dict[str, Any]) -> str:
+    return input_doc["authority_edges"][0]["payload"]["project_id"]
+
+
+def test_authority_edge_revocation_revoked_before_resolution_is_disproved(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    # resolution_time is 2026-06-01T00:00:00Z; revoke strictly before it.
+    input_doc["edge_status_events"] = [
+        _signed_edge_status_event(
+            private_key=binding_private_key,
+            account_id=_account_for(input_doc),
+            edge_digest=_edge_digest_for(input_doc),
+            revoked_at="2026-05-15T00:00:00Z",
+        )
+    ]
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == (
+        "authority_edge_revocation.edge_revoked_at_or_before_resolution"
+    )
+
+
+def test_authority_edge_revocation_no_revocation_is_supported(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    del binding_private_key
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
+
+
+def test_authority_edge_revocation_revoked_after_resolution_is_supported(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    # Revocation effective AFTER resolution_time must not disprove the claim.
+    input_doc["edge_status_events"] = [
+        _signed_edge_status_event(
+            private_key=binding_private_key,
+            account_id=_account_for(input_doc),
+            edge_digest=_edge_digest_for(input_doc),
+            revoked_at="2026-07-01T00:00:00Z",
+        )
+    ]
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
+
+
+def test_authority_edge_revocation_tampered_signature_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    # Sign with a DIFFERENT key so the signature cannot verify under the
+    # permit-binding trust root, while the event_hash still recomputes.
+    attacker_private_key, _attacker_public_key, _attacker_key_id = keypair()
+    event = _signed_edge_status_event(
+        private_key=attacker_private_key,
+        account_id=_account_for(input_doc),
+        edge_digest=_edge_digest_for(input_doc),
+        revoked_at="2026-05-15T00:00:00Z",
+    )
+    input_doc["edge_status_events"] = [event]
+    del binding_private_key
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_edge_revocation.status_evidence_missing"
+
+
+def test_authority_edge_revocation_event_hash_mismatch_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    event = _signed_edge_status_event(
+        private_key=binding_private_key,
+        account_id=_account_for(input_doc),
+        edge_digest=_edge_digest_for(input_doc),
+        revoked_at="2026-05-15T00:00:00Z",
+    )
+    # Mutate a signed field after hashing: event_hash no longer matches.
+    event["revoked_at"] = "2026-04-01T00:00:00Z"
+    input_doc["edge_status_events"] = [event]
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_edge_revocation.status_evidence_missing"
+
+
+def test_authority_edge_revocation_missing_chain_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root={"keys": []},
+    )
+    del binding_private_key
+
+    claim = _adjudicate_authority_edge_revocation_v1(
+        export_document={
+            "permit": {"id": "permit_no_chain"},
+            "authority_chain": {"payload": {"edge_digests": []}},
+            "authority_edges": [],
+            "resolution_time": "2026-06-01T00:00:00Z",
+        },
+        key_manifest_source=str(key_manifest),
+        trust_root={"keys": []},
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_edge_revocation.status_evidence_missing"
+
+
+def test_iter_edge_status_events_extracts_and_filters_scope() -> None:
+    binding_private_key, _pub, _kid = keypair()
+    edge_event = _signed_edge_status_event(
+        private_key=binding_private_key,
+        account_id="project_ci",
+        edge_digest=_authority_sha256_hex(b"edge"),
+        revoked_at="2026-05-15T00:00:00Z",
+    )
+    # A non-edge-scoped key.status event that must be filtered OUT.
+    non_edge_event = dict(edge_event)
+    non_edge_event["key_scope"] = "operator"
+
+    document = {
+        "chain_entries": [
+            {"payload_json": {"key_status_event": edge_event}},
+            {"payload_json": {"key_status_event": non_edge_event}},
+            {"payload_json": {"some_other": "record"}},
+        ]
+    }
+
+    found = _iter_edge_status_events(document)
+    extracted = [event for event, _path in found]
+    assert edge_event in extracted
+    assert non_edge_event not in extracted
+    # Exactly one edge-scoped event is surfaced from payload_json.
+    assert sum(1 for event in extracted if event is edge_event) == 1
+    assert all(event.get("key_scope") == "authority_edge" for event in extracted)
+
+
+def test_iter_edge_status_events_reads_top_level_projection() -> None:
+    binding_private_key, _pub, _kid = keypair()
+    edge_event = _signed_edge_status_event(
+        private_key=binding_private_key,
+        account_id="project_ci",
+        edge_digest=_authority_sha256_hex(b"edge"),
+        revoked_at="2026-05-15T00:00:00Z",
+    )
+    document = {"edge_status_events": [edge_event]}
+
+    found = _iter_edge_status_events(document)
+    assert [path for _event, path in found] == ["edge_status_events[0]"]
+    assert found[0][0] is edge_event
+
+
+def test_authority_edge_revocation_is_registered_in_semantics() -> None:
+    assert semantics.AUTHORITY_EDGE_REVOCATION_ID == (
+        "keel.authority.edge_revocation.v1"
+    )
+    assert semantics.CLAIM_SEMANTICS["authority.edge_revocation.v1"] == (
+        semantics.AUTHORITY_EDGE_REVOCATION_ID,
+    )
+    assert (
+        semantics.RELEASED_ARTIFACT_HASHES[semantics.AUTHORITY_EDGE_REVOCATION_ID]
+        == semantics.AUTHORITY_EDGE_REVOCATION_HASH
+    )
+    assert (
+        semantics.RELEASED_ARTIFACT_PATHS[semantics.AUTHORITY_EDGE_REVOCATION_ID]
+        == "semantics/permit/authority_edge_revocation_v1.json"
+    )
+
+
+def test_authority_edge_revocation_semantics_pin_failure_code_verdicts() -> None:
+    edge_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / semantics.RELEASED_ARTIFACT_PATHS[semantics.AUTHORITY_EDGE_REVOCATION_ID]
+    )
+    edge = _load_json(edge_path)
+    failures = edge["body"]["failure_codes"]
+
+    assert len(failures) == 2
+    by_code = {item["code"]: item["verdict"] for item in failures}
+    assert by_code[
+        "authority_edge_revocation.edge_revoked_at_or_before_resolution"
+    ] == "disproved"
+    assert by_code[
+        "authority_edge_revocation.status_evidence_missing"
+    ] == "insufficient_evidence"
+    assert edge["id"] == "keel.authority.edge_revocation.v1"
+    assert edge["status"] == "released"
+
+
+def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
+    registry_bytes = (
+        REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
+    ).read_bytes()
+    legacy_bytes = (
+        REPO_ROOT / "keel_verifier" / "data" / "claim_registry_v0.json"
+    ).read_bytes()
+
+    # The live registry hash is the raw sha256 of the bundled bytes, and both
+    # bundled copies are byte-identical.
+    digest = f"sha256:{hashlib.sha256(registry_bytes).hexdigest()}"
+    assert digest == semantics.CLAIM_REGISTRY_HASH
+    assert registry_bytes == legacy_bytes
+
+    # The previous hash rolled into history, and its frozen snapshot is bundled.
+    assert (
+        semantics.CLAIM_REGISTRY_PREVIOUS_HASH
+        == "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba"
+    )
+    assert (
+        semantics.CLAIM_REGISTRY_PREVIOUS_HASH
+        in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
+    )
+    assert semantics.CLAIM_REGISTRY_HASH not in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
+
+    previous_digest = semantics.CLAIM_REGISTRY_PREVIOUS_HASH.removeprefix("sha256:")
+    historical_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / "claim_registry"
+        / "historical"
+        / f"v0-sha256-{previous_digest}.json"
+    )
+    assert historical_path.exists()
+    assert (
+        f"sha256:{hashlib.sha256(historical_path.read_bytes()).hexdigest()}"
+        == semantics.CLAIM_REGISTRY_PREVIOUS_HASH
+    )
+
+    # The new registry actually contains the new claim row.
+    registry = json.loads(registry_bytes)
+    names = [claim["name"] for claim in registry["claims"]]
+    assert "authority.edge_revocation.v1" in names
+
+
+def test_claim_registry_includes_edge_revocation_after_root_status() -> None:
+    registry = _load_json(
+        REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
+    )
+    names = [claim["name"] for claim in registry["claims"]]
+    root_index = names.index("authority.root_status_temporal.v1")
+    assert names[root_index + 1] == "authority.edge_revocation.v1"
+    row = registry["claims"][root_index + 1]
+    assert row["verdict_enum"] == [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope",
+    ]
+    assert "key_scope=authority_edge" in row["assertion"]

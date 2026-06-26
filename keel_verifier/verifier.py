@@ -666,6 +666,7 @@ PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
 PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME = "authority.root_status_temporal.v1"
+AUTHORITY_EDGE_REVOCATION_CLAIM_NAME = "authority.edge_revocation.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
@@ -744,6 +745,9 @@ AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE = "AUTHORITY_REVOCATION_TEMPORAL_SU
 AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE = (
     "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
 )
+AUTHORITY_EDGE_REVOCATION_SUPPORTED_CODE = (
+    "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
+)
 AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
     {
         "requires_human_approval",
@@ -793,6 +797,10 @@ AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS = {
 AUTHORITY_ROOT_STATUS_TEMPORAL_CODE_VERDICTS = {
     "authority_root_status.root_suspended_at_resolution": "disproved",
     "authority_root_status.status_evidence_missing": "insufficient_evidence",
+}
+AUTHORITY_EDGE_REVOCATION_CODE_VERDICTS = {
+    "authority_edge_revocation.edge_revoked_at_or_before_resolution": "disproved",
+    "authority_edge_revocation.status_evidence_missing": "insufficient_evidence",
 }
 _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_version",
@@ -886,6 +894,27 @@ _ROOT_STATUS_REQUIRED_FIELDS = (
 )
 _ROOT_STATUS_PRINCIPAL_TYPES = {"user", "service_principal"}
 _ROOT_STATUS_VALUES = {"active", "needs_reattestation", "suspended"}
+# Mirror of keel-api ``key_status_signing.KEY_STATUS_SIGNED_FIELDS`` for the
+# ``revoked`` variant (``compromised_at`` is the alternate timestamp slot but the
+# edge-revocation claim only adjudicates ``status="revoked"`` evidence).
+_EDGE_STATUS_KEY_SCOPE = "authority_edge"
+_EDGE_STATUS_VALUES = {"revoked"}
+_EDGE_STATUS_SIGNER_PURPOSE = PERMIT_BINDING_SIGNING_PURPOSE
+_EDGE_STATUS_SIGNER_ALGORITHM = "ed25519"
+_EDGE_STATUS_SIGNED_FIELDS = (
+    "event_type",
+    "account_id",
+    "key_scope",
+    "key_id",
+    "status",
+    "revoked_at",
+    "signer",
+)
+_EDGE_STATUS_REQUIRED_FIELDS = (
+    *_EDGE_STATUS_SIGNED_FIELDS,
+    "event_hash",
+    "signature",
+)
 _REASON_CODE_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _SHA256_HEX_RE = re.compile(r"^[a-f0-9]{64}$")
@@ -3608,6 +3637,8 @@ def _authority_claim(
         subject_type = "authority_chain"
     elif claim_name == AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME:
         subject_type = "authority_root_status_temporal"
+    elif claim_name == AUTHORITY_EDGE_REVOCATION_CLAIM_NAME:
+        subject_type = "authority_edge_revocation"
     else:
         subject_type = "authority_revocation_temporal"
     return _permit_claim(
@@ -3687,14 +3718,40 @@ def _authority_root_status_temporal_claim(
     )
 
 
+def _authority_edge_revocation_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        AUTHORITY_EDGE_REVOCATION_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={
+            "authority_edge_revocation": "verified"
+            if verdict == "supported"
+            else "observed"
+        },
+    )
+
+
 def _authority_code_verdict(
     code: str,
     *,
     revocation_temporal: bool = False,
     root_status_temporal: bool = False,
+    edge_revocation: bool = False,
 ) -> str:
     if root_status_temporal:
         table = AUTHORITY_ROOT_STATUS_TEMPORAL_CODE_VERDICTS
+    elif edge_revocation:
+        table = AUTHORITY_EDGE_REVOCATION_CODE_VERDICTS
     elif revocation_temporal:
         table = AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS
     else:
@@ -4552,6 +4609,310 @@ def _adjudicate_authority_root_status_temporal_v1(
         reason_code=AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE,
         message="authority root status evidence is not suspended at resolution_time",
         evidence=[evidence_path, "resolution_time", "trust_root"],
+    )
+
+
+def _edge_status_event_from_payload(
+    payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Extract a signed ``key.status.v1`` edge-revocation event from a payload.
+
+    Mirror of ``_root_status_event_from_payload``. The R3 revoke producer
+    persists the signed event under ``payload_json.key_status_event`` on an
+    ``ADMIN_GLOBAL_SCOPE`` governance record; a bare signed event dict is also
+    accepted. Only ``key_scope="authority_edge"`` events are returned — events
+    for other key scopes (operator/buyer_principal/…) are filtered out here so
+    the edge-revocation iterator never adjudicates non-edge key-status rows.
+    """
+
+    nested = payload.get("key_status_event")
+    if isinstance(nested, dict):
+        candidate = nested
+    elif (
+        payload.get("event_type") == KEY_STATUS_EVENT_TYPE
+        and "signature" in payload
+        and "status" in payload
+    ):
+        candidate = payload
+    else:
+        return None
+    if candidate.get("key_scope") != _EDGE_STATUS_KEY_SCOPE:
+        return None
+    return candidate
+
+
+def _iter_edge_status_events(
+    document: dict[str, Any],
+) -> list[tuple[dict[str, Any], str]]:
+    """Yield ``(event, evidence_path)`` for every edge-scoped key-status event.
+
+    Mirror of ``_iter_root_status_events``: scans the optional top-level
+    ``edge_status_events`` / ``edge_status_event`` projections and every export
+    chain entry's ``payload_json``, filtering to ``key_scope="authority_edge"``
+    via ``_edge_status_event_from_payload``.
+    """
+
+    result: list[tuple[dict[str, Any], str]] = []
+    top_level = document.get("edge_status_events")
+    if isinstance(top_level, list):
+        for index, item in enumerate(top_level):
+            if isinstance(item, dict):
+                event = _edge_status_event_from_payload(item)
+                if event is not None:
+                    result.append((event, f"edge_status_events[{index}]"))
+    elif isinstance(top_level, dict):
+        event = _edge_status_event_from_payload(top_level)
+        if event is not None:
+            result.append((event, "edge_status_events"))
+
+    single = document.get("edge_status_event")
+    if isinstance(single, dict):
+        event = _edge_status_event_from_payload(single)
+        if event is not None:
+            result.append((event, "edge_status_event"))
+
+    for entry_index, entry in enumerate(_iter_export_entries(document)):
+        payload = _entry_payload_any(entry)
+        event = _edge_status_event_from_payload(payload)
+        if event is not None:
+            result.append((event, f"entries[{entry_index}].payload_json"))
+        event = _edge_status_event_from_payload(entry)
+        if event is not None:
+            result.append((event, f"entries[{entry_index}]"))
+    return result
+
+
+def _edge_status_schema_error(
+    event: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    """Strict schema check for a ``key.status.v1`` edge-revocation event.
+
+    Mirror of ``_root_status_schema_error`` and a faithful offline copy of
+    keel-api ``key_status_signing.verify_key_status_event``'s field-set and
+    signer checks for the ``revoked`` variant.
+    """
+
+    keys = set(event.keys())
+    required = set(_EDGE_STATUS_REQUIRED_FIELDS)
+    missing = sorted(required - keys)
+    if missing:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "key.status event missing required field(s): " + ", ".join(missing),
+        )
+    extra = sorted(keys - required)
+    if extra:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "key.status event has unsupported field(s): " + ", ".join(extra),
+        )
+    if event.get("event_type") != KEY_STATUS_EVENT_TYPE:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "event_type must be key.status.v1",
+        )
+    if event.get("key_scope") != _EDGE_STATUS_KEY_SCOPE:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "key_scope must be authority_edge",
+        )
+    if event.get("status") not in _EDGE_STATUS_VALUES:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "status is outside the edge-revocation taxonomy",
+        )
+    for field in ("account_id", "key_id"):
+        if not isinstance(event.get(field), str) or not event[field]:
+            return (
+                "authority_edge_revocation.status_evidence_missing",
+                f"{field} must be a non-empty string",
+            )
+    if not _SHA256_HEX_RE.fullmatch(str(event.get("key_id") or "")):
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "key_id must be a lowercase sha256 hex digest",
+        )
+    if _parse_iso_or_none(event.get("revoked_at")) is None:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "revoked_at must be an RFC 3339 timestamp",
+        )
+    signer = event.get("signer")
+    if not isinstance(signer, dict):
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signer must be an object",
+        )
+    if set(signer.keys()) != {"purpose", "key_id", "algorithm"}:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signer must carry exactly purpose, key_id, and algorithm",
+        )
+    if signer.get("purpose") != _EDGE_STATUS_SIGNER_PURPOSE:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signer.purpose must be the permit-binding signing purpose",
+        )
+    if signer.get("algorithm") != _EDGE_STATUS_SIGNER_ALGORITHM:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signer.algorithm must be ed25519",
+        )
+    if not isinstance(signer.get("key_id"), str) or not signer["key_id"]:
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signer.key_id must be a non-empty string",
+        )
+    if not isinstance(event.get("event_hash"), str) or not _SHA256_HEX_RE.fullmatch(
+        str(event.get("event_hash") or "")
+    ):
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "event_hash must be a lowercase sha256 hex digest",
+        )
+    if not _raw_ed25519_signature_b64(event.get("signature")):
+        return (
+            "authority_edge_revocation.status_evidence_missing",
+            "signature must be raw base64 Ed25519 bytes",
+        )
+    return None, None
+
+
+def _edge_status_canonical_hash(event: dict[str, Any]) -> str:
+    """Recompute the ``key.status.v1`` signed-payload hash.
+
+    Byte-faithful mirror of keel-api ``key_status_event_hash_from_payload``:
+    sha256 over the canonical JSON of the signed fields (the ``revoked`` variant
+    carries ``revoked_at`` and never ``compromised_at``).
+    """
+
+    signed_payload = {
+        key: event[key] for key in _EDGE_STATUS_SIGNED_FIELDS if key in event
+    }
+    return hashlib.sha256(_canonical_json_bytes(signed_payload)).hexdigest()
+
+
+def _adjudicate_authority_edge_revocation_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    """Offline mirror of keel-api's dispatch-time ``_edge_status`` refusal.
+
+    1:1 structural mirror of ``_adjudicate_authority_root_status_temporal_v1``:
+    resolves the authority-chain edges + ``resolution_time``, then iterates the
+    signed ``key.status.v1`` edge-revocation evidence. If a signed revocation
+    for an in-chain edge digest is effective at/before ``resolution_time`` the
+    claim is **disproved**; otherwise it is **supported**.
+    """
+
+    input_doc = export_document
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    resolution_time = _parse_iso_or_none(input_doc.get("resolution_time"))
+    if not edges or resolution_time is None:
+        return _authority_edge_revocation_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_edge_revocation.status_evidence_missing",
+            message="authority chain, edge status events, or resolution_time evidence is incomplete",
+            evidence=["authority_edges", "edge_status_events", "resolution_time"],
+        )
+
+    project_id = edges[0]["payload"].get("project_id")
+    edge_digests = {
+        edge.get("edge_digest")
+        for edge in edges
+        if isinstance(edge.get("edge_digest"), str)
+    }
+
+    matching: list[tuple[datetime, dict[str, Any], str]] = []
+    saw_matching_identity = False
+    for event, evidence_path in _iter_edge_status_events(input_doc):
+        reason, schema_message = _edge_status_schema_error(event)
+        if reason is not None:
+            return _authority_edge_revocation_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(reason, edge_revocation=True),
+                reason_code=reason,
+                message=schema_message or "key.status event schema validation failed",
+                evidence=[evidence_path],
+            )
+        if event.get("key_id") not in edge_digests:
+            continue
+        if project_id is not None and event.get("account_id") != project_id:
+            continue
+        saw_matching_identity = True
+        revoked_at = _parse_iso_or_none(event.get("revoked_at"))
+        assert revoked_at is not None
+        canonical_hash = _edge_status_canonical_hash(event)
+        if canonical_hash != event.get("event_hash"):
+            return _authority_edge_revocation_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_edge_revocation.status_evidence_missing",
+                message="key.status event_hash does not match its signed fields",
+                evidence=[evidence_path, "event_hash"],
+            )
+        candidates, key_error = _permit_binding_key_candidates(
+            key_manifest_source=key_manifest_source,
+            signing_time=revoked_at,
+        )
+        if key_error is not None:
+            return _authority_edge_revocation_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_edge_revocation.status_evidence_missing",
+                message=key_error,
+                evidence=[evidence_path, "trust_root"],
+            )
+        if not any(
+            _verify_ed25519(
+                str(candidate["public_key"]),
+                canonical_hash.encode("utf-8"),
+                str(event["signature"]),
+            )
+            for candidate in candidates
+        ):
+            return _authority_edge_revocation_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_edge_revocation.status_evidence_missing",
+                message="key.status signature does not verify under an active permit-binding key",
+                evidence=[evidence_path, "signature", "trust_root"],
+            )
+        if revoked_at <= resolution_time:
+            matching.append((revoked_at, event, evidence_path))
+
+    # Unlike root status (whose root always carries a status lifecycle), a
+    # never-revoked edge legitimately has no signed revocation. Absence of an
+    # effective revocation is therefore the SUPPORTED case, mirroring the live
+    # ``_edge_status`` runtime check returning no refusal.
+    if not matching:
+        message = (
+            "no signed key.status revocation for an authority edge is effective at resolution_time"
+            if saw_matching_identity
+            else "no signed key.status edge revocation is bound to the authority chain"
+        )
+        return _authority_edge_revocation_claim(
+            input_doc=input_doc,
+            verdict="supported",
+            reason_code=AUTHORITY_EDGE_REVOCATION_SUPPORTED_CODE,
+            message=message,
+            evidence=["edge_status_events", "resolution_time", "trust_root"],
+        )
+
+    _revoked_at, _event, evidence_path = max(matching, key=lambda item: item[0])
+    return _authority_edge_revocation_claim(
+        input_doc=input_doc,
+        verdict="disproved",
+        reason_code="authority_edge_revocation.edge_revoked_at_or_before_resolution",
+        message="an authority edge was revoked at or before resolution_time",
+        evidence=[evidence_path, "resolution_time"],
     )
 
 
@@ -11728,6 +12089,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME,
     )
+    authority_edge_revocation_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        AUTHORITY_EDGE_REVOCATION_CLAIM_NAME,
+    )
     operator_approval_pinned = _pinned_claim_requested(
         semantics,
         requested,
@@ -11998,6 +12364,24 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         else:
             permit_claims.append(
                 _adjudicate_authority_root_status_temporal_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if authority_edge_revocation_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_edge_revocation_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_edge_revocation.status_evidence_missing",
+                    message="authority edge-revocation claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_authority_edge_revocation_v1(
                     export_document=export_document_for_claims,
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
