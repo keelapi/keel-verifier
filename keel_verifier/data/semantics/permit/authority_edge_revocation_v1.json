@@ -1,0 +1,34 @@
+{
+  "body": {
+    "claim": "authority.edge_revocation.v1",
+    "failure_codes": [
+      {
+        "code": "authority_edge_revocation.edge_revoked_at_or_before_resolution",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_edge_revocation.status_evidence_missing",
+        "step": "5.2",
+        "verdict": "insufficient_evidence"
+      }
+    ],
+    "required_pack_inputs": [
+      "authority_chain.edges",
+      "edge_status_events.key.status.v1",
+      "trust_root.permit_binding_signing_keys",
+      "resolution_time"
+    ],
+    "scope_note": "Dispatch-time edge revocation only, read from signed key.status.v1 governance-chain evidence (key_scope=authority_edge). Signing-time edge checks remain authority.revocation_temporal.v1; root suspension remains authority.root_status_temporal.v1.",
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.authority.edge_revocation.v1",
+  "kind": "authority_edge_revocation_recipe",
+  "status": "released",
+  "version": "v1"
+}
