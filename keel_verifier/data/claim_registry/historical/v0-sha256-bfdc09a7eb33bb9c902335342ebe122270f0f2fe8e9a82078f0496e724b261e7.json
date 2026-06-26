@@ -428,17 +428,6 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
-    },
-    {
-      "name": "rail.settlement_reconciled.v1",
-      "assertion": "A rail spend's settled amount reconciles within the permit's spend authority against an attested settlement record bound into the Keel receipt for the bound settlement reference (transaction id + network), where the settlement record is sourced from a non-Keel authority (the x402 facilitator's attested settlement for source_class=facilitator_attested, or an on-chain transaction receipt for source_class=chain_read).",
-      "required_evidence": "Permit spend authority (amount_max); the bound settlement reference (transaction, network); the settlement record {success, transaction, network, amount, payer} with its source_class; the reconciliation digest binding the settlement into the execution-record hash; and pinned rail settlement-reconciliation semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
     }
   ]
 }

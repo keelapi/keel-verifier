@@ -667,6 +667,7 @@ PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME = "authority.root_status_temporal.v1"
 AUTHORITY_EDGE_REVOCATION_CLAIM_NAME = "authority.edge_revocation.v1"
+RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME = "rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
@@ -748,6 +749,9 @@ AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE = (
 AUTHORITY_EDGE_REVOCATION_SUPPORTED_CODE = (
     "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
 )
+RAIL_SETTLEMENT_RECONCILED_SUPPORTED_CODE = (
+    "RAIL_SETTLEMENT_RECONCILED_SUPPORTED"
+)
 AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
     {
         "requires_human_approval",
@@ -802,6 +806,25 @@ AUTHORITY_EDGE_REVOCATION_CODE_VERDICTS = {
     "authority_edge_revocation.edge_revoked_at_or_before_resolution": "disproved",
     "authority_edge_revocation.status_evidence_missing": "insufficient_evidence",
 }
+RAIL_SETTLEMENT_RECONCILED_CODE_VERDICTS = {
+    "rail_settlement_reconciled.amount_exceeds_authority": "disproved",
+    "rail_settlement_reconciled.reference_mismatch": "disproved",
+    "rail_settlement_reconciled.settlement_not_successful": "disproved",
+    "rail_settlement_reconciled.settlement_evidence_missing": "insufficient_evidence",
+}
+# Source classes for the settlement record. ``facilitator_attested`` (C1a) trusts
+# the x402 facilitator's attested PAYMENT-RESPONSE — a third party distinct from
+# Keel. ``chain_read`` (C1b, future) trusts an on-chain transaction receipt and is
+# not yet adjudicable by this verifier; it resolves to ``unverifiable_scope``.
+RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE = "facilitator_attested"
+RAIL_SETTLEMENT_CHAIN_READ_SOURCE = "chain_read"
+RAIL_SETTLEMENT_SUPPORTED_SOURCE_CLASSES = frozenset(
+    {RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE}
+)
+# The settlement-bearing rail(s) this claim adjudicates at v1. A non-settlement
+# rail (e.g. stripe_mpp with no on-chain settlement) resolves to
+# ``unverifiable_scope``.
+RAIL_SETTLEMENT_SUPPORTED_RAILS = frozenset({"x402"})
 _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS = (
     "binding_version",
     "permit_id",
@@ -3759,6 +3782,49 @@ def _authority_code_verdict(
     return table[code]
 
 
+def _rail_settlement_reconciled_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    """Build the ``rail.settlement_reconciled.v1`` claim verdict.
+
+    Structural mirror of ``_authority_edge_revocation_claim``: resolves the
+    permit subject id from the export, defaults the evidence list to the
+    settlement-record inputs, and marks the epistemic state ``verified`` only on
+    a ``supported`` verdict.
+    """
+
+    permit = (
+        input_doc.get("permit")
+        if isinstance(input_doc.get("permit"), dict)
+        else {}
+    )
+    permit_id = _string_field(permit.get("permit_id"), permit.get("id"))
+    return _permit_claim(
+        RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME,
+        subject_type="rail_settlement_reconciled",
+        subject_id=permit_id,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence
+        or ["permit", "rail_settlement", "reconciliation_digest"],
+        epistemic_state={
+            "rail_settlement_reconciled": "verified"
+            if verdict == "supported"
+            else "observed"
+        },
+    )
+
+
+def _rail_settlement_code_verdict(code: str) -> str:
+    return RAIL_SETTLEMENT_RECONCILED_CODE_VERDICTS[code]
+
+
 def _authority_key_records(
     *,
     trust_root: dict[str, Any] | None,
@@ -4913,6 +4979,352 @@ def _adjudicate_authority_edge_revocation_v1(
         reason_code="authority_edge_revocation.edge_revoked_at_or_before_resolution",
         message="an authority edge was revoked at or before resolution_time",
         evidence=[evidence_path, "resolution_time"],
+    )
+
+
+def _rail_settlement_record_from_payload(
+    payload: Any,
+) -> dict[str, Any] | None:
+    """Return an embedded ``rail_settlement`` block from a payload, if present.
+
+    Mirror of ``_edge_status_event_from_payload``: accepts either a nested
+    ``rail_settlement`` object or a payload that is itself a settlement block
+    (identified by carrying both ``reconciliation_digest`` and a
+    ``settlement_reference``).
+    """
+
+    if not isinstance(payload, dict):
+        return None
+    nested = payload.get("rail_settlement")
+    if isinstance(nested, dict):
+        return nested
+    if "reconciliation_digest" in payload and isinstance(
+        payload.get("settlement_reference"), dict
+    ):
+        return payload
+    return None
+
+
+def _iter_rail_settlement_records(
+    document: dict[str, Any],
+) -> list[tuple[dict[str, Any], str]]:
+    """Yield ``(record, evidence_path)`` for every bound rail-settlement record.
+
+    Mirror of ``_iter_edge_status_events``: scans the optional top-level
+    ``rail_settlement`` / ``rail_settlements`` projections and every export chain
+    entry's ``payload_json`` for the settlement evidence the keel-api producer
+    binds into the receipt + execution-record hash. Today's exports carry no
+    such block (the producer binds the settlement reference into the v2 record
+    hash only), so this iterator legitimately returns an empty list for every
+    execution recorded so far — the adjudicator maps that to
+    ``insufficient_evidence``.
+    """
+
+    result: list[tuple[dict[str, Any], str]] = []
+    top_level = document.get("rail_settlements")
+    if isinstance(top_level, list):
+        for index, item in enumerate(top_level):
+            record = _rail_settlement_record_from_payload(item)
+            if record is not None:
+                result.append((record, f"rail_settlements[{index}]"))
+    single = document.get("rail_settlement")
+    if isinstance(single, dict):
+        record = _rail_settlement_record_from_payload(single)
+        if record is not None:
+            result.append((record, "rail_settlement"))
+
+    for entry_index, entry in enumerate(_iter_export_entries(document)):
+        payload = _entry_payload_any(entry)
+        record = _rail_settlement_record_from_payload(payload)
+        if record is not None:
+            result.append((record, f"entries[{entry_index}].payload_json"))
+        record = _rail_settlement_record_from_payload(entry)
+        if record is not None:
+            result.append((record, f"entries[{entry_index}]"))
+    return result
+
+
+def _rail_settlement_int_or_none(value: Any) -> int | None:
+    """Parse an integer settlement amount the way the producer does.
+
+    Byte-faithful to keel-api ``reconcile_x402_settlement``: the settled amount
+    and ``amount_max`` are integer strings; non-integer input yields ``None``
+    (the producer treats it as ``amount_ok=False``).
+    """
+
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(text)
+    except (ValueError, TypeError):
+        return None
+
+
+def _rail_settlement_reconciliation_digest(result: dict[str, Any]) -> str:
+    """Recompute the producer's ``reconciliation_digest`` byte-for-byte.
+
+    Faithful offline mirror of keel-api ``reconcile_x402_settlement``: the digest
+    is ``sha256_hex(json.dumps(result, sort_keys=True, separators=(",", ":")))``
+    over the reconciliation result dict (without the digest key). Uses the same
+    compact, key-sorted, default-``ensure_ascii`` encoding the producer emits.
+    """
+
+    material = json.dumps(result, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def _recompute_rail_settlement_reconciliation(
+    *,
+    settlement_record: dict[str, Any],
+    settlement_reference: dict[str, Any],
+    authority: dict[str, Any],
+) -> dict[str, Any]:
+    """Reproduce keel-api ``reconcile_x402_settlement`` offline.
+
+    1:1 reproduction of the producer's reconciliation so the verifier can
+    independently recompute the result dict and its ``reconciliation_digest``
+    from the bound settlement record + the permit's spend authority, then check
+    them against what the producer bound.
+    """
+
+    transaction = str(settlement_record.get("transaction") or "").strip()
+    network = str(settlement_record.get("network") or "").strip()
+    settled_amount_raw = str(settlement_record.get("amount") or "").strip()
+    payer = str(settlement_record.get("payer") or "").strip() or None
+    success = bool(settlement_record.get("success", False))
+
+    settled_amount_int = _rail_settlement_int_or_none(settled_amount_raw)
+    amount_max = _rail_settlement_int_or_none(authority.get("amount_max"))
+    amount_ok = (
+        settled_amount_int is not None
+        and amount_max is not None
+        and settled_amount_int <= amount_max
+    )
+
+    network_ok = bool(network)
+    recipient_ok = payer is not None
+
+    failure_code: str | None = None
+    if not success:
+        failure_code = "settlement_not_successful"
+    elif not amount_ok:
+        failure_code = "amount_exceeds_authority"
+    elif not network_ok:
+        failure_code = "network_missing"
+
+    reconciled = success and amount_ok and network_ok
+
+    result: dict[str, Any] = {
+        "reconciled": reconciled,
+        "source_class": RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE,
+        "settlement_reference": {"transaction": transaction, "network": network},
+        "amount_ok": amount_ok,
+        "network_ok": network_ok,
+        "recipient_ok": recipient_ok,
+    }
+    if failure_code is not None:
+        result["failure_code"] = failure_code
+    if payer is not None:
+        result["payer"] = payer
+    if settled_amount_raw:
+        result["settled_amount"] = settled_amount_raw
+    return result
+
+
+def _adjudicate_rail_settlement_reconciled_v1(
+    *,
+    export_document: dict[str, Any],
+) -> ClaimVerdict:
+    """Offline adjudicator for facilitator-attested x402 settlement (C1a).
+
+    Structural mirror of ``_adjudicate_authority_edge_revocation_v1``: iterates
+    the bound rail-settlement evidence and reconciles the settled amount against
+    the permit's spend authority, independently recomputing the producer's
+    reconciliation digest.
+
+    Verdicts:
+      * ``insufficient_evidence`` — no bound settlement record (the default for
+        every x402 execution recorded today; the producer binds only the
+        settlement reference + digest into the v2 record hash so far).
+      * ``unverifiable_scope`` — the rail is not a settlement-bearing rail, or
+        ``source_class`` is not adjudicable by this verifier (``chain_read`` is
+        C1b and not yet supported here).
+      * ``disproved`` — the settlement contradicts the authorized spend (amount
+        exceeds authority, settlement unsuccessful, bound reference mismatch, or
+        the producer's reconciliation digest does not reproduce).
+      * ``supported`` — the settlement reconciles within authority and the bound
+        digest reproduces.
+    """
+
+    input_doc = export_document
+    records = _iter_rail_settlement_records(input_doc)
+    if not records:
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="rail_settlement_reconciled.settlement_evidence_missing",
+            message=(
+                "no bound rail settlement record is present; the execution "
+                "carries no parsed settlement reference to reconcile"
+            ),
+            evidence=["rail_settlement", "reconciliation_digest"],
+        )
+
+    record, evidence_path = records[0]
+
+    rail = str(record.get("rail") or "").strip()
+    if rail and rail not in RAIL_SETTLEMENT_SUPPORTED_RAILS:
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict="unverifiable_scope",
+            reason_code=None,
+            message=(
+                f"rail {rail!r} is not a settlement-bearing rail adjudicated by "
+                "rail.settlement_reconciled.v1"
+            ),
+            evidence=[evidence_path],
+        )
+
+    source_class = str(record.get("source_class") or "").strip()
+    if source_class and source_class not in RAIL_SETTLEMENT_SUPPORTED_SOURCE_CLASSES:
+        message = (
+            "source_class=chain_read settlement proofs are not adjudicable by "
+            "this verifier (C1b on-chain reconciliation is not yet supported)"
+            if source_class == RAIL_SETTLEMENT_CHAIN_READ_SOURCE
+            else f"settlement source_class {source_class!r} is not supported"
+        )
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict="unverifiable_scope",
+            reason_code=None,
+            message=message,
+            evidence=[evidence_path, "source_class"],
+        )
+
+    settlement_record = record.get("settlement_record")
+    settlement_reference = record.get("settlement_reference")
+    if not isinstance(settlement_record, dict) or not isinstance(
+        settlement_reference, dict
+    ):
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.settlement_evidence_missing"
+            ),
+            reason_code="rail_settlement_reconciled.settlement_evidence_missing",
+            message=(
+                "settlement record or bound settlement reference is missing from "
+                "the rail-settlement evidence"
+            ),
+            evidence=[evidence_path],
+        )
+
+    bound_digest = record.get("reconciliation_digest")
+    if not isinstance(bound_digest, str) or not bound_digest:
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.settlement_evidence_missing"
+            ),
+            reason_code="rail_settlement_reconciled.settlement_evidence_missing",
+            message="the rail-settlement evidence carries no reconciliation_digest",
+            evidence=[evidence_path, "reconciliation_digest"],
+        )
+
+    authority = record.get("authority")
+    if not isinstance(authority, dict):
+        authority = {}
+
+    # Independently recompute the producer's reconciliation result + digest from
+    # the bound settlement record and the permit's spend authority.
+    recomputed = _recompute_rail_settlement_reconciliation(
+        settlement_record=settlement_record,
+        settlement_reference=settlement_reference,
+        authority=authority,
+    )
+    recomputed_digest = _rail_settlement_reconciliation_digest(recomputed)
+
+    # The bound settlement reference must equal the settlement record's own
+    # transaction/network (the reference the producer derived from the record).
+    record_reference = {
+        "transaction": str(settlement_record.get("transaction") or "").strip(),
+        "network": str(settlement_record.get("network") or "").strip(),
+    }
+    bound_reference = {
+        "transaction": str(settlement_reference.get("transaction") or "").strip(),
+        "network": str(settlement_reference.get("network") or "").strip(),
+    }
+    if record_reference != bound_reference:
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.reference_mismatch"
+            ),
+            reason_code="rail_settlement_reconciled.reference_mismatch",
+            message=(
+                "the bound settlement reference does not match the settlement "
+                "record's transaction/network"
+            ),
+            evidence=[evidence_path, "settlement_reference"],
+        )
+
+    if recomputed_digest != bound_digest:
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.reference_mismatch"
+            ),
+            reason_code="rail_settlement_reconciled.reference_mismatch",
+            message=(
+                "the recomputed reconciliation digest does not reproduce the "
+                "bound reconciliation_digest"
+            ),
+            evidence=[evidence_path, "reconciliation_digest"],
+        )
+
+    if not bool(settlement_record.get("success", False)):
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.settlement_not_successful"
+            ),
+            reason_code="rail_settlement_reconciled.settlement_not_successful",
+            message="the attested settlement record reports success=false",
+            evidence=[evidence_path],
+        )
+
+    settled_amount = _rail_settlement_int_or_none(settlement_record.get("amount"))
+    amount_max = _rail_settlement_int_or_none(authority.get("amount_max"))
+    if (
+        settled_amount is None
+        or amount_max is None
+        or settled_amount > amount_max
+    ):
+        return _rail_settlement_reconciled_claim(
+            input_doc=input_doc,
+            verdict=_rail_settlement_code_verdict(
+                "rail_settlement_reconciled.amount_exceeds_authority"
+            ),
+            reason_code="rail_settlement_reconciled.amount_exceeds_authority",
+            message=(
+                "the settled amount exceeds the permit's authorized spend "
+                "(amount_max)"
+            ),
+            evidence=[evidence_path, "authority"],
+        )
+
+    return _rail_settlement_reconciled_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=RAIL_SETTLEMENT_RECONCILED_SUPPORTED_CODE,
+        message=(
+            "the facilitator-attested settlement reconciles within the permit's "
+            "spend authority and the bound reconciliation digest reproduces"
+        ),
+        evidence=[evidence_path, "authority", "reconciliation_digest"],
     )
 
 
@@ -12094,6 +12506,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         AUTHORITY_EDGE_REVOCATION_CLAIM_NAME,
     )
+    rail_settlement_reconciled_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME,
+    )
     operator_approval_pinned = _pinned_claim_requested(
         semantics,
         requested,
@@ -12384,6 +12801,23 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 _adjudicate_authority_edge_revocation_v1(
                     export_document=export_document_for_claims,
                     key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if rail_settlement_reconciled_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _rail_settlement_reconciled_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="rail_settlement_reconciled.settlement_evidence_missing",
+                    message="rail settlement-reconciled claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_rail_settlement_reconciled_v1(
+                    export_document=export_document_for_claims,
                 )
             )
     if operator_approval_requested:
