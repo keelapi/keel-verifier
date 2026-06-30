@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.4.5
+
+- Add the `rail.settlement_reconciled.v1` adjudicator: offline-verifiable proof
+  that a rail spend's settled amount reconciles within the permit's spend
+  authority (`amount_max`) against an attested settlement record bound into the
+  Keel receipt for the bound settlement reference (transaction id + network).
+  The settlement record is sourced from a non-Keel authority (the x402
+  facilitator's attested settlement for `source_class=facilitator_attested`, or
+  an on-chain transaction receipt for `source_class=chain_read`), and the
+  adjudicator verifies the reconciliation digest binding the settlement into the
+  execution-record hash under the pinned rail settlement-reconciliation
+  semantics. This mirrors the `authority.edge_revocation.v1` release shape.
+  Additive only: the new adjudicator fires only when the claim is explicitly
+  pinned, no existing claim's behavior or semantics hash changes, and the
+  claim-registry hash is re-pinned in lockstep with the prior registry
+  snapshotted to history.
+
 ## 3.4.4
 
 - Add the `authority.edge_revocation.v1` adjudicator: offline-verifiable proof
