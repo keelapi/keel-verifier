@@ -79,6 +79,11 @@
         "path": "semantics/checkpoint/tsa_imprint_v1.json"
       },
       {
+        "id": "keel.checkpoint.tsa_chain.v1",
+        "hash": "sha256:f89f756fbb7f27f14267d2279075875d2bf094b57f5002d0c058c1229b64c2e1",
+        "path": "semantics/checkpoint/tsa_chain_v1.json"
+      },
+      {
         "id": "authority-envelope.v0",
         "hash": "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2",
         "path": "comparator_registry/v0.json"

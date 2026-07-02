@@ -917,15 +917,11 @@ def verify_tsa(signed_manifest_bytes: bytes, sidecar: dict[str, Any]) -> TSAVeri
     """Bind-level TSA verification: parse + GRANTED + message_imprint match.
 
     Intentionally does NOT perform CMS signature verification or
-    certificate-chain validation. This mirrors the existing keel-verifier
-    checkpoint TSA pattern (verifier.py:_verify_tsa_receipt) where full chain
-    validation is an opt-in trust extension. The honest claim at this layer is
-    bounded: a provider-labeled RFC 3161 response structure binds to the
-    signed manifest hash and reports `granted` status. Deeper assertions
-    about signer authenticity (the receipt was actually signed by DigiCert /
-    GlobalSign root-of-trust, EKU is timestamping, certificate-chain rolls up
-    to a known root) require the opt-in `--tsa-ca-bundle` trust extension and
-    are out of scope for default self-check.
+    certificate-chain validation. The honest claim at this layer is bounded: a
+    provider-labeled RFC 3161 response structure binds to the signed manifest
+    hash and reports `granted` status. Deeper assertions about signer
+    authenticity, timestamping EKU, chain validity, and release-pinned CRL
+    status are reported by checkpoint TSA chain validation, not this self-check.
     """
     message_imprint = _sha256_prefixed(signed_manifest_bytes)
     if sidecar.get("message_imprint") != message_imprint:

@@ -1,0 +1,133 @@
+{
+  "description": "Release-pinned offline TSA trust bundle for DigiCert and GlobalSign checkpoint timestamp validation.",
+  "files": [
+    {
+      "issuer": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US",
+      "kind": "root",
+      "not_valid_after": "2031-11-10T00:00:00Z",
+      "not_valid_before": "2006-11-10T00:00:00Z",
+      "path": "digicert/assured_id_root_ca.pem",
+      "provider": "digicert",
+      "serial_number": "0xce7e0e517d846fe8fe560fc1bf03039",
+      "sha256": "sha256:b52fae9cd8dcf49285f0337cd815deca13fedd31f653bf07f61579451517e18c",
+      "subject": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US"
+    },
+    {
+      "issuer": "CN=DigiCert Trusted Root G4,OU=www.digicert.com,O=DigiCert Inc,C=US",
+      "kind": "intermediate",
+      "not_valid_after": "2038-01-14T23:59:59Z",
+      "not_valid_before": "2025-05-07T00:00:00Z",
+      "path": "digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.pem",
+      "provider": "digicert",
+      "serial_number": "0xdc7ac5705ff21992e4043220c3a4986",
+      "sha256": "sha256:5e13de210e735b614d6ec948361aadef9dd6c0ef575382a75f57fd59e183b90e",
+      "subject": "CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1,O=DigiCert\\, Inc.,C=US"
+    },
+    {
+      "issuer": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US",
+      "kind": "intermediate",
+      "not_valid_after": "2031-11-09T23:59:59Z",
+      "not_valid_before": "2022-08-01T00:00:00Z",
+      "path": "digicert/trusted_root_g4_cross_signed.pem",
+      "provider": "digicert",
+      "serial_number": "0xe9b188ef9d02de7efdb50e20840185a",
+      "sha256": "sha256:3aebcbe5144487ac3dbdac02369da773968addcae886d7449fbbf31bf496824d",
+      "subject": "CN=DigiCert Trusted Root G4,OU=www.digicert.com,O=DigiCert Inc,C=US"
+    },
+    {
+      "issuer": "CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1,O=DigiCert\\, Inc.,C=US",
+      "kind": "crl",
+      "last_update": "2026-07-01T20:36:51Z",
+      "next_update": "2026-07-22T20:36:51Z",
+      "path": "digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.crl.pem",
+      "provider": "digicert",
+      "sha256": "sha256:683e657f9e90406e9919c7cfdb7a3dd04565f679b3bdf156dc72f6c88bb8e90b"
+    },
+    {
+      "issuer": "CN=DigiCert Trusted Root G4,OU=www.digicert.com,O=DigiCert Inc,C=US",
+      "kind": "crl",
+      "last_update": "2026-07-01T21:37:33Z",
+      "next_update": "2026-07-22T21:37:33Z",
+      "path": "digicert/trusted_root_g4.crl.pem",
+      "provider": "digicert",
+      "sha256": "sha256:f18244dd8483b8cebc99f7fd461672db8d9af66f5191f6b64a0ec0c7d7688480"
+    },
+    {
+      "issuer": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US",
+      "kind": "crl",
+      "last_update": "2026-07-01T21:36:52Z",
+      "next_update": "2026-07-22T21:36:52Z",
+      "path": "digicert/assured_id_root_ca.crl.pem",
+      "provider": "digicert",
+      "sha256": "sha256:f23dbf378dce4a4f187a49358b66562930e288a5728767f46ec70e74eeb35bb6"
+    },
+    {
+      "issuer": "CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R6",
+      "kind": "root",
+      "not_valid_after": "2034-12-10T00:00:00Z",
+      "not_valid_before": "2014-12-10T00:00:00Z",
+      "path": "globalsign/root_r6.pem",
+      "provider": "globalsign",
+      "serial_number": "0x45e6bb038333c3856548e6ff4551",
+      "sha256": "sha256:5ff8425be71c1805446bf10601ce3cb9619889866766fc9285583ca5a4a7de94",
+      "subject": "CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R6"
+    },
+    {
+      "issuer": "CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R6",
+      "kind": "intermediate",
+      "not_valid_after": "2034-12-10T00:00:00Z",
+      "not_valid_before": "2020-12-09T00:00:00Z",
+      "path": "globalsign/timestamping_root_r45.pem",
+      "provider": "globalsign",
+      "serial_number": "0x784aaa8173669c900954e421c947ebc0",
+      "sha256": "sha256:f3c1abb03ca2a8399c864320266daf32d7a86b93adb7ee011857c72810c384b5",
+      "subject": "CN=GlobalSign Timestamping Root R45,O=GlobalSign nv-sa,C=BE"
+    },
+    {
+      "issuer": "CN=GlobalSign Timestamping Root R45,O=GlobalSign nv-sa,C=BE",
+      "kind": "intermediate",
+      "not_valid_after": "2041-07-16T00:00:00Z",
+      "not_valid_before": "2025-07-16T03:05:04Z",
+      "path": "globalsign/offline_r45_timestamping_ca_2025.pem",
+      "provider": "globalsign",
+      "serial_number": "0x83da8637b79f0c840c947b840a52781f",
+      "sha256": "sha256:06c81f74615dbc7313c8884bcaa38bbac7e8d55f77cc9cd12f392294355fc63b",
+      "subject": "CN=GlobalSign Offline R45 Timestamping CA 2025,O=GlobalSign nv-sa,C=BE"
+    },
+    {
+      "issuer": "CN=GlobalSign Offline R45 Timestamping CA 2025,O=GlobalSign nv-sa,C=BE",
+      "kind": "crl",
+      "last_update": "2026-01-07T00:00:00Z",
+      "next_update": "2026-07-15T00:00:00Z",
+      "path": "globalsign/offline_r45_timestamping_ca_2025.crl.pem",
+      "provider": "globalsign",
+      "sha256": "sha256:fa0f2face748d6a23cf0e2db26fc2172bc24817cbe07db67311cd0dd68aed775"
+    },
+    {
+      "issuer": "CN=GlobalSign Timestamping Root R45,O=GlobalSign nv-sa,C=BE",
+      "kind": "crl",
+      "last_update": "2026-04-07T00:00:00Z",
+      "next_update": "2026-07-15T00:00:00Z",
+      "path": "globalsign/timestamping_root_r45.crl.pem",
+      "provider": "globalsign",
+      "sha256": "sha256:ae233c80dcc937f63fe27235d9869cba53439332fbd75148a488215193119582"
+    },
+    {
+      "issuer": "CN=GlobalSign,O=GlobalSign,OU=GlobalSign Root CA - R6",
+      "kind": "crl",
+      "last_update": "2026-04-07T00:00:00Z",
+      "next_update": "2026-07-15T00:00:00Z",
+      "path": "globalsign/root_r6.crl.pem",
+      "provider": "globalsign",
+      "sha256": "sha256:09a1aedf931e4bc9672abf3019e06ace9d2c097934a7a86bf9936f5c227beae7"
+    }
+  ],
+  "generated_at": "2026-07-02T21:37:18Z",
+  "id": "keel.tsa_trust_bundle.v1",
+  "validation": {
+    "revocation_rule": "For each non-root certificate in the resolved chain, a bundled CRL issued by that certificate issuer must cover genTime; revocationDate or invalidityDate at or before genTime invalidates the TSA chain.",
+    "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
+    "timestamp_verification_time": "RFC3161 TSTInfo.genTime"
+  },
+  "version": "v1"
+}

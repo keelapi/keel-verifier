@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.4.6",
+    "version": "3.5.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -267,9 +267,23 @@
     {
       "name": "checkpoint.tsa_imprint.v1",
       "status": "implemented",
-      "description": "Verifies the embedded RFC 3161 timestamp MessageImprint when present. TSA chain authenticity is a separate opt-in (--tsa-ca-bundle).",
+      "description": "Verifies the embedded RFC 3161 timestamp MessageImprint when present. TSA chain validation is reported separately by checkpoint.tsa_chain.v1.",
       "depends_on_semantics": [
         "keel.checkpoint.tsa_imprint.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "checkpoint.tsa_chain.v1",
+      "status": "implemented",
+      "description": "Validates RFC 3161 TSA chain, timestamping purpose, certificate validity at genTime, and release-pinned CRL revocation snapshot when available.",
+      "depends_on_semantics": [
+        "keel.checkpoint.tsa_chain.v1"
       ],
       "verdicts": [
         "supported",
@@ -847,7 +861,7 @@
     ],
     "does_not_prove": [
       "Pre-signing manipulation by a privileged Keel operator at evidence-creation time.",
-      "Historical TSA certificate revocation status \u2014 TSA chain validation is point-in-time and opt-in (--tsa-ca-bundle).",
+      "Historical TSA certificate revocation status for TSA chains outside the release-pinned DigiCert/GlobalSign CRL snapshots.",
       "Authority grant revocation or execution-time authority-edge revocation beyond the signing-time revocation-temporal claim.",
       "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
       "Provider or tool actually performing the action correctly in the real world \u2014 the verifier validates recorded evidence."

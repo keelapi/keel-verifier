@@ -117,9 +117,8 @@ use the existing checkpoint verification path.
 against the signed release artifact. It verifies the Sigstore-signed release
 manifest (full keyless signature and certificate-chain), the Rekor inclusion
 proof, the DigiCert and GlobalSign RFC 3161 TSA witnesses (bind-level: the
-receipts bind to the signed manifest hash and report `granted` status; full
-CMS signature and cert-chain validation against TSA trust roots is opt-in via
-the `--tsa-ca-bundle` extension and is not part of the default self-check),
+receipts bind to the signed manifest hash and report `granted` status; release
+self-check does not assert TSA cert-chain status),
 the embedded manifest's RFC 8785 JCS binding, and the wheel package files
 listed in the embedded manifest. It does not claim binary or OCI verification.
 
@@ -296,15 +295,19 @@ For a pinned pack, every claim the `claim_set` marks `required` must receive `su
 Checkpoint verification checks embedded RFC 3161 timestamp receipts by confirming
 the TSA MessageImprint matches the checkpoint `composite_hash`.
 
-For opt-in TSA authenticity validation, pass a CA bundle:
+For strict TSA chain gating, require the bundled DigiCert/GlobalSign trust
+bundle to validate the receipt at its RFC 3161 `genTime`:
 
 ```bash
-keel-verify checkpoint checkpoint.json --tsa-ca-bundle tsa-ca-bundle.pem
+keel-verify checkpoint checkpoint.json --require-tsa-chain
 ```
 
-This uses OpenSSL 3.x to verify the CMS signature, certificate chain, and
-timestamping purpose against the supplied CA bundle. It does not check
-historical revocation status at the timestamp issuance time.
+This uses OpenSSL 3.x with the release-pinned TSA trust bundle to verify the
+CMS signature, certificate chain, timestamping purpose, and bundled CRL snapshot
+at `genTime`. `--tsa-ca-bundle` remains available for custom CA material, but
+custom bundles are reported as `not_validated` unless release-pinned CRLs cover
+that chain. When the release-pinned chain validates, the timestamp is a
+cryptographically-validated external timestamp.
 
 ## Tampering Matrix
 

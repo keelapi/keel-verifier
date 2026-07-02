@@ -35,6 +35,7 @@ INCIDENT_BUNDLE_MANIFEST_ID = "keel.incident.bundle_manifest.v2"
 CHECKPOINT_COMPOSITE_HASH_ID = "keel.checkpoint.composite_hash.v1"
 CHECKPOINT_SIGNATURE_ID = "keel.checkpoint.signature.v1"
 CHECKPOINT_TSA_IMPRINT_ID = "keel.checkpoint.tsa_imprint.v1"
+CHECKPOINT_TSA_CHAIN_ID = "keel.checkpoint.tsa_chain.v1"
 SCOPE_STATE_MERKLE_ID = "keel.scope_state.merkle.v1"
 SCOPE_STATE_SIDECAR_FORMAT_ID = "keel.scope_state.sidecar_format.v1"
 EXPORT_SCOPE_FAITHFULNESS_ID = "keel.export.scope_faithfulness.v1"
@@ -61,13 +62,14 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
+    "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
+    "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7",
     "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba",
     "sha256:4be808c13849d2737bd0f40da0f522d8a6c4b672c29e3ac2c0b43cdc8e6be5c7",
@@ -126,6 +128,9 @@ CHECKPOINT_SIGNATURE_HASH = (
 )
 CHECKPOINT_TSA_IMPRINT_HASH = (
     "sha256:a4e02133537a190c3795737beb4bb2ddf823cd09d5b6dcba43c682fb9e37d79e"
+)
+CHECKPOINT_TSA_CHAIN_HASH = (
+    "sha256:f89f756fbb7f27f14267d2279075875d2bf094b57f5002d0c058c1229b64c2e1"
 )
 SCOPE_STATE_MERKLE_HASH = (
     "sha256:0c79a9ae2e7f4b6e4f8cb6b2d619748731fdee7d5e36a895aff08fecba2ae5b8"
@@ -203,7 +208,7 @@ PERMIT_AUDIT_ATTESTATION_V2_HASH = (
     "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2"
 )
 LEGACY_PROFILE_HASH = (
-    "sha256:67a26994d6d73b460adc0aa05f823c42e512d952372e6eb9a73f560fbbec186c"
+    "sha256:9cd7320deba97ecfcccd44ae25ad31290dc904883d19945c5a02f0054357b34d"
 )
 AUTHORITY_ENVELOPE_V0_HASH = (
     "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2"
@@ -268,6 +273,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "checkpoint.composite_hash.v1": (CHECKPOINT_COMPOSITE_HASH_ID,),
     "checkpoint.signature.v1": (CHECKPOINT_SIGNATURE_ID,),
     "checkpoint.tsa_imprint.v1": (CHECKPOINT_TSA_IMPRINT_ID,),
+    "checkpoint.tsa_chain.v1": (CHECKPOINT_TSA_CHAIN_ID,),
     "checkpoint.scope_state.v1": (
         SCOPE_STATE_SIDECAR_FORMAT_ID,
         SCOPE_STATE_MERKLE_ID,
@@ -359,6 +365,7 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CHECKPOINT_COMPOSITE_HASH_ID: "semantics/checkpoint/composite_hash_v1.json",
     CHECKPOINT_SIGNATURE_ID: "semantics/checkpoint/signature_v1.json",
     CHECKPOINT_TSA_IMPRINT_ID: "semantics/checkpoint/tsa_imprint_v1.json",
+    CHECKPOINT_TSA_CHAIN_ID: "semantics/checkpoint/tsa_chain_v1.json",
     SCOPE_STATE_MERKLE_ID: "semantics/scope_state/merkle_v1.json",
     SCOPE_STATE_SIDECAR_FORMAT_ID: "semantics/scope_state/sidecar_format_v1.json",
     EXPORT_SCOPE_FAITHFULNESS_ID: "semantics/export/scope_faithfulness_v1.json",
@@ -423,6 +430,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CHECKPOINT_COMPOSITE_HASH_ID: CHECKPOINT_COMPOSITE_HASH_HASH,
     CHECKPOINT_SIGNATURE_ID: CHECKPOINT_SIGNATURE_HASH,
     CHECKPOINT_TSA_IMPRINT_ID: CHECKPOINT_TSA_IMPRINT_HASH,
+    CHECKPOINT_TSA_CHAIN_ID: CHECKPOINT_TSA_CHAIN_HASH,
     SCOPE_STATE_MERKLE_ID: SCOPE_STATE_MERKLE_HASH,
     SCOPE_STATE_SIDECAR_FORMAT_ID: SCOPE_STATE_SIDECAR_FORMAT_HASH,
     EXPORT_SCOPE_FAITHFULNESS_ID: EXPORT_SCOPE_FAITHFULNESS_HASH,
@@ -1540,6 +1548,11 @@ def make_permanent_allowlist(
             CHECKPOINT_TSA_IMPRINT_ID,
             CHECKPOINT_TSA_IMPRINT_HASH,
             "checkpoint_tsa_imprint",
+        ),
+        SemanticImplementation(
+            CHECKPOINT_TSA_CHAIN_ID,
+            CHECKPOINT_TSA_CHAIN_HASH,
+            "checkpoint_tsa_chain",
         ),
         SemanticImplementation(
             SCOPE_STATE_MERKLE_ID,
