@@ -46,6 +46,7 @@ PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
 PERMIT_AUTHORITY_CHAIN_ID = "keel.permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_ID = "keel.authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_ID = "keel.authority.root_status_temporal.v1"
+AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID = "keel.authority.root_status_temporal.v2"
 AUTHORITY_EDGE_REVOCATION_ID = "keel.authority.edge_revocation.v1"
 RAIL_SETTLEMENT_RECONCILED_ID = "keel.rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
@@ -60,13 +61,14 @@ GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
 )
 
 CLAIM_REGISTRY_HASH = (
-    "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
+    "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7"
+    "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7",
     "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba",
     "sha256:4be808c13849d2737bd0f40da0f522d8a6c4b672c29e3ac2c0b43cdc8e6be5c7",
     "sha256:bd452075279dafcd348e3739117488f4791e706745900f1a8d73ac38041c5ca7",
@@ -172,6 +174,9 @@ AUTHORITY_REVOCATION_TEMPORAL_HASH = (
 )
 AUTHORITY_ROOT_STATUS_TEMPORAL_HASH = (
     "sha256:212f5d14d8604518c88de8bec32f7ccf6f8b130d7f1d6ebf762deb830984a3c0"
+)
+AUTHORITY_ROOT_STATUS_TEMPORAL_V2_HASH = (
+    "sha256:b3910d837d2ac5e11bb931657afaec7b37fc84e0b427a77cee8f403ea8c8b0bd"
 )
 AUTHORITY_EDGE_REVOCATION_HASH = (
     "sha256:226c7261d98458aa40a14b89b9386ab310774afbcb6486cd3332253db670c289"
@@ -291,6 +296,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.authority_chain.v1": (PERMIT_AUTHORITY_CHAIN_ID,),
     "authority.revocation_temporal.v1": (AUTHORITY_REVOCATION_TEMPORAL_ID,),
     "authority.root_status_temporal.v1": (AUTHORITY_ROOT_STATUS_TEMPORAL_ID,),
+    "authority.root_status_temporal.v2": (AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID,),
     "authority.edge_revocation.v1": (AUTHORITY_EDGE_REVOCATION_ID,),
     "rail.settlement_reconciled.v1": (RAIL_SETTLEMENT_RECONCILED_ID,),
     "permit.operator_approval.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
@@ -368,6 +374,9 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     AUTHORITY_ROOT_STATUS_TEMPORAL_ID: (
         "semantics/permit/authority_root_status_temporal_v1.json"
     ),
+    AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID: (
+        "semantics/permit/authority_root_status_temporal_v2.json"
+    ),
     AUTHORITY_EDGE_REVOCATION_ID: (
         "semantics/permit/authority_edge_revocation_v1.json"
     ),
@@ -425,6 +434,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_AUTHORITY_CHAIN_ID: PERMIT_AUTHORITY_CHAIN_HASH,
     AUTHORITY_REVOCATION_TEMPORAL_ID: AUTHORITY_REVOCATION_TEMPORAL_HASH,
     AUTHORITY_ROOT_STATUS_TEMPORAL_ID: AUTHORITY_ROOT_STATUS_TEMPORAL_HASH,
+    AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID: AUTHORITY_ROOT_STATUS_TEMPORAL_V2_HASH,
     AUTHORITY_EDGE_REVOCATION_ID: AUTHORITY_EDGE_REVOCATION_HASH,
     RAIL_SETTLEMENT_RECONCILED_ID: RAIL_SETTLEMENT_RECONCILED_HASH,
     PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
@@ -1609,6 +1619,11 @@ def make_permanent_allowlist(
         SemanticImplementation(
             AUTHORITY_ROOT_STATUS_TEMPORAL_ID,
             AUTHORITY_ROOT_STATUS_TEMPORAL_HASH,
+            "authority_root_status_temporal",
+        ),
+        SemanticImplementation(
+            AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID,
+            AUTHORITY_ROOT_STATUS_TEMPORAL_V2_HASH,
             "authority_root_status_temporal",
         ),
         SemanticImplementation(

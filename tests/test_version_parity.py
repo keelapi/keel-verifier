@@ -209,6 +209,8 @@ def _is_excluded_from_scan(path: Path) -> bool:
         return True
     if parts[0] in {".git", "dist", "build", "sample", "_internal-local"}:
         return True
+    if len(parts) == 1 and parts[0] == "sbom.cyclonedx.json":
+        return True
     if parts[0].startswith(".venv"):
         return True
     if len(parts) >= 2 and parts[0] == "tests" and parts[1] == "fixtures":

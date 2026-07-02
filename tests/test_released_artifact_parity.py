@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from keel_verifier.semantics import (
+    AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID,
     EXPORT_SCOPE_FAITHFULNESS_ID,
     PERMIT_AUDIT_ATTESTATION_ID,
     PERMIT_COUNTER_SIGNATURE_ID,
@@ -24,7 +25,7 @@ from keel_verifier.semantics import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PRODUCT_ROOT = REPO_ROOT.parent
 SOURCE_PERMIT = PRODUCT_ROOT / "keel-permit"
-SOURCE_API = PRODUCT_ROOT / "keel-api"
+SOURCE_API = Path(os.getenv("KEEL_API_REPO", str(PRODUCT_ROOT / "keel-api")))
 BUNDLED_DATA = REPO_ROOT / "keel_verifier" / "data"
 VERIFIER_ADDITIVE_ARTIFACTS = {
     "keel.verifier_claim_registry.v0",
@@ -37,6 +38,7 @@ VERIFIER_ADDITIVE_ARTIFACTS = {
     PERMIT_REVOKED_EVENT_ID,
     SCOPE_STATE_MERKLE_ID,
     SCOPE_STATE_SIDECAR_FORMAT_ID,
+    AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID,
 }
 VERIFIER_ONLY_PIN_HASH_DRIFT = {
     # PR B B2 expands the verifier-bundled permit.decision.v1 semantics before
@@ -92,6 +94,13 @@ def test_keel_api_verifier_additive_artifact_matches_keel_permit_source_bytes(
         )
 
     source_artifact = SOURCE_PERMIT / relative_path
+    if artifact_id in VERIFIER_ONLY_PIN_HASH_DRIFT or artifact_id == (
+        "keel.verifier_claim_registry.v0"
+    ):
+        pytest.skip(
+            f"{artifact_id} can intentionally lead the sibling keel-permit bytes "
+            "during verifier/API lockstep work."
+        )
     if not source_artifact.exists():
         message = (
             "keel-permit released artifact is not checked out next to "

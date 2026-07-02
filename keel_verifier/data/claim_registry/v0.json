@@ -320,6 +320,17 @@
       ]
     },
     {
+      "name": "authority.root_status_temporal.v2",
+      "assertion": "The authority-chain root was not suspended or terminally disabled at the relevant dispatch or verification resolution time, as proven from signed root.status.v1 pre-disable evidence and signed root.status.v2 disable evidence for the root principal.",
+      "required_evidence": "Authority chain root principal, signed root.status.v1 governance events for restorable pre-disable statuses, signed root.status.v2 events in root_status_v2_events for terminal disable, permit-binding trust root, resolution_time, and pinned authority root-status temporal v2 semantics.",
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "authority.edge_revocation.v1",
       "assertion": "An authority edge in the permit authority chain was not revoked at the relevant dispatch or verification resolution time, as proven from signed key.status.v1 governance-chain evidence (key_scope=authority_edge) for the edge digest.",
       "required_evidence": "Authority chain edges, signed key.status.v1 events (key_scope=authority_edge, status=revoked) for the same project and edge digests, permit-binding trust root, resolution_time, and pinned authority edge-revocation temporal semantics.",
