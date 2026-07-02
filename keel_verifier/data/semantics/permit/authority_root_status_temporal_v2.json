@@ -1,0 +1,40 @@
+{
+  "body": {
+    "claim": "authority.root_status_temporal.v2",
+    "failure_codes": [
+      {
+        "code": "authority_root_status.root_disabled_at_resolution",
+        "step": "5.1",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_root_status.root_suspended_at_resolution",
+        "step": "5.2",
+        "verdict": "disproved"
+      },
+      {
+        "code": "authority_root_status.status_evidence_missing",
+        "step": "5.3",
+        "verdict": "insufficient_evidence"
+      }
+    ],
+    "required_pack_inputs": [
+      "authority_chain.root_principal",
+      "root_status_events.root.status.v1",
+      "root_status_v2_events.root.status.v2",
+      "trust_root.permit_binding_signing_keys",
+      "resolution_time"
+    ],
+    "scope_note": "Dispatch-time root status with terminal disable support. Restorable pre-disable statuses are read from signed root.status.v1 governance-chain evidence; terminal disable is read from signed root.status.v2 evidence in the separate root_status_v2_events collection. Latest effective event wins at resolution_time.",
+    "verdict_vocabulary": [
+      "supported",
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence"
+    ]
+  },
+  "id": "keel.authority.root_status_temporal.v2",
+  "kind": "authority_root_status_temporal_recipe",
+  "status": "released",
+  "version": "v2"
+}

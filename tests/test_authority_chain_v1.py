@@ -15,6 +15,7 @@ from keel_verifier.verdicts import verifier_version
 from keel_verifier.verifier import (
     _adjudicate_authority_edge_revocation_v1,
     _adjudicate_authority_root_status_temporal_v1,
+    _adjudicate_authority_root_status_temporal_v2,
     _adjudicate_authority_revocation_temporal_v1,
     _adjudicate_permit_authority_chain_v1,
     _authority_chain_payload_for_edges,
@@ -23,6 +24,7 @@ from keel_verifier.verifier import (
     _edge_status_canonical_hash,
     _iter_edge_status_events,
     _root_status_canonical_hash,
+    _root_status_v2_canonical_hash,
 )
 
 
@@ -167,6 +169,42 @@ def _signed_root_status_event(
         "suspended_at": status_changed_at if status == "suspended" else None,
     }
     canonical_hash = _root_status_canonical_hash(event)
+    event["signature"] = base64.b64encode(
+        private_key.sign(canonical_hash.encode("utf-8"))
+    ).decode("ascii")
+    return event
+
+
+def _signed_root_status_v2_event(
+    *,
+    private_key: Any,
+    export_document: dict[str, Any],
+    disabled_at: str,
+    previous_status: str | None = "active",
+    source_event_id: str = "svix_evt_root_disabled",
+) -> dict[str, Any]:
+    root_payload = export_document["authority_edges"][0]["payload"]
+    root = root_payload["delegator"]
+    event = {
+        "project_id": root_payload["project_id"],
+        "root_principal_type": root["principal_type"],
+        "root_principal_id": root["principal_id"],
+        "actor_id": "00000000-0000-0000-0000-000000000000",
+        "actor_kind": "system",
+        "previous_status": previous_status,
+        "status": "disabled",
+        "status_changed_at": disabled_at,
+        "effective_at": disabled_at,
+        "last_attested_at": None,
+        "attestation_valid_until": None,
+        "suspension_due_at": None,
+        "needs_reattestation_at": None,
+        "suspended_at": None,
+        "disabled_at": disabled_at,
+        "terminal_disable_reason_code": "clerk_user_deleted",
+        "terminal_disable_source_event_id": source_event_id,
+    }
+    canonical_hash = _root_status_v2_canonical_hash(event)
     event["signature"] = base64.b64encode(
         private_key.sign(canonical_hash.encode("utf-8"))
     ).decode("ascii")
@@ -502,6 +540,198 @@ def test_authority_root_status_temporal_missing_status_evidence_is_insufficient(
     assert claim.reason_code == "authority_root_status.status_evidence_missing"
 
 
+def test_authority_root_status_temporal_v2_v1_pre_disable_event_supports(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    input_doc["root_status_events"] = [
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-05-01T00:00:00Z",
+        )
+    ]
+    input_doc["root_status_v2_events"] = []
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
+
+
+def test_authority_root_status_temporal_v2_disabled_at_resolution_is_disproved(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    input_doc["root_status_events"] = [
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-05-01T00:00:00Z",
+        )
+    ]
+    input_doc["root_status_v2_events"] = [
+        _signed_root_status_v2_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            disabled_at="2026-06-01T00:00:00Z",
+        )
+    ]
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "authority_root_status.root_disabled_at_resolution"
+
+
+def test_authority_root_status_temporal_v2_terminal_disable_cannot_be_masked_by_later_v1(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    input_doc["root_status_events"] = [
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-05-01T00:00:00Z",
+        ),
+        _signed_root_status_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            status="active",
+            status_changed_at="2026-06-01T00:00:00Z",
+        ),
+    ]
+    input_doc["root_status_v2_events"] = [
+        _signed_root_status_v2_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            disabled_at="2026-05-15T00:00:00Z",
+        )
+    ]
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "authority_root_status.root_disabled_at_resolution"
+
+
+def test_authority_root_status_temporal_v2_disabled_after_resolution_is_supported(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    input_doc["root_status_v2_events"] = [
+        _signed_root_status_v2_event(
+            private_key=binding_private_key,
+            export_document=input_doc,
+            disabled_at="2026-06-01T00:00:01Z",
+        )
+    ]
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
+
+
+def test_authority_root_status_temporal_v2_missing_events_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    del binding_private_key
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_root_status.status_evidence_missing"
+
+
+def test_authority_root_status_temporal_v2_tampered_signature_is_insufficient(
+    tmp_path: Path,
+) -> None:
+    input_doc, trust_root = _supported_authority_export()
+    binding_private_key, binding_public_key, binding_key_id = keypair()
+    key_manifest = _key_manifest_for_authority_export(
+        tmp_path,
+        export_public_key=binding_public_key,
+        export_key_id=binding_key_id,
+        trust_root=trust_root,
+    )
+    event = _signed_root_status_v2_event(
+        private_key=binding_private_key,
+        export_document=input_doc,
+        disabled_at="2026-06-01T00:00:00Z",
+    )
+    event["terminal_disable_reason_code"] = "tampered_reason"
+    input_doc["root_status_v2_events"] = [event]
+
+    claim = _adjudicate_authority_root_status_temporal_v2(
+        export_document=input_doc,
+        key_manifest_source=str(key_manifest),
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "insufficient_evidence"
+    assert claim.reason_code == "authority_root_status.status_evidence_missing"
+
+
 def test_authority_chain_semantics_pin_scalar_failure_code_verdicts() -> None:
     authority_chain_path = (
         REPO_ROOT
@@ -804,6 +1034,27 @@ def test_authority_edge_revocation_is_registered_in_semantics() -> None:
     )
 
 
+def test_authority_root_status_temporal_v2_is_registered_in_semantics() -> None:
+    assert semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID == (
+        "keel.authority.root_status_temporal.v2"
+    )
+    assert semantics.CLAIM_SEMANTICS["authority.root_status_temporal.v2"] == (
+        semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID,
+    )
+    assert (
+        semantics.RELEASED_ARTIFACT_HASHES[
+            semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID
+        ]
+        == semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_HASH
+    )
+    assert (
+        semantics.RELEASED_ARTIFACT_PATHS[
+            semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID
+        ]
+        == "semantics/permit/authority_root_status_temporal_v2.json"
+    )
+
+
 def test_authority_edge_revocation_semantics_pin_failure_code_verdicts() -> None:
     edge_path = (
         REPO_ROOT
@@ -826,6 +1077,29 @@ def test_authority_edge_revocation_semantics_pin_failure_code_verdicts() -> None
     assert edge["status"] == "released"
 
 
+def test_authority_root_status_temporal_v2_semantics_pin_failure_code_verdicts() -> None:
+    root_v2_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / semantics.RELEASED_ARTIFACT_PATHS[
+            semantics.AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID
+        ]
+    )
+    root_v2 = _load_json(root_v2_path)
+    failures = root_v2["body"]["failure_codes"]
+
+    assert len(failures) == 3
+    by_code = {item["code"]: item["verdict"] for item in failures}
+    assert by_code["authority_root_status.root_disabled_at_resolution"] == "disproved"
+    assert by_code["authority_root_status.root_suspended_at_resolution"] == "disproved"
+    assert by_code[
+        "authority_root_status.status_evidence_missing"
+    ] == "insufficient_evidence"
+    assert root_v2["id"] == "keel.authority.root_status_temporal.v2"
+    assert root_v2["status"] == "released"
+
+
 def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     registry_bytes = (
         REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
@@ -841,19 +1115,18 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     assert registry_bytes == legacy_bytes
 
     # The previous hash rolled into history, and its frozen snapshot is bundled.
-    # The rail.settlement_reconciled.v1 release rolled the edge-revocation
-    # registry (bfdc09a7...) into PREVIOUS; the prior a142fce... hash remains in
-    # the historical tuple behind it.
+    # The root_status_temporal.v2 release rolled the rail registry (02b6...)
+    # into PREVIOUS; the prior bfdc09a7... hash remains in history behind it.
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
-        == "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7"
+        == "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
         in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
     )
     assert (
-        "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba"
+        "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7"
         in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
     )
     assert semantics.CLAIM_REGISTRY_HASH not in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
@@ -876,7 +1149,7 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     # The new registry actually contains the new claim row.
     registry = json.loads(registry_bytes)
     names = [claim["name"] for claim in registry["claims"]]
-    assert "authority.edge_revocation.v1" in names
+    assert "authority.root_status_temporal.v2" in names
 
 
 def test_claim_registry_includes_edge_revocation_after_root_status() -> None:
@@ -885,8 +1158,9 @@ def test_claim_registry_includes_edge_revocation_after_root_status() -> None:
     )
     names = [claim["name"] for claim in registry["claims"]]
     root_index = names.index("authority.root_status_temporal.v1")
-    assert names[root_index + 1] == "authority.edge_revocation.v1"
-    row = registry["claims"][root_index + 1]
+    assert names[root_index + 1] == "authority.root_status_temporal.v2"
+    assert names[root_index + 2] == "authority.edge_revocation.v1"
+    row = registry["claims"][root_index + 2]
     assert row["verdict_enum"] == [
         "supported",
         "disproved",

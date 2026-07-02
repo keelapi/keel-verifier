@@ -666,6 +666,7 @@ PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
 PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME = "authority.root_status_temporal.v1"
+AUTHORITY_ROOT_STATUS_TEMPORAL_V2_CLAIM_NAME = "authority.root_status_temporal.v2"
 AUTHORITY_EDGE_REVOCATION_CLAIM_NAME = "authority.edge_revocation.v1"
 RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME = "rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
@@ -799,6 +800,7 @@ AUTHORITY_REVOCATION_TEMPORAL_CODE_VERDICTS = {
     "authority_revocation.compromised_key_retroactive_taint": "disproved",
 }
 AUTHORITY_ROOT_STATUS_TEMPORAL_CODE_VERDICTS = {
+    "authority_root_status.root_disabled_at_resolution": "disproved",
     "authority_root_status.root_suspended_at_resolution": "disproved",
     "authority_root_status.status_evidence_missing": "insufficient_evidence",
 }
@@ -917,6 +919,30 @@ _ROOT_STATUS_REQUIRED_FIELDS = (
 )
 _ROOT_STATUS_PRINCIPAL_TYPES = {"user", "service_principal"}
 _ROOT_STATUS_VALUES = {"active", "needs_reattestation", "suspended"}
+_ROOT_STATUS_V2_VALUES = {*_ROOT_STATUS_VALUES, "disabled"}
+_ROOT_STATUS_V2_SIGNED_FIELDS = (
+    "project_id",
+    "root_principal_type",
+    "root_principal_id",
+    "actor_id",
+    "actor_kind",
+    "previous_status",
+    "status",
+    "status_changed_at",
+    "effective_at",
+    "last_attested_at",
+    "attestation_valid_until",
+    "suspension_due_at",
+    "needs_reattestation_at",
+    "suspended_at",
+    "disabled_at",
+    "terminal_disable_reason_code",
+    "terminal_disable_source_event_id",
+)
+_ROOT_STATUS_V2_REQUIRED_FIELDS = (
+    *_ROOT_STATUS_V2_SIGNED_FIELDS,
+    "signature",
+)
 # Mirror of keel-api ``key_status_signing.KEY_STATUS_SIGNED_FIELDS`` for the
 # ``revoked`` variant (``compromised_at`` is the alternate timestamp slot but the
 # edge-revocation claim only adjudicates ``status="revoked"`` evidence).
@@ -3741,6 +3767,29 @@ def _authority_root_status_temporal_claim(
     )
 
 
+def _authority_root_status_temporal_v2_claim(
+    *,
+    input_doc: dict[str, Any],
+    verdict: str,
+    reason_code: str | None,
+    message: str,
+    evidence: list[str] | None = None,
+) -> ClaimVerdict:
+    return _authority_claim(
+        AUTHORITY_ROOT_STATUS_TEMPORAL_V2_CLAIM_NAME,
+        input_doc=input_doc,
+        verdict=verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=evidence,
+        epistemic_state={
+            "authority_root_status_temporal_v2": "verified"
+            if verdict == "supported"
+            else "observed"
+        },
+    )
+
+
 def _authority_edge_revocation_claim(
     *,
     input_doc: dict[str, Any],
@@ -4558,6 +4607,156 @@ def _root_status_canonical_hash(event: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_json_bytes(signed_payload)).hexdigest()
 
 
+def _root_status_v2_event_from_payload(payload: dict[str, Any]) -> dict[str, Any] | None:
+    nested = payload.get("root_status_v2_event")
+    if isinstance(nested, dict):
+        return nested
+    wrapped = payload.get("root_status_v2")
+    if isinstance(wrapped, dict):
+        event = wrapped.get("event")
+        return event if isinstance(event, dict) else wrapped
+    if (
+        payload.get("status") == "disabled"
+        and payload.get("disabled_at") is not None
+        and "signature" in payload
+    ):
+        return payload
+    return None
+
+
+def _iter_root_status_v2_events(
+    document: dict[str, Any],
+) -> list[tuple[dict[str, Any], str]]:
+    result: list[tuple[dict[str, Any], str]] = []
+    top_level = document.get("root_status_v2_events")
+    if isinstance(top_level, list):
+        for index, item in enumerate(top_level):
+            if isinstance(item, dict):
+                event = _root_status_v2_event_from_payload(item)
+                if event is not None:
+                    result.append((event, f"root_status_v2_events[{index}]"))
+    elif isinstance(top_level, dict):
+        event = _root_status_v2_event_from_payload(top_level)
+        if event is not None:
+            result.append((event, "root_status_v2_events"))
+
+    single = document.get("root_status_v2_event")
+    if isinstance(single, dict):
+        event = _root_status_v2_event_from_payload(single)
+        if event is not None:
+            result.append((event, "root_status_v2_event"))
+
+    for entry_index, entry in enumerate(_iter_export_entries(document)):
+        payload = _entry_payload_any(entry)
+        event = _root_status_v2_event_from_payload(payload)
+        if event is not None:
+            result.append((event, f"entries[{entry_index}].payload_json"))
+        event = _root_status_v2_event_from_payload(entry)
+        if event is not None:
+            result.append((event, f"entries[{entry_index}]"))
+    return result
+
+
+def _root_status_v2_schema_error(
+    event: dict[str, Any],
+) -> tuple[str | None, str | None]:
+    keys = set(event.keys())
+    required = set(_ROOT_STATUS_V2_REQUIRED_FIELDS)
+    missing = sorted(required - keys)
+    if missing:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "root.status.v2 event missing required field(s): " + ", ".join(missing),
+        )
+    extra = sorted(keys - required)
+    if extra:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "root.status.v2 event has unsupported field(s): " + ", ".join(extra),
+        )
+    for field in ("project_id", "root_principal_id", "actor_id"):
+        if not isinstance(event.get(field), str) or not event[field]:
+            return (
+                "authority_root_status.status_evidence_missing",
+                f"{field} must be a non-empty string",
+            )
+    if event.get("root_principal_type") not in _ROOT_STATUS_PRINCIPAL_TYPES:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "root_principal_type is outside the v2 taxonomy",
+        )
+    if event.get("actor_kind") not in _PERMIT_REVOKED_ACTOR_KINDS:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "actor_kind is outside the v2 taxonomy",
+        )
+    if event.get("status") != "disabled":
+        return (
+            "authority_root_status.status_evidence_missing",
+            "root.status.v2 currently requires status=disabled",
+        )
+    if (
+        event.get("previous_status") is not None
+        and event.get("previous_status") not in _ROOT_STATUS_V2_VALUES
+    ):
+        return (
+            "authority_root_status.status_evidence_missing",
+            "previous_status is outside the v2 taxonomy",
+        )
+    changed_at = _parse_iso_or_none(event.get("status_changed_at"))
+    effective_at = _parse_iso_or_none(event.get("effective_at"))
+    disabled_at = _parse_iso_or_none(event.get("disabled_at"))
+    if changed_at is None:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "status_changed_at must be an RFC 3339 timestamp",
+        )
+    if effective_at is None:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "effective_at must be an RFC 3339 timestamp",
+        )
+    if disabled_at is None:
+        return (
+            "authority_root_status.status_evidence_missing",
+            "disabled_at must be an RFC 3339 timestamp",
+        )
+    if not (disabled_at == effective_at == changed_at):
+        return (
+            "authority_root_status.status_evidence_missing",
+            "root.status.v2 disabled events require disabled_at == effective_at == status_changed_at",
+        )
+    for field in ("terminal_disable_reason_code", "terminal_disable_source_event_id"):
+        if not isinstance(event.get(field), str) or not event[field]:
+            return (
+                "authority_root_status.status_evidence_missing",
+                f"{field} must be a non-empty string",
+            )
+    for field in (
+        "last_attested_at",
+        "attestation_valid_until",
+        "suspension_due_at",
+        "needs_reattestation_at",
+        "suspended_at",
+    ):
+        if event.get(field) is not None and _parse_iso_or_none(event.get(field)) is None:
+            return (
+                "authority_root_status.status_evidence_missing",
+                f"{field} must be an RFC 3339 timestamp when present",
+            )
+    if not _raw_ed25519_signature_b64(event.get("signature")):
+        return (
+            "authority_root_status.status_evidence_missing",
+            "signature must be raw base64 Ed25519 bytes",
+        )
+    return None, None
+
+
+def _root_status_v2_canonical_hash(event: dict[str, Any]) -> str:
+    signed_payload = {key: event[key] for key in _ROOT_STATUS_V2_SIGNED_FIELDS}
+    return hashlib.sha256(_canonical_json_bytes(signed_payload)).hexdigest()
+
+
 def _adjudicate_authority_root_status_temporal_v1(
     *,
     export_document: dict[str, Any],
@@ -4674,6 +4873,215 @@ def _adjudicate_authority_root_status_temporal_v1(
         verdict="supported",
         reason_code=AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE,
         message="authority root status evidence is not suspended at resolution_time",
+        evidence=[evidence_path, "resolution_time", "trust_root"],
+    )
+
+
+def _adjudicate_authority_root_status_temporal_v2(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None = None,
+    trust_root: dict[str, Any] | None = None,
+) -> ClaimVerdict:
+    input_doc = export_document
+    records = _authority_key_records(
+        trust_root=trust_root,
+        key_manifest_source=key_manifest_source,
+    )
+    edges = _authority_chain_edges_in_order(input_doc, records)
+    resolution_time = _parse_iso_or_none(input_doc.get("resolution_time"))
+    if not edges or resolution_time is None:
+        return _authority_root_status_temporal_v2_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_root_status.status_evidence_missing",
+            message="authority chain, root status event, or resolution_time evidence is incomplete",
+            evidence=[
+                "authority_edges",
+                "root_status_events",
+                "root_status_v2_events",
+                "resolution_time",
+            ],
+        )
+
+    root_payload = edges[0]["payload"]
+    root_principal = root_payload.get("delegator")
+    if not isinstance(root_principal, dict):
+        return _authority_root_status_temporal_v2_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_root_status.status_evidence_missing",
+            message="authority root principal evidence is incomplete",
+            evidence=["authority_edges[0].payload.delegator"],
+        )
+    root_type = root_principal.get("principal_type")
+    root_id = root_principal.get("principal_id")
+    project_id = root_payload.get("project_id")
+
+    matching: list[tuple[datetime, int, dict[str, Any], str, str]] = []
+    terminal_disable_at_resolution: tuple[datetime, dict[str, Any], str] | None = None
+    future_disable: tuple[datetime, dict[str, Any], str] | None = None
+    saw_matching_identity = False
+
+    for event, evidence_path in _iter_root_status_events(input_doc):
+        reason, schema_message = _root_status_schema_error(event)
+        if reason is not None:
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(reason, root_status_temporal=True),
+                reason_code=reason,
+                message=schema_message or "root.status event schema validation failed",
+                evidence=[evidence_path],
+            )
+        if (
+            event.get("root_principal_type") != root_type
+            or event.get("root_principal_id") != root_id
+            or (project_id is not None and event.get("project_id") != project_id)
+        ):
+            continue
+        saw_matching_identity = True
+        effective_at = _parse_iso_or_none(event.get("effective_at"))
+        assert effective_at is not None
+        canonical_hash = _root_status_canonical_hash(event)
+        candidates, key_error = _permit_binding_key_candidates(
+            key_manifest_source=key_manifest_source,
+            signing_time=effective_at,
+        )
+        if key_error is not None:
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_root_status.status_evidence_missing",
+                message=key_error,
+                evidence=[evidence_path, "trust_root"],
+            )
+        if not any(
+            _verify_ed25519(
+                str(candidate["public_key"]),
+                canonical_hash.encode("utf-8"),
+                str(event["signature"]),
+            )
+            for candidate in candidates
+        ):
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_root_status.status_evidence_missing",
+                message="root.status signature does not verify under an active permit-binding key",
+                evidence=[evidence_path, "signature", "trust_root"],
+            )
+        if effective_at <= resolution_time:
+            matching.append((effective_at, 0, event, evidence_path, "v1"))
+
+    for event, evidence_path in _iter_root_status_v2_events(input_doc):
+        reason, schema_message = _root_status_v2_schema_error(event)
+        if reason is not None:
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict=_authority_code_verdict(reason, root_status_temporal=True),
+                reason_code=reason,
+                message=schema_message or "root.status.v2 event schema validation failed",
+                evidence=[evidence_path],
+            )
+        if (
+            event.get("root_principal_type") != root_type
+            or event.get("root_principal_id") != root_id
+            or (project_id is not None and event.get("project_id") != project_id)
+        ):
+            continue
+        saw_matching_identity = True
+        disabled_at = _parse_iso_or_none(event.get("disabled_at"))
+        assert disabled_at is not None
+        canonical_hash = _root_status_v2_canonical_hash(event)
+        candidates, key_error = _permit_binding_key_candidates(
+            key_manifest_source=key_manifest_source,
+            signing_time=disabled_at,
+        )
+        if key_error is not None:
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_root_status.status_evidence_missing",
+                message=key_error,
+                evidence=[evidence_path, "trust_root"],
+            )
+        if not any(
+            _verify_ed25519(
+                str(candidate["public_key"]),
+                canonical_hash.encode("utf-8"),
+                str(event["signature"]),
+            )
+            for candidate in candidates
+        ):
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict="insufficient_evidence",
+                reason_code="authority_root_status.status_evidence_missing",
+                message="root.status.v2 signature does not verify under an active permit-binding key",
+                evidence=[evidence_path, "signature", "trust_root"],
+            )
+        if disabled_at <= resolution_time:
+            if (
+                terminal_disable_at_resolution is None
+                or disabled_at > terminal_disable_at_resolution[0]
+            ):
+                terminal_disable_at_resolution = (disabled_at, event, evidence_path)
+            matching.append((disabled_at, 1, event, evidence_path, "v2"))
+        elif future_disable is None or disabled_at < future_disable[0]:
+            future_disable = (disabled_at, event, evidence_path)
+
+    if terminal_disable_at_resolution is not None:
+        _disabled_at, _event, evidence_path = terminal_disable_at_resolution
+        return _authority_root_status_temporal_v2_claim(
+            input_doc=input_doc,
+            verdict="disproved",
+            reason_code="authority_root_status.root_disabled_at_resolution",
+            message="authority root was disabled at or before resolution_time",
+            evidence=[evidence_path, "resolution_time"],
+        )
+
+    if not matching:
+        if future_disable is not None:
+            _disabled_at, _event, evidence_path = future_disable
+            return _authority_root_status_temporal_v2_claim(
+                input_doc=input_doc,
+                verdict="supported",
+                reason_code=AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE,
+                message="authority root disabled after resolution_time",
+                evidence=[evidence_path, "resolution_time", "trust_root"],
+            )
+        message = (
+            "no root.status event for the authority root is effective at resolution_time"
+            if saw_matching_identity
+            else "root.status event evidence for the authority root is absent"
+        )
+        return _authority_root_status_temporal_v2_claim(
+            input_doc=input_doc,
+            verdict="insufficient_evidence",
+            reason_code="authority_root_status.status_evidence_missing",
+            message=message,
+            evidence=["root_status_events", "root_status_v2_events"],
+        )
+
+    _effective_at, _priority, latest, evidence_path, event_version = max(
+        matching,
+        key=lambda item: (item[0], item[1]),
+    )
+    if event_version == "v2":
+        raise AssertionError("terminal disable should be handled before latest-event selection")
+    if latest.get("status") == "suspended":
+        return _authority_root_status_temporal_v2_claim(
+            input_doc=input_doc,
+            verdict="disproved",
+            reason_code="authority_root_status.root_suspended_at_resolution",
+            message="authority root was suspended at resolution_time",
+            evidence=[evidence_path, "resolution_time"],
+        )
+    return _authority_root_status_temporal_v2_claim(
+        input_doc=input_doc,
+        verdict="supported",
+        reason_code=AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE,
+        message="authority root status evidence is not suspended or disabled at resolution_time",
         evidence=[evidence_path, "resolution_time", "trust_root"],
     )
 
@@ -12501,6 +12909,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME,
     )
+    authority_root_status_temporal_v2_requested = _pinned_claim_requested(
+        semantics,
+        requested,
+        AUTHORITY_ROOT_STATUS_TEMPORAL_V2_CLAIM_NAME,
+    )
     authority_edge_revocation_requested = _pinned_claim_requested(
         semantics,
         requested,
@@ -12579,6 +12992,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         or permit_authority_chain_requested
         or authority_revocation_temporal_requested
         or authority_root_status_temporal_requested
+        or authority_root_status_temporal_v2_requested
         or permit_v2_pinned_requested
         or should_try_auto_permit_v2
     ):
@@ -12593,6 +13007,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 or permit_authority_chain_requested
                 or authority_revocation_temporal_requested
                 or authority_root_status_temporal_requested
+                or authority_root_status_temporal_v2_requested
                 or permit_v2_pinned_requested
             ):
                 diagnostics.append(f"permit claim evidence is not JSON: {exc}")
@@ -12781,6 +13196,24 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         else:
             permit_claims.append(
                 _adjudicate_authority_root_status_temporal_v1(
+                    export_document=export_document_for_claims,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
+    if authority_root_status_temporal_v2_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _authority_root_status_temporal_v2_claim(
+                    input_doc={},
+                    verdict="insufficient_evidence",
+                    reason_code="authority_root_status.status_evidence_missing",
+                    message="authority root-status temporal v2 claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_authority_root_status_temporal_v2(
                     export_document=export_document_for_claims,
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )

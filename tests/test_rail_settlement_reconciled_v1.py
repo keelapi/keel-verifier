@@ -434,12 +434,12 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     digest = f"sha256:{hashlib.sha256(registry_bytes).hexdigest()}"
     assert digest == semantics.CLAIM_REGISTRY_HASH
     assert semantics.CLAIM_REGISTRY_HASH == (
-        "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
+        "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
     )
 
-    # The edge-revocation registry rolled into PREVIOUS, with a bundled snapshot.
+    # The rail registry rolled into PREVIOUS, with a bundled snapshot.
     assert semantics.CLAIM_REGISTRY_PREVIOUS_HASH == (
-        "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7"
+        "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
@@ -477,12 +477,13 @@ def test_existing_claims_unaffected_by_additive_row() -> None:
     )
     names = [claim["name"] for claim in registry["claims"]]
 
-    # The pre-existing authority cluster is untouched and in its original order.
+    # The pre-existing authority cluster keeps edge revocation after root status.
     assert "authority.edge_revocation.v1" in names
     root_index = names.index("authority.root_status_temporal.v1")
-    assert names[root_index + 1] == "authority.edge_revocation.v1"
+    assert names[root_index + 1] == "authority.root_status_temporal.v2"
+    assert names[root_index + 2] == "authority.edge_revocation.v1"
 
-    # The new row is purely additive (appended at the end).
+    # The C1 row remains purely additive (appended at the end).
     assert names[-1] == "rail.settlement_reconciled.v1"
 
     # The edge-revocation semantic hash is unchanged.

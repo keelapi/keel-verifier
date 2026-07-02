@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.4.5",
+    "version": "3.4.6",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -421,6 +421,20 @@
       "description": "Adjudicates dispatch-time authority root status from signed root.status.v1 governance-chain evidence for the root principal in the authority chain.",
       "depends_on_semantics": [
         "keel.authority.root_status_temporal.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "authority.root_status_temporal.v2",
+      "status": "implemented",
+      "description": "Adjudicates dispatch-time authority root status from signed root.status.v1 pre-disable evidence and signed root.status.v2 terminal-disable evidence for the root principal in the authority chain.",
+      "depends_on_semantics": [
+        "keel.authority.root_status_temporal.v2"
       ],
       "verdicts": [
         "supported",
@@ -949,6 +963,11 @@
     {
       "id": "keel.authority.root_status_temporal.v1",
       "hash": "sha256:212f5d14d8604518c88de8bec32f7ccf6f8b130d7f1d6ebf762deb830984a3c0",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.authority.root_status_temporal.v2",
+      "hash": "sha256:b3910d837d2ac5e11bb931657afaec7b37fc84e0b427a77cee8f403ea8c8b0bd",
       "status": "allowlisted"
     },
     {
