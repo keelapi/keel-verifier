@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.4.6
+
+- Add the `authority.root_status_temporal.v2` adjudicator: offline-verifiable
+  proof that a dispatch did not rely on a root authority after its terminal
+  disable time. The adjudicator consumes v1 root-status events for pre-disable
+  liveness and v2 events for terminal disable evidence, supports dispatches
+  before `disabled_at`, disproves dispatches at or after `disabled_at`, and
+  remains masking-resistant by checking terminal disable before
+  latest-event-wins status selection. Additive only: the v1 adjudicator,
+  schema, and registry entry are unchanged, and the new claim fires only when
+  explicitly pinned.
+
 ## 3.4.5
 
 - Add the `rail.settlement_reconciled.v1` adjudicator: offline-verifiable proof
