@@ -87,7 +87,7 @@
     "keel_verifier/data/tsa_trust/globalsign/root_r6.pem": "5ff8425be71c1805446bf10601ce3cb9619889866766fc9285583ca5a4a7de94",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.crl.pem": "ae233c80dcc937f63fe27235d9869cba53439332fbd75148a488215193119582",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.pem": "f3c1abb03ca2a8399c864320266daf32d7a86b93adb7ee011857c72810c384b5",
-    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "c6eac60bdee11584eb1c05694bcec7cd415bb4e961a1bf3c54ca32e8e369dd1c",
+    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "f17980b65b12f9a6900215110eb30eec8129457adf5632050ac608e394bc1724",
     "keel_verifier/doctor.py": "22afc7d6916ed5803a0e580a918138a949c32fc52aff896c2a43a684caa8bf88",
     "keel_verifier/install_diagnostics.py": "b7559943f7c8d2c184326b8a5399dbf5881bd3c74929567969409a6e7db386ee",
     "keel_verifier/keys/keel_checkpoint.pub.json": "4b22dcfd53e591dba8a6d6546099c50f1019e8f714234316fb8bbeae560bbd8a",
@@ -98,7 +98,7 @@
     "keel_verifier/self_check.py": "dbcbd633cbd51a01fa8ee58485b27c320309a82ad47f7db266b717d78409977f",
     "keel_verifier/semantics.py": "eb1f38af62d4fe5b670307d81ec14013fd330bb076787bc140507b71b81369e5",
     "keel_verifier/verdicts.py": "2da62c14280a436137aff66c347c281b636387e2ebff27488feaaa5da65b3488",
-    "keel_verifier/verifier.py": "35ee4dc0ee7c81a36d45d3853323b144ae49808e6cf9d9cd10f9c0ed0e975f20",
+    "keel_verifier/verifier.py": "9d4251cc4e007f21c3582b5cd988f19445b45750a2022aa4756798635628294a",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6"
   }
 }
