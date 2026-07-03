@@ -125,6 +125,8 @@
   "generated_at": "2026-07-02T21:37:18Z",
   "id": "keel.tsa_trust_bundle.v1",
   "validation": {
+    "crl_refresh_guard": "CI must refresh the release-pinned TSA CRL snapshots before the earliest bundled CRL next_update enters the configured guard window.",
+    "crl_refresh_required_before": "2026-07-15T00:00:00Z",
     "revocation_rule": "For each non-root certificate in the resolved chain, a bundled CRL issued by that certificate issuer must cover genTime; revocationDate or invalidityDate at or before genTime invalidates the TSA chain.",
     "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
     "timestamp_verification_time": "RFC3161 TSTInfo.genTime"

@@ -14225,7 +14225,7 @@ TSA_TRUST_BUNDLE_V1_PATH = (
     / "tsa_trust_bundle_v1.json"
 )
 TSA_TRUST_BUNDLE_V1_HASH = (
-    "sha256:c6eac60bdee11584eb1c05694bcec7cd415bb4e961a1bf3c54ca32e8e369dd1c"
+    "sha256:f17980b65b12f9a6900215110eb30eec8129457adf5632050ac608e394bc1724"
 )
 
 
@@ -14337,6 +14337,14 @@ def _openssl_tsa_bin() -> str:
     return os.getenv("KEEL_OPENSSL_BIN") or "openssl"
 
 
+def _openssl_tsa_env() -> dict[str, str]:
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("SSL_CERT_")
+    }
+
+
 def _openssl_tsa_runtime_status(openssl_bin: str | None = None) -> dict[str, Any]:
     executable = openssl_bin or _openssl_tsa_bin()
     try:
@@ -14346,6 +14354,7 @@ def _openssl_tsa_runtime_status(openssl_bin: str | None = None) -> dict[str, Any
             text=True,
             timeout=5,
             check=False,
+            env=_openssl_tsa_env(),
         )
     except FileNotFoundError:
         return {
@@ -14717,12 +14726,13 @@ def _write_tsa_trust_files(
     ca_bundle_path: str | None,
 ) -> tuple[Path | None, Path | None, bool, str | None]:
     if bundle is not None and bundle.get("ok"):
-        roots_path = tmpdir / "release-roots-and-crls.pem"
-        roots_path.write_bytes(
-            b"".join(bundle.get("root_bytes") or []) + b"".join(bundle.get("crl_bytes") or [])
-        )
-        intermediates_path = tmpdir / "release-intermediates.pem"
-        intermediates_path.write_bytes(b"".join(bundle.get("intermediate_bytes") or []))
+        roots_path = tmpdir / "release-roots.pem"
+        roots_path.write_bytes(b"".join(bundle.get("root_bytes") or []))
+        intermediates = b"".join(bundle.get("intermediate_bytes") or [])
+        intermediates_path = None
+        if intermediates:
+            intermediates_path = tmpdir / "release-intermediates.pem"
+            intermediates_path.write_bytes(intermediates)
         return roots_path, intermediates_path, True, None
 
     if ca_bundle_path:
@@ -14863,8 +14873,10 @@ def _verify_tsa_receipt_authenticity_openssl(
         ]
         if untrusted_file is not None:
             cmd.extend(["-untrusted", str(untrusted_file)])
-        if release_pinned:
-            cmd.append("-crl_check_all")
+        # OpenSSL treats any CRL entry as revoked even when revocationDate is
+        # after -attime for RFC 3161 verification. Keep OpenSSL on signature,
+        # path, EKU, and certificate-time validation; enforce CRL temporal
+        # semantics below with the release-pinned snapshots.
         try:
             completed = subprocess.run(
                 cmd,
@@ -14872,6 +14884,7 @@ def _verify_tsa_receipt_authenticity_openssl(
                 text=True,
                 timeout=15,
                 check=False,
+                env=_openssl_tsa_env(),
             )
         except FileNotFoundError:
             return _tsa_trust_receipt_result(

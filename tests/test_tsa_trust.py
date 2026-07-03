@@ -3,9 +3,10 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import subprocess
 from argparse import Namespace
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -67,6 +68,11 @@ def _run_openssl(args: list[str], *, cwd: Path) -> subprocess.CompletedProcess[s
 
 
 def _require_openssl_3_for_tsa() -> str:
+    def skip_or_fail(message: str) -> None:
+        if os.getenv("KEEL_TSA_REQUIRE_OPENSSL3") == "1":
+            pytest.fail(message)
+        pytest.skip(message)
+
     openssl_bin = verifier._openssl_tsa_bin()
     try:
         completed = subprocess.run(
@@ -77,13 +83,13 @@ def _require_openssl_3_for_tsa() -> str:
             timeout=5,
         )
     except FileNotFoundError:
-        pytest.skip(f"openssl executable not available: {openssl_bin}")
+        skip_or_fail(f"openssl executable not available: {openssl_bin}")
     version = (completed.stdout or completed.stderr or "").strip()
     if completed.returncode != 0:
-        pytest.skip(f"openssl version failed: {version or completed.returncode}")
+        skip_or_fail(f"openssl version failed: {version or completed.returncode}")
     supported, error = verifier._parse_openssl_version_for_tsa(version)
     if not supported:
-        pytest.skip(error or "OpenSSL 3.x or newer required for TSA trust tests")
+        skip_or_fail(error or "OpenSSL 3.x or newer required for TSA trust tests")
     return version
 
 
@@ -259,6 +265,250 @@ def _openssl_tsa_receipt(
     )
 
 
+def _manual_rfc3161_receipt(
+    tmp_path: Path,
+    content_hash: bytes,
+    *,
+    provider: str = "local_test_tsa",
+    include_tsa_eku: bool = True,
+    signer_not_before_delta: timedelta = -timedelta(days=1),
+    signer_not_after_delta: timedelta = timedelta(days=30),
+) -> tuple[dict, Path, Path, dict]:
+    _require_openssl_3_for_tsa()
+    from asn1crypto import algos, cms, core, tsp
+    from asn1crypto import x509 as asn1_x509
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    workdir = tmp_path / "manual-rfc3161-tsa"
+    workdir.mkdir()
+    gen_time = datetime(2026, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
+
+    def make_ca(common_name: str, serial: int):
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(name)
+            .issuer_name(name)
+            .public_key(private_key.public_key())
+            .serial_number(serial)
+            .not_valid_before(gen_time - timedelta(days=30))
+            .not_valid_after(gen_time + timedelta(days=365))
+            .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True,
+                    content_commitment=False,
+                    key_encipherment=False,
+                    data_encipherment=False,
+                    key_agreement=False,
+                    key_cert_sign=True,
+                    crl_sign=True,
+                    encipher_only=None,
+                    decipher_only=None,
+                ),
+                critical=True,
+            )
+            .add_extension(
+                x509.SubjectKeyIdentifier.from_public_key(private_key.public_key()),
+                critical=False,
+            )
+            .sign(private_key=private_key, algorithm=hashes.SHA256())
+        )
+        return cert, private_key
+
+    ca_cert, ca_key = make_ca("Keel Manual TSA Root", 1001)
+    wrong_ca_cert, _wrong_ca_key = make_ca("Keel Wrong Manual TSA Root", 1002)
+    signer_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    signer_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Keel Manual TSA")])
+    signer_builder = (
+        x509.CertificateBuilder()
+        .subject_name(signer_name)
+        .issuer_name(ca_cert.subject)
+        .public_key(signer_key.public_key())
+        .serial_number(2001)
+        .not_valid_before(gen_time + signer_not_before_delta)
+        .not_valid_after(gen_time + signer_not_after_delta)
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                content_commitment=True,
+                key_encipherment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=False,
+                encipher_only=None,
+                decipher_only=None,
+            ),
+            critical=True,
+        )
+        .add_extension(
+            x509.SubjectKeyIdentifier.from_public_key(signer_key.public_key()),
+            critical=False,
+        )
+        .add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),
+            critical=False,
+        )
+    )
+    if include_tsa_eku:
+        signer_builder = signer_builder.add_extension(
+            x509.ExtendedKeyUsage([ExtendedKeyUsageOID.TIME_STAMPING]),
+            critical=True,
+        )
+    signer_cert = signer_builder.sign(private_key=ca_key, algorithm=hashes.SHA256())
+
+    tst_info = tsp.TSTInfo(
+        {
+            "version": "v1",
+            "policy": "1.2.3.4.1",
+            "message_imprint": tsp.MessageImprint(
+                {
+                    "hash_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+                    "hashed_message": content_hash,
+                }
+            ),
+            "serial_number": 12345,
+            "gen_time": core.GeneralizedTime(gen_time),
+            "ordering": True,
+        }
+    )
+    tst_der = tst_info.dump()
+    signer_der = signer_cert.public_bytes(serialization.Encoding.DER)
+    signer_asn1 = asn1_x509.Certificate.load(signer_der)
+    ca_asn1 = asn1_x509.Certificate.load(ca_cert.public_bytes(serialization.Encoding.DER))
+    signing_cert_v2 = tsp.SigningCertificateV2(
+        {
+            "certs": [
+                tsp.ESSCertIDv2(
+                    {
+                        "hash_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+                        "cert_hash": hashlib.sha256(signer_der).digest(),
+                    }
+                )
+            ]
+        }
+    )
+    signed_attrs = cms.CMSAttributes(
+        [
+            tsp.CMSAttribute({"type": "content_type", "values": ["tst_info"]}),
+            tsp.CMSAttribute(
+                {"type": "signing_time", "values": [cms.Time({"utc_time": core.UTCTime(gen_time)})]}
+            ),
+            tsp.CMSAttribute(
+                {"type": "message_digest", "values": [hashlib.sha256(tst_der).digest()]}
+            ),
+            tsp.CMSAttribute(
+                {"type": "signing_certificate_v2", "values": [signing_cert_v2]}
+            ),
+        ]
+    )
+    signature = signer_key.sign(
+        signed_attrs.untag().dump(),
+        padding.PKCS1v15(),
+        hashes.SHA256(),
+    )
+    signer_info = cms.SignerInfo(
+        {
+            "version": "v1",
+            "sid": cms.SignerIdentifier(
+                {
+                    "issuer_and_serial_number": cms.IssuerAndSerialNumber(
+                        {
+                            "issuer": signer_asn1.issuer,
+                            "serial_number": signer_asn1.serial_number,
+                        }
+                    )
+                }
+            ),
+            "digest_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+            "signed_attrs": signed_attrs,
+            "signature_algorithm": algos.SignedDigestAlgorithm(
+                {"algorithm": "rsassa_pkcs1v15"}
+            ),
+            "signature": signature,
+        }
+    )
+    signed_data = cms.SignedData(
+        {
+            "version": "v3",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": cms.EncapsulatedContentInfo(
+                {
+                    "content_type": "tst_info",
+                    "content": core.ParsableOctetString(tst_der),
+                }
+            ),
+            "certificates": [signer_asn1, ca_asn1],
+            "signer_infos": [signer_info],
+        }
+    )
+    token_der = cms.ContentInfo({"content_type": "signed_data", "content": signed_data}).dump()
+    ca_bundle = workdir / "ca.pem"
+    wrong_ca_bundle = workdir / "wrong-ca.pem"
+    ca_bundle.write_bytes(ca_cert.public_bytes(serialization.Encoding.PEM))
+    wrong_ca_bundle.write_bytes(wrong_ca_cert.public_bytes(serialization.Encoding.PEM))
+
+    receipt = {
+        "provider": provider,
+        "url": "https://tsa.local/manual",
+        "requested_at": "2026-06-15T12:00:00Z",
+        "receipt_b64": base64.b64encode(token_der).decode("ascii"),
+        "receipt_hash": f"sha256:{hashlib.sha256(token_der).hexdigest()}",
+    }
+    materials = {
+        "ca_cert": ca_cert,
+        "ca_key": ca_key,
+        "signer_cert": signer_cert,
+        "gen_time": gen_time,
+    }
+    return receipt, ca_bundle, wrong_ca_bundle, materials
+
+
+def _manual_tsa_crl(
+    materials: dict,
+    *,
+    last_update_delta: timedelta = -timedelta(days=1),
+    next_update_delta: timedelta = timedelta(days=30),
+    revocation_delta: timedelta | None = None,
+):
+    gen_time = materials["gen_time"]
+    builder = (
+        x509.CertificateRevocationListBuilder()
+        .issuer_name(materials["ca_cert"].subject)
+        .last_update(gen_time + last_update_delta)
+        .next_update(gen_time + next_update_delta)
+    )
+    if revocation_delta is not None:
+        revoked = (
+            x509.RevokedCertificateBuilder()
+            .serial_number(materials["signer_cert"].serial_number)
+            .revocation_date(gen_time + revocation_delta)
+            .build()
+        )
+        builder = builder.add_revoked_certificate(revoked)
+    return builder.sign(private_key=materials["ca_key"], algorithm=hashes.SHA256())
+
+
+def _manual_release_pinned_bundle(materials: dict, crl) -> dict:
+    return {
+        "ok": True,
+        "id": verifier.TSA_TRUST_BUNDLE_ID,
+        "hash": "sha256:manual-test-bundle",
+        "manifest_path": "manual-test-bundle",
+        "manifest": {"generated_at": "2026-06-15T12:00:00Z"},
+        "files": [{"provider": "manual"}],
+        "root_bytes": [materials["ca_cert"].public_bytes(serialization.Encoding.PEM)],
+        "intermediate_bytes": [],
+        "crl_bytes": [crl.public_bytes(serialization.Encoding.PEM)],
+        "certificates": [materials["ca_cert"]],
+        "crls": [crl],
+    }
+
+
 def _checkpoint_with_receipt(tmp_path: Path, receipt: dict) -> Path:
     checkpoint = _sample_checkpoint()
     checkpoint["tsa"] = receipt
@@ -290,6 +540,18 @@ def test_openssl_version_parser_for_tsa_runtime_gate():
     supported, error = verifier._parse_openssl_version_for_tsa("LibreSSL 3.3.6")
     assert supported is False
     assert "LibreSSL" in str(error)
+
+
+def test_openssl_tsa_env_strips_operator_ssl_cert_overrides(monkeypatch):
+    monkeypatch.setenv("SSL_CERT_FILE", "/operator/ca.pem")
+    monkeypatch.setenv("SSL_CERT_DIR", "/operator/certs")
+    monkeypatch.setenv("PATH", "/bin")
+
+    env = verifier._openssl_tsa_env()
+
+    assert env["PATH"] == "/bin"
+    assert "SSL_CERT_FILE" not in env
+    assert "SSL_CERT_DIR" not in env
 
 
 def test_tsa_trust_runtime_gate_missing_openssl(monkeypatch, tmp_path: Path):
@@ -714,6 +976,163 @@ def test_self_signed_receipt_is_not_validated_by_release_bundle(tmp_path: Path) 
     assert trust_receipt["tsa_chain_validation"] == "not_validated"
     assert trust_receipt["imprint_match"] is True
     assert trust_receipt["reason_code"] == "not_validated_release_pinned_trust_unavailable"
+
+
+@pytest.mark.parametrize(
+    ("case_name", "fixture_kwargs", "bundle_selector", "reason_code"),
+    [
+        (
+            "missing_eku",
+            {"include_tsa_eku": False},
+            "ca",
+            "tsa_timestamping_eku_invalid",
+        ),
+        (
+            "expired_at_gentime",
+            {
+                "signer_not_before_delta": -timedelta(days=30),
+                "signer_not_after_delta": -timedelta(seconds=1),
+            },
+            "ca",
+            "tsa_certificate_time_invalid_at_gentime",
+        ),
+        (
+            "not_yet_valid_at_gentime",
+            {
+                "signer_not_before_delta": timedelta(seconds=1),
+                "signer_not_after_delta": timedelta(days=30),
+            },
+            "ca",
+            "tsa_certificate_time_invalid_at_gentime",
+        ),
+        (
+            "wrong_issuer",
+            {},
+            "wrong_ca",
+            "tsa_chain_validation_failed",
+        ),
+    ],
+)
+def test_real_cert_negative_tsa_chain_failures_are_end_to_end(
+    tmp_path: Path,
+    case_name: str,
+    fixture_kwargs: dict,
+    bundle_selector: str,
+    reason_code: str,
+) -> None:
+    content_hash = hashlib.sha256(f"real-cert-negative-{case_name}".encode()).digest()
+    receipt, ca_bundle, wrong_ca_bundle, _materials = _manual_rfc3161_receipt(
+        tmp_path,
+        content_hash,
+        **fixture_kwargs,
+    )
+    selected_bundle = ca_bundle if bundle_selector == "ca" else wrong_ca_bundle
+
+    report = verifier._build_tsa_trust_report(
+        [receipt],
+        content_hash.hex(),
+        ca_bundle_path=str(selected_bundle),
+    )
+
+    trust_receipt = report["receipts"][0]
+    assert report["tsa_chain_validation"] == "invalid"
+    assert trust_receipt["tsa_trust_status"] == "invalid"
+    assert trust_receipt["tsa_chain_validation"] == "invalid"
+    assert trust_receipt["imprint_match"] is True
+    assert trust_receipt["cms_signature_valid"] is False
+    assert trust_receipt["certificate_chain_valid"] is False
+    assert trust_receipt["eku_checked"] is True
+    assert trust_receipt["eku_valid"] is False
+    assert trust_receipt["reason_code"] == reason_code
+    assert trust_receipt["verification_error"]
+
+
+@pytest.mark.parametrize(
+    (
+        "case_name",
+        "revocation_delta",
+        "last_update_delta",
+        "expected_chain_validation",
+        "expected_trust_status",
+        "expected_revocation_valid",
+        "expected_reason_code",
+    ),
+    [
+        (
+            "revocation_at_gentime_fails",
+            timedelta(seconds=0),
+            -timedelta(days=1),
+            "invalid",
+            "invalid",
+            False,
+            "tsa_certificate_revoked_at_gentime",
+        ),
+        (
+            "this_update_at_gentime_passes",
+            None,
+            timedelta(seconds=0),
+            "validated",
+            "valid",
+            True,
+            "tsa_chain_validated",
+        ),
+        (
+            "revocation_after_gentime_still_validates",
+            timedelta(seconds=1),
+            -timedelta(days=1),
+            "validated",
+            "valid",
+            True,
+            "tsa_chain_validated",
+        ),
+    ],
+)
+def test_release_pinned_revocation_real_crl_boundaries_end_to_end(
+    monkeypatch,
+    tmp_path: Path,
+    case_name: str,
+    revocation_delta: timedelta | None,
+    last_update_delta: timedelta,
+    expected_chain_validation: str,
+    expected_trust_status: str,
+    expected_revocation_valid: bool,
+    expected_reason_code: str,
+) -> None:
+    content_hash = hashlib.sha256(f"real-crl-boundary-{case_name}".encode()).digest()
+    receipt, _ca_bundle, _wrong_ca_bundle, materials = _manual_rfc3161_receipt(
+        tmp_path,
+        content_hash,
+        provider="digicert",
+    )
+    crl = _manual_tsa_crl(
+        materials,
+        last_update_delta=last_update_delta,
+        revocation_delta=revocation_delta,
+    )
+    monkeypatch.setattr(
+        verifier,
+        "_load_tsa_trust_bundle",
+        lambda: _manual_release_pinned_bundle(materials, crl),
+    )
+
+    report = verifier._build_tsa_trust_report(
+        [receipt],
+        content_hash.hex(),
+        ca_bundle_path=None,
+    )
+
+    trust_receipt = report["receipts"][0]
+    assert report["tsa_chain_validation"] == expected_chain_validation
+    assert trust_receipt["tsa_trust_status"] == expected_trust_status
+    assert trust_receipt["tsa_chain_validation"] == expected_chain_validation
+    assert trust_receipt["imprint_match"] is True
+    assert trust_receipt["cms_signature_valid"] is True
+    assert trust_receipt["certificate_chain_valid"] is True
+    assert trust_receipt["eku_checked"] is True
+    assert trust_receipt["eku_valid"] is True
+    assert trust_receipt["revocation_checked"] is True
+    assert trust_receipt["revocation_valid"] is expected_revocation_valid
+    assert trust_receipt["reason_code"] == expected_reason_code
 
 
 @pytest.mark.parametrize(
