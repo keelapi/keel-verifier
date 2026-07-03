@@ -10,11 +10,10 @@ Build-time verification scope is intentionally narrow:
   2. status == GRANTED or GRANTED_WITH_MODS
   3. messageImprint.hashedMessage matches sha256(manifest_bytes)
 
-Full CMS signature + certificate-chain validation is deferred to opt-in trust
-extension (matches the existing keel-verifier checkpoint TSA pattern in
-verifier.py:_verify_tsa_receipt). The receipt's raw DER bytes are stored
-verbatim in the sidecar so any downstream consumer can perform deeper
-validation independently.
+Full CMS signature + certificate-chain validation is handled by the verifier's
+release-pinned TSA chain validation path. The receipt's raw DER bytes are
+stored verbatim in the sidecar so downstream tooling can perform deeper
+validation.
 """
 
 from __future__ import annotations

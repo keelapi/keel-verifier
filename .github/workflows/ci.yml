@@ -15,6 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+    env:
+      KEEL_TSA_REQUIRE_OPENSSL3: "1"
     steps:
       - uses: actions/checkout@v6
         with:
@@ -33,6 +35,21 @@ jobs:
           cache: pip
           cache-dependency-path: keel-verifier/requirements.txt
 
+      - name: Require OpenSSL 3 for TSA trust tests
+        run: |
+          set -euo pipefail
+          OPENSSL_BIN="$(command -v openssl)"
+          VERSION="$("${OPENSSL_BIN}" version)"
+          echo "${VERSION}"
+          case "${VERSION}" in
+            OpenSSL\ 3.*) ;;
+            *)
+              echo "OpenSSL 3.x is required for TSA trust regression coverage." >&2
+              exit 1
+              ;;
+          esac
+          echo "KEEL_OPENSSL_BIN=${OPENSSL_BIN}" >> "${GITHUB_ENV}"
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -43,6 +60,18 @@ jobs:
 
       - name: Run canonical drift lock
         run: pytest -q tests/test_jcs_drift_lock.py
+
+      - name: Check TSA trust bundle freshness
+        run: python scripts/check_tsa_trust_bundle_freshness.py --min-valid-days 7
+
+      - name: Run TSA trust real-crypto tests
+        run: >-
+          pytest -q tests/test_tsa_trust.py
+          -k "real_cert_negative
+          or revocation_real_crl_boundaries
+          or release_pinned_public_ca_receipts_validate_offline
+          or release_pinned_public_ca_receipt_tamper_rejects_imprint"
+          -rs
 
       - name: Run pytest
         run: pytest -q

@@ -49,10 +49,13 @@ def _source_tree_version() -> str | None:
 
 
 def verifier_version() -> str:
+    source_tree_version = _source_tree_version()
+    if source_tree_version is not None:
+        return source_tree_version
     try:
         return _metadata_version("keel-verifier")
     except PackageNotFoundError:
-        return _source_tree_version() or "unknown"
+        return "unknown"
 
 
 @dataclass(frozen=True)

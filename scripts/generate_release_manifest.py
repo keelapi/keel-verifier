@@ -197,7 +197,7 @@ def _is_package_payload(path: Path, package_root: Path) -> bool:
         relative = path.relative_to(package_root)
     except ValueError:
         return False
-    if relative.parts[:1] == ("data",) and path.suffix == ".json":
+    if relative.parts[:1] == ("data",) and path.suffix in {".json", ".pem"}:
         return True
     if relative.parts[:1] == ("keys",) and path.suffix == ".json":
         return True

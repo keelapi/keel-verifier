@@ -32,6 +32,7 @@
     "checkpoint.composite_hash.v1",
     "checkpoint.signature.v1",
     "checkpoint.tsa_imprint.v1",
+    "checkpoint.tsa_chain.v1",
     "permit.decision.v1",
     "permit.operator_approval.v1",
     "permit.operator_approval.v2",
@@ -197,6 +198,19 @@
         "disproved": "Trusted timestamp does NOT match the checkpoint",
         "insufficient_evidence": "Trusted timestamp: not provided",
         "unverifiable_scope": "Trusted timestamp: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["proves the time", "wall-clock", "timestamp failed"]
+    },
+    {
+      "claim": "checkpoint.tsa_chain.v1",
+      "dimension": "authenticity",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "optional_assurance": true,
+      "labels": {
+        "supported": "Cryptographically-validated external timestamp",
+        "disproved": "External timestamp chain validation FAILED",
+        "insufficient_evidence": "External timestamp chain: not validated",
+        "unverifiable_scope": "External timestamp chain: not checkable by this verifier version"
       },
       "forbidden_wording": ["proves the time", "wall-clock", "timestamp failed"]
     },

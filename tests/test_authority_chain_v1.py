@@ -1115,14 +1115,18 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     assert registry_bytes == legacy_bytes
 
     # The previous hash rolled into history, and its frozen snapshot is bundled.
-    # The root_status_temporal.v2 release rolled the rail registry (02b6...)
-    # into PREVIOUS; the prior bfdc09a7... hash remains in history behind it.
+    # The TSA chain release rolled the rail registry (3c932...) into PREVIOUS;
+    # earlier registry hashes remain in history behind it.
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
-        == "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
+        == "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
+        in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
+    )
+    assert (
+        "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
         in semantics.CLAIM_REGISTRY_HISTORICAL_HASHES
     )
     assert (

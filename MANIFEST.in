@@ -7,6 +7,7 @@ include requirements.txt
 include keel_verifier/_release_manifest.json
 
 recursive-include keel_verifier/data *.json
+recursive-include keel_verifier/data *.pem
 recursive-include keel_verifier/keys *.json
 recursive-include sample *.json
 recursive-include tests *.py

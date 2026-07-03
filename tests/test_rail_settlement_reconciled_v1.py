@@ -434,12 +434,12 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     digest = f"sha256:{hashlib.sha256(registry_bytes).hexdigest()}"
     assert digest == semantics.CLAIM_REGISTRY_HASH
     assert semantics.CLAIM_REGISTRY_HASH == (
-        "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
+        "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
     )
 
-    # The rail registry rolled into PREVIOUS, with a bundled snapshot.
+    # The TSA chain registry rolled the rail registry into PREVIOUS, with a bundled snapshot.
     assert semantics.CLAIM_REGISTRY_PREVIOUS_HASH == (
-        "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5"
+        "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH

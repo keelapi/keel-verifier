@@ -337,9 +337,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_cp.add_argument(
         "--tsa-ca-bundle",
         help=(
-            "Optional CA bundle for opt-in RFC 3161 TSA trust validation. "
+            "Optional custom CA bundle for RFC 3161 TSA trust validation. "
             "Verifies chain, signature, and timestamping purpose against this "
-            "bundle only; historical revocation is not checked."
+            "bundle only. Release-pinned CRL validation is available for the "
+            "bundled DigiCert/GlobalSign TSA trust store."
+        ),
+    )
+    p_cp.add_argument(
+        "--require-tsa-chain",
+        action="store_true",
+        help=(
+            "Fail unless checkpoint TSA chain validation is validated by the "
+            "release-pinned trust bundle."
         ),
     )
     p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))

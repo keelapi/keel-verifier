@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.5.0
+
+- Add release-pinned TSA chain validation for checkpoint RFC 3161 receipts,
+  including offline DigiCert/GlobalSign trust material, timestamping EKU
+  enforcement, certificate validity at `genTime`, and CRL revocation checks at
+  `genTime`.
+- Harden TSA trust regression coverage with real OpenSSL 3 certificate-chain
+  negatives and real CRL boundary fixtures, plus a CI OpenSSL 3 gate for the
+  load-bearing TSA tests.
+- Default checkpoint verification now reports
+  `tsa_chain_validation: "not_validated"` for receipts outside the
+  release-pinned trust bundle instead of the legacy `tsa_trust_status:
+  "skipped"` envelope.
+
 ## 3.4.6
 
 - Add the `authority.root_status_temporal.v2` adjudicator: offline-verifiable

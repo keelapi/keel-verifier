@@ -1,0 +1,22 @@
+{
+  "id": "keel.checkpoint.tsa_chain.v1",
+  "version": "v1",
+  "kind": "checkpoint_tsa_chain_validation_recipe",
+  "status": "released",
+  "body": {
+    "claim_name": "checkpoint.tsa_chain.v1",
+    "receipt_selection": "same receipt selection as keel.checkpoint.tsa_imprint.v1: checkpoint.tsa_receipts list wins over legacy checkpoint.tsa; non-object entries are invalid markers",
+    "precondition": "checkpoint.tsa_imprint.v1 remains a separate bind-level claim; this claim does not change its verdict or evidence interpretation",
+    "validation_status_values": [
+      "validated",
+      "not_validated",
+      "invalid"
+    ],
+    "validated_rule": "The RFC 3161 TimeStampToken CMS signature verifies, the certificate chain anchors in the release-pinned DigiCert/GlobalSign TSA trust bundle or supplied CA material as scoped, the signer certificate has id-kp-timeStamping EKU, certificate validity is evaluated at TSTInfo.genTime, and each non-root chain certificate has a release-pinned CRL whose nextUpdate is after genTime and whose revokedCertificates entries do not carry revocationDate or invalidityDate at or before genTime.",
+    "not_validated_rule": "Use not_validated when the receipt is outside the release-pinned DigiCert/GlobalSign trust bundle, when the runtime lacks OpenSSL 3 chain-validation support, or when a supplied custom CA bundle verifies signature/chain/purpose but has no release-pinned CRL snapshot.",
+    "invalid_rule": "Use invalid when parsing fails after imprint support, the known public-CA provider chain cannot anchor in the release-pinned trust bundle, signer EKU is missing or wrong, certificate validity fails at genTime, a required CRL snapshot is missing or stale at genTime, or revocationDate/invalidityDate is at or before genTime.",
+    "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
+    "strict_mode": "--require-tsa-chain fails unless aggregate tsa_chain_validation is validated",
+    "default_mode": "additive; top-level checkpoint ok is unchanged unless strict mode or pinned required-claim semantics require checkpoint.tsa_chain.v1"
+  }
+}

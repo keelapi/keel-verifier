@@ -210,17 +210,6 @@
       ]
     },
     {
-      "name": "checkpoint.tsa_chain.v1",
-      "assertion": "Checkpoint TSA receipt chain, timestamping purpose, and release-pinned revocation snapshot validate at the RFC 3161 genTime.",
-      "required_evidence": "Checkpoint JSON, TSA receipt(s), release-pinned tsa_trust_bundle_v1 roots/intermediates/CRLs, and OpenSSL 3 TSA chain validation output.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "workflow_evidence.sibling_integrity.v1",
       "assertion": "Vanta workflow evidence sibling bytes match sibling descriptor content_hash and signature.",
       "required_evidence": "Main manifest sibling descriptor, workflow evidence file, trust root.",

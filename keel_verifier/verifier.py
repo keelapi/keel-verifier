@@ -29,8 +29,9 @@ Three modes:
      Performed automatically inside ``checkpoint`` mode whenever the
      checkpoint includes a ``tsa.receipt_b64`` field. The verifier checks
      that the receipt's MessageImprint equals the checkpoint's
-     composite_hash (RFC 3161 §2.4.2). For full trust-chain verification
-     against the TSA's CA bundle, see --tsa-ca-bundle.
+     composite_hash (RFC 3161 §2.4.2). The additive TSA chain verdict also
+     validates release-pinned DigiCert/GlobalSign TSA chains and CRLs when
+     the bundled trust material applies.
 
 Key resolution order (when verifying signatures):
 
@@ -59,6 +60,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -14186,7 +14188,7 @@ def _verify_tsa_receipt(receipt_b64: str, content_hash_hex: str) -> tuple[bool, 
     This intentionally performs the verifier's historical offline check only:
     it parses the RFC 3161 TimeStampToken and confirms the MessageImprint
     equals the checkpoint composite hash. Full TSA certificate-chain validation
-    is an opt-in trust extension via ``--tsa-ca-bundle``.
+    is reported by the additive ``checkpoint.tsa_chain.v1`` verdict.
     """
     try:
         raw_der = base64.b64decode(receipt_b64)
@@ -14201,12 +14203,29 @@ def _verify_tsa_receipt(receipt_b64: str, content_hash_hex: str) -> tuple[bool, 
 
 TSA_TRUST_SCOPE = (
     "CMS signature, certificate chain, and timestamping purpose are verified "
-    "against the supplied CA bundle only."
+    "against the release-pinned or supplied CA material."
 )
 TSA_TRUST_REVOCATION_NOTE = (
-    "Historical revocation status at the timestamp issuance time is not "
-    "checked; a chain that is valid today does not prove it was unrevoked "
-    "when the timestamp was issued."
+    "Release-pinned DigiCert and GlobalSign CRL snapshots are checked at the "
+    "RFC 3161 genTime when the bundled TSA trust store validates the chain."
+)
+TSA_CHAIN_VALIDATED = "validated"
+TSA_CHAIN_NOT_VALIDATED = "not_validated"
+TSA_CHAIN_INVALID = "invalid"
+TSA_CHAIN_VALIDATION_VALUES = {
+    TSA_CHAIN_VALIDATED,
+    TSA_CHAIN_NOT_VALIDATED,
+    TSA_CHAIN_INVALID,
+}
+TSA_TRUST_BUNDLE_ID = "keel.tsa_trust_bundle.v1"
+TSA_TRUST_BUNDLE_V1_PATH = (
+    Path(__file__).resolve().parent
+    / "data"
+    / "tsa_trust"
+    / "tsa_trust_bundle_v1.json"
+)
+TSA_TRUST_BUNDLE_V1_HASH = (
+    "sha256:f17980b65b12f9a6900215110eb30eec8129457adf5632050ac608e394bc1724"
 )
 
 
@@ -14214,15 +14233,18 @@ def _tsa_trust_report_skeleton(
     *,
     ca_bundle_path: str | None,
     openssl_version: str | None,
+    trust_bundle: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "openssl_version": openssl_version,
         "ca_bundle": (
             str(Path(ca_bundle_path).expanduser()) if ca_bundle_path else None
         ),
+        "trust_bundle": dict(trust_bundle) if isinstance(trust_bundle, dict) else None,
         "revocation_checked": False,
         "verification_scope": TSA_TRUST_SCOPE,
         "revocation_note": TSA_TRUST_REVOCATION_NOTE,
+        "tsa_chain_validation": TSA_CHAIN_NOT_VALIDATED,
         "receipts": [],
     }
 
@@ -14234,6 +14256,8 @@ def _default_tsa_trust() -> dict[str, Any]:
 def _copy_tsa_trust(tsa_trust: dict[str, Any] | None) -> dict[str, Any]:
     source = tsa_trust if isinstance(tsa_trust, dict) else _default_tsa_trust()
     copied = dict(source)
+    trust_bundle = source.get("trust_bundle")
+    copied["trust_bundle"] = dict(trust_bundle) if isinstance(trust_bundle, dict) else None
     receipts = source.get("receipts")
     copied["receipts"] = [
         dict(receipt) for receipt in receipts if isinstance(receipt, dict)
@@ -14250,16 +14274,28 @@ def _tsa_trust_receipt_result(
     certificate_chain_valid: bool | None,
     eku_checked: bool,
     eku_valid: bool | None,
-    verification_error: str | None,
+    revocation_checked: bool = False,
+    revocation_valid: bool | None = None,
+    gen_time: str | None = None,
+    tsa_chain_validation: str = TSA_CHAIN_NOT_VALIDATED,
+    reason_code: str | None = None,
+    verification_error: str | None = None,
 ) -> dict[str, Any]:
+    if tsa_chain_validation not in TSA_CHAIN_VALIDATION_VALUES:
+        raise ValueError(f"invalid TSA chain validation status: {tsa_chain_validation}")
     return {
         "provider": provider,
         "tsa_trust_status": tsa_trust_status,
+        "tsa_chain_validation": tsa_chain_validation,
         "imprint_match": imprint_match,
         "cms_signature_valid": cms_signature_valid,
         "certificate_chain_valid": certificate_chain_valid,
         "eku_checked": eku_checked,
         "eku_valid": eku_valid,
+        "revocation_checked": revocation_checked,
+        "revocation_valid": revocation_valid,
+        "gen_time": gen_time,
+        "reason_code": reason_code,
         "verification_error": verification_error,
     }
 
@@ -14297,28 +14333,44 @@ def _parse_openssl_version_for_tsa(version_output: str) -> tuple[bool, str | Non
     return True, None
 
 
-def _openssl_tsa_runtime_status() -> dict[str, Any]:
+def _openssl_tsa_bin() -> str:
+    return os.getenv("KEEL_OPENSSL_BIN") or "openssl"
+
+
+def _openssl_tsa_env() -> dict[str, str]:
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith("SSL_CERT_")
+    }
+
+
+def _openssl_tsa_runtime_status(openssl_bin: str | None = None) -> dict[str, Any]:
+    executable = openssl_bin or _openssl_tsa_bin()
     try:
         completed = subprocess.run(
-            ["openssl", "version"],
+            [executable, "version"],
             capture_output=True,
             text=True,
             timeout=5,
             check=False,
+            env=_openssl_tsa_env(),
         )
     except FileNotFoundError:
         return {
             "openssl_version": None,
             "supported": False,
+            "openssl_bin": executable,
             "verification_error": (
-                "OpenSSL executable not found; OpenSSL 3.x or newer is required "
+                f"OpenSSL executable not found: {executable}; OpenSSL 3.x or newer is required "
                 "for TSA trust validation."
-            ),
-        }
+                ),
+            }
     except subprocess.TimeoutExpired:
         return {
             "openssl_version": None,
             "supported": False,
+            "openssl_bin": executable,
             "verification_error": (
                 "OpenSSL version check timed out; OpenSSL 3.x or newer is "
                 "required for TSA trust validation."
@@ -14331,6 +14383,7 @@ def _openssl_tsa_runtime_status() -> dict[str, Any]:
         return {
             "openssl_version": version_text or None,
             "supported": False,
+            "openssl_bin": executable,
             "verification_error": (
                 f"OpenSSL version check failed: {detail}; OpenSSL 3.x or newer "
                 "is required for TSA trust validation."
@@ -14341,14 +14394,367 @@ def _openssl_tsa_runtime_status() -> dict[str, Any]:
         "openssl_version": version_text or None,
         "supported": supported,
         "verification_error": error,
+        "openssl_bin": executable,
     }
+
+
+def _sha256_prefixed(data: bytes) -> str:
+    return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+def _load_pem_certificate(data: bytes) -> Any:
+    from cryptography import x509 as crypto_x509
+
+    return crypto_x509.load_pem_x509_certificate(data)
+
+
+def _load_pem_crl(data: bytes) -> Any:
+    from cryptography import x509 as crypto_x509
+
+    return crypto_x509.load_pem_x509_crl(data)
+
+
+def _datetime_to_epoch_seconds(value: datetime) -> int:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return int(value.timestamp())
+
+
+def _datetime_to_z(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _tsa_trust_bundle_error(message: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "manifest_path": str(TSA_TRUST_BUNDLE_V1_PATH),
+        "verification_error": message,
+    }
+
+
+def _load_tsa_trust_bundle() -> dict[str, Any]:
+    manifest_path = TSA_TRUST_BUNDLE_V1_PATH
+    try:
+        manifest_bytes = manifest_path.read_bytes()
+    except OSError as exc:
+        return _tsa_trust_bundle_error(f"TSA trust bundle manifest is not readable: {exc}")
+    manifest_hash = _sha256_prefixed(manifest_bytes)
+    if manifest_hash != TSA_TRUST_BUNDLE_V1_HASH:
+        return _tsa_trust_bundle_error(
+            "TSA trust bundle manifest hash mismatch: "
+            f"expected {TSA_TRUST_BUNDLE_V1_HASH}, got {manifest_hash}"
+        )
+    try:
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+    except Exception as exc:
+        return _tsa_trust_bundle_error(f"TSA trust bundle manifest is invalid JSON: {exc}")
+    if manifest.get("id") != TSA_TRUST_BUNDLE_ID or manifest.get("version") != "v1":
+        return _tsa_trust_bundle_error("TSA trust bundle manifest id/version mismatch")
+    raw_files = manifest.get("files")
+    if not isinstance(raw_files, list):
+        return _tsa_trust_bundle_error("TSA trust bundle manifest files must be a list")
+
+    root_bytes: list[bytes] = []
+    intermediate_bytes: list[bytes] = []
+    crl_bytes: list[bytes] = []
+    certificates: list[Any] = []
+    crls: list[Any] = []
+    files: list[dict[str, Any]] = []
+    base_dir = manifest_path.parent
+    for entry in raw_files:
+        if not isinstance(entry, dict):
+            return _tsa_trust_bundle_error("TSA trust bundle file entry is not an object")
+        relative_path = entry.get("path")
+        expected_hash = entry.get("sha256")
+        kind = entry.get("kind")
+        if not isinstance(relative_path, str) or not isinstance(expected_hash, str):
+            return _tsa_trust_bundle_error("TSA trust bundle file entry missing path/hash")
+        if kind not in {"root", "intermediate", "crl"}:
+            return _tsa_trust_bundle_error(
+                f"TSA trust bundle file {relative_path} has invalid kind {kind!r}"
+            )
+        path = base_dir / relative_path
+        try:
+            data = path.read_bytes()
+        except OSError as exc:
+            return _tsa_trust_bundle_error(
+                f"TSA trust bundle file {relative_path} is not readable: {exc}"
+            )
+        actual_hash = _sha256_prefixed(data)
+        if actual_hash != expected_hash:
+            return _tsa_trust_bundle_error(
+                f"TSA trust bundle file {relative_path} hash mismatch: "
+                f"expected {expected_hash}, got {actual_hash}"
+            )
+        file_record = dict(entry)
+        file_record["absolute_path"] = str(path)
+        files.append(file_record)
+        if kind == "root":
+            root_bytes.append(data)
+            certificates.append(_load_pem_certificate(data))
+        elif kind == "intermediate":
+            intermediate_bytes.append(data)
+            certificates.append(_load_pem_certificate(data))
+        else:
+            crl_bytes.append(data)
+            crls.append(_load_pem_crl(data))
+
+    return {
+        "ok": True,
+        "id": TSA_TRUST_BUNDLE_ID,
+        "hash": manifest_hash,
+        "manifest_path": str(manifest_path),
+        "manifest": manifest,
+        "files": files,
+        "root_bytes": root_bytes,
+        "intermediate_bytes": intermediate_bytes,
+        "crl_bytes": crl_bytes,
+        "certificates": certificates,
+        "crls": crls,
+    }
+
+
+def _tsa_bundle_report_ref(bundle: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(bundle, dict) or not bundle.get("ok"):
+        return None
+    manifest = bundle.get("manifest")
+    files = bundle.get("files")
+    providers = sorted(
+        {
+            str(item.get("provider"))
+            for item in files
+            if isinstance(item, dict) and item.get("provider")
+        }
+    ) if isinstance(files, list) else []
+    return {
+        "id": TSA_TRUST_BUNDLE_ID,
+        "hash": bundle.get("hash"),
+        "manifest_path": bundle.get("manifest_path"),
+        "generated_at": manifest.get("generated_at") if isinstance(manifest, dict) else None,
+        "providers": providers,
+    }
+
+
+def _tsa_receipt_known_public_provider(receipt: dict[str, Any]) -> bool:
+    parts = [
+        str(receipt.get("provider") or ""),
+        str(receipt.get("url") or ""),
+        str(receipt.get("tsa_url") or ""),
+    ]
+    joined = " ".join(parts).lower()
+    return "digicert" in joined or "globalsign" in joined
+
+
+def _extract_rfc3161_token_details(receipt_b64: str) -> dict[str, Any]:
+    try:
+        from asn1crypto import cms, tsp  # type: ignore[import-untyped]
+    except Exception as exc:
+        raise ValueError(f"asn1crypto is required for TSA chain validation: {exc}") from exc
+
+    token_der = base64.b64decode(receipt_b64, validate=True)
+    content_info = cms.ContentInfo.load(token_der)
+    if content_info["content_type"].native != "signed_data":
+        raise ValueError("TSA token ContentInfo is not signed_data")
+    signed_data = content_info["content"]
+    encap = signed_data["encap_content_info"]
+    tst_info = tsp.TSTInfo.load(encap["content"].parsed.dump())
+    gen_time = tst_info["gen_time"].native
+    if not isinstance(gen_time, datetime):
+        raise ValueError("TSTInfo genTime is missing or invalid")
+    if gen_time.tzinfo is None:
+        gen_time = gen_time.replace(tzinfo=timezone.utc)
+
+    asn1_certs = [
+        cert.chosen
+        for cert in (signed_data["certificates"] or [])
+        if getattr(cert, "name", None) == "certificate"
+    ]
+    from cryptography import x509 as crypto_x509
+
+    crypto_certs = [
+        crypto_x509.load_der_x509_certificate(cert.dump())
+        for cert in asn1_certs
+    ]
+    signer_cert = None
+    signer_infos = signed_data["signer_infos"]
+    if len(signer_infos) != 1:
+        raise ValueError("TSA token must contain exactly one SignerInfo")
+    sid = signer_infos[0]["sid"]
+    if sid.name == "issuer_and_serial_number":
+        issuer_and_serial = sid.chosen
+        serial = int(issuer_and_serial["serial_number"].native)
+        issuer_der = issuer_and_serial["issuer"].dump()
+        for asn1_cert, crypto_cert in zip(asn1_certs, crypto_certs):
+            if int(asn1_cert.serial_number) == serial and asn1_cert.issuer.dump() == issuer_der:
+                signer_cert = crypto_cert
+                break
+    elif sid.name == "subject_key_identifier":
+        from cryptography.x509.oid import ExtensionOID
+
+        key_id = bytes(sid.chosen.native)
+        for crypto_cert in crypto_certs:
+            try:
+                ski = crypto_cert.extensions.get_extension_for_oid(
+                    ExtensionOID.SUBJECT_KEY_IDENTIFIER
+                ).value.digest
+            except Exception:
+                continue
+            if ski == key_id:
+                signer_cert = crypto_cert
+                break
+    if signer_cert is None:
+        raise ValueError("TSA signer certificate is not embedded in the token")
+    return {
+        "token_der": token_der,
+        "gen_time": gen_time,
+        "gen_time_iso": _datetime_to_z(gen_time),
+        "certificates": crypto_certs,
+        "signer_cert": signer_cert,
+    }
+
+
+def _cert_name_equal(left: Any, right: Any) -> bool:
+    return left.public_bytes() == right.public_bytes()
+
+
+def _build_certificate_chain(
+    signer_cert: Any,
+    candidates: list[Any],
+) -> list[Any]:
+    chain = [signer_cert]
+    seen = {signer_cert.serial_number}
+    # Serial numbers are sufficient for loop protection here because issuer
+    # matching is only used to choose bundled CRLs; OpenSSL validates the path.
+    while not _cert_name_equal(chain[-1].issuer, chain[-1].subject):
+        issuer = next(
+            (
+                cert
+                for cert in candidates
+                if cert is not chain[-1] and _cert_name_equal(cert.subject, chain[-1].issuer)
+            ),
+            None,
+        )
+        if issuer is None or issuer.serial_number in seen:
+            break
+        chain.append(issuer)
+        seen.add(issuer.serial_number)
+    return chain
+
+
+def _issuer_crl_for_cert(cert: Any, crls: list[Any]) -> Any | None:
+    for crl in crls:
+        if _cert_name_equal(crl.issuer, cert.issuer):
+            return crl
+    return None
+
+
+def _crl_invalidity_date(revoked_cert: Any) -> datetime | None:
+    from cryptography.x509.oid import CRLEntryExtensionOID
+
+    try:
+        invalidity = revoked_cert.extensions.get_extension_for_oid(
+            CRLEntryExtensionOID.INVALIDITY_DATE
+        ).value.invalidity_date_utc
+    except Exception:
+        return None
+    return invalidity
+
+
+def _check_release_pinned_revocation(
+    *,
+    details: dict[str, Any],
+    bundle: dict[str, Any],
+) -> tuple[bool, str | None, str | None]:
+    gen_time = details["gen_time"]
+    signer_cert = details["signer_cert"]
+    candidates = list(details.get("certificates") or []) + list(bundle.get("certificates") or [])
+    crls = list(bundle.get("crls") or [])
+    chain = _build_certificate_chain(signer_cert, candidates)
+    if len(chain) < 2:
+        return (
+            False,
+            "not_validated_release_pinned_chain_unresolved",
+            "release-pinned TSA certificate chain could not be resolved",
+        )
+
+    for cert in chain[:-1]:
+        crl = _issuer_crl_for_cert(cert, crls)
+        if crl is None:
+            return (
+                False,
+                "not_validated_revocation_snapshot_missing",
+                "release-pinned CRL snapshot is missing for a TSA chain issuer",
+            )
+        last_update = crl.last_update_utc
+        next_update = crl.next_update_utc
+        if (
+            last_update is None
+            or next_update is None
+            or last_update > gen_time
+            or next_update <= gen_time
+        ):
+            return (
+                False,
+                "not_validated_revocation_snapshot_stale",
+                "release-pinned CRL snapshot does not cover TSA genTime",
+            )
+        revoked_cert = crl.get_revoked_certificate_by_serial_number(cert.serial_number)
+        if revoked_cert is None:
+            continue
+        revocation_date = revoked_cert.revocation_date_utc
+        invalidity_date = _crl_invalidity_date(revoked_cert)
+        effective_dates = [revocation_date]
+        if invalidity_date is not None:
+            effective_dates.append(invalidity_date)
+        if any(date <= gen_time for date in effective_dates):
+            return (
+                False,
+                "tsa_certificate_revoked_at_gentime",
+                "TSA certificate was revoked or invalid at TSA genTime",
+            )
+    return True, None, None
+
+
+def _write_tsa_trust_files(
+    tmpdir: Path,
+    *,
+    bundle: dict[str, Any] | None,
+    ca_bundle_path: str | None,
+) -> tuple[Path | None, Path | None, bool, str | None]:
+    if bundle is not None and bundle.get("ok"):
+        roots_path = tmpdir / "release-roots.pem"
+        roots_path.write_bytes(b"".join(bundle.get("root_bytes") or []))
+        intermediates = b"".join(bundle.get("intermediate_bytes") or [])
+        intermediates_path = None
+        if intermediates:
+            intermediates_path = tmpdir / "release-intermediates.pem"
+            intermediates_path.write_bytes(intermediates)
+        return roots_path, intermediates_path, True, None
+
+    if ca_bundle_path:
+        ca_bundle = Path(ca_bundle_path).expanduser()
+        if not ca_bundle.is_file():
+            return None, None, False, "TSA CA bundle is not readable"
+        try:
+            with ca_bundle.open("rb"):
+                pass
+        except OSError:
+            return None, None, False, "TSA CA bundle is not readable"
+        return ca_bundle, None, False, None
+
+    return None, None, False, "release-pinned TSA trust bundle is unavailable"
 
 
 def _verify_tsa_receipt_authenticity_openssl(
     receipt: dict[str, Any],
     content_hash_hex: str,
     *,
-    ca_bundle_path: str,
+    ca_bundle_path: str | None,
+    trust_bundle: dict[str, Any] | None = None,
     openssl_runtime: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     provider = str(receipt.get("provider") or "unknown")
@@ -14362,6 +14768,8 @@ def _verify_tsa_receipt_authenticity_openssl(
             certificate_chain_valid=False,
             eku_checked=False,
             eku_valid=None,
+            tsa_chain_validation=TSA_CHAIN_INVALID,
+            reason_code="tsa_receipt_missing",
             verification_error="receipt_b64 missing",
         )
 
@@ -14375,38 +14783,13 @@ def _verify_tsa_receipt_authenticity_openssl(
             certificate_chain_valid=False,
             eku_checked=False,
             eku_valid=None,
+            tsa_chain_validation=TSA_CHAIN_INVALID,
+            reason_code="tsa_imprint_mismatch",
             verification_error=imprint_reason,
         )
 
-    ca_bundle = Path(ca_bundle_path).expanduser()
-    if not ca_bundle.is_file():
-        return _tsa_trust_receipt_result(
-            provider=provider,
-            tsa_trust_status="invalid",
-            imprint_match=True,
-            cms_signature_valid=False,
-            certificate_chain_valid=False,
-            eku_checked=False,
-            eku_valid=None,
-            verification_error="TSA CA bundle is not readable",
-        )
     try:
-        with ca_bundle.open("rb"):
-            pass
-    except OSError:
-        return _tsa_trust_receipt_result(
-            provider=provider,
-            tsa_trust_status="invalid",
-            imprint_match=True,
-            cms_signature_valid=False,
-            certificate_chain_valid=False,
-            eku_checked=False,
-            eku_valid=None,
-            verification_error="TSA CA bundle is not readable",
-        )
-
-    try:
-        token_der = base64.b64decode(receipt_b64, validate=True)
+        details = _extract_rfc3161_token_details(receipt_b64)
     except Exception as exc:
         return _tsa_trust_receipt_result(
             provider=provider,
@@ -14416,8 +14799,11 @@ def _verify_tsa_receipt_authenticity_openssl(
             certificate_chain_valid=False,
             eku_checked=False,
             eku_valid=None,
-            verification_error=f"TSA receipt is not valid base64: {exc}",
+            tsa_chain_validation=TSA_CHAIN_INVALID,
+            reason_code="tsa_token_chain_parse_failed",
+            verification_error=f"TSA token chain parse failed: {exc}",
         )
+    gen_time_iso = details.get("gen_time_iso") if isinstance(details, dict) else None
 
     runtime = openssl_runtime or _openssl_tsa_runtime_status()
     if not runtime.get("supported"):
@@ -14429,6 +14815,9 @@ def _verify_tsa_receipt_authenticity_openssl(
             certificate_chain_valid=False,
             eku_checked=False,
             eku_valid=None,
+            gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+            tsa_chain_validation=TSA_CHAIN_NOT_VALIDATED,
+            reason_code="not_validated_unsupported_openssl_runtime",
             verification_error=str(
                 runtime.get("verification_error")
                 or "OpenSSL 3.x or newer is required for TSA trust validation."
@@ -14436,10 +14825,37 @@ def _verify_tsa_receipt_authenticity_openssl(
         )
 
     with tempfile.TemporaryDirectory(prefix="keel-tsa-verify-") as tmpdir:
+        tmp_path = Path(tmpdir)
+        ca_file, untrusted_file, release_pinned, material_error = _write_tsa_trust_files(
+            tmp_path,
+            bundle=trust_bundle,
+            ca_bundle_path=ca_bundle_path,
+        )
+        if material_error is not None or ca_file is None:
+            trust_status = "invalid" if trust_bundle is not None and not trust_bundle.get("ok") else "not_validated"
+            return _tsa_trust_receipt_result(
+                provider=provider,
+                tsa_trust_status=trust_status,
+                imprint_match=True,
+                cms_signature_valid=False,
+                certificate_chain_valid=False,
+                eku_checked=False,
+                eku_valid=None,
+                gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+                tsa_chain_validation=(
+                    TSA_CHAIN_INVALID if trust_status == "invalid" else TSA_CHAIN_NOT_VALIDATED
+                ),
+                reason_code=(
+                    "tsa_trust_bundle_invalid"
+                    if trust_status == "invalid"
+                    else "not_validated_release_pinned_trust_unavailable"
+                ),
+                verification_error=material_error,
+            )
         token_path = Path(tmpdir) / "receipt-token.der"
-        token_path.write_bytes(token_der)
+        token_path.write_bytes(details["token_der"])
         cmd = [
-            "openssl",
+            str(runtime.get("openssl_bin") or _openssl_tsa_bin()),
             "ts",
             "-verify",
             "-token_in",
@@ -14449,10 +14865,18 @@ def _verify_tsa_receipt_authenticity_openssl(
             "-in",
             str(token_path),
             "-CAfile",
-            str(ca_bundle),
+            str(ca_file),
             "-purpose",
             "timestampsign",
+            "-attime",
+            str(_datetime_to_epoch_seconds(details["gen_time"])),
         ]
+        if untrusted_file is not None:
+            cmd.extend(["-untrusted", str(untrusted_file)])
+        # OpenSSL treats any CRL entry as revoked even when revocationDate is
+        # after -attime for RFC 3161 verification. Keep OpenSSL on signature,
+        # path, EKU, and certificate-time validation; enforce CRL temporal
+        # semantics below with the release-pinned snapshots.
         try:
             completed = subprocess.run(
                 cmd,
@@ -14460,6 +14884,7 @@ def _verify_tsa_receipt_authenticity_openssl(
                 text=True,
                 timeout=15,
                 check=False,
+                env=_openssl_tsa_env(),
             )
         except FileNotFoundError:
             return _tsa_trust_receipt_result(
@@ -14470,6 +14895,9 @@ def _verify_tsa_receipt_authenticity_openssl(
                 certificate_chain_valid=False,
                 eku_checked=False,
                 eku_valid=None,
+                gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+                tsa_chain_validation=TSA_CHAIN_NOT_VALIDATED,
+                reason_code="not_validated_unsupported_openssl_runtime",
                 verification_error="OpenSSL executable not found during TSA verification",
             )
         except subprocess.TimeoutExpired:
@@ -14481,11 +14909,44 @@ def _verify_tsa_receipt_authenticity_openssl(
                 certificate_chain_valid=False,
                 eku_checked=True,
                 eku_valid=False,
+                gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+                tsa_chain_validation=TSA_CHAIN_INVALID,
+                reason_code="tsa_chain_validation_timeout",
                 verification_error="OpenSSL TSA verification timed out",
             )
 
     if completed.returncode != 0:
         error_text = (completed.stderr or completed.stdout or "").strip()
+        normalized_error = error_text.lower()
+        unknown_chain = (
+            "unable to get local issuer certificate" in normalized_error
+            or "self-signed certificate" in normalized_error
+            or "self signed certificate" in normalized_error
+            or "unable to get issuer certificate" in normalized_error
+        )
+        if release_pinned and unknown_chain and not _tsa_receipt_known_public_provider(receipt):
+            return _tsa_trust_receipt_result(
+                provider=provider,
+                tsa_trust_status="not_validated",
+                imprint_match=True,
+                cms_signature_valid=False,
+                certificate_chain_valid=False,
+                eku_checked=True,
+                eku_valid=False,
+                gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+                tsa_chain_validation=TSA_CHAIN_NOT_VALIDATED,
+                reason_code="not_validated_release_pinned_trust_unavailable",
+                verification_error=error_text or "TSA chain is outside the release-pinned trust bundle",
+            )
+        reason_code = "tsa_chain_validation_failed"
+        if "certificate revoked" in normalized_error:
+            reason_code = "tsa_certificate_revoked_at_gentime"
+        elif "crl has expired" in normalized_error:
+            reason_code = "not_validated_revocation_snapshot_stale"
+        elif "unsuitable certificate purpose" in normalized_error:
+            reason_code = "tsa_timestamping_eku_invalid"
+        elif "certificate has expired" in normalized_error or "not yet valid" in normalized_error:
+            reason_code = "tsa_certificate_time_invalid_at_gentime"
         return _tsa_trust_receipt_result(
             provider=provider,
             tsa_trust_status="invalid",
@@ -14494,7 +14955,51 @@ def _verify_tsa_receipt_authenticity_openssl(
             certificate_chain_valid=False,
             eku_checked=True,
             eku_valid=False,
+            gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+            tsa_chain_validation=TSA_CHAIN_INVALID,
+            reason_code=reason_code,
             verification_error=error_text or "OpenSSL TSA verification failed",
+        )
+
+    if not release_pinned:
+        return _tsa_trust_receipt_result(
+            provider=provider,
+            tsa_trust_status="not_validated",
+            imprint_match=True,
+            cms_signature_valid=True,
+            certificate_chain_valid=True,
+            eku_checked=True,
+            eku_valid=True,
+            revocation_checked=False,
+            revocation_valid=None,
+            gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+            tsa_chain_validation=TSA_CHAIN_NOT_VALIDATED,
+            reason_code="not_validated_release_pinned_revocation_unavailable",
+            verification_error=(
+                "TSA chain matched the supplied CA bundle, but no release-pinned "
+                "revocation snapshot is available for that bundle"
+            ),
+        )
+
+    revocation_ok, revocation_reason, revocation_error = _check_release_pinned_revocation(
+        details=details,
+        bundle=trust_bundle or {},
+    )
+    if not revocation_ok:
+        return _tsa_trust_receipt_result(
+            provider=provider,
+            tsa_trust_status="invalid",
+            imprint_match=True,
+            cms_signature_valid=True,
+            certificate_chain_valid=True,
+            eku_checked=True,
+            eku_valid=True,
+            revocation_checked=True,
+            revocation_valid=False,
+            gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+            tsa_chain_validation=TSA_CHAIN_INVALID,
+            reason_code=revocation_reason,
+            verification_error=revocation_error,
         )
 
     return _tsa_trust_receipt_result(
@@ -14505,6 +15010,11 @@ def _verify_tsa_receipt_authenticity_openssl(
         certificate_chain_valid=True,
         eku_checked=True,
         eku_valid=True,
+        revocation_checked=True,
+        revocation_valid=True,
+        gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
+        tsa_chain_validation=TSA_CHAIN_VALIDATED,
+        reason_code="tsa_chain_validated",
         verification_error=None,
     )
 
@@ -14538,24 +15048,36 @@ def _build_tsa_trust_report(
     *,
     ca_bundle_path: str | None,
 ) -> dict[str, Any]:
-    if not ca_bundle_path:
+    trust_bundle = None if ca_bundle_path else _load_tsa_trust_bundle()
+    if not ca_bundle_path and not raw_receipts:
+        return _tsa_trust_report_skeleton(
+            ca_bundle_path=None,
+            openssl_version=None,
+            trust_bundle=_tsa_bundle_report_ref(trust_bundle),
+        )
+    if not ca_bundle_path and isinstance(trust_bundle, dict) and not trust_bundle.get("ok"):
         report = _tsa_trust_report_skeleton(
             ca_bundle_path=None,
             openssl_version=None,
         )
+        report["trust_bundle"] = {
+            "id": TSA_TRUST_BUNDLE_ID,
+            "manifest_path": trust_bundle.get("manifest_path"),
+            "verification_error": trust_bundle.get("verification_error"),
+        }
+        report["tsa_chain_validation"] = TSA_CHAIN_INVALID
         report["receipts"] = [
             _tsa_trust_receipt_result(
                 provider=str(receipt.get("provider") or "unknown"),
-                tsa_trust_status="skipped",
+                tsa_trust_status="invalid",
                 imprint_match=None,
-                cms_signature_valid=None,
-                certificate_chain_valid=None,
+                cms_signature_valid=False,
+                certificate_chain_valid=False,
                 eku_checked=False,
                 eku_valid=None,
-                verification_error=(
-                    "TSA trust validation skipped because --tsa-ca-bundle was "
-                    "not supplied."
-                ),
+                tsa_chain_validation=TSA_CHAIN_INVALID,
+                reason_code="tsa_trust_bundle_invalid",
+                verification_error=str(trust_bundle.get("verification_error")),
             )
             for receipt in raw_receipts
         ]
@@ -14565,6 +15087,7 @@ def _build_tsa_trust_report(
     report = _tsa_trust_report_skeleton(
         ca_bundle_path=ca_bundle_path,
         openssl_version=runtime.get("openssl_version"),
+        trust_bundle=_tsa_bundle_report_ref(trust_bundle),
     )
     if not content_hash_hex:
         report["receipts"] = [
@@ -14576,6 +15099,8 @@ def _build_tsa_trust_report(
                 certificate_chain_valid=False,
                 eku_checked=False,
                 eku_valid=None,
+                tsa_chain_validation=TSA_CHAIN_INVALID,
+                reason_code="tsa_composite_hash_unavailable",
                 verification_error=(
                     "checkpoint composite_hash unavailable; TSA trust "
                     "validation cannot run"
@@ -14590,11 +15115,32 @@ def _build_tsa_trust_report(
             receipt,
             content_hash_hex,
             ca_bundle_path=ca_bundle_path,
+            trust_bundle=trust_bundle if isinstance(trust_bundle, dict) else None,
             openssl_runtime=runtime,
         )
         for receipt in raw_receipts
     ]
+    report["revocation_checked"] = any(
+        isinstance(receipt, dict) and receipt.get("revocation_checked") is True
+        for receipt in report["receipts"]
+    )
+    report["tsa_chain_validation"] = _tsa_chain_validation_aggregate(report["receipts"])
     return report
+
+
+def _tsa_chain_validation_aggregate(receipts: list[dict[str, Any]] | None) -> str:
+    if not receipts:
+        return TSA_CHAIN_NOT_VALIDATED
+    statuses = [
+        receipt.get("tsa_chain_validation")
+        for receipt in receipts
+        if isinstance(receipt, dict)
+    ]
+    if any(status == TSA_CHAIN_INVALID for status in statuses):
+        return TSA_CHAIN_INVALID
+    if statuses and all(status == TSA_CHAIN_VALIDATED for status in statuses):
+        return TSA_CHAIN_VALIDATED
+    return TSA_CHAIN_NOT_VALIDATED
 
 
 def _tsa_trust_has_failure(tsa_trust: dict[str, Any] | None) -> bool:
@@ -14605,9 +15151,15 @@ def _tsa_trust_has_failure(tsa_trust: dict[str, Any] | None) -> bool:
         return False
     return any(
         isinstance(receipt, dict)
-        and receipt.get("tsa_trust_status") in {"invalid", "unsupported_runtime"}
+        and receipt.get("tsa_chain_validation") == TSA_CHAIN_INVALID
         for receipt in receipts
     )
+
+
+def _tsa_chain_is_validated(tsa_trust: dict[str, Any] | None) -> bool:
+    if not isinstance(tsa_trust, dict):
+        return False
+    return tsa_trust.get("tsa_chain_validation") == TSA_CHAIN_VALIDATED
 
 
 def _load_checkpoint_body_for_tsa_trust(path: str | Path) -> dict[str, Any] | None:
@@ -14636,23 +15188,29 @@ def _print_tsa_trust_human(tsa_trust: dict[str, Any]) -> None:
             f"against supplied CA bundle: {ca_bundle}"
         )
         print(
-            "    Revocation: historical revocation status at issuance is not checked."
+            "    Revocation: release-pinned revocation snapshot not available for supplied CA bundle."
+        )
+    elif tsa_trust.get("trust_bundle"):
+        bundle = tsa_trust["trust_bundle"]
+        print(
+            "  TSA TRUST:    release-pinned chain, signature, timestamping purpose, "
+            f"and CRL snapshot checked: {bundle.get('id')} {bundle.get('hash')}"
         )
     for index, receipt in enumerate(receipts, start=1):
         if not isinstance(receipt, dict):
             continue
-        status = receipt.get("tsa_trust_status")
+        status = receipt.get("tsa_chain_validation")
         if status == "skipped":
             continue
         label = receipt.get("provider") or f"receipt {index}"
-        if status == "valid":
+        if status == TSA_CHAIN_VALIDATED:
             print(
-                f"  TSA[{index}] TRUST: OK ({label}: chain/signature/purpose "
-                "verified against supplied CA bundle)"
+                f"  TSA[{index}] TRUST: VALIDATED ({label}: chain/signature/purpose "
+                "and release-pinned revocation verified at genTime)"
             )
-        elif status == "unsupported_runtime":
+        elif status == TSA_CHAIN_NOT_VALIDATED:
             print(
-                f"  TSA[{index}] TRUST: UNSUPPORTED ({label}: "
+                f"  TSA[{index}] TRUST: NOT VALIDATED ({label}: "
                 f"{_single_line_error(receipt.get('verification_error'))})",
                 file=sys.stderr,
             )
@@ -14687,7 +15245,44 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
             content_hash_hex,
             ca_bundle_path=args.tsa_ca_bundle,
         )
-    result.exit_code = 1 if (not result.ok or _tsa_trust_has_failure(result.tsa_trust)) else 0
+        if isinstance(result.tsa_trust.get("receipts"), list) and result.tsa_trust["receipts"]:
+            existing_tsa_chain_claim = next(
+                (
+                    claim
+                    for claim in result.claims
+                    if claim.name == "checkpoint.tsa_chain.v1"
+                ),
+                None,
+            )
+            replacement_tsa_chain_claim = _checkpoint_tsa_chain_claim(
+                result.tsa_trust,
+                required=(
+                    existing_tsa_chain_claim.required
+                    if existing_tsa_chain_claim is not None
+                    else False
+                ),
+            )
+            result.claims = [
+                claim for claim in result.claims if claim.name != "checkpoint.tsa_chain.v1"
+            ]
+            result.claims.append(replacement_tsa_chain_claim)
+            if (
+                replacement_tsa_chain_claim.required
+                and replacement_tsa_chain_claim.aggregate_verdict != verdict_value("supported")
+            ):
+                result.ok = False
+                result.error = "required claims not supported: checkpoint.tsa_chain.v1"
+                result.exit_code = 1
+    if result.tsa_trust:
+        result.tsa_chain_validation = str(
+            result.tsa_trust.get("tsa_chain_validation") or TSA_CHAIN_NOT_VALIDATED
+        )
+    if getattr(args, "require_tsa_chain", False) and not _tsa_chain_is_validated(result.tsa_trust):
+        result.ok = False
+        result.error = "checkpoint TSA chain validation is required but not validated"
+        result.exit_code = 1
+    else:
+        result.exit_code = 1 if not result.ok else 0
     if getattr(args, "as_report", False) and not getattr(args, "as_json", False):
         payload = result.to_dict()
         payload.setdefault("artifact", {}).setdefault("kind", "checkpoint")
@@ -15180,6 +15775,7 @@ class VerifyResult:
     tsa_requested_at: str | None = None
     tsa_receipts: list[dict[str, Any]] = dataclass_field(default_factory=list)
     tsa_trust: dict[str, Any] = dataclass_field(default_factory=_default_tsa_trust)
+    tsa_chain_validation: str = TSA_CHAIN_NOT_VALIDATED
 
     diagnostics: list[str] = dataclass_field(default_factory=list)
     semantics: dict[str, Any] = dataclass_field(default_factory=legacy_semantics)
@@ -15213,6 +15809,7 @@ class VerifyResult:
                 "requested_at": self.tsa_requested_at,
             },
             "tsa_receipts": list(self.tsa_receipts),
+            "tsa_chain_validation": self.tsa_chain_validation,
             "tsa_trust": _copy_tsa_trust(self.tsa_trust),
             "diagnostics": list(self.diagnostics),
         }
@@ -15343,6 +15940,80 @@ def _checkpoint_tsa_claim(receipts: list[dict[str, Any]]) -> ClaimVerdict:
     )
 
 
+def _checkpoint_tsa_chain_claim(
+    tsa_trust: dict[str, Any],
+    *,
+    required: bool = False,
+) -> ClaimVerdict:
+    receipts = tsa_trust.get("receipts")
+    subjects: list[VerdictSubject] = []
+    if isinstance(receipts, list):
+        for index, receipt in enumerate(receipts, start=1):
+            if not isinstance(receipt, dict):
+                continue
+            label = receipt.get("provider") or f"receipt {index}"
+            status = receipt.get("tsa_chain_validation")
+            reason_code = str(receipt.get("reason_code") or "")
+            message = str(receipt.get("verification_error") or "")
+            if status == TSA_CHAIN_VALIDATED:
+                verdict = "supported"
+                code = "CHECKPOINT_TSA_CHAIN_VALIDATED"
+                default_message = "TSA chain, timestamping purpose, and release-pinned revocation snapshot validate at genTime"
+            elif status == TSA_CHAIN_INVALID:
+                verdict = "disproved"
+                code = reason_code.upper() if reason_code else "CHECKPOINT_TSA_CHAIN_INVALID"
+                default_message = "TSA chain validation failed"
+            else:
+                verdict = "insufficient_evidence"
+                code = reason_code.upper() if reason_code else "CHECKPOINT_TSA_CHAIN_NOT_VALIDATED"
+                default_message = "TSA chain was not validated by the release-pinned trust bundle"
+            subjects.append(
+                _subject(
+                    subject_type="tsa_receipt",
+                    subject_id=str(label),
+                    verdict=verdict,
+                    reason_code=code,
+                    message=message or default_message,
+                    evidence=[
+                        "checkpoint.tsa",
+                        "checkpoint.tsa_receipts",
+                        "keel_verifier.data.tsa_trust",
+                    ],
+                )
+            )
+    aggregate = _tsa_chain_validation_aggregate(
+        [receipt for receipt in receipts if isinstance(receipt, dict)]
+        if isinstance(receipts, list)
+        else []
+    )
+    if aggregate == TSA_CHAIN_VALIDATED:
+        claim_verdict = "supported"
+        reason_code = "CHECKPOINT_TSA_CHAIN_VALIDATED"
+        message = "all TSA chains validate against release-pinned trust and CRLs at genTime"
+    elif aggregate == TSA_CHAIN_INVALID:
+        claim_verdict = "disproved"
+        reason_code = "CHECKPOINT_TSA_CHAIN_INVALID"
+        message = "one or more TSA chains failed validation"
+    else:
+        claim_verdict = "insufficient_evidence"
+        reason_code = "CHECKPOINT_TSA_CHAIN_NOT_VALIDATED"
+        message = "one or more TSA chains were not validated"
+    return ClaimVerdict(
+        name="checkpoint.tsa_chain.v1",
+        subjects=subjects,
+        required=required,
+        verdict=claim_verdict,
+        reason_code=reason_code,
+        message=message,
+        evidence=[
+            "checkpoint.tsa",
+            "checkpoint.tsa_receipts",
+            "keel_verifier.data.tsa_trust",
+        ],
+        epistemic_state={"tsa_chain_validation": aggregate},
+    )
+
+
 def _checkpoint_base_result(
     body: dict[str, Any] | None,
     *,
@@ -15368,16 +16039,6 @@ def _checkpoint_base_result(
     tsa_trust: dict[str, Any] | None = None,
 ) -> VerifyResult:
     claim_list = list(claims or [])
-    claim_list, ok, exit_code, error = _enforce_required_claims(
-        claims=claim_list,
-        semantics=semantics,
-        ok=ok,
-        exit_code=0 if ok else 1,
-        error=error,
-        subject_type="claim_set_requirement",
-        subject_id=artifact.get("checkpoint_path") if artifact else None,
-        evidence=["checkpoint.claim_set"],
-    )
     content_hash_hex = (
         composite_hash.removeprefix("sha256:")
         if isinstance(composite_hash, str) and composite_hash.startswith("sha256:")
@@ -15387,6 +16048,20 @@ def _checkpoint_base_result(
         _checkpoint_tsa_receipts(body) if isinstance(body, dict) else [],
         content_hash_hex,
         ca_bundle_path=None,
+    )
+    if isinstance(default_tsa_trust.get("receipts"), list) and default_tsa_trust["receipts"]:
+        emitted = {claim.name for claim in claim_list}
+        if "checkpoint.tsa_chain.v1" not in emitted:
+            claim_list.append(_checkpoint_tsa_chain_claim(default_tsa_trust))
+    claim_list, ok, exit_code, error = _enforce_required_claims(
+        claims=claim_list,
+        semantics=semantics,
+        ok=ok,
+        exit_code=0 if ok else 1,
+        error=error,
+        subject_type="claim_set_requirement",
+        subject_id=artifact.get("checkpoint_path") if artifact else None,
+        evidence=["checkpoint.claim_set"],
     )
     return VerifyResult(
         ok=ok,
@@ -15417,6 +16092,12 @@ def _checkpoint_base_result(
         tsa_requested_at=tsa_requested_at,
         tsa_receipts=list(tsa_receipts or []),
         tsa_trust=tsa_trust if tsa_trust is not None else default_tsa_trust,
+        tsa_chain_validation=str(
+            (tsa_trust if tsa_trust is not None else default_tsa_trust).get(
+                "tsa_chain_validation",
+                TSA_CHAIN_NOT_VALIDATED,
+            )
+        ),
         diagnostics=_report_diagnostics(diagnostics, semantics),
         semantics=semantics.report_semantics() if semantics is not None else legacy_semantics(),
         claims=claim_list,
@@ -16236,9 +16917,18 @@ def main(argv: list[str] | None = None) -> int:
     p_cp.add_argument(
         "--tsa-ca-bundle",
         help=(
-            "Optional CA bundle for opt-in RFC 3161 TSA trust validation. "
+            "Optional custom CA bundle for RFC 3161 TSA trust validation. "
             "Verifies chain, signature, and timestamping purpose against this "
-            "bundle only; historical revocation is not checked."
+            "bundle only. Release-pinned CRL validation is available for the "
+            "bundled DigiCert/GlobalSign TSA trust store."
+        ),
+    )
+    p_cp.add_argument(
+        "--require-tsa-chain",
+        action="store_true",
+        help=(
+            "Fail unless checkpoint TSA chain validation is validated by the "
+            "release-pinned trust bundle."
         ),
     )
     p_cp.set_defaults(func=cmd_checkpoint)
