@@ -21,11 +21,16 @@ _CORPUS_CANDIDATES = [
     for ancestor in Path(__file__).resolve().parents
 ]
 CORPUS_PATH = next((candidate for candidate in _CORPUS_CANDIDATES if candidate.is_file()), None)
-CORPUS = (
-    json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
-    if CORPUS_PATH is not None
-    else {"vectors": []}
-)
+if CORPUS_PATH is None:
+    raise RuntimeError(
+        "keel-permit co-signature golden corpus not found. These vectors are the only "
+        "thing proving this verifier still matches the normative contract; falling back "
+        "to an empty set would collect zero cases and pass vacuously. "
+        "Check out keelapi/keel-permit alongside this repo."
+    )
+CORPUS = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
+if not CORPUS.get("vectors"):
+    raise RuntimeError("keel-permit co-signature golden corpus is empty")
 
 
 @pytest.mark.parametrize(
