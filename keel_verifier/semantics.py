@@ -41,9 +41,7 @@ SCOPE_STATE_SIDECAR_FORMAT_ID = "keel.scope_state.sidecar_format.v1"
 EXPORT_SCOPE_FAITHFULNESS_ID = "keel.export.scope_faithfulness.v1"
 PERMIT_DECISION_ID = "keel.permit.decision.v1"
 PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
-PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = (
-    "keel.permit.dispatch_absence_after_revocation.v1"
-)
+PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = "keel.permit.dispatch_absence_after_revocation.v1"
 PERMIT_AUTHORITY_CHAIN_ID = "keel.permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_ID = "keel.authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_ID = "keel.authority.root_status_temporal.v1"
@@ -52,23 +50,21 @@ AUTHORITY_EDGE_REVOCATION_ID = "keel.authority.edge_revocation.v1"
 RAIL_SETTLEMENT_RECONCILED_ID = "keel.rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_ID = "keel.permit.counter_signature.v1"
+PERMIT_CO_SIGNATURE_ID = "keel.permit.co_signature.v1"
 PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
 PERMIT_OPERATOR_APPROVAL_V2_ID = "keel.permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_ID = "keel.permit.counter_signature.v2"
 PERMIT_AUDIT_ATTESTATION_V2_ID = "keel.permit.audit_attestation.v2"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
-GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = (
-    "keel.governance_event.integrity_digest.v1"
-)
+GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = "keel.governance_event.integrity_digest.v1"
 
-CLAIM_REGISTRY_HASH = (
-    "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
-)
+CLAIM_REGISTRY_HASH = "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa"
+    "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa",
     "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7",
     "sha256:a142fcecf68ffd1ad9ebb03ab8a28accfe727d3f62989272088ce559a7aba1ba",
@@ -99,12 +95,8 @@ BUDGET_PARTITION_LEDGER_HASH = (
 GOVERNANCE_RECORD_HASH_HASH = (
     "sha256:a3213706c9e9531a74cd2355f2f05e537c7a70604cb869b7b76c65cba4a2b707"
 )
-CLOSURE_FORMAT_V1_HASH = (
-    "sha256:b208b82fbf8187ecdc85410630fbfa30f86f34c4da28d4b418c5788a8ec893ba"
-)
-CLOSURE_FORMAT_V2_HASH = (
-    "sha256:476b9aaf8f1b3e0fd46b9cfae522062e803ecbb1c24fdbb6ec60775b979d59f1"
-)
+CLOSURE_FORMAT_V1_HASH = "sha256:b208b82fbf8187ecdc85410630fbfa30f86f34c4da28d4b418c5788a8ec893ba"
+CLOSURE_FORMAT_V2_HASH = "sha256:476b9aaf8f1b3e0fd46b9cfae522062e803ecbb1c24fdbb6ec60775b979d59f1"
 CLOSURE_DIGEST_RULES_HASH = (
     "sha256:eca06d960a9e16468a622938a17b77244d487b58459be4dce3e55ef006f29454"
 )
@@ -132,9 +124,7 @@ CHECKPOINT_TSA_IMPRINT_HASH = (
 CHECKPOINT_TSA_CHAIN_HASH = (
     "sha256:f89f756fbb7f27f14267d2279075875d2bf094b57f5002d0c058c1229b64c2e1"
 )
-SCOPE_STATE_MERKLE_HASH = (
-    "sha256:0c79a9ae2e7f4b6e4f8cb6b2d619748731fdee7d5e36a895aff08fecba2ae5b8"
-)
+SCOPE_STATE_MERKLE_HASH = "sha256:0c79a9ae2e7f4b6e4f8cb6b2d619748731fdee7d5e36a895aff08fecba2ae5b8"
 SCOPE_STATE_MERKLE_SOURCE_HASH = (
     "sha256:7fc40790b6d8552b8bff63bbfa69cdd53f744a98be97c217e832ea3299e7b528"
 )
@@ -150,18 +140,12 @@ EXPORT_SCOPE_FAITHFULNESS_HASH = (
 EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
-PERMIT_DECISION_HASH = (
-    "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb"
-)
-PERMIT_DECISION_V33_HASH = (
-    "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d"
-)
+PERMIT_DECISION_HASH = "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb"
+PERMIT_DECISION_V33_HASH = "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d"
 PERMIT_DECISION_PREVIOUS_HASH = (
     "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd"
 )
-PERMIT_DECISION_V31_HASH = (
-    "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
-)
+PERMIT_DECISION_V31_HASH = "sha256:7e5a8fcef4a51687ebf2de34cf2c47f37710b08063fc65941fe697a97dacda54"
 PERMIT_DECISION_LEGACY_HASH = (
     "sha256:4fad85a1ab652b6ebc5dd15fd3264025eee400914478dcd4f726c480c34ce70c"
 )
@@ -195,6 +179,7 @@ PERMIT_OPERATOR_APPROVAL_HASH = (
 PERMIT_COUNTER_SIGNATURE_HASH = (
     "sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143"
 )
+PERMIT_CO_SIGNATURE_HASH = "sha256:cc85eea21fe98a0944bee69e85e1af1d7884d1dc2a1f9460c8d148a9b7a9a059"
 PERMIT_AUDIT_ATTESTATION_HASH = (
     "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f"
 )
@@ -207,9 +192,7 @@ PERMIT_COUNTER_SIGNATURE_V2_HASH = (
 PERMIT_AUDIT_ATTESTATION_V2_HASH = (
     "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2"
 )
-LEGACY_PROFILE_HASH = (
-    "sha256:9cd7320deba97ecfcccd44ae25ad31290dc904883d19945c5a02f0054357b34d"
-)
+LEGACY_PROFILE_HASH = "sha256:9cd7320deba97ecfcccd44ae25ad31290dc904883d19945c5a02f0054357b34d"
 AUTHORITY_ENVELOPE_V0_HASH = (
     "sha256:a2505ac94f27c1d0096fa977f25be699fa00a9ff507a0c4cbe0d1edf2e44cee2"
 )
@@ -296,9 +279,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     ),
     "permit.decision.v1": (PERMIT_DECISION_ID,),
     "permit.revoked.v1": (PERMIT_REVOKED_EVENT_ID,),
-    "permit.dispatch_absence_after_revocation.v1": (
-        PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,
-    ),
+    "permit.dispatch_absence_after_revocation.v1": (PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,),
     "permit.authority_chain.v1": (PERMIT_AUTHORITY_CHAIN_ID,),
     "authority.revocation_temporal.v1": (AUTHORITY_REVOCATION_TEMPORAL_ID,),
     "authority.root_status_temporal.v1": (AUTHORITY_ROOT_STATUS_TEMPORAL_ID,),
@@ -307,6 +288,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "rail.settlement_reconciled.v1": (RAIL_SETTLEMENT_RECONCILED_ID,),
     "permit.operator_approval.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signature.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
+    "permit.co_signature.v1": (PERMIT_CO_SIGNATURE_ID,),
     "permit.audit_attestation.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
     "permit.operator_approval.v2": (
         PERMIT_OPERATOR_APPROVAL_V2_ID,
@@ -332,31 +314,21 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.operator_approved.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signed.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.audit_attested.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
-    "workflow_evidence.sibling_integrity.v1": (
-        WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,
-    ),
+    "workflow_evidence.sibling_integrity.v1": (WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,),
 }
 
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CLAIM_REGISTRY_ID: "claim_registry/v0.json",
     EXPORT_MANIFEST_INTEGRITY_ID: "semantics/export_manifest/integrity_v1.json",
-    EVIDENCE_BUNDLE_SELF_ATTESTING_ID: (
-        "semantics/evidence_bundle/self_attesting_v1.json"
-    ),
-    QUOTA_RESERVATION_LINKAGE_ID: (
-        "semantics/quota/reservation_linkage_v1.json"
-    ),
+    EVIDENCE_BUNDLE_SELF_ATTESTING_ID: ("semantics/evidence_bundle/self_attesting_v1.json"),
+    QUOTA_RESERVATION_LINKAGE_ID: ("semantics/quota/reservation_linkage_v1.json"),
     BUDGET_PARTITION_LEDGER_ID: "semantics/budget/partition_ledger_v1.json",
     GOVERNANCE_RECORD_HASH_ID: "semantics/governance_chain/record_hash_v1.json",
-    GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: (
-        "semantics/governance_event/integrity_digest_v1.json"
-    ),
+    GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID: ("semantics/governance_event/integrity_digest_v1.json"),
     CLOSURE_FORMAT_V1_ID: "semantics/closure/format_v1.json",
     CLOSURE_FORMAT_V2_ID: "semantics/closure/format_v2.json",
     CLOSURE_DIGEST_RULES_ID: "semantics/closure/digest_rules_v1.json",
-    PERMIT_BINDING_CANONICAL_REQUEST_ID: (
-        "semantics/permit_binding/canonical_request_v1.json"
-    ),
+    PERMIT_BINDING_CANONICAL_REQUEST_ID: ("semantics/permit_binding/canonical_request_v1.json"),
     WORKFLOW_CANONICALIZATION_ID: "semantics/workflow/canonicalization_v1.json",
     WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID: (
         "semantics/workflow_evidence/sibling_integrity_v1.json"
@@ -375,39 +347,20 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
         "semantics/permit/dispatch_absence_after_revocation_v1.json"
     ),
     PERMIT_AUTHORITY_CHAIN_ID: "semantics/permit/authority_chain_v1.json",
-    AUTHORITY_REVOCATION_TEMPORAL_ID: (
-        "semantics/permit/authority_revocation_temporal_v1.json"
-    ),
-    AUTHORITY_ROOT_STATUS_TEMPORAL_ID: (
-        "semantics/permit/authority_root_status_temporal_v1.json"
-    ),
+    AUTHORITY_REVOCATION_TEMPORAL_ID: ("semantics/permit/authority_revocation_temporal_v1.json"),
+    AUTHORITY_ROOT_STATUS_TEMPORAL_ID: ("semantics/permit/authority_root_status_temporal_v1.json"),
     AUTHORITY_ROOT_STATUS_TEMPORAL_V2_ID: (
         "semantics/permit/authority_root_status_temporal_v2.json"
     ),
-    AUTHORITY_EDGE_REVOCATION_ID: (
-        "semantics/permit/authority_edge_revocation_v1.json"
-    ),
-    RAIL_SETTLEMENT_RECONCILED_ID: (
-        "semantics/rail/settlement_reconciled_v1.json"
-    ),
-    PERMIT_OPERATOR_APPROVAL_ID: (
-        "semantics/permit/permit.operator_approval.v1.json"
-    ),
-    PERMIT_COUNTER_SIGNATURE_ID: (
-        "semantics/permit/permit.counter_signature.v1.json"
-    ),
-    PERMIT_AUDIT_ATTESTATION_ID: (
-        "semantics/permit/permit.audit_attestation.v1.json"
-    ),
-    PERMIT_OPERATOR_APPROVAL_V2_ID: (
-        "semantics/permit/permit.operator_approval.v2.json"
-    ),
-    PERMIT_COUNTER_SIGNATURE_V2_ID: (
-        "semantics/permit/permit.counter_signature.v2.json"
-    ),
-    PERMIT_AUDIT_ATTESTATION_V2_ID: (
-        "semantics/permit/permit.audit_attestation.v2.json"
-    ),
+    AUTHORITY_EDGE_REVOCATION_ID: ("semantics/permit/authority_edge_revocation_v1.json"),
+    RAIL_SETTLEMENT_RECONCILED_ID: ("semantics/rail/settlement_reconciled_v1.json"),
+    PERMIT_OPERATOR_APPROVAL_ID: ("semantics/permit/permit.operator_approval.v1.json"),
+    PERMIT_COUNTER_SIGNATURE_ID: ("semantics/permit/permit.counter_signature.v1.json"),
+    PERMIT_CO_SIGNATURE_ID: ("semantics/permit/permit.co_signature.v1.json"),
+    PERMIT_AUDIT_ATTESTATION_ID: ("semantics/permit/permit.audit_attestation.v1.json"),
+    PERMIT_OPERATOR_APPROVAL_V2_ID: ("semantics/permit/permit.operator_approval.v2.json"),
+    PERMIT_COUNTER_SIGNATURE_V2_ID: ("semantics/permit/permit.counter_signature.v2.json"),
+    PERMIT_AUDIT_ATTESTATION_V2_ID: ("semantics/permit/permit.audit_attestation.v2.json"),
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
 }
@@ -436,9 +389,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     EXPORT_SCOPE_FAITHFULNESS_ID: EXPORT_SCOPE_FAITHFULNESS_HASH,
     PERMIT_DECISION_ID: PERMIT_DECISION_HASH,
     PERMIT_REVOKED_EVENT_ID: PERMIT_REVOKED_EVENT_HASH,
-    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
-        PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH
-    ),
+    PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH),
     PERMIT_AUTHORITY_CHAIN_ID: PERMIT_AUTHORITY_CHAIN_HASH,
     AUTHORITY_REVOCATION_TEMPORAL_ID: AUTHORITY_REVOCATION_TEMPORAL_HASH,
     AUTHORITY_ROOT_STATUS_TEMPORAL_ID: AUTHORITY_ROOT_STATUS_TEMPORAL_HASH,
@@ -447,6 +398,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     RAIL_SETTLEMENT_RECONCILED_ID: RAIL_SETTLEMENT_RECONCILED_HASH,
     PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
     PERMIT_COUNTER_SIGNATURE_ID: PERMIT_COUNTER_SIGNATURE_HASH,
+    PERMIT_CO_SIGNATURE_ID: PERMIT_CO_SIGNATURE_HASH,
     PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
     PERMIT_OPERATOR_APPROVAL_V2_ID: PERMIT_OPERATOR_APPROVAL_V2_HASH,
     PERMIT_COUNTER_SIGNATURE_V2_ID: PERMIT_COUNTER_SIGNATURE_V2_HASH,
@@ -559,9 +511,7 @@ class ResolvedSemantics:
             {
                 "id": semantic_id,
                 "hash": (
-                    self.artifacts[semantic_id].hash
-                    if semantic_id in self.artifacts
-                    else None
+                    self.artifacts[semantic_id].hash if semantic_id in self.artifacts else None
                 ),
             }
             for semantic_id in ids
@@ -688,10 +638,7 @@ def _read_bundled_permit_decision_semantics(
     candidates = ["data/semantics/permit/decision_v1.json"]
     if isinstance(declared_hash, str) and declared_hash.startswith("sha256:"):
         digest = declared_hash.removeprefix("sha256:")
-        candidates.append(
-            "data/semantics/permit/historical/"
-            f"decision_v1-sha256-{digest}.json"
-        )
+        candidates.append(f"data/semantics/permit/historical/decision_v1-sha256-{digest}.json")
     for relative_path in candidates:
         try:
             bundled = resources.files("keel_verifier").joinpath(relative_path)
@@ -827,8 +774,7 @@ def _validate_artifact_identity(
         )
     if artifact_id == AUTHORITY_ENVELOPE_V0_ID and payload.get("version") != artifact_id:
         raise ValueError(
-            f"comparator registry version {payload.get('version')!r}, expected "
-            f"{artifact_id!r}"
+            f"comparator registry version {payload.get('version')!r}, expected {artifact_id!r}"
         )
 
 
@@ -867,10 +813,7 @@ def _resolve_reference(
 
     actual_hash = _content_hash(raw)
     if actual_hash != declared_hash:
-        message = (
-            f"{artifact_id} hash mismatch: declared={declared_hash} "
-            f"actual={actual_hash}"
-        )
+        message = f"{artifact_id} hash mismatch: declared={declared_hash} actual={actual_hash}"
         return (
             ResolvedArtifact(
                 id=artifact_id,
@@ -939,9 +882,7 @@ def _claim_requests_from_claim_set(
     registry_payload: dict[str, Any],
 ) -> tuple[ClaimRequest, ...]:
     if claim_set.get("version") != CLAIM_REGISTRY_VERSION:
-        raise ValueError(
-            f"claim_set.version must be {CLAIM_REGISTRY_VERSION!r}"
-        )
+        raise ValueError(f"claim_set.version must be {CLAIM_REGISTRY_VERSION!r}")
     claims_raw = claim_set.get("claims")
     if not isinstance(claims_raw, list) or not claims_raw:
         raise ValueError("claim_set.claims must be a non-empty array")
@@ -966,9 +907,7 @@ def _claim_requests_from_claim_set(
             minimum_trust_grade,
             str,
         ):
-            raise ValueError(
-                f"claim_set.claims[{index}].minimum_trust_grade must be a string"
-            )
+            raise ValueError(f"claim_set.claims[{index}].minimum_trust_grade must be a string")
         if name not in registry_claims:
             raise ValueError(f"claim {name!r} is not in the resolved registry")
         requests.append(
@@ -1155,11 +1094,14 @@ def resolve_pack_semantics(
             failure=failure,
         )
     if not isinstance(semantics_pins, dict):
-        claim_names = tuple(
-            item.get("name")
-            for item in claim_set.get("claims", [])
-            if isinstance(item, dict) and isinstance(item.get("name"), str)
-        ) or fallback_claims
+        claim_names = (
+            tuple(
+                item.get("name")
+                for item in claim_set.get("claims", [])
+                if isinstance(item, dict) and isinstance(item.get("name"), str)
+            )
+            or fallback_claims
+        )
         requests = tuple(ClaimRequest(name=name, required=True) for name in claim_names)
         failure = SemanticsFailure(
             verdict="insufficient_evidence",
@@ -1660,6 +1602,11 @@ def make_permanent_allowlist(
             "permit_counter_signature",
         ),
         SemanticImplementation(
+            PERMIT_CO_SIGNATURE_ID,
+            PERMIT_CO_SIGNATURE_HASH,
+            "permit_co_signature_recipe",
+        ),
+        SemanticImplementation(
             PERMIT_AUDIT_ATTESTATION_ID,
             PERMIT_AUDIT_ATTESTATION_HASH,
             "permit_audit_attestation",
@@ -1688,9 +1635,7 @@ def make_permanent_allowlist(
             AUTHORITY_ENVELOPE_V0_ID,
             AUTHORITY_ENVELOPE_V0_HASH,
             "authority_envelope_comparator",
-            authority_envelope_comparators={
-                AUTHORITY_ENVELOPE_V0_ID: authority_envelope_v0
-            },
+            authority_envelope_comparators={AUTHORITY_ENVELOPE_V0_ID: authority_envelope_v0},
         ),
     ]
     return {entry.key: entry for entry in entries}

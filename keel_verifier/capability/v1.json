@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.5.0",
+    "version": "3.5.1",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -514,6 +514,20 @@
       ]
     },
     {
+      "name": "permit.co_signature.v1",
+      "status": "implemented",
+      "description": "Verifies signed-pack-bound WebAuthn human-passkey co-signatures against a Keel-trusted signed co-signer key-status manifest.",
+      "depends_on_semantics": [
+        "keel.permit.co_signature.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.audit_attestation.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 audit_attestation slot as a distinct buyer-principal post-hoc signature bound to a known audit batch.",
@@ -1002,6 +1016,11 @@
     {
       "id": "keel.permit.counter_signature.v1",
       "hash": "sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.co_signature.v1",
+      "hash": "sha256:cc85eea21fe98a0944bee69e85e1af1d7884d1dc2a1f9460c8d148a9b7a9a059",
       "status": "allowlisted"
     },
     {

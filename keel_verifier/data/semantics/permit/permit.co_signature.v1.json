@@ -1,0 +1,43 @@
+{
+  "id": "keel.permit.co_signature.v1",
+  "version": "v1",
+  "kind": "permit_co_signature_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.co_signature.v1",
+    "pack_binding": {
+      "rule": "The signed export manifest MUST verify and its content_hash MUST cover the complete co-signature evidence and signed key-status manifest.",
+      "missing_or_unverifiable": "insufficient_evidence"
+    },
+    "key_resolution": {
+      "manifest_type": "permit_v2.key_status_manifest.v1",
+      "key_scope": "co_signer",
+      "trust": "The manifest signer MUST resolve to Keel's pinned permit_binding_signing key through a signed keel.public_key_manifest.v1 trust root.",
+      "custody_tier": "human_passkey",
+      "terminal_statuses": ["revoked", "compromised"]
+    },
+    "webauthn": {
+      "supported_cose_algorithms": [-7, -8],
+      "challenge": "base64url_decode(clientDataJSON.challenge) equals hex_decode(permit_canonical_hash)",
+      "signed_bytes": "authenticatorData || SHA-256(exact clientDataJSON bytes)",
+      "checks_in_order": [
+        "closed claim and assertion shapes",
+        "target Permit binding fields",
+        "registered key, credential, and algorithm binding",
+        "clientDataJSON parse and type",
+        "challenge",
+        "exact allowed origin",
+        "authenticatorData and rpIdHash",
+        "UP and configured UV",
+        "COSE key profile",
+        "signature encoding and signature verification"
+      ]
+    },
+    "verdicts": {
+      "supported": "pack integrity, signed Keel-trusted co-signer key resolution, key validity, and every WebAuthn check succeed",
+      "disproved": "a present assertion violates a Permit binding, ceremony, credential, or signature rule",
+      "insufficient_evidence": "signed pack integrity or signed Keel-trusted co-signer key evidence is absent or unverifiable",
+      "unverifiable_scope": "the claim version or COSE algorithm is unsupported"
+    }
+  }
+}

@@ -39,6 +39,7 @@
     "permit.operator_approved.v1",
     "permit.counter_signature.v1",
     "permit.counter_signature.v2",
+    "permit.co_signature.v1",
     "permit.counter_signed.v1",
     "permit.audit_attestation.v1",
     "permit.audit_attestation.v2",
@@ -279,6 +280,17 @@
         "disproved": "Buyer counter-signature INVALID",
         "insufficient_evidence": "Buyer counter-signature: insufficient evidence",
         "unverifiable_scope": "Buyer counter-signature: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.co_signature.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Human passkey co-signature verified",
+        "disproved": "Human passkey co-signature INVALID",
+        "insufficient_evidence": "Human passkey co-signature: insufficient evidence",
+        "unverifiable_scope": "Human passkey co-signature: not checkable by this verifier version"
       }
     },
     {
