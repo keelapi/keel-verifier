@@ -169,7 +169,6 @@ def refresh(*, dry_run: bool, min_valid_days: int) -> int:
     source = VERIFIER.read_text(encoding="utf-8")
     start = source.index("TSA_TRUST_BUNDLE_V1_HASH = (")
     end = source.index(")", start)
-    old = source[start:end]
     updated = f'TSA_TRUST_BUNDLE_V1_HASH = (\n    "{digest}"\n'
     VERIFIER.write_text(source[:start] + updated + source[end:], encoding="utf-8")
 
