@@ -14953,9 +14953,14 @@ TSA_CHAIN_VALIDATION_VALUES = {
 }
 TSA_TRUST_BUNDLE_ID = "keel.tsa_trust_bundle.v1"
 TSA_TRUST_BUNDLE_V1_PATH = (
-    Path(__file__).resolve().parent / "data" / "tsa_trust" / "tsa_trust_bundle_v1.json"
+    Path(__file__).resolve().parent
+    / "data"
+    / "tsa_trust"
+    / "tsa_trust_bundle_v1.json"
 )
-TSA_TRUST_BUNDLE_V1_HASH = "sha256:f17980b65b12f9a6900215110eb30eec8129457adf5632050ac608e394bc1724"
+TSA_TRUST_BUNDLE_V1_HASH = (
+    "sha256:1366dd3b8bb6e366d128d71288add7f60b146e93045c6b86fbbc836e4d40278c"
+)
 
 
 def _tsa_trust_report_skeleton(
