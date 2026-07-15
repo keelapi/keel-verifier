@@ -107,6 +107,10 @@ from keel_verifier.semantics import (
 )
 from keel_verifier.schemas.artifact_ref import ArtifactRef, parse_artifact_ref
 from keel_verifier.report_render import render_human
+from keel_verifier.permit_co_signature import (
+    CO_SIGNATURE_EVIDENCE_MISSING,
+    verify_protocol as verify_permit_co_signature_protocol,
+)
 
 try:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -128,17 +132,12 @@ VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA = {
 SUPPORTED_VOICE_ATTESTATION_SCHEMA_VERSIONS = frozenset(
     VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA
 )
-VOICE_ATTESTATION_CANONICALIZATION_PROFILE = (
-    "keel.canonical_json.attestation_artifact.v1"
-)
+VOICE_ATTESTATION_CANONICALIZATION_PROFILE = "keel.canonical_json.attestation_artifact.v1"
 VOICE_ATTESTATION_CHAIN_GENESIS_HASH = (
-    "sha256:"
-    + hashlib.sha256(b"keel-voice-session-artifact-chain-genesis-v1").hexdigest()
+    "sha256:" + hashlib.sha256(b"keel-voice-session-artifact-chain-genesis-v1").hexdigest()
 )
 KEELAPI_COMPLIANCE_KEYS_URL = "https://api.keelapi.com/v1/compliance/keys"
-KEELAPI_CHECKPOINT_PUBLIC_KEY_URL = (
-    "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
-)
+KEELAPI_CHECKPOINT_PUBLIC_KEY_URL = "https://api.keelapi.com/v1/integrity/checkpoint-public-key"
 GITHUB_TRUST_ROOT_URL = (
     "https://raw.githubusercontent.com/keelapi/keel-verifier/main/"
     "keel_verifier/data/trust_root.json"
@@ -506,9 +505,7 @@ def _enforce_required_claims(
     if semantics is None or semantics.mode != "pinned":
         return merged, ok, exit_code, error
 
-    required_names = [
-        request.name for request in semantics.requested_claims if request.required
-    ]
+    required_names = [request.name for request in semantics.requested_claims if request.required]
     if not required_names:
         return merged, ok, exit_code, error
 
@@ -612,6 +609,7 @@ def _is_workflow_evidence_schema(schema: Any) -> bool:
         return True
     return schema == WORKFLOW_EVIDENCE_SCHEMA
 
+
 _SIGNED_CLOSURE_V1_REQUIRED_KEYS = (
     "binding_version",
     "permit_id",
@@ -662,9 +660,7 @@ _SIGNED_CLOSURE_V2_REQUIRED_KEYS = (
 _SIGNED_CLOSURE_V2_OPTIONAL_KEYS = ("usage_reported_at",)
 PERMIT_DECISION_CLAIM_NAME = "permit.decision.v1"
 PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
-PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = (
-    "permit.dispatch_absence_after_revocation.v1"
-)
+PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = "permit.dispatch_absence_after_revocation.v1"
 PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
 AUTHORITY_REVOCATION_TEMPORAL_CLAIM_NAME = "authority.revocation_temporal.v1"
 AUTHORITY_ROOT_STATUS_TEMPORAL_CLAIM_NAME = "authority.root_status_temporal.v1"
@@ -674,6 +670,7 @@ RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME = "rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
+PERMIT_CO_SIGNATURE_CLAIM_NAME = "permit.co_signature.v1"
 PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME = "permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME = "permit.counter_signature.v2"
 PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME = "permit.audit_attestation.v2"
@@ -689,7 +686,9 @@ KEY_STATUS_MANIFEST_SCOPES = (
     "buyer_principal",
     "mcp_server",
     "provider_principal",
+    "co_signer",
 )
+LEGACY_KEY_STATUS_MANIFEST_SCOPES = KEY_STATUS_MANIFEST_SCOPES[:-1]
 KEY_STATUS_MANIFEST_SIGNED_FIELDS = (
     "manifest_type",
     "canonicalization_profile",
@@ -731,9 +730,7 @@ PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_PAYLOAD_TYPE = (
     "permit.counter_signature.execution_intent.v1"
 )
 PERMIT_AUDIT_ATTESTATION_PAYLOAD_TYPE = "permit.audit_attestation.v1"
-PERMIT_V2_OPERATOR_KEY_PURPOSES = frozenset(
-    {"permit_v2_operator", "operator", "operator_approval"}
-)
+PERMIT_V2_OPERATOR_KEY_PURPOSES = frozenset({"permit_v2_operator", "operator", "operator_approval"})
 PERMIT_V2_BUYER_KEY_PURPOSES = frozenset(
     {
         "permit_v2_buyer_principal",
@@ -746,15 +743,9 @@ AUTHORITY_CHAIN_VERSION = "authority_chain.v1"
 AUTHORITY_EDGE_VERSION = "authority_edge.v1"
 AUTHORITY_CHAIN_SUPPORTED_CODE = "AUTHORITY_CHAIN_SUPPORTED"
 AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED_CODE = "AUTHORITY_REVOCATION_TEMPORAL_SUPPORTED"
-AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE = (
-    "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
-)
-AUTHORITY_EDGE_REVOCATION_SUPPORTED_CODE = (
-    "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
-)
-RAIL_SETTLEMENT_RECONCILED_SUPPORTED_CODE = (
-    "RAIL_SETTLEMENT_RECONCILED_SUPPORTED"
-)
+AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED_CODE = "AUTHORITY_ROOT_STATUS_TEMPORAL_SUPPORTED"
+AUTHORITY_EDGE_REVOCATION_SUPPORTED_CODE = "AUTHORITY_EDGE_REVOCATION_SUPPORTED"
+RAIL_SETTLEMENT_RECONCILED_SUPPORTED_CODE = "RAIL_SETTLEMENT_RECONCILED_SUPPORTED"
 AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
     {
         "requires_human_approval",
@@ -766,9 +757,7 @@ AUTHORITY_CHAIN_CONSTRAINT_KEYS = frozenset(
         "purpose",
     }
 )
-AUTHORITY_CHAIN_DIRECT_SUBJECT_TYPES = frozenset(
-    {"user", "service_principal", "system"}
-)
+AUTHORITY_CHAIN_DIRECT_SUBJECT_TYPES = frozenset({"user", "service_principal", "system"})
 AUTHORITY_CHAIN_AGENT_SUBJECT_TYPE = "agent"
 AUTHORITY_CHAIN_CODE_VERDICTS = {
     "authority_chain.typed_absence": "unverifiable_scope",
@@ -822,9 +811,7 @@ RAIL_SETTLEMENT_RECONCILED_CODE_VERDICTS = {
 # not yet adjudicable by this verifier; it resolves to ``unverifiable_scope``.
 RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE = "facilitator_attested"
 RAIL_SETTLEMENT_CHAIN_READ_SOURCE = "chain_read"
-RAIL_SETTLEMENT_SUPPORTED_SOURCE_CLASSES = frozenset(
-    {RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE}
-)
+RAIL_SETTLEMENT_SUPPORTED_SOURCE_CLASSES = frozenset({RAIL_SETTLEMENT_FACILITATOR_ATTESTED_SOURCE})
 # The settlement-bearing rail(s) this claim adjudicates at v1. A non-settlement
 # rail (e.g. stripe_mpp with no on-chain settlement) resolves to
 # ``unverifiable_scope``.
@@ -969,9 +956,7 @@ _EDGE_STATUS_REQUIRED_FIELDS = (
 _REASON_CODE_RE = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _SHA256_HEX_RE = re.compile(r"^[a-f0-9]{64}$")
-_PERMIT_V2_UTC_MICROSECOND_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$"
-)
+_PERMIT_V2_UTC_MICROSECOND_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$")
 
 
 @dataclass(frozen=True)
@@ -1114,11 +1099,7 @@ def _compute_record_hash_v1(
     sequence_number: int,
 ) -> str:
     normalized_ts = _parse_record_hash_timestamp(created_at)
-    normalized_ts = (
-        normalized_ts.replace(tzinfo=None)
-        if normalized_ts.tzinfo
-        else normalized_ts
-    )
+    normalized_ts = normalized_ts.replace(tzinfo=None) if normalized_ts.tzinfo else normalized_ts
     ts_str = normalized_ts.strftime("%Y-%m-%dT%H:%M:%S.%f")
     parts = "|".join(
         [
@@ -1360,9 +1341,7 @@ def _verify_self_attesting_bundle_payload(
         )
 
     artifact_ref = body.get("artifact_ref")
-    if not isinstance(artifact_ref, dict) or not isinstance(
-        artifact_ref.get("digest"), str
-    ):
+    if not isinstance(artifact_ref, dict) or not isinstance(artifact_ref.get("digest"), str):
         message = "body.artifact_ref.digest is missing"
         return (
             False,
@@ -1381,9 +1360,7 @@ def _verify_self_attesting_bundle_payload(
             None,
         )
     expected_artifact_digest = artifact_ref.get("digest")
-    actual_artifact_digest = _artifact_ref_digest_for_body(
-        _bundle_artifact_ref_material(body)
-    )
+    actual_artifact_digest = _artifact_ref_digest_for_body(_bundle_artifact_ref_material(body))
     if expected_artifact_digest != actual_artifact_digest:
         message = (
             "artifact_ref.digest mismatch: "
@@ -1410,8 +1387,7 @@ def _verify_self_attesting_bundle_payload(
     actual_content_hash = _content_hash(_bundle_canonical_json_bytes(body))
     if expected_content_hash != actual_content_hash:
         message = (
-            "content_hash mismatch: "
-            f"expected={expected_content_hash} actual={actual_content_hash}"
+            f"content_hash mismatch: expected={expected_content_hash} actual={actual_content_hash}"
         )
         return (
             False,
@@ -1470,7 +1446,9 @@ def _verify_self_attesting_bundle_payload(
         )
 
     receipts = envelope.get("tsa_receipts")
-    receipt_list = [r for r in receipts if isinstance(r, dict)] if isinstance(receipts, list) else []
+    receipt_list = (
+        [r for r in receipts if isinstance(r, dict)] if isinstance(receipts, list) else []
+    )
     anchor_hash = _bundle_anchor_hash(body)
     if anchor_hash is None:
         diagnostics.append(
@@ -1529,9 +1507,7 @@ def _verify_self_attesting_bundle_payload(
                         None,
                     )
 
-    anchor_present, anchor_kind, accepted_anchor_hash = (
-        _accepted_published_checkpoint_anchor(body)
-    )
+    anchor_present, anchor_kind, accepted_anchor_hash = _accepted_published_checkpoint_anchor(body)
     if not receipt_list:
         tsa_imprint_status = "not_present"
     elif check_tsa and anchor_hash is None:
@@ -1740,8 +1716,7 @@ def _adjudicate_quota_reservation_linkage_v1(
                         verdict="disproved",
                         reason_code="RESERVATION_LINKAGE_SIGNED_UNSIGNED_CONFLICT",
                         message=(
-                            "signed reservation-linkage tuple conflicts with "
-                            "unsigned ledger rows"
+                            "signed reservation-linkage tuple conflicts with unsigned ledger rows"
                         ),
                     )
                 ]
@@ -1755,9 +1730,7 @@ def _adjudicate_quota_reservation_linkage_v1(
                 ),
                 trust_grade="signed_identity",
                 anchor_present=(
-                    bundle_context.anchor_present
-                    if bundle_context is not None
-                    else None
+                    bundle_context.anchor_present if bundle_context is not None else None
                 ),
                 signed_identity=True,
             )
@@ -1954,9 +1927,7 @@ def _parse_authority_datetime(raw: Any, *, field: str) -> datetime | None:
         try:
             parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise AuthorityEnvelopeError(
-                f"{field} must be an RFC 3339 timestamp"
-            ) from exc
+            raise AuthorityEnvelopeError(f"{field} must be an RFC 3339 timestamp") from exc
     else:
         raise AuthorityEnvelopeError(f"{field} must be an RFC 3339 timestamp")
     if parsed.tzinfo is None:
@@ -1977,8 +1948,7 @@ def canonical_authority_envelope(value: Any) -> dict[str, Any]:
     unknown_fields = sorted(set(raw) - set(AUTHORITY_ENVELOPE_FIELDS))
     if unknown_fields:
         raise AuthorityEnvelopeError(
-            "authority_envelope contains unsupported fields: "
-            + ", ".join(unknown_fields)
+            "authority_envelope contains unsupported fields: " + ", ".join(unknown_fields)
         )
     canonical: dict[str, Any] = {
         field: _canonical_authority_set(raw.get(field), field=field)
@@ -2014,12 +1984,8 @@ def compare_authority_envelopes(
                 "child": child_canonical[field],
             }
 
-    parent_expires = _parse_authority_datetime(
-        parent_canonical["expires_at"], field="expires_at"
-    )
-    child_expires = _parse_authority_datetime(
-        child_canonical["expires_at"], field="expires_at"
-    )
+    parent_expires = _parse_authority_datetime(parent_canonical["expires_at"], field="expires_at")
+    child_expires = _parse_authority_datetime(child_canonical["expires_at"], field="expires_at")
     if parent_expires is None or child_expires is None:
         if parent_expires != child_expires:
             failed.append("expires_at")
@@ -2637,9 +2603,7 @@ def _verify_public_key_manifest_signature(
 
 
 def _normalize_key_manifest_entries(body: Mapping[str, Any]) -> list[dict[str, Any]]:
-    default_purpose = (
-        body.get("purpose") if isinstance(body.get("purpose"), str) else None
-    )
+    default_purpose = body.get("purpose") if isinstance(body.get("purpose"), str) else None
     keys = body.get("keys")
     entries: list[dict[str, Any]] = []
     if not isinstance(keys, list):
@@ -2648,26 +2612,18 @@ def _normalize_key_manifest_entries(body: Mapping[str, Any]) -> list[dict[str, A
         if not isinstance(entry, dict):
             continue
         normalized = dict(entry)
-        if default_purpose is not None and not isinstance(
-            normalized.get("purpose"), str
-        ):
+        if default_purpose is not None and not isinstance(normalized.get("purpose"), str):
             normalized["purpose"] = default_purpose
         public_key_b64 = normalized.get("public_key_b64")
-        if not isinstance(normalized.get("public_key"), str) and isinstance(
-            public_key_b64, str
-        ):
+        if not isinstance(normalized.get("public_key"), str) and isinstance(public_key_b64, str):
             public_key_material = public_key_b64.removeprefix("ed25519:")
             normalized["public_key"] = f"ed25519:{public_key_material}"
         if "valid_from" not in normalized and "active_from" in normalized:
             normalized["valid_from"] = normalized.get("active_from")
         if "valid_to" not in normalized and "active_to" in normalized:
             normalized["valid_to"] = normalized.get("active_to")
-        if "status" not in normalized and (
-            "active_to" in normalized or "valid_to" in normalized
-        ):
-            normalized["status"] = (
-                "active" if normalized.get("valid_to") is None else "retired"
-            )
+        if "status" not in normalized and ("active_to" in normalized or "valid_to" in normalized):
+            normalized["status"] = "active" if normalized.get("valid_to") is None else "retired"
         entries.append(normalized)
     return entries
 
@@ -2681,9 +2637,7 @@ def _load_key_manifest(source: str) -> list[dict[str, Any]]:
         body = json.loads(Path(source).read_text(encoding="utf-8"))
 
     if not isinstance(body, dict) or not isinstance(body.get("keys"), list):
-        raise ValueError(
-            f"Key manifest at {source!r} must be a JSON object with a 'keys' list"
-        )
+        raise ValueError(f"Key manifest at {source!r} must be a JSON object with a 'keys' list")
 
     if (
         body.get("manifest_version") == "keel.public_key_manifest.v1"
@@ -2887,9 +2841,7 @@ def _composite_hash(chain_heads: dict[str, dict[str, Any]]) -> str:
     parts: list[str] = []
     for scope_key in sorted(chain_heads.keys()):
         head = chain_heads[scope_key]
-        parts.append(
-            f"{scope_key}:{head['sequence_number']}:{head['last_record_hash']}"
-        )
+        parts.append(f"{scope_key}:{head['sequence_number']}:{head['last_record_hash']}")
     combined = "\n".join(parts)
     return f"sha256:{hashlib.sha256(combined.encode('utf-8')).hexdigest()}"
 
@@ -3044,8 +2996,7 @@ def _load_export_json_document(export_data: bytes) -> Any:
             (
                 record.get("project_id")
                 for record in records
-                if isinstance(record.get("project_id"), str)
-                and record.get("project_id")
+                if isinstance(record.get("project_id"), str) and record.get("project_id")
             ),
             None,
         )
@@ -3192,8 +3143,7 @@ def _flatten_chain_entries(
         for entry_index, entry in enumerate(chain_entries):
             if not isinstance(entry, dict):
                 return None, _walk_structure_fail(
-                    f"records[{record_index}].chain_entries[{entry_index}] "
-                    "must be an object",
+                    f"records[{record_index}].chain_entries[{entry_index}] must be an object",
                 )
             flattened.append(
                 {
@@ -3300,10 +3250,7 @@ def _walk_export_events(
             if version not in record_hashers:
                 return _walk_fail(
                     WALK_UNKNOWN_CHAIN_FORMAT,
-                    (
-                        f"event_id={_entry_id(entry)} "
-                        f"chain_format_version={version!r}"
-                    ),
+                    (f"event_id={_entry_id(entry)} chain_format_version={version!r}"),
                 )
             try:
                 _optional_sequence_number(entry)
@@ -3343,17 +3290,13 @@ def _walk_export_events(
             for entry_index, entry in enumerate(chain_entries):
                 if not isinstance(entry, dict):
                     return _walk_structure_fail(
-                        f"records[{record_index}].chain_entries[{entry_index}] "
-                        "must be an object",
+                        f"records[{record_index}].chain_entries[{entry_index}] must be an object",
                     )
                 version = entry.get("chain_format_version")
                 if version not in record_hashers:
                     return _walk_fail(
                         WALK_UNKNOWN_CHAIN_FORMAT,
-                        (
-                            f"event_id={_entry_id(entry)} "
-                            f"chain_format_version={version!r}"
-                        ),
+                        (f"event_id={_entry_id(entry)} chain_format_version={version!r}"),
                     )
                 try:
                     _optional_sequence_number(entry)
@@ -3421,10 +3364,7 @@ def _walk_export_events(
             if record_hash != expected_hash:
                 return _walk_fail(
                     WALK_RECORD_HASH_MISMATCH,
-                    (
-                        f"event_id={event_id} "
-                        f"expected={expected_hash} actual={record_hash}"
-                    ),
+                    (f"event_id={event_id} expected={expected_hash} actual={record_hash}"),
                 )
 
             if previous is not None:
@@ -3460,10 +3400,7 @@ def _walk_export_events(
     print(f"  chain_scopes:        {len(by_scope)}")
     print(f"  entries_walked:      {entries_walked}")
     print(f"  record_hash_checks:  {record_hash_checks} PASS")
-    print(
-        f"  prev_hash_checks:    {prev_hash_checks} PASS "
-        "(excludes window-edge entries)"
-    )
+    print(f"  prev_hash_checks:    {prev_hash_checks} PASS (excludes window-edge entries)")
     print(f"  sequence_checks:     {sequence_checks} PASS")
     return 0
 
@@ -3739,9 +3676,7 @@ def _authority_revocation_temporal_claim(
         message=message,
         evidence=evidence,
         epistemic_state={
-            "authority_revocation_temporal": "verified"
-            if verdict == "supported"
-            else "observed"
+            "authority_revocation_temporal": "verified" if verdict == "supported" else "observed"
         },
     )
 
@@ -3762,9 +3697,7 @@ def _authority_root_status_temporal_claim(
         message=message,
         evidence=evidence,
         epistemic_state={
-            "authority_root_status_temporal": "verified"
-            if verdict == "supported"
-            else "observed"
+            "authority_root_status_temporal": "verified" if verdict == "supported" else "observed"
         },
     )
 
@@ -3808,9 +3741,7 @@ def _authority_edge_revocation_claim(
         message=message,
         evidence=evidence,
         epistemic_state={
-            "authority_edge_revocation": "verified"
-            if verdict == "supported"
-            else "observed"
+            "authority_edge_revocation": "verified" if verdict == "supported" else "observed"
         },
     )
 
@@ -3849,11 +3780,7 @@ def _rail_settlement_reconciled_claim(
     a ``supported`` verdict.
     """
 
-    permit = (
-        input_doc.get("permit")
-        if isinstance(input_doc.get("permit"), dict)
-        else {}
-    )
+    permit = input_doc.get("permit") if isinstance(input_doc.get("permit"), dict) else {}
     permit_id = _string_field(permit.get("permit_id"), permit.get("id"))
     return _permit_claim(
         RAIL_SETTLEMENT_RECONCILED_CLAIM_NAME,
@@ -3862,12 +3789,9 @@ def _rail_settlement_reconciled_claim(
         verdict=verdict,
         reason_code=reason_code,
         message=message,
-        evidence=evidence
-        or ["permit", "rail_settlement", "reconciliation_digest"],
+        evidence=evidence or ["permit", "rail_settlement", "reconciliation_digest"],
         epistemic_state={
-            "rail_settlement_reconciled": "verified"
-            if verdict == "supported"
-            else "observed"
+            "rail_settlement_reconciled": "verified" if verdict == "supported" else "observed"
         },
     )
 
@@ -3952,7 +3876,10 @@ def _authority_constraints_subset(child: Any, parent: Any) -> bool:
         return False
     if any(key not in AUTHORITY_CHAIN_CONSTRAINT_KEYS for key in parent):
         return False
-    if parent.get("requires_human_approval") is True and child.get("requires_human_approval") is not True:
+    if (
+        parent.get("requires_human_approval") is True
+        and child.get("requires_human_approval") is not True
+    ):
         return False
     if (
         "max_recipients" in child
@@ -4156,7 +4083,9 @@ def _adjudicate_permit_authority_chain_v1(
                 evidence=["authority_edges.payload.delegator", "trust_root.keys"],
             )
         public_key = _authority_public_key(record)
-        if public_key is None or not _verify_ed25519(public_key, payload_bytes, str(edge.get("signature"))):
+        if public_key is None or not _verify_ed25519(
+            public_key, payload_bytes, str(edge.get("signature"))
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.edge_signature_invalid"),
@@ -4229,7 +4158,10 @@ def _adjudicate_permit_authority_chain_v1(
             verdict=_authority_code_verdict("authority_chain.root_anchor_invalid"),
             reason_code="authority_chain.root_anchor_invalid",
             message="root edge is not anchored by a user or service-principal delegator",
-            evidence=["authority_edges[0].payload.delegator", "authority_edges[0].payload.parent_edge_digest"],
+            evidence=[
+                "authority_edges[0].payload.delegator",
+                "authority_edges[0].payload.parent_edge_digest",
+            ],
         )
 
     seen_principals = {root_payload["delegator"]["principal_id"]}
@@ -4270,7 +4202,9 @@ def _adjudicate_permit_authority_chain_v1(
         previous = edges[index - 1]["payload"]
         parent_scope = previous["scope"]
         child_scope = payload["scope"]
-        if not _authority_set_subset(child_scope.get("action_verbs"), parent_scope.get("action_verbs")):
+        if not _authority_set_subset(
+            child_scope.get("action_verbs"), parent_scope.get("action_verbs")
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.broadened_verbs"),
@@ -4278,7 +4212,9 @@ def _adjudicate_permit_authority_chain_v1(
                 message="child edge broadens action verbs beyond the parent",
                 evidence=["authority_edges.payload.scope.action_verbs"],
             )
-        if not _authority_set_subset(child_scope.get("action_classes"), parent_scope.get("action_classes")):
+        if not _authority_set_subset(
+            child_scope.get("action_classes"), parent_scope.get("action_classes")
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.broadened_classes"),
@@ -4286,7 +4222,9 @@ def _adjudicate_permit_authority_chain_v1(
                 message="child edge broadens action classes beyond the parent",
                 evidence=["authority_edges.payload.scope.action_classes"],
             )
-        if not _authority_resource_subset(child_scope.get("resources"), parent_scope.get("resources")):
+        if not _authority_resource_subset(
+            child_scope.get("resources"), parent_scope.get("resources")
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.broadened_resources"),
@@ -4294,7 +4232,9 @@ def _adjudicate_permit_authority_chain_v1(
                 message="child edge broadens resources beyond the parent",
                 evidence=["authority_edges.payload.scope.resources"],
             )
-        if not _authority_set_subset(child_scope.get("data_classes"), parent_scope.get("data_classes")):
+        if not _authority_set_subset(
+            child_scope.get("data_classes"), parent_scope.get("data_classes")
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.broadened_data_classes"),
@@ -4302,7 +4242,9 @@ def _adjudicate_permit_authority_chain_v1(
                 message="child edge broadens data classes beyond the parent",
                 evidence=["authority_edges.payload.scope.data_classes"],
             )
-        if not _authority_constraints_subset(child_scope.get("constraints"), parent_scope.get("constraints")):
+        if not _authority_constraints_subset(
+            child_scope.get("constraints"), parent_scope.get("constraints")
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.constraint_not_stricter"),
@@ -4314,10 +4256,14 @@ def _adjudicate_permit_authority_chain_v1(
         parent_budget = previous.get("budget_partition")
         child_budget = payload.get("budget_partition")
         if isinstance(parent_budget, dict) and isinstance(child_budget, dict):
-            if child_budget.get("parent_budget_envelope_id") != parent_budget.get("budget_envelope_id"):
+            if child_budget.get("parent_budget_envelope_id") != parent_budget.get(
+                "budget_envelope_id"
+            ):
                 return _authority_chain_claim(
                     input_doc=input_doc,
-                    verdict=_authority_code_verdict("authority_chain.budget_parent_envelope_mismatch"),
+                    verdict=_authority_code_verdict(
+                        "authority_chain.budget_parent_envelope_mismatch"
+                    ),
                     reason_code="authority_chain.budget_parent_envelope_mismatch",
                     message="child budget parent envelope does not match parent budget envelope",
                     evidence=["authority_edges.payload.budget_partition"],
@@ -4340,7 +4286,10 @@ def _adjudicate_permit_authority_chain_v1(
                     evidence=["authority_edges.payload.budget_partition.allocated_usd_micros"],
                 )
 
-        if payload["creation_policy"]["remaining_depth"] >= previous["creation_policy"]["remaining_depth"]:
+        if (
+            payload["creation_policy"]["remaining_depth"]
+            >= previous["creation_policy"]["remaining_depth"]
+        ):
             return _authority_chain_claim(
                 input_doc=input_doc,
                 verdict=_authority_code_verdict("authority_chain.remaining_depth_not_strict"),
@@ -4358,11 +4307,10 @@ def _adjudicate_permit_authority_chain_v1(
                 message="child max_children exceeds parent max_children",
                 evidence=["authority_edges.payload.creation_policy.max_children"],
             )
-        if (
-            _parse_iso_or_none(payload["validity"]["not_before"])
-            < _parse_iso_or_none(previous["validity"]["not_before"])
-            or _parse_iso_or_none(payload["validity"]["not_after"])
-            > _parse_iso_or_none(previous["validity"]["not_after"])
+        if _parse_iso_or_none(payload["validity"]["not_before"]) < _parse_iso_or_none(
+            previous["validity"]["not_before"]
+        ) or _parse_iso_or_none(payload["validity"]["not_after"]) > _parse_iso_or_none(
+            previous["validity"]["not_after"]
         ):
             return _authority_chain_claim(
                 input_doc=input_doc,
@@ -4387,13 +4335,21 @@ def _adjudicate_permit_authority_chain_v1(
             verdict=_authority_code_verdict("authority_chain.expired_at_resolution"),
             reason_code="authority_chain.expired_at_resolution",
             message="resolution time is outside the effective chain validity window",
-            evidence=["resolution_time", "authority_chain.payload.effective_not_before", "authority_chain.payload.effective_not_after"],
+            evidence=[
+                "resolution_time",
+                "authority_chain.payload.effective_not_before",
+                "authority_chain.payload.effective_not_after",
+            ],
         )
 
     requested_action = input_doc.get("requested_action")
     action_class_map = input_doc.get("action_class_map")
     requested_kind = requested_action.get("kind") if isinstance(requested_action, dict) else None
-    if not isinstance(action_class_map, dict) or not isinstance(requested_kind, str) or requested_kind not in action_class_map:
+    if (
+        not isinstance(action_class_map, dict)
+        or not isinstance(requested_kind, str)
+        or requested_kind not in action_class_map
+    ):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.unmapped_action_kind"),
@@ -4403,10 +4359,9 @@ def _adjudicate_permit_authority_chain_v1(
         )
     leaf_scope = edges[-1]["payload"]["scope"]
     requested_classes = action_class_map[requested_kind]
-    if (
-        not _authority_set_subset(requested_classes, leaf_scope.get("action_classes"))
-        or requested_kind not in leaf_scope.get("action_verbs", [])
-    ):
+    if not _authority_set_subset(
+        requested_classes, leaf_scope.get("action_classes")
+    ) or requested_kind not in leaf_scope.get("action_verbs", []):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.action_outside_chain_scope"),
@@ -4603,9 +4558,7 @@ def _root_status_schema_error(event: dict[str, Any]) -> tuple[str | None, str | 
 
 
 def _root_status_canonical_hash(event: dict[str, Any]) -> str:
-    signed_payload = {
-        key: event[key] for key in _ROOT_STATUS_REQUIRED_FIELDS if key != "signature"
-    }
+    signed_payload = {key: event[key] for key in _ROOT_STATUS_REQUIRED_FIELDS if key != "signature"}
     return hashlib.sha256(_canonical_json_bytes(signed_payload)).hexdigest()
 
 
@@ -5262,9 +5215,7 @@ def _edge_status_canonical_hash(event: dict[str, Any]) -> str:
     carries ``revoked_at`` and never ``compromised_at``).
     """
 
-    signed_payload = {
-        key: event[key] for key in _EDGE_STATUS_SIGNED_FIELDS if key in event
-    }
+    signed_payload = {key: event[key] for key in _EDGE_STATUS_SIGNED_FIELDS if key in event}
     return hashlib.sha256(_canonical_json_bytes(signed_payload)).hexdigest()
 
 
@@ -5301,9 +5252,7 @@ def _adjudicate_authority_edge_revocation_v1(
 
     project_id = edges[0]["payload"].get("project_id")
     edge_digests = {
-        edge.get("edge_digest")
-        for edge in edges
-        if isinstance(edge.get("edge_digest"), str)
+        edge.get("edge_digest") for edge in edges if isinstance(edge.get("edge_digest"), str)
     }
 
     matching: list[tuple[datetime, dict[str, Any], str]] = []
@@ -5408,9 +5357,7 @@ def _rail_settlement_record_from_payload(
     nested = payload.get("rail_settlement")
     if isinstance(nested, dict):
         return nested
-    if "reconciliation_digest" in payload and isinstance(
-        payload.get("settlement_reference"), dict
-    ):
+    if "reconciliation_digest" in payload and isinstance(payload.get("settlement_reference"), dict):
         return payload
     return None
 
@@ -5616,9 +5563,7 @@ def _adjudicate_rail_settlement_reconciled_v1(
 
     settlement_record = record.get("settlement_record")
     settlement_reference = record.get("settlement_reference")
-    if not isinstance(settlement_record, dict) or not isinstance(
-        settlement_reference, dict
-    ):
+    if not isinstance(settlement_record, dict) or not isinstance(settlement_reference, dict):
         return _rail_settlement_reconciled_claim(
             input_doc=input_doc,
             verdict=_rail_settlement_code_verdict(
@@ -5670,9 +5615,7 @@ def _adjudicate_rail_settlement_reconciled_v1(
     if record_reference != bound_reference:
         return _rail_settlement_reconciled_claim(
             input_doc=input_doc,
-            verdict=_rail_settlement_code_verdict(
-                "rail_settlement_reconciled.reference_mismatch"
-            ),
+            verdict=_rail_settlement_code_verdict("rail_settlement_reconciled.reference_mismatch"),
             reason_code="rail_settlement_reconciled.reference_mismatch",
             message=(
                 "the bound settlement reference does not match the settlement "
@@ -5684,9 +5627,7 @@ def _adjudicate_rail_settlement_reconciled_v1(
     if recomputed_digest != bound_digest:
         return _rail_settlement_reconciled_claim(
             input_doc=input_doc,
-            verdict=_rail_settlement_code_verdict(
-                "rail_settlement_reconciled.reference_mismatch"
-            ),
+            verdict=_rail_settlement_code_verdict("rail_settlement_reconciled.reference_mismatch"),
             reason_code="rail_settlement_reconciled.reference_mismatch",
             message=(
                 "the recomputed reconciliation digest does not reproduce the "
@@ -5708,21 +5649,14 @@ def _adjudicate_rail_settlement_reconciled_v1(
 
     settled_amount = _rail_settlement_int_or_none(settlement_record.get("amount"))
     amount_max = _rail_settlement_int_or_none(authority.get("amount_max"))
-    if (
-        settled_amount is None
-        or amount_max is None
-        or settled_amount > amount_max
-    ):
+    if settled_amount is None or amount_max is None or settled_amount > amount_max:
         return _rail_settlement_reconciled_claim(
             input_doc=input_doc,
             verdict=_rail_settlement_code_verdict(
                 "rail_settlement_reconciled.amount_exceeds_authority"
             ),
             reason_code="rail_settlement_reconciled.amount_exceeds_authority",
-            message=(
-                "the settled amount exceeds the permit's authorized spend "
-                "(amount_max)"
-            ),
+            message=("the settled amount exceeds the permit's authorized spend (amount_max)"),
             evidence=[evidence_path, "authority"],
         )
 
@@ -5750,9 +5684,7 @@ def _iter_export_entries(document: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
             chain_entries = record.get("chain_entries")
             if isinstance(chain_entries, list):
-                entries.extend(
-                    entry for entry in chain_entries if isinstance(entry, dict)
-                )
+                entries.extend(entry for entry in chain_entries if isinstance(entry, dict))
             else:
                 entries.append(record)
     return entries
@@ -5781,11 +5713,7 @@ def _actor_id_has_pii_shape(value: Any) -> bool:
     text = value.strip()
     if not text:
         return False
-    return (
-        _EMAIL_RE.fullmatch(text) is not None
-        or "@" in text
-        or bool(re.search(r"\s", text))
-    )
+    return _EMAIL_RE.fullmatch(text) is not None or "@" in text or bool(re.search(r"\s", text))
 
 
 def _raw_ed25519_signature_b64(value: Any) -> bool:
@@ -6049,7 +5977,10 @@ def _iter_permit_v2_candidates(
         candidates.append((document, "export"))
     for key in ("permit", "permit_v2", "permit_record"):
         nested = document.get(key)
-        if isinstance(nested, dict) and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+        if (
+            isinstance(nested, dict)
+            and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION
+        ):
             candidates.append((nested, f"export.{key}"))
     for entry_index, entry in enumerate(_iter_export_entries(document)):
         if entry.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
@@ -6059,7 +5990,10 @@ def _iter_permit_v2_candidates(
             candidates.append((payload, f"chain_entries[{entry_index}].payload_json"))
         for key in ("permit", "permit_v2", "permit_record"):
             nested = payload.get(key)
-            if isinstance(nested, dict) and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION:
+            if (
+                isinstance(nested, dict)
+                and nested.get("permit_format_version") == PERMIT_V2_FORMAT_VERSION
+            ):
                 candidates.append((nested, f"chain_entries[{entry_index}].payload_json.{key}"))
     return candidates
 
@@ -6223,9 +6157,10 @@ def _permit_v2_slot_schema_error(
         )
     if not _raw_ed25519_signature_b64(slot.get("signature")):
         return spec.invalid_code, f"{spec.slot_name}.signature must be base64 Ed25519 bytes"
-    if spec.extra_field == "execution_intent_hash" and _permit_v2_sha256_hex(
-        slot.get("execution_intent_hash")
-    ) is None:
+    if (
+        spec.extra_field == "execution_intent_hash"
+        and _permit_v2_sha256_hex(slot.get("execution_intent_hash")) is None
+    ):
         return (
             spec.invalid_code,
             f"{spec.slot_name}.execution_intent_hash must be lowercase SHA-256 hex",
@@ -6381,11 +6316,20 @@ def _permit_v2_signed_payload_error(
     if payload.get("permit_id") != permit_id:
         return spec.invalid_code, "signed payload permit_id does not match the permit"
     if _permit_v2_sha256_hex(payload.get("issuer_signature_hash")) is None:
-        return spec.invalid_code, "signed payload issuer_signature_hash must be lowercase SHA-256 hex"
+        return (
+            spec.invalid_code,
+            "signed payload issuer_signature_hash must be lowercase SHA-256 hex",
+        )
     if _permit_v2_sha256_hex(payload.get("permit_canonical_hash")) is None:
-        return spec.invalid_code, "signed payload permit_canonical_hash must be lowercase SHA-256 hex"
+        return (
+            spec.invalid_code,
+            "signed payload permit_canonical_hash must be lowercase SHA-256 hex",
+        )
     if not _is_uuid_text(payload.get(spec.signer_payload_field)):
-        return spec.invalid_code, f"signed payload {spec.signer_payload_field} must be a UUID string"
+        return (
+            spec.invalid_code,
+            f"signed payload {spec.signer_payload_field} must be a UUID string",
+        )
     if payload.get(spec.signer_payload_field) != slot.get("signer_id"):
         return (
             spec.signer_mismatch_code,
@@ -6406,9 +6350,7 @@ def _permit_v2_window_bounds(permit: dict[str, Any]) -> tuple[datetime | None, d
         permit.get("valid_from") or permit.get("issued_at") or permit.get("created_at")
     )
     valid_until = _parse_iso_or_none(
-        permit.get("valid_until")
-        or permit.get("valid_to")
-        or permit.get("expires_at")
+        permit.get("valid_until") or permit.get("valid_to") or permit.get("expires_at")
     )
     return valid_from, valid_until
 
@@ -6426,7 +6368,10 @@ def _permit_v2_slot_window_error(
         if valid_until is None:
             return spec.invalid_code, "permit valid_until/expires_at is missing or malformed"
         if signing_time < valid_from or signing_time > valid_until:
-            return spec.invalid_code, f"{spec.slot_name}.signed_at is outside the permit validity window"
+            return (
+                spec.invalid_code,
+                f"{spec.slot_name}.signed_at is outside the permit validity window",
+            )
     elif spec.slot_name == PERMIT_AUDIT_ATTESTATION_SLOT and signing_time < valid_from:
         return spec.invalid_code, "audit_attestation.signed_at is before permit valid_from"
     return None
@@ -6567,11 +6512,7 @@ def _permit_v2_counter_signature_intent_hashes(
             resource_operation = _permit_v2_text(
                 permit_attributes.get("operation") or permit.get("action_name")
             )
-        if (
-            dispatch_request_hash is None
-            or resource_provider is None
-            or resource_model is None
-        ):
+        if dispatch_request_hash is None or resource_provider is None or resource_model is None:
             continue
         payload = {
             "payload_type": PERMIT_COUNTER_SIGNATURE_EXECUTION_INTENT_PAYLOAD_TYPE,
@@ -6657,14 +6598,9 @@ def _permit_v2_key_entry_matches(
     purpose = entry.get("purpose")
     signer_role = entry.get("signer_role")
     expected_role = (
-        "operator"
-        if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT
-        else "buyer_principal"
+        "operator" if spec.slot_name == PERMIT_OPERATOR_APPROVAL_SLOT else "buyer_principal"
     )
-    if (
-        purpose not in spec.key_purposes
-        and signer_role != expected_role
-    ):
+    if purpose not in spec.key_purposes and signer_role != expected_role:
         return False
     if entry.get("key_id") != key_id:
         return False
@@ -6829,9 +6765,7 @@ def _adjudicate_permit_v2_signature_slot(
                 spec,
                 permit_id=permit_id,
                 verdict="disproved" if account_drift else "insufficient_evidence",
-                reason_code=(
-                    spec.invalid_code if account_drift else spec.key_not_trusted_code
-                ),
+                reason_code=(spec.invalid_code if account_drift else spec.key_not_trusted_code),
                 message=account_error,
                 evidence=[evidence_path, "key_registry", "account_id"],
                 epistemic_state=None if account_drift else "unverifiable",
@@ -6947,9 +6881,7 @@ def _adjudicate_permit_v2_signature_slot(
                 spec,
                 permit_id=permit_id,
                 verdict="disproved" if account_drift else "insufficient_evidence",
-                reason_code=(
-                    spec.invalid_code if account_drift else spec.key_not_trusted_code
-                ),
+                reason_code=(spec.invalid_code if account_drift else spec.key_not_trusted_code),
                 message=account_error,
                 evidence=[evidence_path, "key_registry", "account_id"],
                 epistemic_state=None if account_drift else "unverifiable",
@@ -6994,7 +6926,11 @@ def _adjudicate_permit_v2_signature_slot(
 
     supported_evidence = [evidence_path, "key_registry"]
     if spec.requires_key_status_completeness:
-        if key_status_manifest is None or key_status_sidecar is None or key_status_checkpoint is None:
+        if (
+            key_status_manifest is None
+            or key_status_sidecar is None
+            or key_status_checkpoint is None
+        ):
             (
                 discovered_manifest,
                 discovered_sidecar,
@@ -7287,8 +7223,7 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
             "system",
         }:
             return (
-                "canonical_payload.subject_type must be agent, user, "
-                "service_principal, or system"
+                "canonical_payload.subject_type must be agent, user, service_principal, or system"
             )
         for field in ("account_id", "org_id"):
             value = canonical_payload.get(field)
@@ -7492,8 +7427,7 @@ def _permit_decision_binding_recompute_failure(
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
-                    "permit.binding."
-                    f"{reason_version}.resource_attributes_canonical_hash_missing"
+                    f"permit.binding.{reason_version}.resource_attributes_canonical_hash_missing"
                 ),
                 message=(
                     f"{reason_version} canonical_payload is missing "
@@ -7512,8 +7446,7 @@ def _permit_decision_binding_recompute_failure(
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(
-                    "permit.binding."
-                    f"{reason_version}.resource_attributes_canonical_hash_mismatch"
+                    f"permit.binding.{reason_version}.resource_attributes_canonical_hash_mismatch"
                 ),
                 message=(
                     "canonical_payload.resource_attributes_canonical_hash does not "
@@ -7535,14 +7468,10 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes.get("spend_scope")
         )
         if recomputed_spend_scope_hash != spend_scope_hash:
-            spend_reason_version = (
-                str(version) if version in {"v5", "v6", "v7"} else "v3"
-            )
+            spend_reason_version = str(version) if version in {"v5", "v6", "v7"} else "v3"
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
-                reason_code=(
-                    f"permit.binding.{spend_reason_version}.spend_scope_hash_mismatch"
-                ),
+                reason_code=(f"permit.binding.{spend_reason_version}.spend_scope_hash_mismatch"),
                 message=(
                     "canonical_payload.spend_scope_hash does not match "
                     "resource_attributes_json.spend_scope"
@@ -7567,14 +7496,11 @@ def _permit_decision_binding_recompute_failure(
         resource_attributes.get("delegation_policy")
     )
     if recomputed_delegation_policy_hash != delegation_policy_hash:
-        delegation_reason_version = (
-            str(version) if version in {"v5", "v6", "v7"} else "v4"
-        )
+        delegation_reason_version = str(version) if version in {"v5", "v6", "v7"} else "v4"
         return _PermitDecisionBindingFailure(
             verdict="disproved",
             reason_code=(
-                "permit.binding."
-                f"{delegation_reason_version}.delegation_policy_hash_mismatch"
+                f"permit.binding.{delegation_reason_version}.delegation_policy_hash_mismatch"
             ),
             message=(
                 "canonical_payload.delegation_policy_hash does not match "
@@ -7670,7 +7596,9 @@ def _adjudicate_permit_decision_v1(
         )
 
     expected_decision = evidence.get("expected_decision")
-    if isinstance(expected_decision, str) and expected_decision != canonical_payload.get("decision"):
+    if isinstance(expected_decision, str) and expected_decision != canonical_payload.get(
+        "decision"
+    ):
         return _permit_claim(
             PERMIT_DECISION_CLAIM_NAME,
             subject_type="permit_decision",
@@ -7791,10 +7719,7 @@ def _find_revocation_evidence(
                 canonical_hash if isinstance(canonical_hash, str) else None,
                 "payload_json.revocation_event",
             )
-        if (
-            entry.get("event_type") == PERMIT_REVOKED_EVENT_TYPE
-            and "signature" in payload
-        ):
+        if entry.get("event_type") == PERMIT_REVOKED_EVENT_TYPE and "signature" in payload:
             return payload, None, "payload_json"
         if entry.get("event_type") == PERMIT_REVOKED_EVENT_TYPE and "signature" in entry:
             return entry, None, "chain_entry"
@@ -7806,15 +7731,24 @@ def _permit_revoked_schema_error(event: dict[str, Any]) -> tuple[str | None, str
     required = set(_PERMIT_REVOKED_REQUIRED_FIELDS)
     missing = sorted(required - keys)
     if missing:
-        return "PERMIT_REVOKED_EVIDENCE_MISSING", "revocation event missing required field(s): " + ", ".join(missing)
+        return (
+            "PERMIT_REVOKED_EVIDENCE_MISSING",
+            "revocation event missing required field(s): " + ", ".join(missing),
+        )
     extra = sorted(keys - required)
     if extra:
-        return "PERMIT_REVOKED_SCHEMA_INVALID", "revocation event has unsupported field(s): " + ", ".join(extra)
+        return (
+            "PERMIT_REVOKED_SCHEMA_INVALID",
+            "revocation event has unsupported field(s): " + ", ".join(extra),
+        )
     for field in ("permit_id", "project_id", "actor_id"):
         if not isinstance(event.get(field), str) or not event[field]:
             return "PERMIT_REVOKED_SCHEMA_INVALID", f"{field} must be a non-empty string"
     if _actor_id_has_pii_shape(event.get("actor_id")):
-        return "PERMIT_REVOKED_ACTOR_PII_DETECTED", "actor_id appears to contain PII rather than an opaque UUID"
+        return (
+            "PERMIT_REVOKED_ACTOR_PII_DETECTED",
+            "actor_id appears to contain PII rather than an opaque UUID",
+        )
     for field in ("permit_id", "project_id", "actor_id"):
         if not _is_uuid_text(event.get(field)):
             return "PERMIT_REVOKED_SCHEMA_INVALID", f"{field} must be a UUID string"
@@ -7868,7 +7802,9 @@ def _adjudicate_permit_revoked_v1(
             evidence=[evidence_path],
         )
 
-    declared_project_id = _string_field(export_document.get("project_id"), manifest.get("project_id"))
+    declared_project_id = _string_field(
+        export_document.get("project_id"), manifest.get("project_id")
+    )
     declared_permit_id = _string_field(export_document.get("permit_id"))
     if declared_project_id is not None and event["project_id"] != declared_project_id:
         return _permit_claim(
@@ -7901,7 +7837,9 @@ def _adjudicate_permit_revoked_v1(
             evidence=[evidence_path, "effective_at", "revoked_at"],
         )
 
-    signed_payload = {key: event[key] for key in _PERMIT_REVOKED_REQUIRED_FIELDS if key != "signature"}
+    signed_payload = {
+        key: event[key] for key in _PERMIT_REVOKED_REQUIRED_FIELDS if key != "signature"
+    }
     canonical_hash = _compute_canonical_binding_hash(signed_payload)
     if declared_canonical_hash is not None and declared_canonical_hash != canonical_hash:
         return _permit_claim(
@@ -8141,7 +8079,9 @@ def _adjudicate_permit_dispatch_absence_after_revocation_v1(
         predicate = declared_scope.get("predicate") if isinstance(declared_scope, dict) else None
         if _absence_predicate_out_of_grammar(predicate):
             return _absence_claim(
-                segment_id=segment.get("segment_id") if isinstance(segment.get("segment_id"), str) else None,
+                segment_id=segment.get("segment_id")
+                if isinstance(segment.get("segment_id"), str)
+                else None,
                 verdict="unverifiable_scope",
                 reason_code="EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
                 message="absence predicate must use v1 equality on project_id, permit_id, event_type and a bounded occurred_at range",
@@ -8296,8 +8236,7 @@ def _digest_candidates(
     return [
         context
         for context in contexts
-        if _entry_permit_id(context) == permit_id
-        and context["entry"].get("event_type") in accepted
+        if _entry_permit_id(context) == permit_id and context["entry"].get("event_type") in accepted
     ]
 
 
@@ -8330,24 +8269,17 @@ def _verify_closure_digest_reference(
     if not candidates:
         return _walk_fail(
             WALK_CLOSURE_DIGEST_MISSING,
-            (
-                f"permit_id={permit_id} missing "
-                f"{'/'.join(event_types)} evidence for {field}"
-            ),
+            (f"permit_id={permit_id} missing {'/'.join(event_types)} evidence for {field}"),
         )
 
     candidate_values = [
-        _digest_value(_entry_payload(context["entry"]).get(field))
-        for context in candidates
+        _digest_value(_entry_payload(context["entry"]).get(field)) for context in candidates
     ]
     present_values = [value for value in candidate_values if value is not None]
     if not present_values:
         return _walk_fail(
             WALK_CLOSURE_DIGEST_MISSING,
-            (
-                f"permit_id={permit_id} {'/'.join(event_types)} evidence "
-                f"missing {field}"
-            ),
+            (f"permit_id={permit_id} {'/'.join(event_types)} evidence missing {field}"),
         )
     if closure_digest not in present_values:
         return _walk_fail(
@@ -8370,17 +8302,12 @@ def _verify_closure_dispatch_digest_reference(
     if closure_status == CLOSURE_STATUS_MISSING_CLOSURE:
         return None
 
-    closure_digest = _digest_value(
-        closure_payload.get("dispatch_request_digest_v1")
-    )
+    closure_digest = _digest_value(closure_payload.get("dispatch_request_digest_v1"))
     if closure_digest is None:
         if closure_status == CLOSURE_STATUS_CLOSED:
             return _walk_fail(
                 WALK_CLOSURE_DIGEST_MISSING,
-                (
-                    f"permit_id={permit_id} closure_status=closed missing "
-                    "dispatch_request_digest_v1"
-                ),
+                (f"permit_id={permit_id} closure_status=closed missing dispatch_request_digest_v1"),
             )
         print(
             "WARNING: "
@@ -8391,9 +8318,7 @@ def _verify_closure_dispatch_digest_reference(
         )
         return None
 
-    record_digest = _digest_value(
-        closure_context.get("record_binding_request_hash")
-    )
+    record_digest = _digest_value(closure_context.get("record_binding_request_hash"))
     if record_digest is None:
         return _walk_fail(
             WALK_CLOSURE_DIGEST_MISSING,
@@ -8664,11 +8589,7 @@ def _workflow_fail(code: str, message: str) -> int:
 
 def _strip_none(value: Any) -> Any:
     if isinstance(value, dict):
-        return {
-            str(key): _strip_none(item)
-            for key, item in value.items()
-            if item is not None
-        }
+        return {str(key): _strip_none(item) for key, item in value.items() if item is not None}
     if isinstance(value, list):
         return [_strip_none(item) for item in value]
     return value
@@ -8798,12 +8719,8 @@ def _workflow_declaration_intent(record: dict[str, Any]) -> dict[str, Any]:
             "expected_calls": record.get("expected_calls"),
             "max_calls": record.get("max_calls"),
             "expected_model": record.get("expected_model"),
-            "expected_input_tokens_per_call": record.get(
-                "expected_input_tokens_per_call"
-            ),
-            "expected_output_tokens_per_call": record.get(
-                "expected_output_tokens_per_call"
-            ),
+            "expected_input_tokens_per_call": record.get("expected_input_tokens_per_call"),
+            "expected_output_tokens_per_call": record.get("expected_output_tokens_per_call"),
             "max_duration_seconds": record.get("max_duration_seconds"),
         }
     )
@@ -8868,9 +8785,7 @@ def _workflow_declaration_payload_candidates(
         dashboard_session_field="declared_by_dashboard_session_id",
     )
     issued_at_values = _workflow_issued_at_candidates(
-        record.get("declaration_signed_at")
-        or record.get("declared_at")
-        or record.get("created_at")
+        record.get("declaration_signed_at") or record.get("declared_at") or record.get("created_at")
     )
     for issued_at in issued_at_values:
         candidates.append(
@@ -9010,16 +8925,11 @@ def _verify_workflow_signed_record(
         )
 
     candidates = payload_candidates(record, binding_key_id=binding_key_id)
-    recomputed_hashes = [
-        _compute_canonical_binding_hash(candidate) for candidate in candidates
-    ]
+    recomputed_hashes = [_compute_canonical_binding_hash(candidate) for candidate in candidates]
     if canonical_hash not in recomputed_hashes:
         return _workflow_fail(
             WORKFLOW_SIGNATURE_INVALID,
-            (
-                f"{record_label} canonical_hash mismatch "
-                f"actual={canonical_hash}"
-            ),
+            (f"{record_label} canonical_hash mismatch actual={canonical_hash}"),
         )
 
     if not _verify_ed25519(trusted_pub, canonical_hash.encode("utf-8"), signature):
@@ -9050,7 +8960,10 @@ def _validate_workflow_declaration_record(
     _optional_workflow_str(record, "declaration_signature_b64")
     if _parse_iso_or_none(record.get("declaration_signed_at")) is None:
         raise ValueError("declaration_signed_at must be an ISO-8601 timestamp")
-    if require_effective_hash and _normalize_sha256_hex(record.get("effective_intent_hash")) is None:
+    if (
+        require_effective_hash
+        and _normalize_sha256_hex(record.get("effective_intent_hash")) is None
+    ):
         raise ValueError("effective_intent_hash must be a non-empty string")
 
 
@@ -9093,15 +9006,11 @@ def _compute_effective_intent_hash_from_records(
     )
     hasher = hashlib.sha256()
     hasher.update(
-        _canonical_workflow_json(_workflow_declaration_intent(declaration)).encode(
-            "utf-8"
-        )
+        _canonical_workflow_json(_workflow_declaration_intent(declaration)).encode("utf-8")
     )
     for amendment in selected:
         hasher.update(
-            _canonical_workflow_json(_workflow_amendment_delta(amendment)).encode(
-                "utf-8"
-            )
+            _canonical_workflow_json(_workflow_amendment_delta(amendment)).encode("utf-8")
         )
     return hasher.hexdigest()
 
@@ -9180,10 +9089,7 @@ def _verify_workflow_effective_hashes(
         if actual != expected:
             return _workflow_fail(
                 WORKFLOW_EFFECTIVE_INTENT_HASH_MISMATCH,
-                (
-                    f"workflow_declaration_id={declaration_id} "
-                    f"expected={expected} actual={actual}"
-                ),
+                (f"workflow_declaration_id={declaration_id} expected={expected} actual={actual}"),
             )
     return None
 
@@ -9430,8 +9336,7 @@ def _verify_permit_workflow_snapshots(
                         declaration_id,
                         [],
                     )
-                    if _workflow_datetime_sort_key(amendment, "created_at")
-                    < created_at
+                    if _workflow_datetime_sort_key(amendment, "created_at") < created_at
                 ]
             )
             + 1
@@ -9744,9 +9649,7 @@ def _verify_incident_bundle(
             if not isinstance(metadata, dict):
                 raise ValueError("incident_metadata.json must be an object")
             if metadata.get("schema") != "keel.incident_evidence/v1":
-                raise ValueError(
-                    "incident_metadata.json schema must be keel.incident_evidence/v1"
-                )
+                raise ValueError("incident_metadata.json schema must be keel.incident_evidence/v1")
             declarations = _read_jsonl_from_zip(
                 zip_file,
                 "workflow_declarations.jsonl",
@@ -9980,9 +9883,7 @@ def _attach_permit_view(
 
     if verdicts.get(PERMIT_DECISION_CLAIM_NAME) == "supported":
         evidence, _ = _find_permit_decision_evidence(export_document)
-        canonical = (
-            evidence.get("canonical_payload") if isinstance(evidence, dict) else None
-        )
+        canonical = evidence.get("canonical_payload") if isinstance(evidence, dict) else None
         if isinstance(canonical, dict):
             view = _permit_view_fields(canonical, _PERMIT_VIEW_CANONICAL_FIELDS)
             if view:
@@ -10044,9 +9945,7 @@ def _export_integrity_claim(
                 subject_id=export_path.name,
                 verdict=content_verdict,
                 reason_code=(
-                    "CONTENT_HASH_MATCH"
-                    if content_verdict == "supported"
-                    else reason_code
+                    "CONTENT_HASH_MATCH" if content_verdict == "supported" else reason_code
                 ),
                 message=(
                     "export bytes match manifest content_hash"
@@ -10400,7 +10299,7 @@ def _lookup_hierarchy_from_merkle_semantic() -> dict[str, list[tuple[str, str | 
             continue
         paths: list[tuple[str, str | None]] = []
         for segment in text.split("; "):
-            match = re.match(r'\d+\. `([^`]+)`(?: when `([^`]+)`)?$', segment)
+            match = re.match(r"\d+\. `([^`]+)`(?: when `([^`]+)`)?$", segment)
             if match is None:
                 raise ValueError(f"cannot parse lookup segment {segment!r}")
             paths.append((match.group(1), match.group(2)))
@@ -10467,7 +10366,10 @@ def _validate_scope_predicate(
         return "EXPORT_SCOPE_PREDICATE_MALFORMED", "predicate must be an object"
     required = {"version", "operator", "equals", "ranges"}
     if set(predicate.keys()) != required:
-        return "EXPORT_SCOPE_PREDICATE_MALFORMED", "predicate must contain version, operator, equals, and ranges"
+        return (
+            "EXPORT_SCOPE_PREDICATE_MALFORMED",
+            "predicate must contain version, operator, equals, and ranges",
+        )
     if predicate.get("version") != SCOPE_PREDICATE_VERSION:
         return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", "predicate grammar version is unsupported"
     if predicate.get("operator") != "and":
@@ -10482,22 +10384,45 @@ def _validate_scope_predicate(
         if kind in {"sequence_number", "created_at", "occurred_at"}:
             return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate kind {kind!r} must use ranges"
         if isinstance(value, (dict, list)):
-            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate equals value for {kind!r} must be scalar"
+            return (
+                "EXPORT_SCOPE_PREDICATE_MALFORMED",
+                f"predicate equals value for {kind!r} must be scalar",
+            )
     for kind, value in ranges.items():
         if kind in SCOPE_RESERVED_PREDICATE_KINDS or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS:
-            return "EXPORT_SCOPE_PREDICATE_UNSUPPORTED", f"predicate range kind {kind!r} is unsupported"
+            return (
+                "EXPORT_SCOPE_PREDICATE_UNSUPPORTED",
+                f"predicate range kind {kind!r} is unsupported",
+            )
         if kind not in {"sequence_number", "created_at", "occurred_at"}:
             return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate kind {kind!r} must use equals"
         if not isinstance(value, dict):
-            return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"predicate range for {kind!r} must be an object"
+            return (
+                "EXPORT_SCOPE_PREDICATE_MALFORMED",
+                f"predicate range for {kind!r} must be an object",
+            )
         if kind == "sequence_number":
-            if set(value.keys()) != {"gte", "lte"} or not _is_nonbool_int(value.get("gte")) or not _is_nonbool_int(value.get("lte")):
-                return "EXPORT_SCOPE_PREDICATE_MALFORMED", "sequence_number range must contain integer gte and lte"
+            if (
+                set(value.keys()) != {"gte", "lte"}
+                or not _is_nonbool_int(value.get("gte"))
+                or not _is_nonbool_int(value.get("lte"))
+            ):
+                return (
+                    "EXPORT_SCOPE_PREDICATE_MALFORMED",
+                    "sequence_number range must contain integer gte and lte",
+                )
             if int(value["gte"]) > int(value["lte"]):
                 return "EXPORT_SCOPE_PREDICATE_MALFORMED", "sequence_number range has gte after lte"
         else:
-            if set(value.keys()) != {"gte", "lt"} or not isinstance(value.get("gte"), str) or not isinstance(value.get("lt"), str):
-                return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"{kind} range must contain timestamp gte and lt"
+            if (
+                set(value.keys()) != {"gte", "lt"}
+                or not isinstance(value.get("gte"), str)
+                or not isinstance(value.get("lt"), str)
+            ):
+                return (
+                    "EXPORT_SCOPE_PREDICATE_MALFORMED",
+                    f"{kind} range must contain timestamp gte and lt",
+                )
             if _parse_iso_or_none(value["gte"]) is None or _parse_iso_or_none(value["lt"]) is None:
                 return "EXPORT_SCOPE_PREDICATE_MALFORMED", f"{kind} range timestamps are invalid"
     if sidecar_context:
@@ -10591,21 +10516,33 @@ def _scope_sidecar_schema_error(sidecar: Any) -> str | None:
         return "artifact_type must be checkpoint_scope_state"
     if sidecar.get("version") != SCOPE_STATE_SIDECAR_VERSION:
         return "version must be checkpoint_scope_state.v1"
-    for field in ("scope_state_id", "checkpoint_id", "chain_scope", "predicate_grammar_version", "commitment_profile", "signed_at"):
+    for field in (
+        "scope_state_id",
+        "checkpoint_id",
+        "chain_scope",
+        "predicate_grammar_version",
+        "commitment_profile",
+        "signed_at",
+    ):
         if not _is_nonempty_str(sidecar.get(field)):
             return f"{field} must be a non-empty string"
     if not _is_nonbool_int(sidecar.get("tree_size")) or int(sidecar["tree_size"]) < 0:
         return "tree_size must be a non-negative integer"
 
     basis = sidecar.get("predicate_basis")
-    if not _exact_keys(basis, {"canonicalization_profile", "supported_predicate_kinds", "reserved_namespaces"}):
+    if not _exact_keys(
+        basis, {"canonicalization_profile", "supported_predicate_kinds", "reserved_namespaces"}
+    ):
         return "predicate_basis must contain canonicalization_profile, supported_predicate_kinds, and reserved_namespaces"
     if basis.get("canonicalization_profile") != "keel.canonical_json.payload.v1":
         return "predicate_basis canonicalization_profile is unsupported"
     supported = basis.get("supported_predicate_kinds")
     if not isinstance(supported, list) or len(set(supported)) != len(supported):
         return "supported_predicate_kinds must be a unique array"
-    if any(not isinstance(kind, str) or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS for kind in supported):
+    if any(
+        not isinstance(kind, str) or kind not in SCOPE_SUPPORTED_PREDICATE_KINDS
+        for kind in supported
+    ):
         return "supported_predicate_kinds contains an unsupported kind"
     reserved = basis.get("reserved_namespaces")
     if (
@@ -10626,7 +10563,9 @@ def _scope_sidecar_schema_error(sidecar: Any) -> str | None:
         return "signature algorithm must be Ed25519"
     if not _is_nonempty_str(signature.get("key_id")):
         return "signature.key_id must be a non-empty string"
-    if not _is_nonempty_str(signature.get("signature")) or not str(signature["signature"]).startswith("ed25519:"):
+    if not _is_nonempty_str(signature.get("signature")) or not str(
+        signature["signature"]
+    ).startswith("ed25519:"):
         return "signature.signature must be ed25519:<base64>"
 
     trust = sidecar.get("trust_root_reference")
@@ -10714,26 +10653,47 @@ def _verify_checkpoint_for_scope_state(
     semantics_dispatch: SemanticsDispatch | None,
 ) -> tuple[str | None, str | None]:
     if checkpoint is None:
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING", "referenced checkpoint artifact is absent"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING",
+            "referenced checkpoint artifact is absent",
+        )
     if not isinstance(checkpoint, dict):
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint artifact must be a JSON object"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "checkpoint artifact must be a JSON object",
+        )
     if checkpoint.get("checkpoint_id") != sidecar.get("checkpoint_id"):
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "sidecar checkpoint_id does not match checkpoint artifact"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "sidecar checkpoint_id does not match checkpoint artifact",
+        )
     chain_heads = checkpoint.get("chain_heads")
     if not isinstance(chain_heads, dict):
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint chain_heads are missing or malformed"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "checkpoint chain_heads are missing or malformed",
+        )
     composite = checkpoint.get("composite_hash")
     if not isinstance(composite, str) or not composite.startswith("sha256:"):
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint composite_hash is missing or malformed"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "checkpoint composite_hash is missing or malformed",
+        )
     try:
         hasher = semantics_dispatch.composite_hash if semantics_dispatch else _composite_hash
         if hasher is None:
             hasher = _composite_hash
         recomputed = hasher(chain_heads)
     except Exception as exc:
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", f"could not recompute checkpoint composite_hash: {exc}"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            f"could not recompute checkpoint composite_hash: {exc}",
+        )
     if recomputed != composite:
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint composite_hash does not match chain_heads"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "checkpoint composite_hash does not match chain_heads",
+        )
 
     signature = checkpoint.get("signature")
     if not isinstance(signature, str):
@@ -10741,18 +10701,28 @@ def _verify_checkpoint_for_scope_state(
     key_id = checkpoint.get("key_id") if isinstance(checkpoint.get("key_id"), str) else None
     signing_time = _parse_iso_or_none(checkpoint.get("computed_at"))
     trusted_pub, _trust_source, err = _resolve_trust_key(
-        artifact_pub=checkpoint.get("public_key") if isinstance(checkpoint.get("public_key"), str) else None,
+        artifact_pub=checkpoint.get("public_key")
+        if isinstance(checkpoint.get("public_key"), str)
+        else None,
         artifact_key_id=key_id,
         purpose="integrity_checkpoint",
         expected_public_key=None,
         public_key_url=None,
-        key_manifest_source=key_manifest_source or _cached_key_manifest_source() or _bundled_key_manifest_source(),
+        key_manifest_source=key_manifest_source
+        or _cached_key_manifest_source()
+        or _bundled_key_manifest_source(),
         signing_time=signing_time,
     )
     if err is not None or trusted_pub is None:
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", err or "checkpoint trust key could not be resolved"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            err or "checkpoint trust key could not be resolved",
+        )
     if isinstance(checkpoint.get("public_key"), str) and checkpoint["public_key"] != trusted_pub:
-        return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint public_key does not match trust root"
+        return (
+            "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH",
+            "checkpoint public_key does not match trust root",
+        )
     if not _verify_ed25519(trusted_pub, composite.encode("utf-8"), signature):
         return "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISMATCH", "checkpoint signature does not verify"
     return None, None
@@ -10812,7 +10782,11 @@ def _adjudicate_checkpoint_scope_state_v1(
         key_manifest_source=key_manifest_source,
     )
     if key_error is not None or trusted_pub is None:
-        verdict = "disproved" if key_error == "CHECKPOINT_SCOPE_STATE_KEY_NOT_ACTIVE" else "insufficient_evidence"
+        verdict = (
+            "disproved"
+            if key_error == "CHECKPOINT_SCOPE_STATE_KEY_NOT_ACTIVE"
+            else "insufficient_evidence"
+        )
         claim = _scope_state_claim(
             sidecar=sidecar,
             verdict=verdict,
@@ -10840,7 +10814,11 @@ def _adjudicate_checkpoint_scope_state_v1(
         semantics_dispatch=semantics_dispatch,
     )
     if checkpoint_error is not None:
-        verdict = "insufficient_evidence" if checkpoint_error == "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING" else "disproved"
+        verdict = (
+            "insufficient_evidence"
+            if checkpoint_error == "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING"
+            else "disproved"
+        )
         claim = _scope_state_claim(
             sidecar=sidecar,
             verdict=verdict,
@@ -10910,7 +10888,8 @@ def _adjudicate_checkpoint_scope_state_v1(
                 sidecar=sidecar,
                 verdict="unverifiable_scope",
                 reason_code="CHECKPOINT_SCOPE_STATE_GRAMMAR_UNSUPPORTED",
-                message=predicate_message or "scope-state sidecar names an unsupported predicate grammar",
+                message=predicate_message
+                or "scope-state sidecar names an unsupported predicate grammar",
             )
             return ScopeClaimResult(claim=claim, sidecar=sidecar)
 
@@ -10972,7 +10951,11 @@ def _key_status_manifest_schema_error(manifest: Any) -> str | None:
         return "key-status computed_at is missing or malformed"
     if manifest.get("account_id") is not None and not _is_uuid_str(manifest.get("account_id")):
         return "key-status account_id must be a UUID string or null"
-    if manifest.get("key_scopes") != list(KEY_STATUS_MANIFEST_SCOPES):
+    key_scopes = manifest.get("key_scopes")
+    if key_scopes not in (
+        list(LEGACY_KEY_STATUS_MANIFEST_SCOPES),
+        list(KEY_STATUS_MANIFEST_SCOPES),
+    ):
         return "key-status key_scopes do not match v1"
     signer = manifest.get("signer")
     if not _exact_keys(signer, {"purpose", "key_id", "algorithm"}):
@@ -10988,10 +10971,14 @@ def _key_status_manifest_schema_error(manifest: Any) -> str | None:
     keys = manifest.get("keys")
     if not isinstance(keys, list):
         return "key-status keys must be an array"
+    if any(
+        isinstance(entry, dict) and entry.get("key_scope") == "co_signer" for entry in keys
+    ) and key_scopes != list(KEY_STATUS_MANIFEST_SCOPES):
+        return "co-signer key-status entries require the extended key_scopes list"
     for index, entry in enumerate(keys):
         if not isinstance(entry, dict):
             return f"key-status keys[{index}] must be an object"
-        required = {
+        base_required = {
             "account_id",
             "key_scope",
             "key_id",
@@ -11006,23 +10993,77 @@ def _key_status_manifest_schema_error(manifest: Any) -> str | None:
             "event_refs",
             "principal",
         }
+        co_signer_required = {
+            "account_id",
+            "key_scope",
+            "key_id",
+            "credential_id",
+            "public_key_cose",
+            "cose_alg",
+            "rp_id",
+            "allowed_origins",
+            "custody_tier",
+            "status",
+            "valid_from",
+            "valid_until",
+            "revoked_at",
+            "compromised_at",
+            "aaguid",
+            "attestation_format",
+            "attestation_statement",
+            "backup_eligible",
+            "backup_state",
+            "metadata",
+            "event_refs",
+            "principal",
+        }
+        is_co_signer = entry.get("key_scope") == "co_signer"
+        required = co_signer_required if is_co_signer else base_required
         if set(entry) != required:
             return f"key-status keys[{index}] fields do not match v1"
         if not _is_uuid_str(entry.get("account_id")):
             return f"key-status keys[{index}].account_id must be a UUID string"
         if entry.get("key_scope") not in KEY_STATUS_MANIFEST_SCOPES:
             return f"key-status keys[{index}].key_scope is unsupported"
-        if not _SHA256_HEX_RE.fullmatch(str(entry.get("key_id") or "")):
-            return f"key-status keys[{index}].key_id must be lowercase sha256 hex"
-        if entry.get("algorithm") != "ed25519" or not _is_nonempty_str(entry.get("public_key")):
-            return f"key-status keys[{index}] public key is malformed"
+        key_id = str(entry.get("key_id") or "")
+        if is_co_signer:
+            if not re.fullmatch(r"sha256:[a-f0-9]{64}", key_id):
+                return f"key-status keys[{index}].key_id must be a sha256 COSE fingerprint"
+            if not all(
+                _is_nonempty_str(entry.get(field))
+                for field in ("credential_id", "public_key_cose", "rp_id")
+            ):
+                return f"key-status keys[{index}] co-signer key material is malformed"
+            if isinstance(entry.get("cose_alg"), bool) or not isinstance(
+                entry.get("cose_alg"), int
+            ):
+                return f"key-status keys[{index}].cose_alg must be an integer"
+            if entry.get("custody_tier") != "human_passkey":
+                return f"key-status keys[{index}].custody_tier is unsupported"
+            origins = entry.get("allowed_origins")
+            if (
+                not isinstance(origins, list)
+                or not origins
+                or not all(_is_nonempty_str(origin) for origin in origins)
+            ):
+                return f"key-status keys[{index}].allowed_origins must be non-empty"
+        else:
+            if not _SHA256_HEX_RE.fullmatch(key_id):
+                return f"key-status keys[{index}].key_id must be lowercase sha256 hex"
+            if entry.get("algorithm") != "ed25519" or not _is_nonempty_str(
+                entry.get("public_key")
+            ):
+                return f"key-status keys[{index}] public key is malformed"
         status = entry.get("status")
         if status not in {"active", "revoked", "compromised"}:
             return f"key-status keys[{index}].status is unsupported"
         if _parse_iso_or_none(entry.get("valid_from")) is None:
             return f"key-status keys[{index}].valid_from is malformed"
         for optional_time in ("valid_until", "revoked_at", "compromised_at"):
-            if entry.get(optional_time) is not None and _parse_iso_or_none(entry.get(optional_time)) is None:
+            if (
+                entry.get(optional_time) is not None
+                and _parse_iso_or_none(entry.get(optional_time)) is None
+            ):
                 return f"key-status keys[{index}].{optional_time} is malformed"
         if status == "revoked" and entry.get("revoked_at") is None:
             return f"key-status keys[{index}] revoked status requires revoked_at"
@@ -11030,14 +11071,20 @@ def _key_status_manifest_schema_error(manifest: Any) -> str | None:
             return f"key-status keys[{index}] compromised status requires compromised_at"
         if not isinstance(entry.get("event_refs"), list):
             return f"key-status keys[{index}].event_refs must be an array"
-        if not isinstance(entry.get("metadata"), dict) or not isinstance(entry.get("principal"), dict):
+        if not isinstance(entry.get("metadata"), dict) or not isinstance(
+            entry.get("principal"), dict
+        ):
             return f"key-status keys[{index}].metadata and principal must be objects"
         for ref_index, ref in enumerate(entry["event_refs"]):
-            if not _exact_keys(ref, {"event_type", "event_id", "record_hash", "sequence_number", "status"}):
+            if not _exact_keys(
+                ref, {"event_type", "event_id", "record_hash", "sequence_number", "status"}
+            ):
                 return f"key-status keys[{index}].event_refs[{ref_index}] fields do not match v1"
             if ref.get("event_type") != KEY_STATUS_EVENT_TYPE:
                 return f"key-status keys[{index}].event_refs[{ref_index}].event_type is unsupported"
-            if not _is_nonempty_str(ref.get("event_id")) or not _SHA256_HEX_RE.fullmatch(str(ref.get("record_hash") or "")):
+            if not _is_nonempty_str(ref.get("event_id")) or not _SHA256_HEX_RE.fullmatch(
+                str(ref.get("record_hash") or "")
+            ):
                 return f"key-status keys[{index}].event_refs[{ref_index}] identity fields are malformed"
             if not _is_nonbool_int(ref.get("sequence_number")) or int(ref["sequence_number"]) < 1:
                 return f"key-status keys[{index}].event_refs[{ref_index}].sequence_number must be positive"
@@ -11076,6 +11123,373 @@ def _verify_key_status_manifest_signature(
     if not _verify_ed25519(public_key, recomputed.encode("utf-8"), str(manifest["signature"])):
         return False, "key-status manifest signature does not verify"
     return True, None
+
+
+def _load_strict_signed_trust_entries(source: str) -> list[dict[str, Any]]:
+    if source.startswith(("http://", "https://")):
+        with urllib.request.urlopen(source, timeout=10) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    else:
+        body = json.loads(Path(source).read_text(encoding="utf-8"))
+    if not isinstance(body, dict):
+        raise ValueError("Keel trust manifest must be a JSON object")
+    if body.get("manifest_version") != "keel.public_key_manifest.v1":
+        raise ValueError("unsigned or legacy trust manifests are not accepted for co-signatures")
+    if not isinstance(body.get("manifest_signature"), Mapping):
+        raise ValueError("Keel trust manifest is unsigned")
+    _verify_public_key_manifest_signature(body, source=source)
+    return _normalize_key_manifest_entries(body)
+
+
+def _verify_co_signer_key_manifest_signature(
+    manifest: Mapping[str, Any],
+    *,
+    pinned_key_manifest_source: str | None,
+) -> tuple[bool, str | None]:
+    computed_at = _parse_iso_or_none(manifest.get("computed_at"))
+    if computed_at is None:
+        return False, "co-signer key manifest computed_at is missing or malformed"
+    recomputed = _key_status_manifest_hash_from_payload(manifest)
+    if recomputed != manifest.get("manifest_hash"):
+        return False, "co-signer key manifest_hash does not match signed fields"
+    source = pinned_key_manifest_source or _pinned_key_manifest_source()
+    if source is None:
+        return False, "no pinned Keel trust root is available"
+    try:
+        trust_entries = _load_strict_signed_trust_entries(source)
+    except Exception as exc:
+        return False, f"could not load signed Keel trust root: {exc}"
+    signer = manifest.get("signer")
+    if not isinstance(signer, Mapping):
+        return False, "co-signer key manifest signer is missing"
+    public_key, error = _select_pinned_trust_key(
+        trust_entries,
+        key_id=str(signer.get("key_id") or ""),
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+        signing_time=computed_at,
+    )
+    if public_key is None:
+        return False, error or "co-signer key manifest signer is not Keel-pinned"
+    if not _verify_ed25519(
+        public_key,
+        recomputed.encode("utf-8"),
+        str(manifest.get("signature") or ""),
+    ):
+        return False, "co-signer key manifest signature does not verify"
+    return True, None
+
+
+def _co_signature_evidence_entries(
+    document: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if not isinstance(document, Mapping):
+        return []
+    entries = document.get("co_signature_evidence")
+    if not isinstance(entries, list):
+        return []
+    return [dict(entry) for entry in entries if isinstance(entry, Mapping)]
+
+
+def _co_signature_target_from_document(
+    document: Mapping[str, Any],
+    *,
+    permit_id: Any,
+) -> dict[str, str] | None:
+    records: list[Mapping[str, Any]] = []
+    single = document.get("record")
+    if isinstance(single, Mapping):
+        records.append(single)
+    many = document.get("records")
+    if isinstance(many, list):
+        records.extend(record for record in many if isinstance(record, Mapping))
+    for record in records:
+        permit = record.get("permit")
+        if not isinstance(permit, Mapping) or permit.get("id") != permit_id:
+            continue
+        canonical_hash = permit.get("permit_canonical_hash")
+        action = permit.get("action_name")
+        provider = permit.get("resource_provider")
+        model = permit.get("resource_model")
+        operation = permit.get("resource_operation")
+        modality = permit.get("resource_modality") or operation or "unspecified"
+        if not all(
+            isinstance(value, str) and value
+            for value in (canonical_hash, action, provider, model, modality)
+        ):
+            return None
+        resource_parts = [provider, model]
+        if isinstance(operation, str) and operation:
+            resource_parts.append(operation)
+        return {
+            "permit_id": str(permit_id),
+            "permit_canonical_hash": canonical_hash,
+            "action": action,
+            "resource": ":".join(resource_parts),
+            "modality": str(modality),
+        }
+    return None
+
+
+def _find_co_signer_key_entry(
+    manifest: Mapping[str, Any],
+    *,
+    key_id: Any,
+    co_signer_id: Any,
+) -> dict[str, Any] | None:
+    for entry in manifest.get("keys", []):
+        if not isinstance(entry, dict) or entry.get("key_scope") != "co_signer":
+            continue
+        principal = entry.get("principal")
+        if (
+            entry.get("key_id") == key_id
+            and isinstance(principal, Mapping)
+            and principal.get("kind") == "co_signer"
+            and principal.get("id") == co_signer_id
+        ):
+            return entry
+    return None
+
+
+def _co_signer_key_valid_for_claim(
+    entry: Mapping[str, Any], claim: Mapping[str, Any]
+) -> tuple[bool, str | None]:
+    signed_at = _parse_iso_or_none(claim.get("signed_at"))
+    valid_from = _parse_iso_or_none(entry.get("valid_from"))
+    valid_until = _parse_iso_or_none(entry.get("valid_until"))
+    if signed_at is None or valid_from is None:
+        return False, "co-signer key validity timestamps are incomplete"
+    if signed_at < valid_from or (valid_until is not None and signed_at > valid_until):
+        return False, "co-signer key was outside its validity window"
+    if entry.get("status") != "active":
+        return False, "co-signer key is revoked or compromised"
+    if entry.get("revoked_at") is not None or entry.get("compromised_at") is not None:
+        return False, "co-signer key carries terminal status evidence"
+    return True, None
+
+
+def _co_signature_claim_from_document(
+    *,
+    export_document: Mapping[str, Any],
+    pack_integrity_verified: bool,
+    pinned_key_manifest_source: str | None,
+    integrity_reason: str | None = None,
+) -> ClaimVerdict:
+    evidence_entries = _co_signature_evidence_entries(export_document)
+    if not evidence_entries:
+        return _permit_claim(
+            PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            subject_type="permit_co_signature",
+            subject_id=None,
+            verdict="insufficient_evidence",
+            reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
+            message="permit co-signature evidence is absent",
+            evidence=["export.co_signature_evidence"],
+        )
+
+    if not pack_integrity_verified:
+        return ClaimVerdict(
+            name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            subjects=[
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=str(
+                        entry.get("claim", {}).get("permit_id")
+                        if isinstance(entry.get("claim"), Mapping)
+                        else ""
+                    ),
+                    verdict="insufficient_evidence",
+                    reason_code="CO_SIGNATURE_PACK_INTEGRITY_UNVERIFIABLE",
+                    message=integrity_reason or "signed pack integrity is not verified",
+                    evidence=["manifest.content_hash", "manifest.signature"],
+                )
+                for entry in evidence_entries
+            ],
+            reason_code="CO_SIGNATURE_PACK_INTEGRITY_UNVERIFIABLE",
+            message=integrity_reason or "signed pack integrity is not verified",
+            evidence=["manifest.content_hash", "manifest.signature"],
+        )
+
+    key_status_manifest = export_document.get("key_status_manifest")
+    if not isinstance(key_status_manifest, dict):
+        manifest_error = "signed co-signer key manifest is absent"
+    else:
+        manifest_error = _key_status_manifest_schema_error(key_status_manifest)
+        if manifest_error is None:
+            signature_ok, signature_error = _verify_co_signer_key_manifest_signature(
+                key_status_manifest,
+                pinned_key_manifest_source=pinned_key_manifest_source,
+            )
+            if not signature_ok:
+                manifest_error = signature_error or "co-signer key manifest is untrusted"
+    if manifest_error is not None:
+        return ClaimVerdict(
+            name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            subjects=[
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=str(
+                        entry.get("claim", {}).get("permit_id")
+                        if isinstance(entry.get("claim"), Mapping)
+                        else ""
+                    ),
+                    verdict="insufficient_evidence",
+                    reason_code="CO_SIGNATURE_KEY_MANIFEST_UNTRUSTED",
+                    message=manifest_error,
+                    evidence=["export.key_status_manifest", "trust_root"],
+                )
+                for entry in evidence_entries
+            ],
+            reason_code="CO_SIGNATURE_KEY_MANIFEST_UNTRUSTED",
+            message=manifest_error,
+            evidence=["export.key_status_manifest", "trust_root"],
+        )
+
+    assert isinstance(key_status_manifest, dict)
+    subjects: list[VerdictSubject] = []
+    for evidence_index, evidence_entry in enumerate(evidence_entries):
+        claim = evidence_entry.get("claim")
+        declared_target = evidence_entry.get("target_permit")
+        allowed_origins = evidence_entry.get("allowed_origins")
+        require_uv = evidence_entry.get("require_user_verification", True)
+        permit_id = claim.get("permit_id") if isinstance(claim, Mapping) else None
+        subject_id = str(permit_id or evidence_index)
+        if not isinstance(claim, Mapping) or not isinstance(declared_target, Mapping):
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="insufficient_evidence",
+                    reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
+                    message="co-signature claim or target-Permit context is absent",
+                    evidence=[f"export.co_signature_evidence[{evidence_index}]"],
+                )
+            )
+            continue
+        target = _co_signature_target_from_document(
+            export_document,
+            permit_id=declared_target.get("permit_id"),
+        )
+        if target is None:
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="insufficient_evidence",
+                    reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
+                    message="independent target-Permit context is absent from the pack",
+                    evidence=["export.records[].permit"],
+                )
+            )
+            continue
+        if dict(declared_target) != target:
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="disproved",
+                    reason_code="CO_SIGNATURE_PERMIT_BINDING_MISMATCH",
+                    message="declared target-Permit context does not match the pack record",
+                    evidence=[
+                        f"export.co_signature_evidence[{evidence_index}].target_permit",
+                        "export.records[].permit",
+                    ],
+                )
+            )
+            continue
+        key_entry = _find_co_signer_key_entry(
+            key_status_manifest,
+            key_id=claim.get("key_id"),
+            co_signer_id=claim.get("co_signer_id"),
+        )
+        if key_entry is None:
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="insufficient_evidence",
+                    reason_code="CO_SIGNATURE_KEY_NOT_TRUSTED",
+                    message="signed key manifest does not resolve the co-signer key",
+                    evidence=["export.key_status_manifest.keys"],
+                )
+            )
+            continue
+        key_valid, key_error = _co_signer_key_valid_for_claim(key_entry, claim)
+        if not key_valid:
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="insufficient_evidence",
+                    reason_code="CO_SIGNATURE_KEY_NOT_VALID",
+                    message=key_error or "co-signer key is not valid",
+                    evidence=["export.key_status_manifest.keys"],
+                )
+            )
+            continue
+        if allowed_origins != key_entry.get("allowed_origins"):
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="disproved",
+                    reason_code="CO_SIGNATURE_ORIGIN_NOT_ALLOWED",
+                    message="pack ceremony origins differ from the signed key record",
+                    evidence=[
+                        f"export.co_signature_evidence[{evidence_index}].allowed_origins",
+                        "export.key_status_manifest.keys[].allowed_origins",
+                    ],
+                )
+            )
+            continue
+        protocol = verify_permit_co_signature_protocol(
+            claim=claim,
+            target_permit=target,
+            registered_key=key_entry,
+            allowed_origins=allowed_origins if isinstance(allowed_origins, list) else None,
+            require_user_verification=require_uv is not False,
+        )
+        subjects.append(
+            _subject(
+                subject_type="permit_co_signature",
+                subject_id=subject_id,
+                verdict=protocol.verdict,
+                reason_code=protocol.reason,
+                message=(
+                    "WebAuthn co-signature and offline pack binding are supported"
+                    if protocol.verdict == "supported"
+                    else f"permit co-signature failed: {protocol.reason}"
+                ),
+                evidence=[
+                    f"export.co_signature_evidence[{evidence_index}]",
+                    "export.key_status_manifest",
+                    "manifest.signature",
+                ],
+            )
+        )
+    all_supported = bool(subjects) and all(subject.verdict == "supported" for subject in subjects)
+    aggregate_reason = (
+        "CO_SIGNATURE_VERIFIED"
+        if all_supported
+        else subjects[0].reason_code
+        if len(subjects) == 1
+        else "CO_SIGNATURE_MULTIPLE_RESULTS"
+    )
+    return ClaimVerdict(
+        name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+        subjects=subjects,
+        reason_code=aggregate_reason,
+        message=(
+            "all permit co-signatures are supported and report custody_tier=human_passkey"
+            if all_supported
+            else "one or more permit co-signatures are not supported"
+        ),
+        evidence=[
+            "export.co_signature_evidence",
+            "export.key_status_manifest",
+            "manifest.signature",
+        ],
+        epistemic_state={"custody_tier": "human_passkey"} if all_supported else None,
+    )
 
 
 def _flatten_key_status_event_refs(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -11234,8 +11648,10 @@ def _adjudicate_key_status_completeness_v1(
         return _key_status_completeness_claim(
             subject=subject,
             verdict=scope_result.claim.aggregate_verdict,
-            reason_code=scope_result.claim.reason_code or "KEY_STATUS_COMPLETENESS_SCOPE_STATE_UNSUPPORTED",
-            message=scope_result.claim.message or "checkpoint.scope_state.v1 did not support key-status completeness",
+            reason_code=scope_result.claim.reason_code
+            or "KEY_STATUS_COMPLETENESS_SCOPE_STATE_UNSUPPORTED",
+            message=scope_result.claim.message
+            or "checkpoint.scope_state.v1 did not support key-status completeness",
             evidence=["checkpoint.scope_state.v1", "key_status_manifest"],
         )
     assert sidecar is not None and checkpoint is not None
@@ -11543,16 +11959,36 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
     if not _is_nonempty_str(segment.get("segment_id")):
         return "segment_id must be a non-empty string"
     scope = segment.get("declared_scope")
-    if not _exact_keys(scope, {"version", "scope_kind", "chain_scope", "population_label", "predicate", "presentation_policy"}):
+    if not _exact_keys(
+        scope,
+        {
+            "version",
+            "scope_kind",
+            "chain_scope",
+            "population_label",
+            "predicate",
+            "presentation_policy",
+        },
+    ):
         return "declared_scope fields do not match v1"
-    if scope.get("version") != SCOPE_DECLARATION_VERSION or scope.get("scope_kind") not in {"declared_population", "declared_sample"}:
+    if scope.get("version") != SCOPE_DECLARATION_VERSION or scope.get("scope_kind") not in {
+        "declared_population",
+        "declared_sample",
+    }:
         return "declared_scope version or scope_kind is unsupported"
-    if not _is_nonempty_str(scope.get("chain_scope")) or not _is_nonempty_str(scope.get("population_label")):
+    if not _is_nonempty_str(scope.get("chain_scope")) or not _is_nonempty_str(
+        scope.get("population_label")
+    ):
         return "declared_scope chain_scope and population_label must be non-empty strings"
     policy = scope.get("presentation_policy")
     if not _exact_keys(policy, {"version", "policy_kind", "policy_parameters"}):
         return "presentation_policy fields do not match v1"
-    if policy.get("version") != PRESENTATION_POLICY_VERSION or policy.get("policy_kind") not in {"none", "plan_tier", "section", "field_redaction"}:
+    if policy.get("version") != PRESENTATION_POLICY_VERSION or policy.get("policy_kind") not in {
+        "none",
+        "plan_tier",
+        "section",
+        "field_redaction",
+    }:
         return "presentation_policy is unsupported"
     if not isinstance(policy.get("policy_parameters"), dict):
         return "presentation_policy.policy_parameters must be an object"
@@ -11561,13 +11997,27 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
     if not isinstance(start, dict) or not _is_nonempty_str(start.get("kind")):
         return "declared_start must be an object with a kind"
     if start["kind"] == "genesis":
-        if not _exact_keys(start, {"kind", "chain_scope", "sequence_number", "genesis_prev_hash"}) or start.get("sequence_number") != 1:
+        if (
+            not _exact_keys(start, {"kind", "chain_scope", "sequence_number", "genesis_prev_hash"})
+            or start.get("sequence_number") != 1
+        ):
             return "genesis declared_start fields do not match v1"
     elif start["kind"] == "predecessor_proof":
-        if not _exact_keys(start, {"kind", "chain_scope", "predecessor_sequence_number", "predecessor_record_hash", "first_evidence_sequence_number"}):
+        if not _exact_keys(
+            start,
+            {
+                "kind",
+                "chain_scope",
+                "predecessor_sequence_number",
+                "predecessor_record_hash",
+                "first_evidence_sequence_number",
+            },
+        ):
             return "predecessor_proof declared_start fields do not match v1"
     elif start["kind"] == "checkpoint_anchor":
-        if not _exact_keys(start, {"kind", "checkpoint_id", "chain_scope", "sequence_number", "last_record_hash"}):
+        if not _exact_keys(
+            start, {"kind", "checkpoint_id", "chain_scope", "sequence_number", "last_record_hash"}
+        ):
             return "checkpoint_anchor declared_start fields do not match v1"
     else:
         return "declared_start kind is unsupported"
@@ -11575,9 +12025,16 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
         return "declared_start.chain_scope must be a non-empty string"
 
     end = segment.get("declared_end")
-    if not _exact_keys(end, {"checkpoint_id", "chain_scope", "sequence_number", "last_record_hash", "boundary_policy"}):
+    if not _exact_keys(
+        end,
+        {"checkpoint_id", "chain_scope", "sequence_number", "last_record_hash", "boundary_policy"},
+    ):
         return "declared_end fields do not match v1"
-    if not _is_nonempty_str(end.get("checkpoint_id")) or not _is_nonempty_str(end.get("chain_scope")) or not _is_nonempty_str(end.get("last_record_hash")):
+    if (
+        not _is_nonempty_str(end.get("checkpoint_id"))
+        or not _is_nonempty_str(end.get("chain_scope"))
+        or not _is_nonempty_str(end.get("last_record_hash"))
+    ):
         return "declared_end checkpoint_id, chain_scope, and last_record_hash must be non-empty strings"
     if not _is_nonbool_int(end.get("sequence_number")) or end["sequence_number"] < 0:
         return "declared_end.sequence_number must be a non-negative integer"
@@ -11585,7 +12042,20 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
         return "declared_end.boundary_policy is unsupported"
 
     reference = segment.get("scope_state_reference")
-    if not _exact_keys(reference, {"artifact_type", "scope_state_id", "checkpoint_id", "chain_scope", "artifact_hash"}) and not _exact_keys(reference, {"artifact_type", "scope_state_id", "checkpoint_id", "chain_scope", "artifact_hash", "storage_uri"}):
+    if not _exact_keys(
+        reference,
+        {"artifact_type", "scope_state_id", "checkpoint_id", "chain_scope", "artifact_hash"},
+    ) and not _exact_keys(
+        reference,
+        {
+            "artifact_type",
+            "scope_state_id",
+            "checkpoint_id",
+            "chain_scope",
+            "artifact_hash",
+            "storage_uri",
+        },
+    ):
         return "scope_state_reference fields do not match v1"
     if reference.get("artifact_type") != "checkpoint_scope_state":
         return "scope_state_reference.artifact_type must be checkpoint_scope_state"
@@ -11600,7 +12070,9 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
         return "canonical_filters fields do not match v1"
     if filters.get("canonicalization_profile") != "keel.canonical_json.payload.v1":
         return "canonical_filters canonicalization_profile is unsupported"
-    if not isinstance(filters.get("raw_filters"), dict) or not _is_hash(filters.get("filters_hash")):
+    if not isinstance(filters.get("raw_filters"), dict) or not _is_hash(
+        filters.get("filters_hash")
+    ):
         return "canonical_filters raw_filters and filters_hash are malformed"
 
     evidence = segment.get("chain_evidence")
@@ -11611,15 +12083,39 @@ def _scope_segment_schema_error(segment: Any) -> str | None:
         if not isinstance(records, list):
             return f"chain_evidence.{list_name} must be an array"
         for index, record in enumerate(records):
-            if not _exact_keys(record, {"event_id", "event_type", "chain_scope", "sequence_number", "record_hash", "prev_hash", "created_at", "chain_format_version", "payload_json"}):
+            if not _exact_keys(
+                record,
+                {
+                    "event_id",
+                    "event_type",
+                    "chain_scope",
+                    "sequence_number",
+                    "record_hash",
+                    "prev_hash",
+                    "created_at",
+                    "chain_format_version",
+                    "payload_json",
+                },
+            ):
                 return f"{list_name}[{index}] fields do not match v1"
-            if not _is_nonempty_str(record.get("event_id")) or not _is_nonempty_str(record.get("event_type")) or not _is_nonempty_str(record.get("chain_scope")):
+            if (
+                not _is_nonempty_str(record.get("event_id"))
+                or not _is_nonempty_str(record.get("event_type"))
+                or not _is_nonempty_str(record.get("chain_scope"))
+            ):
                 return f"{list_name}[{index}] identity fields must be non-empty strings"
-            if not _is_nonbool_int(record.get("sequence_number")) or int(record["sequence_number"]) < 1:
+            if (
+                not _is_nonbool_int(record.get("sequence_number"))
+                or int(record["sequence_number"]) < 1
+            ):
                 return f"{list_name}[{index}].sequence_number must be a positive integer"
-            if not _is_nonempty_str(record.get("record_hash")) or not _is_nonempty_str(record.get("prev_hash")):
+            if not _is_nonempty_str(record.get("record_hash")) or not _is_nonempty_str(
+                record.get("prev_hash")
+            ):
                 return f"{list_name}[{index}] hash fields must be non-empty strings"
-            if not _is_nonempty_str(record.get("created_at")) or not _is_nonempty_str(record.get("chain_format_version")):
+            if not _is_nonempty_str(record.get("created_at")) or not _is_nonempty_str(
+                record.get("chain_format_version")
+            ):
                 return f"{list_name}[{index}] created_at and chain_format_version must be non-empty strings"
             if not isinstance(record.get("payload_json"), dict):
                 return f"{list_name}[{index}].payload_json must be an object"
@@ -11638,7 +12134,11 @@ def _ordered_scope_evidence(segment: dict[str, Any]) -> list[dict[str, Any]]:
     evidence = segment["chain_evidence"]
     return sorted(
         [*evidence["disclosure_records"], *evidence["proof_bridge_records"]],
-        key=lambda item: (int(item["sequence_number"]), str(item["event_id"]), str(item["record_hash"])),
+        key=lambda item: (
+            int(item["sequence_number"]),
+            str(item["event_id"]),
+            str(item["record_hash"]),
+        ),
     )
 
 
@@ -11646,24 +12146,48 @@ def _check_scope_start(segment: dict[str, Any]) -> tuple[str | None, str | None]
     start = segment["declared_start"]
     records = _ordered_scope_evidence(segment)
     if not records:
-        if segment["declared_scope"]["predicate"] and not segment["chain_evidence"]["disclosure_records"]:
+        if (
+            segment["declared_scope"]["predicate"]
+            and not segment["chain_evidence"]["disclosure_records"]
+        ):
             return None, None
         return "EXPORT_CHAIN_PROOF_MISSING", "scope-faithfulness segment has no chain evidence"
     first = records[0]
     if start["kind"] == "genesis":
         if first["sequence_number"] != 1 or first["prev_hash"] != start["genesis_prev_hash"]:
-            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not match declared genesis start"
+            return (
+                "EXPORT_BOUNDARY_START_MISMATCH",
+                "first supplied evidence does not match declared genesis start",
+            )
         return None, None
     if start["kind"] == "predecessor_proof":
-        if first["sequence_number"] != start["first_evidence_sequence_number"] or first["prev_hash"] != start["predecessor_record_hash"]:
-            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not chain from declared predecessor proof"
+        if (
+            first["sequence_number"] != start["first_evidence_sequence_number"]
+            or first["prev_hash"] != start["predecessor_record_hash"]
+        ):
+            return (
+                "EXPORT_BOUNDARY_START_MISMATCH",
+                "first supplied evidence does not chain from declared predecessor proof",
+            )
         for bridge in segment["chain_evidence"]["proof_bridge_records"]:
-            if bridge["sequence_number"] == start["predecessor_sequence_number"] and bridge["record_hash"] != start["predecessor_record_hash"]:
-                return "EXPORT_BOUNDARY_START_MISMATCH", "supplied predecessor bridge record hash does not match declared predecessor"
+            if (
+                bridge["sequence_number"] == start["predecessor_sequence_number"]
+                and bridge["record_hash"] != start["predecessor_record_hash"]
+            ):
+                return (
+                    "EXPORT_BOUNDARY_START_MISMATCH",
+                    "supplied predecessor bridge record hash does not match declared predecessor",
+                )
         return None, None
     if start["kind"] == "checkpoint_anchor":
-        if first["sequence_number"] != start["sequence_number"] + 1 or first["prev_hash"] != start["last_record_hash"]:
-            return "EXPORT_BOUNDARY_START_MISMATCH", "first supplied evidence does not extend declared checkpoint anchor"
+        if (
+            first["sequence_number"] != start["sequence_number"] + 1
+            or first["prev_hash"] != start["last_record_hash"]
+        ):
+            return (
+                "EXPORT_BOUNDARY_START_MISMATCH",
+                "first supplied evidence does not extend declared checkpoint anchor",
+            )
         return None, None
     return "EXPORT_BOUNDARY_START_MISMATCH", "declared_start kind is unsupported"
 
@@ -11679,14 +12203,22 @@ def _check_scope_continuity(segment: dict[str, Any]) -> tuple[str | None, str | 
         seen_sequences.add(seq)
         if previous is not None:
             if seq <= int(previous["sequence_number"]):
-                return "EXPORT_CHAIN_PROOF_DISCONTINUITY", "chain evidence sequence numbers are not increasing"
+                return (
+                    "EXPORT_CHAIN_PROOF_DISCONTINUITY",
+                    "chain evidence sequence numbers are not increasing",
+                )
             if record["prev_hash"] != previous["record_hash"]:
-                return "EXPORT_CHAIN_PROOF_DISCONTINUITY", "chain evidence prev_hash does not match previous record_hash"
+                return (
+                    "EXPORT_CHAIN_PROOF_DISCONTINUITY",
+                    "chain evidence prev_hash does not match previous record_hash",
+                )
         previous = record
     return None, None
 
 
-def _latest_freshness_evidence(export_document: dict[str, Any], manifest: dict[str, Any], segment: dict[str, Any]) -> Any:
+def _latest_freshness_evidence(
+    export_document: dict[str, Any], manifest: dict[str, Any], segment: dict[str, Any]
+) -> Any:
     segment_id = segment.get("segment_id")
     for source in (
         export_document.get("scope_faithfulness_freshness"),
@@ -11711,7 +12243,10 @@ def _check_latest_checkpoint_policy(
         return None, None
     evidence = _latest_freshness_evidence(export_document, manifest, segment)
     if evidence is None:
-        return "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING", "latest-at-export boundary policy lacks signed freshness evidence"
+        return (
+            "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING",
+            "latest-at-export boundary policy lacks signed freshness evidence",
+        )
     later_items: list[Any] = []
     if isinstance(evidence, dict):
         if isinstance(evidence.get("later_checkpoints"), list):
@@ -11729,9 +12264,17 @@ def _check_latest_checkpoint_policy(
             continue
         sequence = item.get("sequence_number")
         if _is_nonbool_int(sequence) and int(sequence) > int(end["sequence_number"]):
-            return "EXPORT_BOUNDARY_STALE_CHECKPOINT", "freshness evidence shows a later checkpoint was available at export time"
+            return (
+                "EXPORT_BOUNDARY_STALE_CHECKPOINT",
+                "freshness evidence shows a later checkpoint was available at export time",
+            )
         checkpoint_id = item.get("checkpoint_id")
-        if isinstance(checkpoint_id, str) and checkpoint_id and checkpoint_id != end["checkpoint_id"] and _is_nonbool_int(sequence):
+        if (
+            isinstance(checkpoint_id, str)
+            and checkpoint_id
+            and checkpoint_id != end["checkpoint_id"]
+            and _is_nonbool_int(sequence)
+        ):
             return "EXPORT_BOUNDARY_STALE_CHECKPOINT", "freshness evidence names a later checkpoint"
     return None, None
 
@@ -11776,7 +12319,12 @@ def _adjudicate_export_scope_faithfulness_v1(
                 message="signed export payload has no scope_faithfulness block",
             )
         ]
-    if set(block.keys()) != {"version", "segments"} or block.get("version") != SCOPE_FAITHFULNESS_VERSION or not isinstance(block.get("segments"), list) or not block["segments"]:
+    if (
+        set(block.keys()) != {"version", "segments"}
+        or block.get("version") != SCOPE_FAITHFULNESS_VERSION
+        or not isinstance(block.get("segments"), list)
+        or not block["segments"]
+    ):
         return [
             _export_scope_claim(
                 segment_id=None,
@@ -11795,7 +12343,11 @@ def _adjudicate_export_scope_faithfulness_v1(
     export_failure: tuple[str, str, str] | None = None
     for raw_segment in block["segments"]:
         segment = _normalize_scope_segment(raw_segment)
-        segment_id = segment.get("segment_id") if isinstance(segment, dict) and isinstance(segment.get("segment_id"), str) else None
+        segment_id = (
+            segment.get("segment_id")
+            if isinstance(segment, dict) and isinstance(segment.get("segment_id"), str)
+            else None
+        )
         schema_error = _scope_segment_schema_error(segment)
         if schema_error is not None:
             export_failure = ("disproved", "EXPORT_SCOPE_DECLARATION_SCHEMA_INVALID", schema_error)
@@ -11811,10 +12363,20 @@ def _adjudicate_export_scope_faithfulness_v1(
             )
             break
 
-        predicate_error, predicate_message = _validate_scope_predicate(segment["declared_scope"]["predicate"])
+        predicate_error, predicate_message = _validate_scope_predicate(
+            segment["declared_scope"]["predicate"]
+        )
         if predicate_error is not None:
-            verdict = "unverifiable_scope" if predicate_error == "EXPORT_SCOPE_PREDICATE_UNSUPPORTED" else "disproved"
-            export_failure = (verdict, predicate_error, predicate_message or "declared predicate is unsupported or malformed")
+            verdict = (
+                "unverifiable_scope"
+                if predicate_error == "EXPORT_SCOPE_PREDICATE_UNSUPPORTED"
+                else "disproved"
+            )
+            export_failure = (
+                verdict,
+                predicate_error,
+                predicate_message or "declared predicate is unsupported or malformed",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11829,7 +12391,11 @@ def _adjudicate_export_scope_faithfulness_v1(
 
         start_sequence = _declared_start_sequence(segment["declared_start"])
         if start_sequence > int(segment["declared_end"]["sequence_number"]):
-            export_failure = ("disproved", "EXPORT_BOUNDARY_START_AFTER_END", "declared_start sequence is after declared_end sequence")
+            export_failure = (
+                "disproved",
+                "EXPORT_BOUNDARY_START_AFTER_END",
+                "declared_start sequence is after declared_end sequence",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11837,7 +12403,10 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict="disproved",
                     reason_code="EXPORT_BOUNDARY_START_AFTER_END",
                     message="declared_start sequence is after declared_end sequence",
-                    evidence=["export.scope_faithfulness.declared_start", "export.scope_faithfulness.declared_end"],
+                    evidence=[
+                        "export.scope_faithfulness.declared_start",
+                        "export.scope_faithfulness.declared_end",
+                    ],
                 )
             )
             break
@@ -11845,7 +12414,11 @@ def _adjudicate_export_scope_faithfulness_v1(
         filters = segment["canonical_filters"]
         actual_filters_hash = _prefixed_sha256(_canonical_json_bytes(filters["raw_filters"]))
         if actual_filters_hash != filters["filters_hash"]:
-            export_failure = ("disproved", "EXPORT_RAW_FILTERS_HASH_MISMATCH", "canonical_filters.raw_filters do not hash to filters_hash")
+            export_failure = (
+                "disproved",
+                "EXPORT_RAW_FILTERS_HASH_MISMATCH",
+                "canonical_filters.raw_filters do not hash to filters_hash",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11872,7 +12445,11 @@ def _adjudicate_export_scope_faithfulness_v1(
                 message="export references an absent scope-state sidecar",
             )
             sidecar_claims.append(scope_state_claim)
-            export_failure = ("insufficient_evidence", "CHECKPOINT_SCOPE_STATE_MISSING", "export references an absent scope-state sidecar")
+            export_failure = (
+                "insufficient_evidence",
+                "CHECKPOINT_SCOPE_STATE_MISSING",
+                "export references an absent scope-state sidecar",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11885,7 +12462,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             )
             break
         if _prefixed_sha256(sidecar_bytes) != reference["artifact_hash"]:
-            export_failure = ("disproved", "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH", "scope_state_reference artifact_hash does not match resolved sidecar bytes")
+            export_failure = (
+                "disproved",
+                "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH",
+                "scope_state_reference artifact_hash does not match resolved sidecar bytes",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11899,7 +12480,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             break
         for field in ("artifact_type", "scope_state_id", "checkpoint_id", "chain_scope"):
             if sidecar.get(field) != reference.get(field):
-                export_failure = ("disproved", "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH", f"scope_state_reference.{field} does not match resolved sidecar")
+                export_failure = (
+                    "disproved",
+                    "EXPORT_SCOPE_STATE_REFERENCE_MISMATCH",
+                    f"scope_state_reference.{field} does not match resolved sidecar",
+                )
                 export_subjects.append(
                     _subject(
                         subject_type="scope_faithfulness_segment",
@@ -11924,7 +12509,10 @@ def _adjudicate_export_scope_faithfulness_v1(
         if scope_state_result.claim.aggregate_verdict != verdict_value("supported"):
             verdict = scope_state_result.claim.aggregate_verdict
             reason = scope_state_result.claim.reason_code or "CHECKPOINT_SCOPE_STATE_MISSING"
-            message = scope_state_result.claim.message or "scope-state sidecar did not support this segment"
+            message = (
+                scope_state_result.claim.message
+                or "scope-state sidecar did not support this segment"
+            )
             export_failure = (verdict, reason, message)
             export_subjects.append(
                 _subject(
@@ -11933,7 +12521,10 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict=verdict,
                     reason_code=reason,
                     message=message,
-                    evidence=["export.scope_faithfulness.scope_state_reference", "checkpoint_scope_state"],
+                    evidence=[
+                        "export.scope_faithfulness.scope_state_reference",
+                        "checkpoint_scope_state",
+                    ],
                 )
             )
             break
@@ -11948,7 +12539,11 @@ def _adjudicate_export_scope_faithfulness_v1(
         for record in _ordered_scope_evidence(segment):
             chain_scope_fields.add(record["chain_scope"])
         if len(chain_scope_fields) != 1:
-            export_failure = ("disproved", "EXPORT_SCOPE_CHAIN_SCOPE_MISMATCH", "segment fields or records disagree on chain_scope")
+            export_failure = (
+                "disproved",
+                "EXPORT_SCOPE_CHAIN_SCOPE_MISMATCH",
+                "segment fields or records disagree on chain_scope",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11962,7 +12557,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             break
 
         if checkpoint is None or not isinstance(checkpoint.get("chain_heads"), dict):
-            export_failure = ("insufficient_evidence", "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING", "referenced checkpoint artifact is absent")
+            export_failure = (
+                "insufficient_evidence",
+                "CHECKPOINT_SCOPE_STATE_CHECKPOINT_MISSING",
+                "referenced checkpoint artifact is absent",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11977,7 +12576,11 @@ def _adjudicate_export_scope_faithfulness_v1(
         head = checkpoint["chain_heads"].get(sidecar["chain_scope"])
         end = segment["declared_end"]
         if not isinstance(head, dict):
-            export_failure = ("disproved", "EXPORT_BOUNDARY_END_NOT_CHECKPOINT", "declared_end does not name a checkpoint chain head")
+            export_failure = (
+                "disproved",
+                "EXPORT_BOUNDARY_END_NOT_CHECKPOINT",
+                "declared_end does not name a checkpoint chain head",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -11995,7 +12598,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             or end["sequence_number"] != head.get("sequence_number")
             or end["last_record_hash"] != head.get("last_record_hash")
         ):
-            export_failure = ("disproved", "EXPORT_BOUNDARY_CHECKPOINT_MISMATCH", "declared_end differs from the sidecar checkpoint head")
+            export_failure = (
+                "disproved",
+                "EXPORT_BOUNDARY_CHECKPOINT_MISMATCH",
+                "declared_end differs from the sidecar checkpoint head",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12008,10 +12615,20 @@ def _adjudicate_export_scope_faithfulness_v1(
             )
             break
 
-        boundary_error, boundary_message = _check_latest_checkpoint_policy(export_document, manifest, segment)
+        boundary_error, boundary_message = _check_latest_checkpoint_policy(
+            export_document, manifest, segment
+        )
         if boundary_error is not None:
-            verdict = "insufficient_evidence" if boundary_error == "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING" else "disproved"
-            export_failure = (verdict, boundary_error, boundary_message or "latest checkpoint policy failed")
+            verdict = (
+                "insufficient_evidence"
+                if boundary_error == "EXPORT_BOUNDARY_FRESHNESS_EVIDENCE_MISSING"
+                else "disproved"
+            )
+            export_failure = (
+                verdict,
+                boundary_error,
+                boundary_message or "latest checkpoint policy failed",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12026,8 +12643,16 @@ def _adjudicate_export_scope_faithfulness_v1(
 
         start_error, start_message = _check_scope_start(segment)
         if start_error is not None:
-            verdict = "insufficient_evidence" if start_error == "EXPORT_CHAIN_PROOF_MISSING" else "disproved"
-            export_failure = (verdict, start_error, start_message or "declared_start does not match supplied evidence")
+            verdict = (
+                "insufficient_evidence"
+                if start_error == "EXPORT_CHAIN_PROOF_MISSING"
+                else "disproved"
+            )
+            export_failure = (
+                verdict,
+                start_error,
+                start_message or "declared_start does not match supplied evidence",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12035,14 +12660,21 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict=verdict,
                     reason_code=start_error,
                     message=start_message,
-                    evidence=["export.scope_faithfulness.declared_start", "export.scope_faithfulness.chain_evidence"],
+                    evidence=[
+                        "export.scope_faithfulness.declared_start",
+                        "export.scope_faithfulness.chain_evidence",
+                    ],
                 )
             )
             break
 
         continuity_error, continuity_message = _check_scope_continuity(segment)
         if continuity_error is not None:
-            export_failure = ("disproved", continuity_error, continuity_message or "chain evidence is discontinuous")
+            export_failure = (
+                "disproved",
+                continuity_error,
+                continuity_message or "chain evidence is discontinuous",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12060,7 +12692,11 @@ def _adjudicate_export_scope_faithfulness_v1(
         bridges = segment["chain_evidence"]["proof_bridge_records"]
         for record in disclosures:
             if not _scope_predicate_matches(record, predicate):
-                export_failure = ("disproved", "EXPORT_SCOPE_PREDICATE_VIOLATED", "a disclosure record does not satisfy the declared predicate")
+                export_failure = (
+                    "disproved",
+                    "EXPORT_SCOPE_PREDICATE_VIOLATED",
+                    "a disclosure record does not satisfy the declared predicate",
+                )
                 export_subjects.append(
                     _subject(
                         subject_type="scope_faithfulness_segment",
@@ -12076,7 +12712,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             break
         for record in bridges:
             if _scope_predicate_matches(record, predicate):
-                export_failure = ("disproved", "EXPORT_PROOF_BRIDGE_MISCLASSIFIED", "a proof bridge record satisfies the declared predicate and is misclassified")
+                export_failure = (
+                    "disproved",
+                    "EXPORT_PROOF_BRIDGE_MISCLASSIFIED",
+                    "a proof bridge record satisfies the declared predicate and is misclassified",
+                )
                 export_subjects.append(
                     _subject(
                         subject_type="scope_faithfulness_segment",
@@ -12101,7 +12741,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             None,
         )
         if commitment is None:
-            export_failure = ("insufficient_evidence", "EXPORT_SCOPE_COMMITMENT_MISSING", "sidecar has no commitment for the declared predicate")
+            export_failure = (
+                "insufficient_evidence",
+                "EXPORT_SCOPE_COMMITMENT_MISSING",
+                "sidecar has no commitment for the declared predicate",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12115,7 +12759,11 @@ def _adjudicate_export_scope_faithfulness_v1(
             break
 
         if commitment["matching_count"] != len(disclosures):
-            export_failure = ("disproved", "EXPORT_SCOPE_CARDINALITY_MISMATCH", "signed matching_count differs from disclosure record count")
+            export_failure = (
+                "disproved",
+                "EXPORT_SCOPE_CARDINALITY_MISMATCH",
+                "signed matching_count differs from disclosure record count",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12123,14 +12771,21 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict="disproved",
                     reason_code="EXPORT_SCOPE_CARDINALITY_MISMATCH",
                     message="signed matching_count differs from disclosure record count",
-                    evidence=["checkpoint_scope_state.scope_commitments.matching_count", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                    evidence=[
+                        "checkpoint_scope_state.scope_commitments.matching_count",
+                        "export.scope_faithfulness.chain_evidence.disclosure_records",
+                    ],
                 )
             )
             break
 
         recomputed_root = _scope_merkle_root(disclosures, predicate_value_hash)
         if recomputed_root != commitment["membership_root_hash"]:
-            export_failure = ("disproved", "EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH", "recomputed membership root differs from signed sidecar root")
+            export_failure = (
+                "disproved",
+                "EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH",
+                "recomputed membership root differs from signed sidecar root",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12138,7 +12793,10 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict="disproved",
                     reason_code="EXPORT_SCOPE_MEMBERSHIP_ROOT_MISMATCH",
                     message="recomputed membership root differs from signed sidecar root",
-                    evidence=["checkpoint_scope_state.scope_commitments.membership_root_hash", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                    evidence=[
+                        "checkpoint_scope_state.scope_commitments.membership_root_hash",
+                        "export.scope_faithfulness.chain_evidence.disclosure_records",
+                    ],
                 )
             )
             break
@@ -12149,8 +12807,15 @@ def _adjudicate_export_scope_faithfulness_v1(
             sequences = [int(record["sequence_number"]) for record in disclosures]
             first = min(sequences)
             last = max(sequences)
-        if commitment["first_matching_sequence"] != first or commitment["last_matching_sequence"] != last:
-            export_failure = ("disproved", "EXPORT_SCOPE_RANGE_MISMATCH", "signed matching range differs from disclosure record sequence range")
+        if (
+            commitment["first_matching_sequence"] != first
+            or commitment["last_matching_sequence"] != last
+        ):
+            export_failure = (
+                "disproved",
+                "EXPORT_SCOPE_RANGE_MISMATCH",
+                "signed matching range differs from disclosure record sequence range",
+            )
             export_subjects.append(
                 _subject(
                     subject_type="scope_faithfulness_segment",
@@ -12158,7 +12823,10 @@ def _adjudicate_export_scope_faithfulness_v1(
                     verdict="disproved",
                     reason_code="EXPORT_SCOPE_RANGE_MISMATCH",
                     message="signed matching range differs from disclosure record sequence range",
-                    evidence=["checkpoint_scope_state.scope_commitments.matching_range", "export.scope_faithfulness.chain_evidence.disclosure_records"],
+                    evidence=[
+                        "checkpoint_scope_state.scope_commitments.matching_range",
+                        "export.scope_faithfulness.chain_evidence.disclosure_records",
+                    ],
                 )
             )
             break
@@ -12212,9 +12880,8 @@ def _workflow_claims_from_output(
 ) -> list[ClaimVerdict]:
     claims: list[ClaimVerdict] = []
     sibling_artifacts = manifest.get("sibling_artifacts")
-    sibling_present = (
-        isinstance(sibling_artifacts, dict)
-        and isinstance(sibling_artifacts.get("workflow_evidence"), dict)
+    sibling_present = isinstance(sibling_artifacts, dict) and isinstance(
+        sibling_artifacts.get("workflow_evidence"), dict
     )
     if sibling_present and "WORKFLOW-EVIDENCE: VERIFIED" in stdout:
         claims.append(
@@ -12520,6 +13187,27 @@ def _closure_claims_from_output(
     return claims
 
 
+def _co_signature_pack_integrity_claims(
+    export_data: bytes,
+    *,
+    message: str,
+) -> list[ClaimVerdict]:
+    try:
+        document = _load_export_json_document(export_data)
+    except Exception:
+        return []
+    if not isinstance(document, dict) or not _co_signature_evidence_entries(document):
+        return []
+    return [
+        _co_signature_claim_from_document(
+            export_document=document,
+            pack_integrity_verified=False,
+            pinned_key_manifest_source=None,
+            integrity_reason=message,
+        )
+    ]
+
+
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
     manifest_arg = getattr(args, "manifest", None)
@@ -12553,15 +13241,19 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 ),
             )
         if not _is_self_attesting_bundle(bundle):
+            message = (
+                "manifest is required for legacy split-file export input; "
+                "input is not keel.evidence_bundle/v1"
+            )
             return _export_report(
                 ok=False,
                 exit_code=1,
                 artifact=artifact,
-                claims=[],
-                error=(
-                    "manifest is required for legacy split-file export input; "
-                    "input is not keel.evidence_bundle/v1"
+                claims=_co_signature_pack_integrity_claims(
+                    export_data,
+                    message=message,
                 ),
+                error=message,
             )
         (
             ok,
@@ -12609,12 +13301,17 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             error=f"Export file not found: {export_path}",
         )
     if not manifest_path.exists():
+        export_data = export_path.read_bytes()
+        message = f"Manifest file not found: {manifest_path}"
         return _export_report(
             ok=False,
             exit_code=1,
             artifact=artifact,
-            claims=[],
-            error=f"Manifest file not found: {manifest_path}",
+            claims=_co_signature_pack_integrity_claims(
+                export_data,
+                message=message,
+            ),
+            error=message,
         )
     _warn_legacy_split_export()
 
@@ -12733,7 +13430,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     reason_code="CONTENT_HASH_MISMATCH",
                     message=message,
                     signature_message="signature was not evaluated after content hash mismatch",
-                )
+                ),
+                *_co_signature_pack_integrity_claims(
+                    export_data,
+                    message=message,
+                ),
             ],
             semantics=semantics,
             error=message,
@@ -12741,9 +13442,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
 
     sig = manifest.get("signature")
     embedded_pub = manifest.get("public_key")
-    artifact_key_id = (
-        manifest.get("key_id") if isinstance(manifest.get("key_id"), str) else None
-    )
+    artifact_key_id = manifest.get("key_id") if isinstance(manifest.get("key_id"), str) else None
 
     if not sig:
         message = "Export manifest is unsigned (no signature in manifest)."
@@ -12762,6 +13461,12 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     if getattr(args, "allow_unsigned", False)
                     else message
                 ),
+            )
+        )
+        claims.extend(
+            _co_signature_pack_integrity_claims(
+                export_data,
+                message=message,
             )
         )
         if getattr(args, "allow_unsigned", False):
@@ -12812,6 +13517,12 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 message=message,
             )
         )
+        claims.extend(
+            _co_signature_pack_integrity_claims(
+                export_data,
+                message=message,
+            )
+        )
         return _export_report(
             ok=False,
             exit_code=1,
@@ -12833,6 +13544,12 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 message=message,
             )
         )
+        claims.extend(
+            _co_signature_pack_integrity_claims(
+                export_data,
+                message=message,
+            )
+        )
         return _export_report(
             ok=False,
             exit_code=1,
@@ -12851,6 +13568,12 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 content_verdict="supported",
                 signature_verdict="disproved",
                 reason_code="SIGNATURE_VERIFICATION_FAILED",
+                message=message,
+            )
+        )
+        claims.extend(
+            _co_signature_pack_integrity_claims(
+                export_data,
                 message=message,
             )
         )
@@ -12881,6 +13604,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         claims.append(scope_claim)
 
     requested = semantics.requested_names()
+    permit_co_signature_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_CO_SIGNATURE_CLAIM_NAME,
+    )
     permit_decision_requested = _pinned_claim_requested(
         semantics,
         requested,
@@ -12971,9 +13699,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_AUDIT_ATTESTED_CLAIM_NAME,
     )
-    permit_revocation_dependency_requested = (
-        permit_revoked_requested or permit_absence_requested
-    )
+    permit_revocation_dependency_requested = permit_revoked_requested or permit_absence_requested
     export_document_for_claims: dict[str, Any] | None = None
     permit_v2_pinned_requested = (
         operator_approval_pinned
@@ -13016,17 +13742,18 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if isinstance(loaded_export_document, dict):
             export_document_for_claims = loaded_export_document
     permit_v2_auto_required = _permit_v2_auto_required_claims(export_document_for_claims)
+    permit_co_signature_auto_required = bool(
+        _co_signature_evidence_entries(export_document_for_claims)
+    )
+    permit_co_signature_requested = permit_co_signature_pinned or permit_co_signature_auto_required
     operator_approval_requested = (
-        operator_approval_pinned
-        or PERMIT_OPERATOR_APPROVAL_CLAIM_NAME in permit_v2_auto_required
+        operator_approval_pinned or PERMIT_OPERATOR_APPROVAL_CLAIM_NAME in permit_v2_auto_required
     )
     counter_signature_requested = (
-        counter_signature_pinned
-        or PERMIT_COUNTER_SIGNATURE_CLAIM_NAME in permit_v2_auto_required
+        counter_signature_pinned or PERMIT_COUNTER_SIGNATURE_CLAIM_NAME in permit_v2_auto_required
     )
     audit_attestation_requested = (
-        audit_attestation_pinned
-        or PERMIT_AUDIT_ATTESTATION_CLAIM_NAME in permit_v2_auto_required
+        audit_attestation_pinned or PERMIT_AUDIT_ATTESTATION_CLAIM_NAME in permit_v2_auto_required
     )
     operator_approval_v2_requested = (
         operator_approval_v2_pinned
@@ -13067,9 +13794,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         )
         claims.extend(scope_claims)
         unsupported_scope = [
-            claim
-            for claim in scope_claims
-            if claim.aggregate_verdict != verdict_value("supported")
+            claim for claim in scope_claims if claim.aggregate_verdict != verdict_value("supported")
         ]
         if unsupported_scope and not permit_absence_requested:
             first = unsupported_scope[0]
@@ -13085,6 +13810,27 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
 
     permit_claims: list[ClaimVerdict] = []
     revocation_claim: ClaimVerdict | None = None
+    if permit_co_signature_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_claim(
+                    PERMIT_CO_SIGNATURE_CLAIM_NAME,
+                    subject_type="permit_co_signature",
+                    subject_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
+                    message="permit co-signature claim requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _co_signature_claim_from_document(
+                    export_document=export_document_for_claims,
+                    pack_integrity_verified=True,
+                    pinned_key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            )
     if permit_decision_requested:
         if export_document_for_claims is None:
             permit_claims.append(
@@ -13465,6 +14211,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     claims.extend(permit_claims)
     _attach_permit_view(artifact, claims, export_document_for_claims)
     required_permit_claim_names = requested | permit_v2_auto_required
+    if permit_co_signature_auto_required:
+        required_permit_claim_names.add(PERMIT_CO_SIGNATURE_CLAIM_NAME)
     emitted_permit_claim_names = {claim.name for claim in permit_claims}
     claims = _synthesize_missing_bundled_required_claims(
         claims=claims,
@@ -13504,8 +14252,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         unsupported_scope = [
             claim
             for claim in scope_claims
-            if claim.name in requested
-            and claim.aggregate_verdict != verdict_value("supported")
+            if claim.name in requested and claim.aggregate_verdict != verdict_value("supported")
         ]
         if unsupported_scope:
             first = unsupported_scope[0]
@@ -13546,8 +14293,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         )
 
     should_walk_events = args.walk_events or (
-        semantics.mode == "pinned"
-        and "governance_chain.local_continuity.v1" in requested
+        semantics.mode == "pinned" and "governance_chain.local_continuity.v1" in requested
     )
     should_verify_closure = args.verify_closure or (
         semantics.mode == "pinned"
@@ -13654,11 +14400,7 @@ def verify_scope_faithfulness_claim(
         }
     ]
     export_claim = next(
-        (
-            claim
-            for claim in report.claims
-            if claim.name == "export.scope_faithfulness.v1"
-        ),
+        (claim for claim in report.claims if claim.name == "export.scope_faithfulness.v1"),
         None,
     )
     status = (
@@ -13771,8 +14513,7 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
     if not candidates:
         valid = ", ".join(slug for slug, _, _ in REFRESH_KEYS_SOURCES)
         print(
-            f"FAILED: unknown --source value {requested_source!r}; "
-            f"valid choices: auto, {valid}",
+            f"FAILED: unknown --source value {requested_source!r}; valid choices: auto, {valid}",
             file=sys.stderr,
         )
         return 2
@@ -13816,17 +14557,14 @@ def cmd_refresh_keys(args: argparse.Namespace) -> int:
         print(f"refreshed from {name}")
         print(f"  cache:     {CACHED_TRUST_ROOT_PATH}")
         print(f"  key count: {key_count}")
-        generated_at = (
-            payload.get("generated_at") if isinstance(payload, dict) else None
-        )
+        generated_at = payload.get("generated_at") if isinstance(payload, dict) else None
         if isinstance(generated_at, str):
             print(f"  generated: {generated_at}")
         return 0
 
     print(
-        "FAILED: no channel returned a valid manifest" + (
-            f" (last error: {last_error})" if last_error else ""
-        ),
+        "FAILED: no channel returned a valid manifest"
+        + (f" (last error: {last_error})" if last_error else ""),
         file=sys.stderr,
     )
     return 1
@@ -13930,7 +14668,9 @@ def cmd_export(args: argparse.Namespace) -> int:
         print(f"  Bundle:       {export_path.name}")
         print(f"  Schema:       {bundle.get('schema_version')}")
         print(f"  Body schema:  {body.get('schema') if isinstance(body, dict) else None}")
-        print(f"  Artifact ref: {artifact_ref.get('urn') if isinstance(artifact_ref, dict) else None}")
+        print(
+            f"  Artifact ref: {artifact_ref.get('urn') if isinstance(artifact_ref, dict) else None}"
+        )
         print(f"  Content hash: {envelope.get('content_hash')}")
         print(f"  Public key:   {envelope.get('public_key')}")
         print(f"  Key id:       {envelope.get('public_key_id')}")
@@ -13953,18 +14693,14 @@ def cmd_export(args: argparse.Namespace) -> int:
     actual = _content_hash(export_data)
     if expected != actual:
         print(
-            f"FAILED: Content hash mismatch.\n"
-            f"  Expected: {expected}\n"
-            f"  Actual:   {actual}",
+            f"FAILED: Content hash mismatch.\n  Expected: {expected}\n  Actual:   {actual}",
             file=sys.stderr,
         )
         return 1
 
     sig = manifest.get("signature")
     embedded_pub = manifest.get("public_key")
-    artifact_key_id = (
-        manifest.get("key_id") if isinstance(manifest.get("key_id"), str) else None
-    )
+    artifact_key_id = manifest.get("key_id") if isinstance(manifest.get("key_id"), str) else None
 
     if not sig:
         if not getattr(args, "allow_unsigned", False):
@@ -14032,9 +14768,7 @@ def cmd_export(args: argparse.Namespace) -> int:
             explicit_checkpoint=getattr(args, "checkpoint", None),
         )
         unsupported_scope = [
-            claim
-            for claim in scope_claims
-            if claim.aggregate_verdict != verdict_value("supported")
+            claim for claim in scope_claims if claim.aggregate_verdict != verdict_value("supported")
         ]
         if unsupported_scope:
             first = unsupported_scope[0]
@@ -14237,9 +14971,7 @@ def _tsa_trust_report_skeleton(
 ) -> dict[str, Any]:
     return {
         "openssl_version": openssl_version,
-        "ca_bundle": (
-            str(Path(ca_bundle_path).expanduser()) if ca_bundle_path else None
-        ),
+        "ca_bundle": (str(Path(ca_bundle_path).expanduser()) if ca_bundle_path else None),
         "trust_bundle": dict(trust_bundle) if isinstance(trust_bundle, dict) else None,
         "revocation_checked": False,
         "verification_scope": TSA_TRUST_SCOPE,
@@ -14259,9 +14991,11 @@ def _copy_tsa_trust(tsa_trust: dict[str, Any] | None) -> dict[str, Any]:
     trust_bundle = source.get("trust_bundle")
     copied["trust_bundle"] = dict(trust_bundle) if isinstance(trust_bundle, dict) else None
     receipts = source.get("receipts")
-    copied["receipts"] = [
-        dict(receipt) for receipt in receipts if isinstance(receipt, dict)
-    ] if isinstance(receipts, list) else []
+    copied["receipts"] = (
+        [dict(receipt) for receipt in receipts if isinstance(receipt, dict)]
+        if isinstance(receipts, list)
+        else []
+    )
     return copied
 
 
@@ -14312,8 +15046,7 @@ def _parse_openssl_version_for_tsa(version_output: str) -> tuple[bool, str | Non
     if raw.startswith("LibreSSL"):
         return (
             False,
-            "LibreSSL is not supported for TSA trust validation; OpenSSL 3.x or "
-            "newer is required.",
+            "LibreSSL is not supported for TSA trust validation; OpenSSL 3.x or newer is required.",
         )
     match = re.match(r"^OpenSSL\s+([0-9]+(?:\.[0-9]+){0,2}[a-z]*)\b", raw)
     if match is None:
@@ -14338,11 +15071,7 @@ def _openssl_tsa_bin() -> str:
 
 
 def _openssl_tsa_env() -> dict[str, str]:
-    return {
-        key: value
-        for key, value in os.environ.items()
-        if not key.startswith("SSL_CERT_")
-    }
+    return {key: value for key, value in os.environ.items() if not key.startswith("SSL_CERT_")}
 
 
 def _openssl_tsa_runtime_status(openssl_bin: str | None = None) -> dict[str, Any]:
@@ -14575,10 +15304,7 @@ def _extract_rfc3161_token_details(receipt_b64: str) -> dict[str, Any]:
     ]
     from cryptography import x509 as crypto_x509
 
-    crypto_certs = [
-        crypto_x509.load_der_x509_certificate(cert.dump())
-        for cert in asn1_certs
-    ]
+    crypto_certs = [crypto_x509.load_der_x509_certificate(cert.dump()) for cert in asn1_certs]
     signer_cert = None
     signer_infos = signed_data["signer_infos"]
     if len(signer_infos) != 1:
@@ -14832,7 +15558,11 @@ def _verify_tsa_receipt_authenticity_openssl(
             ca_bundle_path=ca_bundle_path,
         )
         if material_error is not None or ca_file is None:
-            trust_status = "invalid" if trust_bundle is not None and not trust_bundle.get("ok") else "not_validated"
+            trust_status = (
+                "invalid"
+                if trust_bundle is not None and not trust_bundle.get("ok")
+                else "not_validated"
+            )
             return _tsa_trust_receipt_result(
                 provider=provider,
                 tsa_trust_status=trust_status,
@@ -14936,7 +15666,8 @@ def _verify_tsa_receipt_authenticity_openssl(
                 gen_time=gen_time_iso if isinstance(gen_time_iso, str) else None,
                 tsa_chain_validation=TSA_CHAIN_NOT_VALIDATED,
                 reason_code="not_validated_release_pinned_trust_unavailable",
-                verification_error=error_text or "TSA chain is outside the release-pinned trust bundle",
+                verification_error=error_text
+                or "TSA chain is outside the release-pinned trust bundle",
             )
         reason_code = "tsa_chain_validation_failed"
         if "certificate revoked" in normalized_error:
@@ -15102,8 +15833,7 @@ def _build_tsa_trust_report(
                 tsa_chain_validation=TSA_CHAIN_INVALID,
                 reason_code="tsa_composite_hash_unavailable",
                 verification_error=(
-                    "checkpoint composite_hash unavailable; TSA trust "
-                    "validation cannot run"
+                    "checkpoint composite_hash unavailable; TSA trust validation cannot run"
                 ),
             )
             for receipt in raw_receipts
@@ -15132,9 +15862,7 @@ def _tsa_chain_validation_aggregate(receipts: list[dict[str, Any]] | None) -> st
     if not receipts:
         return TSA_CHAIN_NOT_VALIDATED
     statuses = [
-        receipt.get("tsa_chain_validation")
-        for receipt in receipts
-        if isinstance(receipt, dict)
+        receipt.get("tsa_chain_validation") for receipt in receipts if isinstance(receipt, dict)
     ]
     if any(status == TSA_CHAIN_INVALID for status in statuses):
         return TSA_CHAIN_INVALID
@@ -15150,8 +15878,7 @@ def _tsa_trust_has_failure(tsa_trust: dict[str, Any] | None) -> bool:
     if not isinstance(receipts, list):
         return False
     return any(
-        isinstance(receipt, dict)
-        and receipt.get("tsa_chain_validation") == TSA_CHAIN_INVALID
+        isinstance(receipt, dict) and receipt.get("tsa_chain_validation") == TSA_CHAIN_INVALID
         for receipt in receipts
     )
 
@@ -15247,11 +15974,7 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
         )
         if isinstance(result.tsa_trust.get("receipts"), list) and result.tsa_trust["receipts"]:
             existing_tsa_chain_claim = next(
-                (
-                    claim
-                    for claim in result.claims
-                    if claim.name == "checkpoint.tsa_chain.v1"
-                ),
+                (claim for claim in result.claims if claim.name == "checkpoint.tsa_chain.v1"),
                 None,
             )
             replacement_tsa_chain_claim = _checkpoint_tsa_chain_claim(
@@ -15371,9 +16094,7 @@ def _voice_attestation_signature_payload(
 def _voice_attestation_chain_entry_hash(entry: Mapping[str, Any]) -> str:
     material = dict(entry)
     material.pop("content_hash", None)
-    return _voice_attestation_sha256_prefixed(
-        _voice_attestation_canonical_json_bytes(material)
-    )
+    return _voice_attestation_sha256_prefixed(_voice_attestation_canonical_json_bytes(material))
 
 
 def _is_voice_attestation_artifact(value: Any) -> bool:
@@ -15385,9 +16106,7 @@ def _is_voice_attestation_artifact(value: Any) -> bool:
 
 def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, Any]:
     schema_version = artifact.get("schema_version")
-    expected_artifact_version = VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA.get(
-        schema_version
-    )
+    expected_artifact_version = VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA.get(schema_version)
     return _voice_attestation_check(
         "artifact_schema",
         # v1 is the original voice-session artifact with embedded canonical payloads;
@@ -15397,8 +16116,7 @@ def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, A
         and artifact.get("artifact_version") == expected_artifact_version
         and artifact.get("schema") == VOICE_ATTESTATION_ARTIFACT_SCHEMA
         and schema_version in SUPPORTED_VOICE_ATTESTATION_SCHEMA_VERSIONS
-        and artifact.get("canonicalization_profile")
-        == VOICE_ATTESTATION_CANONICALIZATION_PROFILE,
+        and artifact.get("canonicalization_profile") == VOICE_ATTESTATION_CANONICALIZATION_PROFILE,
         "unsupported voice-session attestation schema/version",
     )
 
@@ -15610,9 +16328,7 @@ def _verify_voice_attestation_policy_snapshot_hash(
     embedded = dict(snapshot)
     embedded.pop("snapshot_id", None)
     embedded.pop("snapshot_hash", None)
-    computed = hashlib.sha256(
-        _voice_attestation_canonical_json_bytes(embedded)
-    ).hexdigest()
+    computed = hashlib.sha256(_voice_attestation_canonical_json_bytes(embedded)).hexdigest()
     expected = str(metadata.get("policy_snapshot_hash") or "").strip().lower()
     if computed != expected:
         return _voice_attestation_check(
@@ -15729,22 +16445,19 @@ def verify_attestation_artifact(
         "schema": artifact.get("schema"),
         "session_id": (
             metadata.get("session_id")
-            if isinstance(metadata, Mapping)
-            and isinstance(metadata.get("session_id"), str)
+            if isinstance(metadata, Mapping) and isinstance(metadata.get("session_id"), str)
             else None
         ),
         "checks": checks,
         "failed_checks": failed,
         "head_hash": (
             chain_head.get("content_hash")
-            if isinstance(chain_head, Mapping)
-            and isinstance(chain_head.get("content_hash"), str)
+            if isinstance(chain_head, Mapping) and isinstance(chain_head.get("content_hash"), str)
             else None
         ),
         "head_sequence": (
             chain_head.get("sequence")
-            if isinstance(chain_head, Mapping)
-            and isinstance(chain_head.get("sequence"), int)
+            if isinstance(chain_head, Mapping) and isinstance(chain_head.get("sequence"), int)
             else None
         ),
     }
@@ -15785,9 +16498,7 @@ class VerifyResult:
         return {
             "schema": VERDICT_SCHEMA_ID,
             "ok": self.ok,
-            "exit_code": (
-                self.exit_code if self.exit_code is not None else 0 if self.ok else 1
-            ),
+            "exit_code": (self.exit_code if self.exit_code is not None else 0 if self.ok else 1),
             "error": self.error,
             "artifact": dict(self.artifact),
             "semantics": dict(self.semantics),
@@ -15899,9 +16610,7 @@ def _checkpoint_tsa_claim(receipts: list[dict[str, Any]]) -> ClaimVerdict:
                 subject_id=str(label),
                 verdict="supported" if ok else "disproved",
                 reason_code=(
-                    "CHECKPOINT_TSA_IMPRINT_SUPPORTED"
-                    if ok
-                    else "CHECKPOINT_TSA_IMPRINT_MISMATCH"
+                    "CHECKPOINT_TSA_IMPRINT_SUPPORTED" if ok else "CHECKPOINT_TSA_IMPRINT_MISMATCH"
                 ),
                 message=reason
                 or (
@@ -15921,7 +16630,11 @@ def _checkpoint_tsa_claim(receipts: list[dict[str, Any]]) -> ClaimVerdict:
             message="checkpoint TSA imprint claim requires at least one TSA receipt",
             evidence=["checkpoint.tsa", "checkpoint.tsa_receipts"],
         )
-    verdict = "supported" if all(subject.verdict == verdict_value("supported") for subject in subjects) else None
+    verdict = (
+        "supported"
+        if all(subject.verdict == verdict_value("supported") for subject in subjects)
+        else None
+    )
     return ClaimVerdict(
         name="checkpoint.tsa_imprint.v1",
         subjects=subjects,
@@ -16069,14 +16782,10 @@ def _checkpoint_base_result(
         exit_code=exit_code if exit_code is not None else 0 if ok else 1,
         artifact=artifact or {"kind": "checkpoint"},
         checkpoint_id=(
-            str(body.get("checkpoint_id") or "") or None
-            if isinstance(body, dict)
-            else None
+            str(body.get("checkpoint_id") or "") or None if isinstance(body, dict) else None
         ),
         computed_at=(
-            str(body.get("computed_at") or "") or None
-            if isinstance(body, dict)
-            else None
+            str(body.get("computed_at") or "") or None if isinstance(body, dict) else None
         ),
         composite_hash=composite_hash,
         chain_heads_count=chain_heads_count,
@@ -16228,7 +16937,7 @@ def _verify_checkpoint_core(
                     reason_code="CHECKPOINT_COMPOSITE_HASH_MISSING",
                     message="missing or malformed composite_hash",
                     checkpoint_id=checkpoint_id,
-                )
+                ),
             ],
             semantics=semantics,
             diagnostics=bundle_diagnostics,
@@ -16246,7 +16955,7 @@ def _verify_checkpoint_core(
                     reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
                     message="chain_heads must be an object",
                     checkpoint_id=checkpoint_id,
-                )
+                ),
             ],
             semantics=semantics,
             composite_hash=composite,
@@ -16267,7 +16976,7 @@ def _verify_checkpoint_core(
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
                         message=f"chain_heads[{scope_key}] must be an object",
                         checkpoint_id=checkpoint_id,
-                    )
+                    ),
                 ],
                 semantics=semantics,
                 composite_hash=composite,
@@ -16287,7 +16996,7 @@ def _verify_checkpoint_core(
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
                         message=f"chain_heads[{scope_key}].sequence_number must be an int",
                         checkpoint_id=checkpoint_id,
-                    )
+                    ),
                 ],
                 semantics=semantics,
                 composite_hash=composite,
@@ -16307,7 +17016,7 @@ def _verify_checkpoint_core(
                         reason_code="CHECKPOINT_CHAIN_HEADS_INVALID",
                         message=f"chain_heads[{scope_key}].last_record_hash must be a string",
                         checkpoint_id=checkpoint_id,
-                    )
+                    ),
                 ],
                 semantics=semantics,
                 composite_hash=composite,
@@ -16332,7 +17041,7 @@ def _verify_checkpoint_core(
                     reason_code="CHECKPOINT_COMPOSITE_HASH_RECOMPUTE_FAILED",
                     message=f"could not recompute composite_hash: {exc}",
                     checkpoint_id=checkpoint_id,
-                )
+                ),
             ],
             semantics=semantics,
             composite_hash=composite,
@@ -16356,7 +17065,7 @@ def _verify_checkpoint_core(
                     reason_code="CHECKPOINT_COMPOSITE_HASH_MISMATCH",
                     message="composite_hash mismatch - chain_heads have been altered",
                     checkpoint_id=checkpoint_id,
-                )
+                ),
             ],
             semantics=semantics,
             composite_hash=composite,
@@ -16525,9 +17234,13 @@ def _verify_checkpoint_core(
     for index, receipt in enumerate(tsa_inputs, start=1):
         label = _checkpoint_receipt_label(receipt, index)
         receipt_result = {
-            "provider": receipt.get("provider") if isinstance(receipt.get("provider"), str) else None,
+            "provider": receipt.get("provider")
+            if isinstance(receipt.get("provider"), str)
+            else None,
             "url": receipt.get("url") if isinstance(receipt.get("url"), str) else None,
-            "requested_at": receipt.get("requested_at") if isinstance(receipt.get("requested_at"), str) else None,
+            "requested_at": receipt.get("requested_at")
+            if isinstance(receipt.get("requested_at"), str)
+            else None,
             "checked": check_tsa,
             "verified": None,
             "reason": None,
@@ -16625,9 +17338,7 @@ def _verify_checkpoint_core(
     tsa_present = bool(tsa_receipts)
     tsa_checked = tsa_present and check_tsa
     tsa_verified = (
-        all(receipt.get("verified") is True for receipt in tsa_receipts)
-        if tsa_checked
-        else None
+        all(receipt.get("verified") is True for receipt in tsa_receipts) if tsa_checked else None
     )
     tsa_reason = None
     if tsa_checked:
@@ -16673,8 +17384,7 @@ def _verify_checkpoint_core(
         tsa_reason=tsa_reason,
         tsa_url=(
             first_receipt.get("url")
-            if isinstance(first_receipt, dict)
-            and isinstance(first_receipt.get("url"), str)
+            if isinstance(first_receipt, dict) and isinstance(first_receipt.get("url"), str)
             else None
         ),
         tsa_requested_at=(
@@ -16759,10 +17469,7 @@ def verify(
         return VerifyResult(
             ok=result["verdict"] == "pass",
             error=(
-                "; ".join(
-                    f"{check.get('name')}: {check.get('reason')}"
-                    for check in failed
-                )
+                "; ".join(f"{check.get('name')}: {check.get('reason')}" for check in failed)
                 if failed
                 else None
             ),
@@ -16771,14 +17478,10 @@ def verify(
             checkpoint_id=result.get("session_id"),
             composite_hash=result.get("head_hash"),
             chain_heads_count=int(result.get("head_sequence") or 0),
-            tsa_present=any(
-                check.get("name") == "rfc3161_timestamp_receipt"
-                for check in checks
-            ),
+            tsa_present=any(check.get("name") == "rfc3161_timestamp_receipt" for check in checks),
             tsa_checked=check_tsa,
             tsa_verified=not any(
-                check.get("name") == "rfc3161_timestamp_receipt"
-                and check.get("result") != "pass"
+                check.get("name") == "rfc3161_timestamp_receipt" and check.get("result") != "pass"
                 for check in checks
             ),
             tsa_receipts=[
@@ -16803,17 +17506,23 @@ def verify(
 def verify_export_walk_events(export_data: bytes | str | Path) -> int:
     if isinstance(export_data, bytes):
         data = export_data
-    elif isinstance(export_data, Path) or (isinstance(export_data, str) and Path(export_data).exists()):
+    elif isinstance(export_data, Path) or (
+        isinstance(export_data, str) and Path(export_data).exists()
+    ):
         data = Path(export_data).read_bytes()
     else:
         data = str(export_data).encode("utf-8")
     return _walk_export_events(data)
 
 
-def verify_closure_record(export_data: bytes | str | Path, *, key_manifest: str | None = None) -> int:
+def verify_closure_record(
+    export_data: bytes | str | Path, *, key_manifest: str | None = None
+) -> int:
     if isinstance(export_data, bytes):
         data = export_data
-    elif isinstance(export_data, Path) or (isinstance(export_data, str) and Path(export_data).exists()):
+    elif isinstance(export_data, Path) or (
+        isinstance(export_data, str) and Path(export_data).exists()
+    ):
         data = Path(export_data).read_bytes()
     else:
         data = str(export_data).encode("utf-8")
@@ -16839,8 +17548,7 @@ def _add_key_manifest_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--key-manifest-url",
         help=(
-            "URL to fetch the key manifest from "
-            "(e.g. https://api.keelapi.com/v1/compliance/keys)."
+            "URL to fetch the key manifest from (e.g. https://api.keelapi.com/v1/compliance/keys)."
         ),
     )
 
@@ -16897,9 +17605,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_key_manifest_args(p_export)
     p_export.set_defaults(func=cmd_export)
 
-    p_cp = sub.add_parser(
-        "checkpoint", help="Verify an integrity checkpoint JSON file."
-    )
+    p_cp = sub.add_parser("checkpoint", help="Verify an integrity checkpoint JSON file.")
     p_cp.add_argument("--checkpoint-file", required=True)
     p_cp.add_argument("--json", action="store_true", dest="as_json")
     p_cp.add_argument(
@@ -16909,8 +17615,7 @@ def main(argv: list[str] | None = None) -> int:
     p_cp.add_argument(
         "--public-key-url",
         help=(
-            "URL to fetch the trust-root public key "
-            "(e.g. .../v1/integrity/checkpoint-public-key)."
+            "URL to fetch the trust-root public key (e.g. .../v1/integrity/checkpoint-public-key)."
         ),
     )
     _add_key_manifest_args(p_cp)

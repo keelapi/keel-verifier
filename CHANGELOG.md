@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.5.1
+
+- Add offline adjudication for `permit.co_signature.v1`, including strict
+  Phase-0 WebAuthn verification, independently derived Permit binding,
+  signed-pack integrity gating, and Keel-pinned signed co-signer key-status
+  resolution with `custody_tier=human_passkey`.
+- Extend the pinned claim registry and key-status manifest vocabulary for
+  project-scoped co-signer passkeys while retaining legacy key-status manifest
+  compatibility.
+
 ## 3.5.0
 
 - Add release-pinned TSA chain validation for checkpoint RFC 3161 receipts,

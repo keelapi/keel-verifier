@@ -364,17 +364,6 @@
       ]
     },
     {
-      "name": "permit.co_signature.v1",
-      "assertion": "A registered human-passkey credential produced a valid WebAuthn assertion whose challenge binds to the independently verified Permit canonical hash and whose ceremony satisfies the configured RP ID, origin, user-presence, and user-verification rules.",
-      "required_evidence": "Signed-pack-integrity-protected permit.co_signature.v1 claim and assertion envelope; independently verified target-Permit identity, canonical hash, action, resource, and modality; trusted signed co-signer COSE key-status record; RP ID; allowed origins; and effective user-verification requirement.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "permit.counter_signature.v1",
       "assertion": "A Permit v2 counter_signature slot is a valid buyer-principal pre-dispatch signature over the slot-specific canonical payload and binds the signed execution_intent_hash to canonical permit.counter_signature.execution_intent.v1 dispatch facts.",
       "required_evidence": "Permit v2 object with counter_signature slot, issuer signature evidence, permit canonical hash input, execution_intent_hash, dispatch_request_hash, resource_provider, resource_model, optional resource_operation, account-scoped buyer-principal key registry evidence resolving (account_id, key_id) at signed_at, optional revocation evidence for the pre-dispatch timing rule, and pinned counter-signature semantics.",
