@@ -19,14 +19,17 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import json
+import os
 import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
 
+from asn1crypto import algos, core, tsp
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
@@ -34,6 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TSA_TRUST = REPO_ROOT / "keel_verifier" / "data" / "tsa_trust"
 BUNDLE = TSA_TRUST / "tsa_trust_bundle_v1.json"
 VERIFIER = REPO_ROOT / "keel_verifier" / "verifier.py"
+RECEIPTS_FIXTURE = REPO_ROOT / "tests" / "fixtures" / "tsa" / "public_ca_receipts_v1.json"
 
 # A CA publishes the CRL covering the certificates it ISSUES. The URL lives in
 # the CRLDistributionPoints of those issued certificates, so a root's CRL URL is
@@ -101,11 +105,90 @@ def _load_crl(raw: bytes) -> x509.CertificateRevocationList | None:
     return None
 
 
+def _mint_timestamp(url: str, content_hash_hex: str) -> bytes:
+    request = tsp.TimeStampReq({
+        "version": "v1",
+        "message_imprint": tsp.MessageImprint({
+            "hash_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
+            "hashed_message": bytes.fromhex(content_hash_hex),
+        }),
+        "nonce": core.Integer(int.from_bytes(os.urandom(8), "big")),
+        "cert_req": True,
+    })
+    http_request = urllib.request.Request(
+        url,
+        data=request.dump(),
+        headers={
+            "Content-Type": "application/timestamp-query",
+            "User-Agent": "keel-verifier-tsa-fixture-refresh",
+        },
+    )
+    with urllib.request.urlopen(http_request, timeout=30) as response:
+        return response.read()
+
+
+def _token_and_gen_time(response_der: bytes, content_hash_hex: str) -> tuple[bytes, dt.datetime]:
+    response = tsp.TimeStampResp.load(response_der)
+    status = response["status"]["status"].native
+    if status not in ("granted", "granted_with_mods"):
+        raise ValueError(f"TSA did not grant the timestamp: {status}")
+    token = response["time_stamp_token"]
+    tst_info = token["content"]["encap_content_info"]["content"].parsed
+    imprint = tst_info["message_imprint"]["hashed_message"].native.hex()
+    if imprint != content_hash_hex:
+        raise ValueError(f"messageImprint mismatch: {imprint} != {content_hash_hex}")
+    # The fixture stores the bare timeStampToken (CMS ContentInfo), not the
+    # enclosing TimeStampResp -- the verifier parses it as a ContentInfo.
+    return token.dump(), tst_info["gen_time"].native
+
+
+def refresh_receipts(
+    *, windows: dict[str, tuple[dt.datetime, dt.datetime]], dry_run: bool
+) -> list[str]:
+    """Re-mint the public-CA receipt fixtures so their genTime lands in the new
+    CRL windows. Refreshing the CRLs forward otherwise invalidates them: the
+    verifier requires last_update <= genTime < next_update for every chain CRL."""
+    fixture = json.loads(RECEIPTS_FIXTURE.read_text(encoding="utf-8"))
+    now = dt.datetime.now(dt.timezone.utc)
+    failures: list[str] = []
+    for receipt in fixture["receipts"]:
+        provider = receipt["provider"]
+        print(f"   receipt: {provider} <- {receipt['url']}")
+        try:
+            response = _mint_timestamp(receipt["url"], receipt["content_hash_hex"])
+            token, gen_time = _token_and_gen_time(response, receipt["content_hash_hex"])
+        except Exception as exc:
+            failures.append(f"{provider} receipt ({type(exc).__name__}: {exc})")
+            print(f"      FAILED: {exc}")
+            continue
+        relevant = [(p, lo, hi) for p, (lo, hi) in windows.items() if provider in p]
+        uncovered = [p for (p, lo, hi) in relevant if not (lo <= gen_time < hi)]
+        print(f"      genTime {_z(gen_time)} covered by "
+              f"{len(relevant) - len(uncovered)}/{len(relevant)} {provider} CRL windows")
+        if uncovered:
+            failures.append(f"{provider} receipt genTime uncovered by {uncovered}")
+            continue
+        if not dry_run:
+            receipt["receipt_b64"] = base64.b64encode(token).decode("ascii")
+            receipt["receipt_hash"] = _sha256(token)
+            receipt["gen_time"] = _z(gen_time)
+            receipt["requested_at"] = _z(now)
+    if failures or dry_run:
+        return failures
+    fixture["generated_at"] = _z(now)
+    RECEIPTS_FIXTURE.write_text(
+        json.dumps(fixture, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print("   receipt fixtures rewritten")
+    return failures
+
+
 def refresh(*, dry_run: bool, min_valid_days: int) -> int:
     bundle = json.loads(BUNDLE.read_text(encoding="utf-8"))
     now = dt.datetime.now(dt.timezone.utc)
     failures: list[str] = []
     next_updates: list[dt.datetime] = []
+    windows: dict[str, tuple[dt.datetime, dt.datetime]] = {}
 
     for entry in bundle["files"]:
         if entry.get("kind") != "crl":
@@ -144,6 +227,7 @@ def refresh(*, dry_run: bool, min_valid_days: int) -> int:
             failures.append(f"{path} (only {headroom}d headroom)")
             continue
         next_updates.append(crl.next_update_utc)
+        windows[path] = (crl.last_update_utc, crl.next_update_utc)
 
         if not dry_run:
             pem = crl.public_bytes(Encoding.PEM)
@@ -156,8 +240,16 @@ def refresh(*, dry_run: bool, min_valid_days: int) -> int:
     if failures:
         print("\n   FAILED to refresh: " + ", ".join(failures))
         return 1
+
+    # Receipts are coupled to the CRL windows: refreshing the CRLs forward
+    # invalidates any receipt whose fixed genTime now falls before last_update.
+    receipt_failures = refresh_receipts(windows=windows, dry_run=dry_run)
+    if receipt_failures:
+        print("\n   FAILED to refresh receipts: " + ", ".join(receipt_failures))
+        return 1
+
     if dry_run:
-        print("\n   dry run: all CRLs verified, nothing written")
+        print("\n   dry run: all CRLs and receipts verified, nothing written")
         return 0
 
     bundle["generated_at"] = _z(now)

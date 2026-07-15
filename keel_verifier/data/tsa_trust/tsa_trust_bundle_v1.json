@@ -128,7 +128,7 @@
       "source_url": "http://crl.globalsign.com/root-r6.crl"
     }
   ],
-  "generated_at": "2026-07-14T22:27:03Z",
+  "generated_at": "2026-07-15T03:35:56Z",
   "id": "keel.tsa_trust_bundle.v1",
   "validation": {
     "crl_refresh_guard": "CI must refresh the release-pinned TSA CRL snapshots before the earliest bundled CRL next_update enters the configured guard window.",
