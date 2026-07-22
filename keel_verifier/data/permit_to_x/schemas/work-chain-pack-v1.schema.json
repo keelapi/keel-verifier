@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-chain-pack-v1.schema.json",
+  "title": "Keel work-chain evidence pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "profile",
+    "project_id",
+    "root_permit_id",
+    "export_source",
+    "declared_cutoff",
+    "scope_commitment",
+    "scope_commitment_signature",
+    "root",
+    "authorities",
+    "child_permits",
+    "value_events",
+    "lifecycle_events",
+    "policy_snapshots",
+    "evidence_artifacts",
+    "artifacts",
+    "requested_claims"
+  ],
+  "properties": {
+    "version": {"type": "string", "const": "keel.work_chain_pack.v1"},
+    "profile": {"type": "string", "const": "work-chain.v1"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "export_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "source_id"],
+      "properties": {
+        "source_kind": {"type": "string", "const": "keel_recorded_governance"},
+        "source_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "declared_cutoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recorded_through", "checkpoint_id", "checkpoint_digest"],
+      "properties": {
+        "recorded_through": {"type": "string", "format": "date-time"},
+        "checkpoint_id": {"type": "string", "format": "uuid"},
+        "checkpoint_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "scope_commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "claim", "runtime_recording_claim", "populations"],
+      "properties": {
+        "version": {"type": "string", "const": "keel.work_scope_commitment.v1"},
+        "claim": {
+          "type": "string",
+          "const": "scope-faithful slice of Keel-recorded work evidence through the declared cutoff"
+        },
+        "runtime_recording_claim": {"type": "string", "const": "not_asserted"},
+        "populations": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {"$ref": "#/$defs/population_commitment"}
+        }
+      }
+    },
+    "scope_commitment_signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "signature_profile",
+        "binding_key_id",
+        "canonical_hash",
+        "signature",
+        "signed_at"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "keel.work_scope_commitment_signature.v1"
+        },
+        "signature_profile": {
+          "type": "string",
+          "const": "keel.canonical_json.payload.v1"
+        },
+        "binding_key_id": {"type": "string", "minLength": 1},
+        "canonical_hash": {"$ref": "#/$defs/digest"},
+        "signature": {
+          "type": "string",
+          "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"
+        },
+        "signed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["permit_artifact", "work_package", "semantic_binding"],
+      "properties": {
+        "permit_artifact": {"$ref": "#/$defs/artifact_reference"},
+        "work_package": {
+          "$ref": "https://github.com/keelapi/keel-permit/schemas/work-package-v1.schema.json"
+        },
+        "semantic_binding": {
+          "$ref": "https://github.com/keelapi/keel-permit/schemas/permit-semantic-binding-v1.schema.json"
+        }
+      }
+    },
+    "authorities": {
+      "type": "array",
+      "items": {
+        "$ref": "https://github.com/keelapi/keel-permit/schemas/work-authority-v1.schema.json"
+      }
+    },
+    "child_permits": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/child_permit_evidence"}
+    },
+    "value_events": {
+      "type": "array",
+      "items": {
+        "$ref": "https://github.com/keelapi/keel-permit/schemas/work-value-event-v1.schema.json"
+      }
+    },
+    "lifecycle_events": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/lifecycle_event"}
+    },
+    "policy_snapshots": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/policy_snapshot"}
+    },
+    "evidence_artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/artifact_reference"}
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "requested_claims": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "permit.work_authority_manifest.v1",
+          "permit.work_child_containment.v1",
+          "permit_chain.execution_authorized_at_boundary.v1",
+          "permit.work_value_conservation.v1"
+        ]
+      },
+      "allOf": [
+        {"contains": {"const": "permit.work_authority_manifest.v1"}},
+        {"contains": {"const": "permit.work_child_containment.v1"}},
+        {"contains": {"const": "permit_chain.execution_authorized_at_boundary.v1"}},
+        {"contains": {"const": "permit.work_value_conservation.v1"}}
+      ]
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "population_commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["population", "source_relation", "included_count", "included_set_hash"],
+      "properties": {
+        "population": {
+          "type": "string",
+          "enum": ["work_authorities", "child_permits", "work_value_events", "lifecycle_events"]
+        },
+        "source_relation": {"type": "string", "minLength": 1},
+        "included_count": {"type": "integer", "minimum": 0},
+        "included_set_hash": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "artifact_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_type", "artifact_digest"],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1},
+        "artifact_type": {"type": "string", "minLength": 1},
+        "artifact_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_type", "artifact_digest", "payload"],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1},
+        "artifact_type": {"type": "string", "minLength": 1},
+        "artifact_digest": {"$ref": "#/$defs/digest"},
+        "payload": {"type": "object"}
+      }
+    },
+    "child_permit_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "permit_id",
+        "work_authority_id",
+        "decision",
+        "request_digest",
+        "work_binding",
+        "permit_artifact"
+      ],
+      "properties": {
+        "permit_id": {"type": "string", "format": "uuid"},
+        "work_authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "decision": {"type": "string", "enum": ["allow", "deny", "challenge"]},
+        "request_digest": {"$ref": "#/$defs/digest"},
+        "work_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "root_permit_id", "authority_id", "authority_canonical_hash", "root_manifest_hash"],
+          "properties": {
+            "version": {"type": "string", "const": "keel.work_binding.v1"},
+            "root_permit_id": {"type": "string", "format": "uuid"},
+            "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+            "authority_canonical_hash": {"$ref": "#/$defs/digest"},
+            "root_manifest_hash": {"$ref": "#/$defs/digest"}
+          }
+        },
+        "semantic_binding": {
+          "$ref": "https://github.com/keelapi/keel-permit/schemas/permit-semantic-binding-v1.schema.json"
+        },
+        "permit_artifact": {"$ref": "#/$defs/artifact_reference"},
+        "dispatch_boundary_evidence": {"$ref": "#/$defs/artifact_reference"}
+      }
+    },
+    "lifecycle_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "event_type", "occurred_at", "event_digest"],
+      "properties": {
+        "event_id": {"type": "string", "minLength": 1},
+        "event_type": {
+          "type": "string",
+          "enum": ["work.issued", "work.closed", "permit.revoked", "dispatch.egress_bound"]
+        },
+        "permit_id": {"type": "string", "format": "uuid"},
+        "occurred_at": {"type": "string", "format": "date-time"},
+        "event_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "policy_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["phase", "policy_id", "policy_version", "policy_snapshot_hash"],
+      "properties": {
+        "phase": {"type": "string", "enum": ["root_issuance", "child_issuance", "dispatch"]},
+        "permit_id": {"type": "string", "format": "uuid"},
+        "policy_id": {"type": "string", "minLength": 1},
+        "policy_version": {"type": "string", "minLength": 1},
+        "policy_snapshot_hash": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

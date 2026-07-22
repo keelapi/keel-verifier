@@ -434,12 +434,12 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     digest = f"sha256:{hashlib.sha256(registry_bytes).hexdigest()}"
     assert digest == semantics.CLAIM_REGISTRY_HASH
     assert semantics.CLAIM_REGISTRY_HASH == (
-        "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
+        "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
     )
 
-    # The co-signature registry rolled the TSA-chain registry into PREVIOUS.
+    # The Work-chain registry rolled the co-signature registry into PREVIOUS.
     assert semantics.CLAIM_REGISTRY_PREVIOUS_HASH == (
-        "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
+        "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
@@ -483,8 +483,14 @@ def test_existing_claims_unaffected_by_additive_row() -> None:
     assert names[root_index + 1] == "authority.root_status_temporal.v2"
     assert names[root_index + 2] == "authority.edge_revocation.v1"
 
-    # The C1 row remains purely additive (appended at the end).
-    assert names[-1] == "rail.settlement_reconciled.v1"
+    # The C1 row remains unchanged; the four Work claims are additive after it.
+    rail_index = names.index("rail.settlement_reconciled.v1")
+    assert names[rail_index + 1 :] == [
+        "permit.work_authority_manifest.v1",
+        "permit.work_child_containment.v1",
+        "permit_chain.execution_authorized_at_boundary.v1",
+        "permit.work_value_conservation.v1",
+    ]
 
     # The edge-revocation semantic hash is unchanged.
     assert semantics.AUTHORITY_EDGE_REVOCATION_HASH == (

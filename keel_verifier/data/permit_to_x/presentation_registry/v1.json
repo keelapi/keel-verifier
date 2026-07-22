@@ -1,0 +1,159 @@
+{
+  "$schema": "./v1.schema.json",
+  "artifact_id": "keel.permit.presentation_registry",
+  "version": "keel.presentation_registry.v1",
+  "semantic_registry_version": "keel.semantic_selector_registry.v1",
+  "allowed_leading_fields": [
+    "declared_purpose",
+    "job_reference",
+    "resource",
+    "amount",
+    "currency",
+    "recipient",
+    "provider",
+    "model",
+    "request_digest",
+    "session_id",
+    "linked_to"
+  ],
+  "allowed_evidence_sections": [
+    "record_identity",
+    "authorization",
+    "approval",
+    "relationship",
+    "limits",
+    "dispatch",
+    "provider_outcome",
+    "authority_lifecycle",
+    "value_conservation",
+    "settlement",
+    "evidence_scope"
+  ],
+  "profiles": [
+    {
+      "semantic_id": "keel.context.work.v1",
+      "presentation_profile_id": "permit_to_work.r1",
+      "customer_title": "AI Permit-to-Work",
+      "type_definition": "Authorization for one bounded AI job",
+      "leading_fields": [
+        {"field": "declared_purpose", "label": "Declared purpose"},
+        {"field": "job_reference", "label": "Job reference"},
+        {"field": "resource", "label": "Resource"}
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "authority_lifecycle",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "business_job_completion",
+        "provider_success",
+        "financial_settlement",
+        "comprehensive_runtime_recording"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_execute.v1",
+      "presentation_profile_id": "permit_to_pay.r1",
+      "customer_title": "AI Permit-to-Pay",
+      "type_definition": "Exact payment authorization",
+      "leading_fields": [
+        {"field": "amount", "label": "Amount"},
+        {"field": "currency", "label": "Currency"},
+        {"field": "recipient", "label": "Recipient"},
+        {"field": "linked_to", "label": "Linked to"}
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "settlement"
+      ],
+      "does_not_establish": ["provider_success", "financial_settlement"],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.generate_text.v1",
+      "presentation_profile_id": "permit_to_generate_text.r1",
+      "customer_title": "AI Permit-to-Generate Text",
+      "type_definition": "Exact text-generation authorization",
+      "leading_fields": [
+        {"field": "provider", "label": "Provider"},
+        {"field": "model", "label": "Model"},
+        {"field": "request_digest", "label": "Request"},
+        {"field": "linked_to", "label": "Linked to"}
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome"
+      ],
+      "does_not_establish": ["provider_success", "content_truth_or_quality"],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.context.realtime_session.v1",
+      "presentation_profile_id": "realtime_session.r1",
+      "customer_title": "AI Permit — Realtime session",
+      "type_definition": "Bounded realtime session authority",
+      "leading_fields": [
+        {"field": "session_id", "label": "Session"},
+        {"field": "provider", "label": "Provider"},
+        {"field": "model", "label": "Model"}
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "participant_identity",
+        "recording_consent",
+        "authority_to_represent",
+        "business_job_completion",
+        "comprehensive_runtime_recording"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "generic_qualified"
+    }
+  ],
+  "fallback_profiles": [
+    {
+      "presentation_profile_id": "generic_ai_permit",
+      "customer_title": "AI Permit",
+      "type_definition": "Governed authorization record",
+      "evidence_sections": ["record_identity", "authorization", "dispatch", "provider_outcome"]
+    },
+    {
+      "presentation_profile_id": "unclassified_action_request",
+      "customer_title": "Unclassified action request",
+      "type_definition": "Action identity was not sufficiently trusted for a specific Permit title",
+      "evidence_sections": ["record_identity", "authorization", "evidence_scope"]
+    },
+    {
+      "presentation_profile_id": "historical_specific_title_unavailable",
+      "customer_title": "AI Permit — specific title unavailable for this record",
+      "type_definition": "Historical authorization record with unavailable presentation material",
+      "evidence_sections": ["record_identity", "authorization", "evidence_scope"]
+    }
+  ]
+}

@@ -438,6 +438,52 @@
         "insufficient_evidence": "Key-status evidence: insufficient evidence",
         "unverifiable_scope": "Key-status evidence: not checkable by this verifier version"
       }
+    },
+    {
+      "claim": "permit.work_authority_manifest.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Work authority manifest matches the signed root Permit",
+        "disproved": "Work authority manifest does NOT match the signed root Permit",
+        "insufficient_evidence": "Work authority manifest: insufficient evidence",
+        "unverifiable_scope": "Work authority manifest: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit.work_child_containment.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Linked action Permits fit their named Work authority",
+        "disproved": "A linked action Permit exceeds or conflicts with its Work authority",
+        "insufficient_evidence": "Linked action containment: insufficient evidence",
+        "unverifiable_scope": "Linked action containment: not checkable by this verifier version"
+      }
+    },
+    {
+      "claim": "permit_chain.execution_authorized_at_boundary.v1",
+      "dimension": "execution",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Recorded dispatch boundaries were inside live Work authority",
+        "disproved": "A recorded dispatch boundary was outside live Work authority",
+        "insufficient_evidence": "Dispatch-boundary authority: insufficient evidence",
+        "unverifiable_scope": "Dispatch-boundary authority: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["provider completed the action", "job completed"]
+    },
+    {
+      "claim": "permit.work_value_conservation.v1",
+      "dimension": "completeness",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Recorded payment value stays within the signed Work limits",
+        "disproved": "Recorded payment value exceeds or conflicts with the signed Work limits",
+        "insufficient_evidence": "Work payment-value accounting: insufficient evidence",
+        "unverifiable_scope": "Work payment-value accounting: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["payment settled", "money moved"]
     }
   ],
   "not_surfaced": [

@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/semantic_registry/v1.schema.json",
+  "title": "Keel Permit semantic selector registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_id", "version", "selection_rule", "entries"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "artifact_id": {"type": "string", "const": "keel.permit.semantic_selector_registry"},
+    "version": {"type": "string", "const": "keel.semantic_selector_registry.v1"},
+    "selection_rule": {"type": "string", "const": "exactly_one_match_else_fallback"},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_id",
+        "semantic_kind",
+        "trusted_source_kinds",
+        "match",
+        "excluded_permit_products",
+        "release_state"
+      ],
+      "properties": {
+        "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+        "semantic_kind": {
+          "type": "string",
+          "enum": ["context_authority", "exact_action", "qualified_context"]
+        },
+        "trusted_source_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "work_request_server_reconciled",
+              "action_verb_execute",
+              "realtime_session_service"
+            ]
+          }
+        },
+        "match": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allowed_chain_roles", "required_surfaces"],
+          "properties": {
+            "action_names": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "operations": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "allowed_chain_roles": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"type": "string", "enum": ["session_root", "work_root", "action_child"]}
+            },
+            "required_surfaces": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": ["permit_decision", "model_provider", "payment_rail", "realtime_session"]
+              }
+            },
+            "required_evidence_capabilities": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "authorization",
+                  "dispatch",
+                  "provider_outcome",
+                  "payment_value_events",
+                  "settlement_optional",
+                  "scope_faithful_work_chain"
+                ]
+              }
+            }
+          }
+        },
+        "excluded_permit_products": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "enum": ["cost_permit"]}
+        },
+        "release_state": {"type": "string", "enum": ["eligible", "reserved", "internal_only"]}
+      }
+    }
+  }
+}

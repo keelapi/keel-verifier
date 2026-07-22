@@ -240,6 +240,33 @@ plus the production permit-binding key served by
 trust-root publication must be signed as `keel.public_key_manifest.v1` by the
 real production export-signing key during the Christian/key-ops publish step.
 
+## AI Permit-to-Work chain verification
+
+Verify a self-contained Work evidence pack directly:
+
+```bash
+keel-verify work-chain work-evidence.json
+```
+
+Bare-path invocation auto-detects the same profile:
+
+```bash
+keel-verify work-evidence.json
+```
+
+The verifier independently adjudicates four claims: the Work authority
+manifest, child containment, dispatch-boundary liveness, and payment value
+conservation. It verifies embedded artifact digests, exact Permit decision
+bindings, signed export-scope checkpoints, lifecycle ordering, and the payment
+authority comparator. Human output separates authorization from dispatch,
+external outcome, settlement, and unestablished facts. Use `--json` for the
+stable machine verdict; presentation labels never alter claims or exit status.
+
+When a pack does not embed its signed public-key manifest, provide one with
+`--trust-root` (or the compatibility alias `--key-manifest`). Work evidence is
+scope-faithful through its declared cutoff. It does not claim to record every
+real-world event or prove payment settlement without the required evidence.
+
 ## Workflow Intent Verification
 
 `keel-verify export` understands `keel.workflow_evidence/v1` artifacts emitted alongside evidence exports. During the 3.x transition it also accepts the legacy `keel.vanta.workflow_evidence/v1` name with a deprecation warning. When the signed export manifest includes a `sibling_artifacts.workflow_evidence` entry, the verifier checks the sibling file hash, export signature, workflow declaration signatures, workflow amendment signatures, amendment version ordering, declaration `effective_intent_hash`, and any permit `workflow_state_json` snapshots in the main evidence.

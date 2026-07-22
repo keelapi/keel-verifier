@@ -1,0 +1,27 @@
+{
+  "id": "keel.permit.work_value_conservation.v1",
+  "version": "v1",
+  "kind": "work_payment_value_conservation_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_value_conservation.v1",
+    "preconditions": ["permit.work_authority_manifest.v1", "export.integrity.v1"],
+    "event_version": "keel.work_value_event.v1",
+    "checks": [
+      "events are strictly ordered by authority_sequence with no duplicate transition idempotency digest",
+      "the declared checkpoint digest matches a valid scope-commitment signature over the export source, cutoff, and exact population commitments",
+      "every event uses the authority currency and a positive amount magnitude",
+      "outstanding reservations never become negative",
+      "reserved plus terminally consumed or outcome-unknown value never exceeds value_max_minor",
+      "settled requires a supported settlement artifact reference",
+      "reconciled transitions name the prior unknown outcome evidence they resolve"
+    ],
+    "settlement_rule": "authorization, reservation, dispatch, and provider acceptance never imply settlement",
+    "verdicts": {
+      "supported": "the supplied scope-faithful event population conserves authorized payment value",
+      "disproved": "ordered events overdraw authority, double-apply a transition, mismatch currency, or claim unsupported settlement",
+      "insufficient_evidence": "the authority, event population, scope commitment, or required settlement artifact is absent",
+      "unverifiable_scope": "the value-event or conservation semantics version is unsupported"
+    }
+  }
+}

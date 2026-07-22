@@ -1,0 +1,504 @@
+{
+  "version": "keel.permit_to_work_vectors.v1",
+  "canonicalization_profile": "keel.canonical_json.payload.v1",
+  "valid": {
+    "work_request": {
+      "version": "keel.work_request.v1",
+      "declared_purpose": "Process invoice INV-2048",
+      "job_reference": "INV-2048",
+      "resource": {
+        "type": "invoice",
+        "id": "INV-2048",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "requested_authorities": [
+        {
+          "authority_id": "payment-1",
+          "request_kind": "payment",
+          "requested_action": "payment.execute",
+          "max_uses": 1,
+          "value_max_minor": 50000,
+          "currency": "USD",
+          "automatic_review_threshold_minor": 10000,
+          "recipient_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "purpose_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "required_authority_ids": [
+        "payment-1"
+      ],
+      "not_before": "2026-07-21T16:00:00Z",
+      "expires_at": "2026-08-31T23:59:59Z"
+    },
+    "work_package": {
+      "version": "keel.work_package.v1",
+      "verified_principal_id": "44444444-4444-4444-8444-444444444444",
+      "declared_purpose": "Process invoice INV-2048",
+      "job_reference": "INV-2048",
+      "resource": {
+        "type": "invoice",
+        "id": "INV-2048",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "requested_authority_set_hash": "sha256:edd75488a3690a347d210d864ad786d4e56cc912f416c47650d69d577a57572e",
+      "required_authority_ids": [
+        "payment-1"
+      ],
+      "issued_authorities": [
+        {
+          "authority_id": "payment-1",
+          "authority_canonical_hash": "sha256:898e2f3858a5c531dd28e62e4b02baf4c1bb4b2b51ee98c9be6fc520c1d6aa12"
+        }
+      ],
+      "issued_authority_set_hash": "sha256:5fcb0819ad7cf3c5ee0476f0ecf003598b7f3d154f29858ce3dba8e067f87c2a",
+      "excluded_authorities": [],
+      "policy_snapshot": {
+        "policy_id": "invoice-payment-policy",
+        "policy_version": "7",
+        "policy_snapshot_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "root_review_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "not_before": "2026-07-21T16:00:00Z",
+      "expires_at": "2026-08-31T23:59:59Z"
+    },
+    "authority": {
+      "version": "keel.work_authority.v1",
+      "authority_id": "payment-1",
+      "project_id": "11111111-1111-4111-8111-111111111111",
+      "root_permit_id": "22222222-2222-4222-8222-222222222222",
+      "semantic_id": "keel.action.payment_execute.v1",
+      "trusted_action": "payment.execute",
+      "trusted_source_reference": {
+        "source_kind": "action_verb_execute",
+        "source_id": "payment.execute",
+        "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "resource_scope": {
+        "type": "invoice",
+        "id": "INV-2048",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "comparator_version": "work-payment-authority.v1",
+      "max_uses": 1,
+      "value_max_minor": 50000,
+      "currency": "USD",
+      "automatic_review_threshold_minor": 10000,
+      "recipient_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "purpose_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "not_before": "2026-07-21T16:00:00Z",
+      "expires_at": "2026-08-31T23:59:59Z",
+      "authority_canonical_hash": "sha256:898e2f3858a5c531dd28e62e4b02baf4c1bb4b2b51ee98c9be6fc520c1d6aa12"
+    },
+    "child_permit": {
+      "permit_id": "33333333-3333-4333-8333-333333333333",
+      "work_authority_id": "payment-1",
+      "decision": "allow",
+      "request_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "work_binding": {
+        "version": "keel.work_binding.v1",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "authority_id": "payment-1",
+        "authority_canonical_hash": "sha256:898e2f3858a5c531dd28e62e4b02baf4c1bb4b2b51ee98c9be6fc520c1d6aa12",
+        "root_manifest_hash": "sha256:f2a6398e892fdb03bf2cbbd432276fec137bb8cdd5ba38a3108153d70d62e7e0"
+      },
+      "semantic_binding": {
+        "version": "keel.permit_semantic_binding.v1",
+        "semantic_id": "keel.action.payment_execute.v1",
+        "selector_registry_version": "keel.semantic_selector_registry.v1",
+        "selector_registry_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "selector_entry_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": "payment.execute",
+        "operation": "payment.execute",
+        "governed_surface": "payment_rail",
+        "non_authorizing_presentation_profile_id": "permit_to_pay.r1",
+        "derived_at": "2026-07-21T16:06:00Z"
+      },
+      "permit_artifact": {
+        "artifact_id": "urn:x-keel:artifact:permit:33333333-3333-4333-8333-333333333333",
+        "artifact_type": "permit",
+        "artifact_digest": "sha256:43d3f9e2e7b326a2a8df7c2ad383f8bc9455b24ea2f7114ef391327c140a8469"
+      },
+      "dispatch_boundary_evidence": {
+        "artifact_id": "urn:x-keel:artifact:governance_event:88888888-8888-4888-8888-888888888882",
+        "artifact_type": "governance_event",
+        "artifact_digest": "sha256:44e02f03b1f4388edd201c1b7d78e37a037fbc7ac78c3a440b6775d97b2a3f66"
+      }
+    },
+    "value_events": [
+      {
+        "version": "keel.work_value_event.v1",
+        "event_id": "55555555-5555-4555-8555-555555555551",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "authority_id": "payment-1",
+        "child_permit_id": "33333333-3333-4333-8333-333333333333",
+        "authority_sequence": 1,
+        "event_type": "reserved",
+        "amount_minor": 8400,
+        "currency": "USD",
+        "idempotency_key_digest": "sha256:8111111111111111111111111111111111111111111111111111111111111111",
+        "occurred_at": "2026-07-21T16:06:00Z"
+      },
+      {
+        "version": "keel.work_value_event.v1",
+        "event_id": "55555555-5555-4555-8555-555555555552",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "authority_id": "payment-1",
+        "child_permit_id": "33333333-3333-4333-8333-333333333333",
+        "authority_sequence": 2,
+        "event_type": "dispatched",
+        "amount_minor": 8400,
+        "currency": "USD",
+        "idempotency_key_digest": "sha256:8222222222222222222222222222222222222222222222222222222222222222",
+        "occurred_at": "2026-07-21T16:07:00Z"
+      },
+      {
+        "version": "keel.work_value_event.v1",
+        "event_id": "55555555-5555-4555-8555-555555555553",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "authority_id": "payment-1",
+        "child_permit_id": "33333333-3333-4333-8333-333333333333",
+        "authority_sequence": 3,
+        "event_type": "provider_accepted",
+        "amount_minor": 8400,
+        "currency": "USD",
+        "evidence_reference": {
+          "artifact_id": "urn:x-keel:artifact:provider_receipt:receipt-84",
+          "artifact_digest": "sha256:7f0a571725a86299edee83be25556da5d0262a76aa0d948c017670647e3861a0"
+        },
+        "idempotency_key_digest": "sha256:8444444444444444444444444444444444444444444444444444444444444444",
+        "occurred_at": "2026-07-21T16:07:02Z"
+      },
+      {
+        "version": "keel.work_value_event.v1",
+        "event_id": "55555555-5555-4555-8555-555555555554",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "authority_id": "payment-1",
+        "child_permit_id": "33333333-3333-4333-8333-333333333333",
+        "authority_sequence": 4,
+        "event_type": "settled",
+        "amount_minor": 8400,
+        "currency": "USD",
+        "evidence_reference": {
+          "artifact_id": "urn:x-keel:artifact:settlement:settlement-84",
+          "artifact_digest": "sha256:bb0539ba6c6db5022baec4e46d16791e0a33c13aceaffca9f7f6c12b2f3ac8db"
+        },
+        "idempotency_key_digest": "sha256:8666666666666666666666666666666666666666666666666666666666666666",
+        "occurred_at": "2026-07-21T16:08:00Z"
+      }
+    ],
+    "lifecycle_events": [
+      {
+        "event_id": "88888888-8888-4888-8888-888888888881",
+        "event_type": "work.issued",
+        "permit_id": "22222222-2222-4222-8222-222222222222",
+        "occurred_at": "2026-07-21T16:05:00Z",
+        "event_digest": "sha256:e78c0f0f41495c2244fc59804e0f3fc7e3e7271277f979a0dfddaa4ddf90652e"
+      },
+      {
+        "event_id": "88888888-8888-4888-8888-888888888882",
+        "event_type": "dispatch.egress_bound",
+        "permit_id": "33333333-3333-4333-8333-333333333333",
+        "occurred_at": "2026-07-21T16:07:00Z",
+        "event_digest": "sha256:44e02f03b1f4388edd201c1b7d78e37a037fbc7ac78c3a440b6775d97b2a3f66"
+      }
+    ],
+    "pack": {
+      "version": "keel.work_chain_pack.v1",
+      "profile": "work-chain.v1",
+      "project_id": "11111111-1111-4111-8111-111111111111",
+      "root_permit_id": "22222222-2222-4222-8222-222222222222",
+      "export_source": {
+        "source_kind": "keel_recorded_governance",
+        "source_id": "postgres-project-11111111"
+      },
+      "declared_cutoff": {
+        "recorded_through": "2026-07-21T16:10:00Z",
+        "checkpoint_id": "66666666-6666-4666-8666-666666666666",
+        "checkpoint_digest": "sha256:494d212c33cb8dfcbde5a8a9e49f2892044051311070f27c984e013342391d5e"
+      },
+      "scope_commitment": {
+        "version": "keel.work_scope_commitment.v1",
+        "claim": "scope-faithful slice of Keel-recorded work evidence through the declared cutoff",
+        "runtime_recording_claim": "not_asserted",
+        "populations": [
+          {
+            "population": "work_authorities",
+            "source_relation": "permit_work_authorities",
+            "included_count": 1,
+            "included_set_hash": "sha256:148789335f7f2e55e4196f294a4438e6c32c279c6f4b2036433a589e9b278b65"
+          },
+          {
+            "population": "child_permits",
+            "source_relation": "permits",
+            "included_count": 1,
+            "included_set_hash": "sha256:7d01d92ba9c40b338cf0eb766a1cd58c22863b8222ffb67fd0fec1c05cb550d2"
+          },
+          {
+            "population": "work_value_events",
+            "source_relation": "permit_work_value_events",
+            "included_count": 4,
+            "included_set_hash": "sha256:58e1decbac9aadd083f96a931b280a090a0416ccb30a2ff70e1a24c377d11368"
+          },
+          {
+            "population": "lifecycle_events",
+            "source_relation": "governance_events",
+            "included_count": 2,
+            "included_set_hash": "sha256:a7cdf6a5c51aa54ffd8a8e8d7ffbf7e0859f4628282c6f07b6dbdf8329ac9dd6"
+          }
+        ]
+      },
+      "scope_commitment_signature": {
+        "version": "keel.work_scope_commitment_signature.v1",
+        "signature_profile": "keel.canonical_json.payload.v1",
+        "binding_key_id": "keel-test-signing-key-v1",
+        "canonical_hash": "sha256:494d212c33cb8dfcbde5a8a9e49f2892044051311070f27c984e013342391d5e",
+        "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+        "signed_at": "2026-07-21T16:10:00Z"
+      },
+      "root": {
+        "permit_artifact": {
+          "artifact_id": "urn:x-keel:artifact:permit:22222222-2222-4222-8222-222222222222",
+          "artifact_type": "permit",
+          "artifact_digest": "sha256:64bc58a5e5533cd58d816f402e10258a63887f46f90bd986509fa33d29e58ecc"
+        },
+        "work_package": null,
+        "semantic_binding": {
+          "version": "keel.permit_semantic_binding.v1",
+          "semantic_id": "keel.context.work.v1",
+          "selector_registry_version": "keel.semantic_selector_registry.v1",
+          "selector_registry_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "selector_entry_digest": "sha256:9555555555555555555555555555555555555555555555555555555555555555",
+          "trusted_source_kind": "work_request_server_reconciled",
+          "chain_role": "work_root",
+          "action_name": "work.authorize",
+          "operation": "work.authorize",
+          "governed_surface": "permit_decision",
+          "non_authorizing_presentation_profile_id": "permit_to_work.r1",
+          "derived_at": "2026-07-21T16:05:00Z"
+        }
+      },
+      "authorities": [],
+      "child_permits": [],
+      "value_events": [],
+      "lifecycle_events": [],
+      "policy_snapshots": [
+        {
+          "phase": "root_issuance",
+          "permit_id": "22222222-2222-4222-8222-222222222222",
+          "policy_id": "invoice-payment-policy",
+          "policy_version": "7",
+          "policy_snapshot_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "phase": "child_issuance",
+          "permit_id": "33333333-3333-4333-8333-333333333333",
+          "policy_id": "invoice-payment-policy",
+          "policy_version": "7",
+          "policy_snapshot_hash": "sha256:c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1"
+        },
+        {
+          "phase": "dispatch",
+          "permit_id": "33333333-3333-4333-8333-333333333333",
+          "policy_id": "invoice-payment-policy",
+          "policy_version": "7",
+          "policy_snapshot_hash": "sha256:c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"
+        }
+      ],
+      "evidence_artifacts": [
+        {
+          "artifact_id": "urn:x-keel:artifact:provider_receipt:receipt-84",
+          "artifact_type": "provider_receipt",
+          "artifact_digest": "sha256:7f0a571725a86299edee83be25556da5d0262a76aa0d948c017670647e3861a0"
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:settlement:settlement-84",
+          "artifact_type": "x402_settlement_proof",
+          "artifact_digest": "sha256:bb0539ba6c6db5022baec4e46d16791e0a33c13aceaffca9f7f6c12b2f3ac8db"
+        }
+      ],
+      "requested_claims": [
+        "permit.work_authority_manifest.v1",
+        "permit.work_child_containment.v1",
+        "permit_chain.execution_authorized_at_boundary.v1",
+        "permit.work_value_conservation.v1"
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "urn:x-keel:artifact:permit:22222222-2222-4222-8222-222222222222",
+          "artifact_type": "permit",
+          "artifact_digest": "sha256:64bc58a5e5533cd58d816f402e10258a63887f46f90bd986509fa33d29e58ecc",
+          "payload": {
+            "version": "keel.test_permit_artifact.v1",
+            "permit_id": "22222222-2222-4222-8222-222222222222",
+            "project_id": "11111111-1111-4111-8111-111111111111",
+            "chain_role": "work_root",
+            "binding_key_id": "keel-test-signing-key-v1",
+            "binding_canonical_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "binding_signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+          }
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:permit:33333333-3333-4333-8333-333333333333",
+          "artifact_type": "permit",
+          "artifact_digest": "sha256:43d3f9e2e7b326a2a8df7c2ad383f8bc9455b24ea2f7114ef391327c140a8469",
+          "payload": {
+            "version": "keel.test_permit_artifact.v1",
+            "permit_id": "33333333-3333-4333-8333-333333333333",
+            "project_id": "11111111-1111-4111-8111-111111111111",
+            "chain_role": "action_child",
+            "parent_permit_id": "22222222-2222-4222-8222-222222222222",
+            "work_binding": {
+              "version": "keel.work_binding.v1",
+              "root_permit_id": "22222222-2222-4222-8222-222222222222",
+              "authority_id": "payment-1",
+              "authority_canonical_hash": "sha256:898e2f3858a5c531dd28e62e4b02baf4c1bb4b2b51ee98c9be6fc520c1d6aa12",
+              "root_manifest_hash": "sha256:f2a6398e892fdb03bf2cbbd432276fec137bb8cdd5ba38a3108153d70d62e7e0"
+            },
+            "binding_key_id": "keel-test-signing-key-v1",
+            "binding_canonical_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "binding_signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+          }
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:governance_event:88888888-8888-4888-8888-888888888881",
+          "artifact_type": "governance_event",
+          "artifact_digest": "sha256:e78c0f0f41495c2244fc59804e0f3fc7e3e7271277f979a0dfddaa4ddf90652e",
+          "payload": {
+            "version": "keel.work_lifecycle_event.v1",
+            "event_id": "88888888-8888-4888-8888-888888888881",
+            "event_type": "work.issued",
+            "permit_id": "22222222-2222-4222-8222-222222222222",
+            "occurred_at": "2026-07-21T16:05:00Z",
+            "event_digest": "sha256:2c71686446aa12f7db723e77c056359a38bba155de065ac9b142a0285a822cbb"
+          }
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:governance_event:88888888-8888-4888-8888-888888888882",
+          "artifact_type": "governance_event",
+          "artifact_digest": "sha256:44e02f03b1f4388edd201c1b7d78e37a037fbc7ac78c3a440b6775d97b2a3f66",
+          "payload": {
+            "version": "keel.work_dispatch_boundary.v1",
+            "event_id": "88888888-8888-4888-8888-888888888882",
+            "event_type": "dispatch.egress_bound",
+            "permit_id": "33333333-3333-4333-8333-333333333333",
+            "occurred_at": "2026-07-21T16:07:00Z",
+            "event_digest": "sha256:9b0472c20c0ff7ff71f9304b4543504bfafe129e07ea4cfc7ecb1cabfb69115c",
+            "root_permit_id": "22222222-2222-4222-8222-222222222222",
+            "child_permit_id": "33333333-3333-4333-8333-333333333333",
+            "liveness": {
+              "root_live": true,
+              "authority_live": true,
+              "child_live": true,
+              "reservation_live": true,
+              "current_policy_epoch_matched": true,
+              "platform_safety_floor_passed": true
+            },
+            "execution_policy": {
+              "phase": "dispatch",
+              "permit_id": "33333333-3333-4333-8333-333333333333",
+              "policy_id": "invoice-payment-policy",
+              "policy_version": "7",
+              "policy_snapshot_hash": "sha256:c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2"
+            },
+            "asserts_provider_acceptance": false,
+            "asserts_business_job_completed": false,
+            "asserts_settlement": false
+          }
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:provider_receipt:receipt-84",
+          "artifact_type": "provider_receipt",
+          "artifact_digest": "sha256:7f0a571725a86299edee83be25556da5d0262a76aa0d948c017670647e3861a0",
+          "payload": {
+            "version": "keel.test_provider_receipt.v1",
+            "provider": "test-payments",
+            "provider_reference": "receipt-84",
+            "accepted_at": "2026-07-21T16:07:02Z",
+            "asserts_settlement": false
+          }
+        },
+        {
+          "artifact_id": "urn:x-keel:artifact:settlement:settlement-84",
+          "artifact_type": "x402_settlement_proof",
+          "artifact_digest": "sha256:bb0539ba6c6db5022baec4e46d16791e0a33c13aceaffca9f7f6c12b2f3ac8db",
+          "payload": {
+            "version": "keel.test_x402_settlement_proof.v1",
+            "provider_reference": "settlement-84",
+            "amount_minor": 8400,
+            "currency": "USD",
+            "settled_at": "2026-07-21T16:08:00Z"
+          }
+        }
+      ]
+    }
+  },
+  "assembly": {
+    "pack.root.work_package": "valid.work_package",
+    "pack.authorities": [
+      "valid.authority"
+    ],
+    "pack.child_permits": [
+      "valid.child_permit"
+    ],
+    "pack.value_events": "valid.value_events",
+    "pack.lifecycle_events": "valid.lifecycle_events"
+  },
+  "negative_mutations": [
+    {
+      "id": "required-authority-missing",
+      "target": "work_package.required_authority_ids",
+      "value": [
+        "missing-authority"
+      ],
+      "expected_failure_code": "WORK_REQUIRED_AUTHORITY_MISSING"
+    },
+    {
+      "id": "authority-hash-mismatch",
+      "target": "authority.value_max_minor",
+      "value": 49999,
+      "expected_failure_code": "WORK_AUTHORITY_SET_HASH_MISMATCH"
+    },
+    {
+      "id": "child-binding-mismatch",
+      "target": "child_permit.work_binding.authority_canonical_hash",
+      "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expected_failure_code": "WORK_CHILD_BINDING_MISMATCH"
+    },
+    {
+      "id": "settlement-evidence-missing",
+      "target": "value_events.3.evidence_reference",
+      "operation": "delete",
+      "expected_failure_code": "WORK_SETTLEMENT_EVIDENCE_MISSING"
+    },
+    {
+      "id": "scope-population-count-mismatch",
+      "target": "pack.scope_commitment.populations.1.included_count",
+      "value": 2,
+      "expected_failure_code": "WORK_SCOPE_POPULATION_MISMATCH"
+    },
+    {
+      "id": "scope-commitment-signature-missing",
+      "target": "pack.scope_commitment_signature",
+      "operation": "delete",
+      "expected_failure_code": "WORK_SCOPE_COMMITMENT_MISSING"
+    },
+    {
+      "id": "scope-commitment-signature-hash-mismatch",
+      "target": "pack.scope_commitment_signature.canonical_hash",
+      "value": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expected_failure_code": "WORK_SCOPE_COMMITMENT_SIGNATURE_INVALID"
+    },
+    {
+      "id": "embedded-artifact-tampered",
+      "target": "pack.artifacts.0.payload.chain_role",
+      "value": "action_child",
+      "expected_failure_code": "WORK_ARTIFACT_INTEGRITY_INVALID"
+    }
+  ]
+}

@@ -31,6 +31,8 @@ from keel_verifier.verifier import (
     verify_permit_v2_signature_claim,
     verify_scope_faithfulness_claim,
 )
+from keel_verifier.permit_presentation import render_work_chain_human
+from keel_verifier.work_chain import verify_work_chain_pack
 
 LEGACY_COMMANDS = {
     "export",
@@ -41,6 +43,7 @@ LEGACY_COMMANDS = {
     "self-check",
     "doctor",
     "render",
+    "work-chain",
 }
 
 
@@ -219,6 +222,26 @@ def _cmd_claim_permit_v2_signature(
     return 0 if result["status"] == "supported" else 1
 
 
+def _cmd_work_chain(args: argparse.Namespace) -> int:
+    report = verify_work_chain_pack(
+        args.pack,
+        trust_root=args.trust_root,
+    )
+    payload = report.to_dict()
+    if args.as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        try:
+            document = json.loads(Path(args.pack).read_text(encoding="utf-8"))
+        except Exception:
+            document = {}
+        stream = sys.stdout if report.ok else sys.stderr
+        print(render_work_chain_human(payload, document), file=stream)
+        if report.error:
+            print(f"\nVerifier result: {report.error}", file=stream)
+    return report.exit_code
+
+
 def _cmd_self_check(args: argparse.Namespace) -> int:
     result = run_self_check(args)
     if args.as_json:
@@ -352,6 +375,23 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_cp.set_defaults(func=lambda args: _cmd_checkpoint_cli(p_cp, args))
+
+    p_work = sub.add_parser(
+        "work-chain",
+        help="Verify a downloaded AI Permit-to-Work evidence pack.",
+    )
+    p_work.add_argument("pack", metavar="WORK_CHAIN_PACK")
+    p_work.add_argument(
+        "--trust-root",
+        "--key-manifest",
+        dest="trust_root",
+        help=(
+            "Optional local public-key manifest that pins the embedded Work "
+            "key-manifest signer. Production packs default to the bundled Keel trust root."
+        ),
+    )
+    p_work.add_argument("--json", action="store_true", dest="as_json")
+    p_work.set_defaults(func=_cmd_work_chain)
 
     p_monitor = sub.add_parser(
         "monitor",
@@ -829,8 +869,31 @@ def _looks_like_self_attesting_bundle(path: str) -> bool:
     )
 
 
+def _looks_like_work_chain(path: str) -> bool:
+    try:
+        candidate = Path(path)
+        if not candidate.is_file():
+            return False
+        with candidate.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+    return bool(
+        isinstance(data, dict)
+        and data.get("version") == "keel.work_chain_pack.v1"
+        and data.get("profile") == "work-chain.v1"
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
+    if (
+        raw
+        and raw[0] not in LEGACY_COMMANDS
+        and raw[0] not in {"-h", "--help", "--version"}
+        and _looks_like_work_chain(raw[0])
+    ):
+        raw = ["work-chain", *raw]
     if (
         raw
         and raw[0] not in LEGACY_COMMANDS

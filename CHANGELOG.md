@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.6.0
+
+- Add independent `work-chain.v1` verification for Work authority, child
+  containment, dispatch-boundary liveness, and payment value conservation.
+- Add self-contained Work evidence artifact validation, exact Permit binding
+  verification, signed export-scope checkpoints, and explicit negative-space
+  diagnostics for facts the evidence does not establish.
+- Add the generic Permit-to-X human renderer with signed semantic provenance,
+  historical presentation resolution, generic fallback, and a presentation
+  isolation test proving titles cannot affect claim verdicts or exit status.
+
 ## 3.5.1
 
 - Add offline adjudication for `permit.co_signature.v1`, including strict

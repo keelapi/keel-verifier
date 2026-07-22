@@ -1,0 +1,29 @@
+{
+  "id": "keel.permit_chain.execution_authorized_at_boundary.v1",
+  "version": "v1",
+  "kind": "permit_chain_dispatch_boundary_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit_chain.execution_authorized_at_boundary.v1",
+    "preconditions": ["permit.work_child_containment.v1", "governance_chain.local_continuity.v1"],
+    "boundary_event": "dispatch.egress_bound",
+    "checks": [
+      "resolve the dispatch-boundary event for the exact child Permit",
+      "require the root, authority, child, and governed request liveness snapshot to be inside the dispatch-ownership transaction",
+      "require root authority not closed, revoked, expired, or replaced at the boundary",
+      "require child allow decision and required approval satisfied at the boundary",
+      "require current execution Policy and the non-bypassable safety floor to permit dispatch"
+    ],
+    "ordering_rule": "dispatch-start committed first means later revocation cannot claim prevention; close or revoke committed first means dispatch is unauthorized",
+    "non_claims": [
+      "does not prove absence of an unrecorded provider call",
+      "does not establish provider outcome, job completion, or settlement"
+    ],
+    "verdicts": {
+      "supported": "recorded dispatch-boundary evidence shows every required ancestor and execution gate live",
+      "disproved": "recorded evidence shows a required gate not live or an ordering conflict",
+      "insufficient_evidence": "the dispatch-boundary or required liveness/Policy evidence is absent",
+      "unverifiable_scope": "the boundary, liveness, or Policy-snapshot version is unsupported"
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-package-v1.schema.json",
+  "title": "Keel signed work package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "verified_principal_id",
+    "declared_purpose",
+    "resource",
+    "requested_authority_set_hash",
+    "required_authority_ids",
+    "issued_authorities",
+    "issued_authority_set_hash",
+    "excluded_authorities",
+    "policy_snapshot",
+    "root_review_hash",
+    "not_before",
+    "expires_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "keel.work_package.v1"
+    },
+    "verified_principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "declared_purpose": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "job_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "existing_authority": {
+      "$ref": "#/$defs/existing_authority"
+    },
+    "resource": {
+      "$ref": "#/$defs/resource"
+    },
+    "requested_authority_set_hash": {
+      "$ref": "#/$defs/digest"
+    },
+    "required_authority_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/authority_id"
+      }
+    },
+    "existing_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "root_permit_id"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["replace_existing", "add_separate"]
+        },
+        "root_permit_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "combined_risk_acknowledged": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"mode": {"const": "add_separate"}},
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["combined_risk_acknowledged"],
+            "properties": {"combined_risk_acknowledged": {"const": true}}
+          }
+        }
+      ]
+    },
+    "issued_authorities": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/issued_authority_reference"
+      }
+    },
+    "issued_authority_set_hash": {
+      "$ref": "#/$defs/digest"
+    },
+    "excluded_authorities": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/excluded_authority"
+      }
+    },
+    "policy_snapshot": {
+      "$ref": "#/$defs/policy_snapshot"
+    },
+    "root_review_hash": {
+      "$ref": "#/$defs/digest"
+    },
+    "not_before": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "authority_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "digest"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1, "maxLength": 100},
+        "id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "issued_authority_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_id", "authority_canonical_hash"],
+      "properties": {
+        "authority_id": {"$ref": "#/$defs/authority_id"},
+        "authority_canonical_hash": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "excluded_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_id", "reason_code"],
+      "properties": {
+        "authority_id": {"$ref": "#/$defs/authority_id"},
+        "reason_code": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        }
+      }
+    },
+    "policy_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "policy_version", "policy_snapshot_hash"],
+      "properties": {
+        "policy_id": {"type": "string", "minLength": 1},
+        "policy_version": {"type": "string", "minLength": 1},
+        "policy_snapshot_hash": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

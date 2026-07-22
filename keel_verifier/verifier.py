@@ -17448,6 +17448,39 @@ def verify(
         body = json.loads(raw.decode("utf-8"))
     except Exception:
         body = None
+    if (
+        isinstance(body, dict)
+        and body.get("version") == "keel.work_chain_pack.v1"
+        and body.get("profile") == "work-chain.v1"
+    ):
+        from keel_verifier.work_chain import verify_work_chain_pack
+
+        report = verify_work_chain_pack(path)
+        return VerifyResult(
+            ok=report.ok,
+            error=report.error,
+            exit_code=report.exit_code,
+            artifact=report.artifact,
+            checkpoint_id=(
+                str(body.get("declared_cutoff", {}).get("checkpoint_id"))
+                if isinstance(body.get("declared_cutoff"), dict)
+                else None
+            ),
+            computed_at=(
+                str(body.get("declared_cutoff", {}).get("recorded_through"))
+                if isinstance(body.get("declared_cutoff"), dict)
+                else None
+            ),
+            composite_hash=(
+                str(body.get("declared_cutoff", {}).get("checkpoint_digest"))
+                if isinstance(body.get("declared_cutoff"), dict)
+                else None
+            ),
+            trust_source=str(report.artifact.get("trust_source") or "") or None,
+            diagnostics=report.diagnostics,
+            semantics=report.semantics,
+            claims=report.claims,
+        )
     if _is_voice_attestation_artifact(body):
         artifact = _checkpoint_artifact_dict(path, raw if "raw" in locals() else None)
         artifact["kind"] = "voice_session_attestation"

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-semantic-binding-v1.schema.json",
+  "title": "Keel trusted Permit semantic binding v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "semantic_id",
+    "selector_registry_version",
+    "selector_registry_digest",
+    "selector_entry_digest",
+    "trusted_source_kind",
+    "chain_role",
+    "governed_surface",
+    "derived_at"
+  ],
+  "properties": {
+    "version": {"type": "string", "const": "keel.permit_semantic_binding.v1"},
+    "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "selector_registry_version": {"type": "string", "const": "keel.semantic_selector_registry.v1"},
+    "selector_registry_digest": {"$ref": "#/$defs/digest"},
+    "selector_entry_digest": {"$ref": "#/$defs/digest"},
+    "trusted_source_kind": {
+      "type": "string",
+      "enum": [
+        "work_request_server_reconciled",
+        "action_verb_execute",
+        "realtime_session_service"
+      ]
+    },
+    "chain_role": {"type": "string", "enum": ["session_root", "work_root", "action_child"]},
+    "action_name": {"type": "string", "minLength": 1},
+    "operation": {"type": "string", "minLength": 1},
+    "governed_surface": {
+      "type": "string",
+      "enum": ["permit_decision", "model_provider", "payment_rail", "realtime_session"]
+    },
+    "non_authorizing_presentation_profile_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "derived_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
