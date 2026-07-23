@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/presentation_registry/v1.schema.json",
+  "title": "Keel Permit presentation registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "version",
+    "semantic_registry_version",
+    "allowed_leading_fields",
+    "allowed_evidence_sections",
+    "profiles",
+    "fallback_profiles"
+  ],
+  "properties": {
+    "$schema": {"type": "string"},
+    "artifact_id": {"type": "string", "const": "keel.permit.presentation_registry"},
+    "version": {"type": "string", "const": "keel.presentation_registry.v1"},
+    "semantic_registry_version": {"type": "string", "const": "keel.semantic_selector_registry.v1"},
+    "allowed_leading_fields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/leading_field_name"}
+    },
+    "allowed_evidence_sections": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/evidence_section_name"}
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/profile"}
+    },
+    "fallback_profiles": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/fallback_profile"}
+    }
+  },
+  "$defs": {
+    "leading_field_name": {
+      "type": "string",
+      "enum": [
+        "declared_purpose",
+        "job_reference",
+        "resource",
+        "amount",
+        "currency",
+        "recipient",
+        "provider",
+        "model",
+        "request_digest",
+        "session_id",
+        "linked_to"
+      ]
+    },
+    "evidence_section_name": {
+      "type": "string",
+      "enum": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "authority_lifecycle",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ]
+    },
+    "leading_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "label"],
+      "properties": {
+        "field": {"$ref": "#/$defs/leading_field_name"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 80}
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_id",
+        "presentation_profile_id",
+        "customer_title",
+        "type_definition",
+        "leading_fields",
+        "evidence_sections",
+        "does_not_establish",
+        "fallback_profile",
+        "release_state"
+      ],
+      "properties": {
+        "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+        "presentation_profile_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+        "customer_title": {"type": "string", "minLength": 1, "maxLength": 120},
+        "type_definition": {"type": "string", "minLength": 1, "maxLength": 180},
+        "leading_fields": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {"$ref": "#/$defs/leading_field"}
+        },
+        "evidence_sections": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidence_section_name"}
+        },
+        "does_not_establish": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "business_job_completion",
+              "provider_success",
+              "financial_settlement",
+              "participant_identity",
+              "recording_consent",
+              "authority_to_represent",
+              "content_truth_or_quality",
+              "comprehensive_runtime_recording"
+            ]
+          }
+        },
+        "fallback_profile": {"type": "string", "const": "generic_ai_permit"},
+        "release_state": {"type": "string", "enum": ["eligible", "generic_qualified", "reserved", "internal_only"]}
+      }
+    },
+    "fallback_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["presentation_profile_id", "customer_title", "type_definition", "evidence_sections"],
+      "properties": {
+        "presentation_profile_id": {
+          "type": "string",
+          "enum": [
+            "generic_ai_permit",
+            "unclassified_action_request",
+            "historical_specific_title_unavailable"
+          ]
+        },
+        "customer_title": {"type": "string", "minLength": 1, "maxLength": 120},
+        "type_definition": {"type": "string", "minLength": 1, "maxLength": 180},
+        "evidence_sections": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidence_section_name"}
+        }
+      }
+    }
+  }
+}

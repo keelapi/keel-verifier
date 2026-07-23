@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/work-payment-authority-v1.json",
+  "title": "Work payment-authority comparator v1",
+  "version": "work-payment-authority.v1",
+  "description": "Fail-closed containment rules for one exact payment request under an issued Work authority. These rules do not determine Policy outcome or imply dispatch or settlement.",
+  "fields": {
+    "semantic_id": {"order": "exact", "required": true},
+    "trusted_action": {"order": "exact", "required": true},
+    "resource_scope.type": {"order": "exact", "required": true},
+    "resource_scope.id": {"order": "exact", "required": true},
+    "resource_scope.digest": {"order": "exact", "required": true},
+    "currency": {"order": "exact", "required": true},
+    "amount_minor": {"order": "less_than_or_equal_available_value", "required": true},
+    "use_count": {"order": "less_than_or_equal_available_uses", "required": true},
+    "recipient_digest": {"order": "exact_when_authority_bound", "required": false},
+    "purpose_digest": {"order": "exact_when_authority_bound", "required": false},
+    "requested_at": {"order": "inside_not_before_and_expires_at", "required": true}
+  },
+  "unknown_field_rule": "unverifiable_scope",
+  "missing_required_field_rule": "disproved",
+  "cross_checks": [
+    "signed and relational root_permit_id and authority_id must match",
+    "signed work_binding_v1 authority_canonical_hash must match the resolved authority",
+    "amount and use reservation must succeed atomically before an executable allow child is published"
+  ]
+}

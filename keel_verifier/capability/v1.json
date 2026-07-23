@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.5.1",
+    "version": "3.6.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -486,6 +486,63 @@
       ]
     },
     {
+      "name": "permit.work_authority_manifest.v1",
+      "status": "implemented",
+      "description": "Recomputes a Work root's authority manifest, authority canonical hashes, issued set, required set, root/project identity, and signed Permit decision material.",
+      "depends_on_semantics": [
+        "keel.permit.work_authority_manifest.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_child_containment.v1",
+      "status": "implemented",
+      "description": "Verifies each exact linked payment Permit against its named Work root and payment authority without treating presentation labels as authority.",
+      "depends_on_semantics": [
+        "keel.permit.work_child_containment.v1",
+        "keel.work_payment_authority.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit_chain.execution_authorized_at_boundary.v1",
+      "status": "implemented",
+      "description": "Adjudicates transaction-bound dispatch evidence for linked action Permits against root, authority, child, reservation, current-Policy, and safety-floor liveness.",
+      "depends_on_semantics": [
+        "keel.permit_chain.execution_authorized_at_boundary.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_value_conservation.v1",
+      "status": "implemented",
+      "description": "Replays the scope-signed Work payment-value population and rejects gaps, duplicate transitions, overdraw, currency conflicts, and unsupported settlement claims.",
+      "depends_on_semantics": [
+        "keel.permit.work_value_conservation.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.operator_approval.v1",
       "status": "implemented",
       "description": "Verifies a Permit v2 operator_approval slot as a distinct issuer-organization dual-control signature over its slot-specific canonical payload.",
@@ -855,6 +912,23 @@
       "PERMIT_AUDIT_ATTESTATION_SIGNER_MISMATCH",
       "PERMIT_AUDIT_ATTESTATION_BATCH_MISMATCH",
       "PERMIT_AUDIT_ATTESTATION_KEY_STATUS_COMPLETENESS_UNSUPPORTED",
+      "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+      "WORK_AUTHORITY_SET_HASH_MISMATCH",
+      "WORK_REQUIRED_AUTHORITY_MISSING",
+      "WORK_AUTHORITY_SCOPE_MISMATCH",
+      "WORK_CHILD_BINDING_MISMATCH",
+      "WORK_CHILD_OUTSIDE_AUTHORITY",
+      "WORK_DISPATCH_BOUNDARY_MISSING",
+      "WORK_ANCESTOR_NOT_LIVE_AT_DISPATCH",
+      "WORK_EXECUTION_POLICY_BLOCKED",
+      "WORK_VALUE_EVENT_SEQUENCE_INVALID",
+      "WORK_VALUE_CONSERVATION_MISMATCH",
+      "WORK_SETTLEMENT_EVIDENCE_MISSING",
+      "WORK_SCOPE_COMMITMENT_MISSING",
+      "WORK_SCOPE_COMMITMENT_SIGNATURE_INVALID",
+      "WORK_SCOPE_POPULATION_MISMATCH",
+      "WORK_ARTIFACT_INTEGRITY_INVALID",
+      "WORK_VERSION_UNSUPPORTED",
       "PAYLOAD_TYPE_MISMATCH",
       "EXPORT_SCOPE_PREDICATE_OUT_OF_GRAMMAR",
       "EXPORT_SCOPE_POST_REVOCATION_DISPATCH_PRESENT",
@@ -1006,6 +1080,31 @@
     {
       "id": "keel.rail.settlement_reconciled.v1",
       "hash": "sha256:0cbbd2760072cf267e9decc1b884c2c089a37ccbedf8e0d981d18d510c12d42c",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.work_authority_manifest.v1",
+      "hash": "sha256:16e0f76ecef3021897aba7836fc9c336a528a0f6f2ed3902e5e8db503232f5cc",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.work_child_containment.v1",
+      "hash": "sha256:67a300d0968002c9fd9373b6742e8290601803cf8d2573c79b79ace296fc4576",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.work_payment_authority.v1",
+      "hash": "sha256:1c4dfb67f2277224a3cbdc88fba7280a91a9b405fcfeb99baa7888d93c5daf79",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit_chain.execution_authorized_at_boundary.v1",
+      "hash": "sha256:c0c2f008fbe733f7c571fda909ba52ac818b2feebe3e2b3bc136773fad087f63",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.work_value_conservation.v1",
+      "hash": "sha256:6ce4403efe186f78b78070d198b9080cac77eaee9f32922904b8b2b2377163aa",
       "status": "allowlisted"
     },
     {

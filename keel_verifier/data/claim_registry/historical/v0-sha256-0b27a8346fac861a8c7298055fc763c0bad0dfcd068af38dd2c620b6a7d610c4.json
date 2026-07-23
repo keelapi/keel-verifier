@@ -472,50 +472,6 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
-    },
-    {
-      "name": "permit.work_authority_manifest.v1",
-      "assertion": "The signed WorkPackage v1 authority manifest is internally consistent and the supplied relational Work-authority population matches the exact issued authority set named by the signed root Permit.",
-      "required_evidence": "Supported root permit.decision.v1 evidence; strict work_package_v1; every referenced work_authority_v1 row; authority canonical hashes; requested, required, issued, and excluded authority sets; project/root identity; pinned Work manifest semantics and canonicalization profile.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.work_child_containment.v1",
-      "assertion": "An exact action-child Permit is bound to the named Work root and authority and its consequential request fields fit that authority under the pinned comparator semantics.",
-      "required_evidence": "Supported permit.work_authority_manifest.v1; supported child permit.decision.v1; signed work_binding_v1; relational root/authority/child identifiers; exact child request binding; named work_authority_v1; pinned Work child-containment and comparator semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit_chain.execution_authorized_at_boundary.v1",
-      "assertion": "At the recorded dispatch-egress boundary for an exact child Permit, its Work root, named authority, child decision and approval, current execution Policy, and non-bypassable safety checks were live inside the dispatch-ownership transaction.",
-      "required_evidence": "Supported permit.work_child_containment.v1; exact dispatch.egress_bound event; transaction-bound root, authority, child, reservation, identity/authority, current execution-Policy, and platform-safety liveness snapshot; lifecycle events ordered relative to the boundary; pinned dispatch-boundary semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
-      "name": "permit.work_value_conservation.v1",
-      "assertion": "Within the declared scope-faithful recorded Work population, ordered payment-value events conserve the signed authorized maximum without duplicate transitions, negative outstanding reservations, cross-currency use, or unsupported settlement claims.",
-      "required_evidence": "Supported permit.work_authority_manifest.v1; strict work_value_event_v1 population; signed Work scope commitment through the declared cutoff; authority value maximum and currency; deterministic transition identities; settlement artifacts for any settled events; pinned value-conservation semantics.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
     }
   ]
 }

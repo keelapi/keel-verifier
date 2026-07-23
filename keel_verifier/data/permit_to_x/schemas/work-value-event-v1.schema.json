@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-value-event-v1.schema.json",
+  "title": "Keel work payment-value event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "event_id",
+    "project_id",
+    "root_permit_id",
+    "authority_id",
+    "authority_sequence",
+    "event_type",
+    "amount_minor",
+    "currency",
+    "idempotency_key_digest",
+    "occurred_at"
+  ],
+  "properties": {
+    "version": {"type": "string", "const": "keel.work_value_event.v1"},
+    "event_id": {"type": "string", "format": "uuid"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "child_permit_id": {"type": "string", "format": "uuid"},
+    "authority_sequence": {"type": "integer", "minimum": 1},
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "released",
+        "dispatched",
+        "provider_accepted",
+        "settled",
+        "outcome_unknown",
+        "reconciled"
+      ]
+    },
+    "amount_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "evidence_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_digest"],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1},
+        "artifact_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "idempotency_key_digest": {"$ref": "#/$defs/digest"},
+    "occurred_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

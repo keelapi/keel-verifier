@@ -57,13 +57,19 @@ PERMIT_COUNTER_SIGNATURE_V2_ID = "keel.permit.counter_signature.v2"
 PERMIT_AUDIT_ATTESTATION_V2_ID = "keel.permit.audit_attestation.v2"
 AUTHORITY_ENVELOPE_V0_ID = "authority-envelope.v0"
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_ID = "keel.governance_event.integrity_digest.v1"
+WORK_AUTHORITY_MANIFEST_ID = "keel.permit.work_authority_manifest.v1"
+WORK_CHILD_CONTAINMENT_ID = "keel.permit.work_child_containment.v1"
+WORK_EXECUTION_BOUNDARY_ID = "keel.permit_chain.execution_authorized_at_boundary.v1"
+WORK_VALUE_CONSERVATION_ID = "keel.permit.work_value_conservation.v1"
+WORK_PAYMENT_AUTHORITY_COMPARATOR_ID = "keel.work_payment_authority.v1"
 
-CLAIM_REGISTRY_HASH = "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
+CLAIM_REGISTRY_HASH = "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1"
+    "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1",
     "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa",
     "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "sha256:bfdc09a7eb33bb9c902335342ebe122270f0f2fe8e9a82078f0496e724b261e7",
@@ -199,6 +205,21 @@ AUTHORITY_ENVELOPE_V0_HASH = (
 GOVERNANCE_EVENT_INTEGRITY_DIGEST_HASH = (
     "sha256:7d3f447e215ca53dd5add04b4a62b4223d28ad22210b5a3df8fcbc85f5dbe440"
 )
+WORK_AUTHORITY_MANIFEST_HASH = (
+    "sha256:16e0f76ecef3021897aba7836fc9c336a528a0f6f2ed3902e5e8db503232f5cc"
+)
+WORK_CHILD_CONTAINMENT_HASH = (
+    "sha256:67a300d0968002c9fd9373b6742e8290601803cf8d2573c79b79ace296fc4576"
+)
+WORK_EXECUTION_BOUNDARY_HASH = (
+    "sha256:c0c2f008fbe733f7c571fda909ba52ac818b2feebe3e2b3bc136773fad087f63"
+)
+WORK_VALUE_CONSERVATION_HASH = (
+    "sha256:6ce4403efe186f78b78070d198b9080cac77eaee9f32922904b8b2b2377163aa"
+)
+WORK_PAYMENT_AUTHORITY_COMPARATOR_HASH = (
+    "sha256:1c4dfb67f2277224a3cbdc88fba7280a91a9b405fcfeb99baa7888d93c5daf79"
+)
 
 SemanticsKey = tuple[str, str]
 RecordHashV1 = Callable[..., str]
@@ -315,6 +336,15 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.counter_signed.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.audit_attested.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
     "workflow_evidence.sibling_integrity.v1": (WORKFLOW_EVIDENCE_SIBLING_INTEGRITY_ID,),
+    "permit.work_authority_manifest.v1": (WORK_AUTHORITY_MANIFEST_ID,),
+    "permit.work_child_containment.v1": (
+        WORK_CHILD_CONTAINMENT_ID,
+        WORK_PAYMENT_AUTHORITY_COMPARATOR_ID,
+    ),
+    "permit_chain.execution_authorized_at_boundary.v1": (
+        WORK_EXECUTION_BOUNDARY_ID,
+    ),
+    "permit.work_value_conservation.v1": (WORK_VALUE_CONSERVATION_ID,),
 }
 
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
@@ -363,6 +393,15 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_AUDIT_ATTESTATION_V2_ID: ("semantics/permit/permit.audit_attestation.v2.json"),
     LEGACY_PROFILE_ID: "semantics/profiles/pre_pinning_default_v0.json",
     AUTHORITY_ENVELOPE_V0_ID: "comparator_registry/v0.json",
+    WORK_AUTHORITY_MANIFEST_ID: "semantics/work/authority_manifest_v1.json",
+    WORK_CHILD_CONTAINMENT_ID: "semantics/work/child_containment_v1.json",
+    WORK_EXECUTION_BOUNDARY_ID: (
+        "semantics/work/execution_authorized_at_boundary_v1.json"
+    ),
+    WORK_VALUE_CONSERVATION_ID: "semantics/work/value_conservation_v1.json",
+    WORK_PAYMENT_AUTHORITY_COMPARATOR_ID: (
+        "comparator_registry/work-payment-authority-v1.json"
+    ),
 }
 
 RELEASED_ARTIFACT_HASHES: dict[str, str] = {
@@ -405,6 +444,11 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_AUDIT_ATTESTATION_V2_ID: PERMIT_AUDIT_ATTESTATION_V2_HASH,
     LEGACY_PROFILE_ID: LEGACY_PROFILE_HASH,
     AUTHORITY_ENVELOPE_V0_ID: AUTHORITY_ENVELOPE_V0_HASH,
+    WORK_AUTHORITY_MANIFEST_ID: WORK_AUTHORITY_MANIFEST_HASH,
+    WORK_CHILD_CONTAINMENT_ID: WORK_CHILD_CONTAINMENT_HASH,
+    WORK_EXECUTION_BOUNDARY_ID: WORK_EXECUTION_BOUNDARY_HASH,
+    WORK_VALUE_CONSERVATION_ID: WORK_VALUE_CONSERVATION_HASH,
+    WORK_PAYMENT_AUTHORITY_COMPARATOR_ID: WORK_PAYMENT_AUTHORITY_COMPARATOR_HASH,
 }
 
 
@@ -1625,6 +1669,31 @@ def make_permanent_allowlist(
             PERMIT_AUDIT_ATTESTATION_V2_ID,
             PERMIT_AUDIT_ATTESTATION_V2_HASH,
             "permit_audit_attestation",
+        ),
+        SemanticImplementation(
+            WORK_AUTHORITY_MANIFEST_ID,
+            WORK_AUTHORITY_MANIFEST_HASH,
+            "work_authority_manifest",
+        ),
+        SemanticImplementation(
+            WORK_CHILD_CONTAINMENT_ID,
+            WORK_CHILD_CONTAINMENT_HASH,
+            "work_child_containment",
+        ),
+        SemanticImplementation(
+            WORK_PAYMENT_AUTHORITY_COMPARATOR_ID,
+            WORK_PAYMENT_AUTHORITY_COMPARATOR_HASH,
+            "work_payment_authority_comparator",
+        ),
+        SemanticImplementation(
+            WORK_EXECUTION_BOUNDARY_ID,
+            WORK_EXECUTION_BOUNDARY_HASH,
+            "work_execution_boundary",
+        ),
+        SemanticImplementation(
+            WORK_VALUE_CONSERVATION_ID,
+            WORK_VALUE_CONSERVATION_HASH,
+            "work_value_conservation",
         ),
         SemanticImplementation(
             LEGACY_PROFILE_ID,

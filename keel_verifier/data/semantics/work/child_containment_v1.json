@@ -1,0 +1,26 @@
+{
+  "id": "keel.permit.work_child_containment.v1",
+  "version": "v1",
+  "kind": "work_child_containment_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_child_containment.v1",
+    "preconditions": ["permit.work_authority_manifest.v1", "permit.decision.v1"],
+    "checks": [
+      "resolve the named root and authority from the signed work_binding_v1",
+      "require signed and relational root_permit_id, authority_id, and authority hashes to agree",
+      "require the exact child action, resource, currency, recipient, purpose, use, and value to fit work-payment-authority.v1",
+      "require the child request digest to match the independently verified child Permit binding"
+    ],
+    "non_claims": [
+      "does not establish that the child was dispatched",
+      "does not establish provider acceptance or settlement"
+    ],
+    "verdicts": {
+      "supported": "the exact child request is contained by the named signed Work authority",
+      "disproved": "a signed/relational binding conflicts or the exact child exceeds authority",
+      "insufficient_evidence": "the child, root, authority, or exact request evidence is absent",
+      "unverifiable_scope": "the authority comparator or binding version is unsupported"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "keel.permit.work_authority_manifest.v1",
+  "version": "v1",
+  "kind": "work_authority_manifest_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_authority_manifest.v1",
+    "preconditions": ["export.integrity.v1", "permit.decision.v1"],
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "checks": [
+      "validate work_package_v1 and every work_authority_v1",
+      "recompute every authority_canonical_hash with that field omitted",
+      "sort authority references by authority_id and recompute issued_authority_set_hash",
+      "require relational authority project_id and root_permit_id to equal the signed root scope",
+      "require every required_authority_id to be present in issued_authorities and absent from excluded_authorities",
+      "require no authority identifier to appear more than once or in both issued and excluded sets"
+    ],
+    "non_claims": [
+      "does not independently replay Policy correctness",
+      "does not establish dispatch, provider outcome, job completion, or settlement"
+    ],
+    "verdicts": {
+      "supported": "the signed manifest and supplied authority population are internally consistent and match",
+      "disproved": "supplied signed or relational material conflicts or a canonical/set hash mismatches",
+      "insufficient_evidence": "required root, authority, signature, or population evidence is absent",
+      "unverifiable_scope": "a work-package, authority, comparator, or canonicalization version is unsupported"
+    }
+  }
+}

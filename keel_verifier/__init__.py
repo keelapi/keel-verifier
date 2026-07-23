@@ -19,6 +19,7 @@ from keel_verifier.verdicts import (
     VerdictSubject,
     aggregate_subject_verdicts,
 )
+from keel_verifier.work_chain import verify_work_chain_pack
 
 __all__ = [
     "VerifyResult",
@@ -32,10 +33,11 @@ __all__ = [
     "verify_closure_record",
     "verify_delegation_denied_correctly",
     "verify_export_walk_events",
+    "verify_work_chain_pack",
     "__version__",
 ]
 
-_SOURCE_TREE_VERSION = "3.5.1"
+_SOURCE_TREE_VERSION = "3.6.0"
 
 try:
     __version__ = _metadata_version("keel-verifier")

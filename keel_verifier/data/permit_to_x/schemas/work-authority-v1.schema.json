@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-authority-v1.schema.json",
+  "title": "Keel work authority v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "authority_id",
+    "project_id",
+    "root_permit_id",
+    "semantic_id",
+    "trusted_action",
+    "trusted_source_reference",
+    "resource_scope",
+    "comparator_version",
+    "max_uses",
+    "value_max_minor",
+    "currency",
+    "automatic_review_threshold_minor",
+    "not_before",
+    "expires_at",
+    "authority_canonical_hash"
+  ],
+  "properties": {
+    "version": {"type": "string", "const": "keel.work_authority.v1"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "trusted_action": {"type": "string", "const": "payment.execute"},
+    "trusted_source_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "source_id", "source_digest"],
+      "properties": {
+        "source_kind": {"type": "string", "const": "action_verb_execute"},
+        "source_id": {"type": "string", "minLength": 1},
+        "source_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "resource_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "digest"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "comparator_version": {"type": "string", "const": "work-payment-authority.v1"},
+    "max_uses": {"type": "integer", "minimum": 1},
+    "value_max_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "automatic_review_threshold_minor": {"type": "integer", "minimum": 0},
+    "recipient_digest": {"$ref": "#/$defs/digest"},
+    "purpose_digest": {"$ref": "#/$defs/digest"},
+    "not_before": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "authority_canonical_hash": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}
