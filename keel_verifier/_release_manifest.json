@@ -94,11 +94,11 @@
     "keel_verifier/data/semantics/workflow/canonicalization_v1.json": "b7359ae11dc1d8cfad51bf3e6fec32a0209bf38097a01fa4f878e3a068184501",
     "keel_verifier/data/semantics/workflow_evidence/sibling_integrity_v1.json": "c4e99745893e6c66afa89ad46602b0cf1931530f78875e18387381fca8c2a5aa",
     "keel_verifier/data/trust_root.json": "8a4237c2ded12db60a37c443873abad7e2cc548a7a0bbc46fe71842982995a42",
-    "keel_verifier/data/tsa_trust/digicert/assured_id_root_ca.crl.pem": "4d0c8438fb38a87369bcc233e4cb762d697f3b4b4a27d3e9a476ea9f8cd4da36",
+    "keel_verifier/data/tsa_trust/digicert/assured_id_root_ca.crl.pem": "f849eef7c71a79d6246535c3c170c7e9d399269e295e1b33308be1dd6524a827",
     "keel_verifier/data/tsa_trust/digicert/assured_id_root_ca.pem": "b52fae9cd8dcf49285f0337cd815deca13fedd31f653bf07f61579451517e18c",
-    "keel_verifier/data/tsa_trust/digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.crl.pem": "84e707471d45d0c2171e7a001989709644311b826e4be071c518f8ee5c4e03af",
+    "keel_verifier/data/tsa_trust/digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.crl.pem": "157004d2e44a8257c6cdae48937a67859f0261732faa6bcb6d0bf812b3dfbc5c",
     "keel_verifier/data/tsa_trust/digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.pem": "5e13de210e735b614d6ec948361aadef9dd6c0ef575382a75f57fd59e183b90e",
-    "keel_verifier/data/tsa_trust/digicert/trusted_root_g4.crl.pem": "4d2b1b4846abd75f80e6b1fc91e93449d22cc53a79ea2b7bd5b7e75a3e2a86e6",
+    "keel_verifier/data/tsa_trust/digicert/trusted_root_g4.crl.pem": "2971730e87ad1e373724a96b028035e6a8229c67163fa4211a5d2e5212a7355b",
     "keel_verifier/data/tsa_trust/digicert/trusted_root_g4_cross_signed.pem": "3aebcbe5144487ac3dbdac02369da773968addcae886d7449fbbf31bf496824d",
     "keel_verifier/data/tsa_trust/globalsign/offline_r45_timestamping_ca_2025.crl.pem": "b532aed9ab1ee2601706a98a4effaa0dd7f21eff41df109955012f1563c3faca",
     "keel_verifier/data/tsa_trust/globalsign/offline_r45_timestamping_ca_2025.pem": "06c81f74615dbc7313c8884bcaa38bbac7e8d55f77cc9cd12f392294355fc63b",
@@ -106,7 +106,7 @@
     "keel_verifier/data/tsa_trust/globalsign/root_r6.pem": "5ff8425be71c1805446bf10601ce3cb9619889866766fc9285583ca5a4a7de94",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.crl.pem": "9603569c7421eb3e8d94bf4899a7f4176ae6be04304c7c5a23746c6f23c6df3d",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.pem": "f3c1abb03ca2a8399c864320266daf32d7a86b93adb7ee011857c72810c384b5",
-    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "1366dd3b8bb6e366d128d71288add7f60b146e93045c6b86fbbc836e4d40278c",
+    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "f3efb56261e653f775b7c7199bc6e7c200c66d9e51ec0812deb9a21a38a95ede",
     "keel_verifier/doctor.py": "22afc7d6916ed5803a0e580a918138a949c32fc52aff896c2a43a684caa8bf88",
     "keel_verifier/install_diagnostics.py": "b7559943f7c8d2c184326b8a5399dbf5881bd3c74929567969409a6e7db386ee",
     "keel_verifier/keys/keel_checkpoint.pub.json": "4b22dcfd53e591dba8a6d6546099c50f1019e8f714234316fb8bbeae560bbd8a",
@@ -119,8 +119,8 @@
     "keel_verifier/self_check.py": "dbcbd633cbd51a01fa8ee58485b27c320309a82ad47f7db266b717d78409977f",
     "keel_verifier/semantics.py": "fcf23853039bae892afb97ef38aee019d84b899d469713ee59a828f0b636d327",
     "keel_verifier/verdicts.py": "2da62c14280a436137aff66c347c281b636387e2ebff27488feaaa5da65b3488",
-    "keel_verifier/verifier.py": "53b35269288f912c15759cb9761795427209312e77426092931b3e46dd902e81",
+    "keel_verifier/verifier.py": "d56c4d0c5ee4aefc990ad3743046e4d9600c99f43aa06e65f49bb67a3000164e",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
-    "keel_verifier/work_chain.py": "6e3c2c4b979408537f98a7e9d269604652f186f544038986a98738a397e884f7"
+    "keel_verifier/work_chain.py": "9331b80389d9d035fd7ac86a4b55d44c40724468993be4956d3597b317b88135"
   }
 }
