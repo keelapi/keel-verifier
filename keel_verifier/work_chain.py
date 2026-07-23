@@ -235,7 +235,17 @@ def _report(
 ) -> VerificationReport:
     verdicts = [claim.aggregate_verdict for claim in claims]
     ok = bool(verdicts) and all(value == "supported" for value in verdicts)
-    exit_code = 0 if ok else 2 if "unverifiable_scope" in verdicts else 1
+    # A disproved claim must dominate the exit code even when another claim is
+    # out of scope: 1 (failed) beats 2 (unverifiable scope). Mirrors the
+    # verdict precedence in verdicts.aggregate_subject_verdicts.
+    if ok:
+        exit_code = 0
+    elif "disproved" in verdicts:
+        exit_code = 1
+    elif "unverifiable_scope" in verdicts:
+        exit_code = 2
+    else:
+        exit_code = 1
     first_failure = next(
         (
             subject
