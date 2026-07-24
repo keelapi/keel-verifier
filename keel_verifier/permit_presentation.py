@@ -25,6 +25,42 @@ def _load(name: str) -> tuple[dict[str, Any], bytes]:
     return value, raw
 
 
+# Every semantic binding embeds the selector registry version it was matched
+# against, so a permit must always be resolved against that exact registry — not
+# whichever one happens to be current. Loading a single hardcoded file meant
+# publishing a new registry silently retitled the entire back catalogue to
+# "specific title unavailable".
+#
+# Vendored versions are byte-identical copies of keel-permit, so a version that
+# was valid at issuance stays resolvable for the life of the record. Unknown
+# versions are not guessed at: they fall through to the historical fallback,
+# which is the honest answer for a permit issued under a registry this build has
+# never seen.
+_SEMANTIC_REGISTRY_BY_VERSION = {
+    "keel.semantic_selector_registry.v1": "semantic_registry/v1.json",
+    "keel.semantic_selector_registry.v2": "semantic_registry/v2.json",
+}
+
+# Registry used for permits carrying no version at all (pre-versioning records).
+_DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
+
+
+def _load_semantic_registry_for(
+    binding: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], bytes] | None:
+    """Load the registry this binding was issued under, or None if unknown."""
+
+    version = None
+    if isinstance(binding, Mapping):
+        version = binding.get("selector_registry_version")
+    if version is None:
+        return _load(_DEFAULT_SEMANTIC_REGISTRY)
+    name = _SEMANTIC_REGISTRY_BY_VERSION.get(str(version))
+    if name is None:
+        return None
+    return _load(name)
+
+
 def _digest(value: Any) -> str:
     return f"sha256:{hashlib.sha256(rfc8785.dumps(value)).hexdigest()}"
 
@@ -53,7 +89,13 @@ def resolve_permit_presentation(
     verifier verdicts, claim adjudication, cryptographic checks, or exit codes.
     """
 
-    semantics, semantics_raw = _load("semantic_registry/v1.json")
+    # Resolve the registry this binding was issued under. An unrecognised
+    # version deliberately falls back to the default: the version and digest
+    # checks below then fail to match, and the permit lands on the historical
+    # fallback rather than borrowing a title from a registry it never saw.
+    semantics, semantics_raw = _load_semantic_registry_for(semantic_binding) or _load(
+        _DEFAULT_SEMANTIC_REGISTRY
+    )
     presentations, _presentation_raw = _load("presentation_registry/v1.json")
     if semantic_registry is not None:
         semantics = dict(semantic_registry)
@@ -98,7 +140,17 @@ def resolve_permit_presentation(
     if (
         semantic_binding.get("trusted_source_kind") not in entry.get("trusted_source_kinds", [])
         or semantic_binding.get("chain_role") not in match.get("allowed_chain_roles", [])
-        or semantic_binding.get("governed_surface") not in match.get("required_surfaces", [])
+        # Surface is an identity constraint only where the registry declares one.
+        # v1 pins each semantic to a single governed_surface; v2 drops that,
+        # because the surface is derived from (source_kind, action, operation) at
+        # issuance and so re-checks what the action and operation checks below
+        # already establish. Reading a missing key as an empty allow-list would
+        # reject every v2 permit, so the check is skipped rather than defaulted.
+        or (
+            "required_surfaces" in match
+            and semantic_binding.get("governed_surface")
+            not in match.get("required_surfaces", [])
+        )
         or (
             match.get("action_names")
             and semantic_binding.get("action_name") not in match.get("action_names", [])
