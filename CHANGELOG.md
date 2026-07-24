@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.7.0
+
+- Resolve each permit against the semantic registry it was issued under.
+  Bindings embed `selector_registry_version` and digests of the registry and
+  matched entry; loading a single hardcoded registry meant publishing a new one
+  would retitle every historical record to "specific title unavailable". v1
+  stays vendored for the life of any record issued under it, and an unrecognised
+  version resolves to the historical fallback rather than borrowing a title.
+- Vendor semantic registry v2, in which surface is no longer part of authority
+  identity. The surface check is applied only where a registry declares one, so
+  v1 records keep their constraint and v2 records are not rejected by a missing
+  key read as an empty allow-list.
+
 ## 3.6.0
 
 - Add independent `work-chain.v1` verification for Work authority, child
