@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.8.0
+
+- Add the reference verifier for MCP payment classification derivation
+  (keel.permit.action_classification_derivation.v1). Given a permit's signed
+  classification facts and an explicit immutable trust configuration, it
+  re-derives the authorized_action offline from signed facts plus the vendored,
+  hash-pinned keel-permit artifacts alone, trusting nothing the issuer asserts
+  about the classification. Display-only and strictly non-authorizing.
+- Vendor the value-movement classification registry, the derivation ruleset, and
+  the conformance corpus byte-for-byte from keel-permit, under the cross-repo
+  parity guard. All 14 corpus vectors pass against the production module.
+
 ## 3.7.0
 
 - Resolve each permit against the semantic registry it was issued under.
