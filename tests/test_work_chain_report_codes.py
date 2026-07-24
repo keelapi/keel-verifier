@@ -63,6 +63,11 @@ def test_unverifiable_scope_alone_still_exits_2() -> None:
 _PARITY_MAP = {
     "permit_to_x/semantic_registry/v1.json": "semantic_registry/v1.json",
     "permit_to_x/semantic_registry/v1.schema.json": "semantic_registry/v1.schema.json",
+    # v1 stays vendored for the life of any permit issued under it: bindings
+    # embed selector_registry_digest, so a retired registry is still the only
+    # correct resolution for those records.
+    "permit_to_x/semantic_registry/v2.json": "semantic_registry/v2.json",
+    "permit_to_x/semantic_registry/v2.schema.json": "semantic_registry/v2.schema.json",
     "permit_to_x/presentation_registry/v1.json": "presentation_registry/v1.json",
     "permit_to_x/presentation_registry/v1.schema.json": "presentation_registry/v1.schema.json",
     "permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "test-vectors/permit_to_work/v1/corpus.json",

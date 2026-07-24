@@ -1,0 +1,114 @@
+{
+  "$schema": "./v1.schema.json",
+  "artifact_id": "keel.permit.semantic_selector_registry",
+  "version": "keel.semantic_selector_registry.v2",
+  "selection_rule": "exactly_one_match_else_fallback",
+  "entries": [
+    {
+      "semantic_id": "keel.context.work.v1",
+      "semantic_kind": "context_authority",
+      "trusted_source_kinds": [
+        "work_request_server_reconciled"
+      ],
+      "match": {
+        "action_names": [
+          "work.authorize"
+        ],
+        "operations": [
+          "work.authorize"
+        ],
+        "allowed_chain_roles": [
+          "work_root"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "payment_value_events",
+          "scope_faithful_work_chain"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_execute.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "payment.execute"
+        ],
+        "operations": [
+          "payment.execute"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome",
+          "settlement_optional"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.generate_text.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "ai.generate"
+        ],
+        "operations": [
+          "generate.text"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.context.realtime_session.v1",
+      "semantic_kind": "qualified_context",
+      "trusted_source_kinds": [
+        "realtime_session_service"
+      ],
+      "match": {
+        "operations": [
+          "realtime.session"
+        ],
+        "allowed_chain_roles": [
+          "session_root"
+        ],
+        "required_evidence_capabilities": [
+          "authorization"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    }
+  ]
+}
