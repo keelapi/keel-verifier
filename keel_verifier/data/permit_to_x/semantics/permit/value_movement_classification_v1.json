@@ -1,0 +1,141 @@
+{
+  "id": "keel.permit.value_movement_classification.v1",
+  "version": "v1",
+  "kind": "value_movement_tool_classification",
+  "status": "released",
+  "body": {
+    "claim": "The canonical, versioned set of (connector_identity, canonical_tool_name) pairs classified value_movement. The offline verifier re-derives against THIS artifact by digest; the issuer's enforcement classifier is held byte-identical to it by a parity guard, so one evaluation backs both enforcement and verification.",
+    "classification": "value_movement",
+    "identifier_profile": "keel.registered_tool_identifiers.v1",
+    "match": "exact (connector_identity, canonical_tool_name) after issuer normalization, compared byte-for-byte; no verification-time normalization, no wildcard, no alias. connector_identity is operator-registered server-owned identity; canonical_tool_name is the Keel-resolved tool name, never the agent's free-text.",
+    "uniqueness": "entries MUST be unique on (connector_identity, canonical_tool_name); a duplicate makes the artifact invalid. entries are sorted by (connector_identity, canonical_tool_name).",
+    "result_authority": "classification = value_movement is fixed by this artifact body, not inferred from the filename; a verifier MUST NOT derive the result from the path.",
+    "lifecycle": "append-only per version. A connector renaming or reclassifying a tool publishes a new artifact version; this v1 remains obtainable by digest for permits issued under it.",
+    "entries": [
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "authorize_payment"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "capture_payment"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "charge_card"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_charge"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_invoice"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_payment"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_payment_intent"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_payout"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_refund"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "create_transfer"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "pay_invoice"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "refund_payment"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "send_payout"
+      },
+      {
+        "connector_identity": "payments",
+        "canonical_tool_name": "transfer_funds"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "authorize_payment"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "capture_payment"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "charge_card"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_charge"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_invoice"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_payment"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_payment_intent"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_payout"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_refund"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "create_transfer"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "pay_invoice"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "refund_payment"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "send_payout"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "stripe.payment_intent.create"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "stripe.refund.create"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "stripe.transfer.create"
+      },
+      {
+        "connector_identity": "stripe",
+        "canonical_tool_name": "transfer_funds"
+      }
+    ]
+  }
+}

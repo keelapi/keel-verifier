@@ -1,0 +1,179 @@
+{
+  "id": "keel.permit.action_classification_derivation.v1",
+  "version": "v1",
+  "kind": "action_classification_derivation_ruleset",
+  "status": "released",
+  "body": {
+    "claim": "Derives an authorized_action from a signed tool classification fact, so a semantic identity minted from a classified tool call is re-derivable offline from signed facts plus this versioned ruleset and its pinned dependency artifacts alone. Shaped as a ruleset, not a single rule, so a later Permit-to-X is a new rule entry, not a schema change.",
+
+    "digest_convention": "All digests are lowercase sha256 hex with the 'sha256:' prefix, matching every other permit-to-x artifact. base64 is used only for Ed25519 keys/signatures elsewhere, never for artifact or input digests.",
+
+    "profiles": {
+      "serialization_profile": "keel.canonical_json.payload.v1",
+      "serialization_note": "How a logical object becomes bytes for hashing. This is the system-wide convention used by every recipe; it is NOT defined here.",
+      "payload_profile": "keel.registered_tool_classification_input.v1",
+      "payload_note": "What the classification-input object contains and means. This recipe is its normative definition (see classification_input_canonicalization). Serialization and payload are separate concerns and separately named."
+    },
+
+    "classification_subject_variants": {
+      "registered_tool": {
+        "discriminator": "classification.subject.kind == \"registered_tool\"",
+        "required_fields": [
+          "classification.subject.connector_identity",
+          "classification.subject.canonical_tool_name"
+        ],
+        "forbidden_fields": "fields belonging to other (future) subject variants MUST be absent",
+        "identifier_profile": "keel.registered_tool_identifiers.v1",
+        "unknown_kind_outcome": "unsupported_derivation_subject (no_derivation, not invalid): a verifier that does not recognise the kind yields no title, it does not reject the permit."
+      }
+    },
+
+    "classification_input_canonicalization": {
+      "payload_profile": "keel.registered_tool_classification_input.v1",
+      "logical_object_schema": {
+        "type": "object",
+        "additional_properties": false,
+        "properties": {
+          "profile": {"const": "keel.registered_tool_classification_input.v1"},
+          "connector_identity": {"type": "string", "identifier_profile": "keel.registered_tool_identifiers.v1"},
+          "canonical_tool_name": {"type": "string", "identifier_profile": "keel.registered_tool_identifiers.v1"}
+        },
+        "required": ["profile", "connector_identity", "canonical_tool_name"]
+      },
+      "bytes": "serialize the logical object with serialization_profile keel.canonical_json.payload.v1; input_digest = sha256: over those bytes. The payload_profile string is a field of the object so two different logical structures cannot canonicalize to the same bytes.",
+      "purpose": "Two independent verifiers computing input_digest for the same call MUST agree byte-for-byte."
+    },
+
+    "identifier_grammar": {
+      "profile": "keel.registered_tool_identifiers.v1",
+      "type": "string",
+      "encoding": "utf-8",
+      "grammar": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "equality": "the verifier validates the SIGNED value directly against the grammar, then compares byte-for-byte. No case folding, Unicode normalization, whitespace trimming, alias resolution, or version stripping at verification time. The issuer produces these via normalize_known_mcp_connector_identity / normalize_mcp_tool_name and freezes them into the signed record; the verifier does not re-run or trust that normalization, it re-validates the frozen value against this grammar.",
+      "malformed": "an identifier that fails the grammar makes the binding invalid, not merely unmatched."
+    },
+
+    "rules": [
+      {
+        "rule_id": "registered-value-movement-is-payment-execute",
+        "applies_when": {
+          "all": [
+            {"fact": "invocation.operation", "op": "equals", "value": "call.tools"},
+            {"fact": "invocation.transport", "op": "equals", "value": "mcp"},
+            {"fact": "classification.subject.kind", "op": "equals", "value": "registered_tool"},
+            {"fact": "classification.class", "op": "equals", "value": "value_movement"}
+          ]
+        },
+        "requires": [
+          {"predicate": "classification_registry_membership"},
+          {"fact": "control.mode", "op": "equals", "value": "enforced_in_path"}
+        ],
+        "requires_note": "Integrity predicates (registry digest, input digest) are NOT per-rule requirements: they are global properties settled at algorithm steps 3/4/6, before rule matching, so tampering can never be masked by a rule failing to match. What remains here are the two SOFT conditions, both -> no_derivation, so step 8 has no valid/invalid precedence conflict by construction.",
+        "derives": {"authorized_action": "payment.execute"}
+      }
+    ],
+
+    "decision_algorithm": {
+      "note": "The normative, ordered decision procedure. Every well-formed input reaches exactly one of {valid, no_derivation, invalid, unverifiable}. Steps run in order; the first that yields a terminal outcome wins. Substeps are lettered where within-step precedence would otherwise be ambiguous. An implementation that would raise an unclassified exception at any operation MUST instead map it to the outcome named for that operation; no conforming executor may expose an unclassified error within the schema domain (resource-exhaustion outside the schema domain may remain a verifier error and is not a semantic outcome).",
+      "steps": [
+        "1. COMMON ENVELOPE (before any variant dispatch): validate the record against the common classification-fact schema. Validate the syntax of every COMMON signed field independent of subject kind: registry artifact_digest and input digest MUST match ^sha256:[0-9a-f]{64}$. Any malformed common field -> invalid. Stop. This runs BEFORE subject-kind dispatch so an unknown kind cannot launder a malformed common binding.",
+        "2. SUBJECT DISPATCH: if classification.subject.kind is a recognised variant, validate its variant-specific required/forbidden fields and identifier grammar (keel.registered_tool_identifiers.v1) on the variant's identifiers; a malformed variant field or identifier -> invalid (stop). If classification.subject.kind is unrecognised but the common envelope (step 1) was valid -> no_derivation (unsupported_derivation_subject). Stop.",
+        "3. DEPENDENCY RESOLUTION (normative, hash-verifying): resolve(D) where D = classification.provenance.registry.artifact_digest. require D in the verifier's immutable trusted_registry_digests input; if not -> unverifiable (artifact_unavailable), stop. Obtain the bytes B bound to D from the content-addressed trust store; require sha256(B) == D, else -> invalid (dependency_integrity), stop. A digest string is identity: a store that returns bytes not hashing to D is a resolver failure, not a substitution, and the algorithm MUST NOT use those bytes.",
+        "4. DEPENDENCY VALIDATION: validate B as the classification_registry artifact — schema, supported version, unique entries, well-formed identifiers within it. Malformed/schema-invalid -> invalid (dependency_artifact_invalid), stop. Version present but unsupported by this verifier -> unverifiable (unsupported_dependency_version), stop. Pinning a digest means 'these exact bytes are trusted', not 'these bytes are automatically a valid registry'.",
+        "5. INTERNAL DIGEST AGREEMENT: v1 schema permits exactly ONE authoritative registry-digest field and forbids any second authoritative registry reference (enforced at step 1). No comparison is performed in v1. (When a v2 introduces a second reference, this becomes a real ordered comparison; it is named here so a future field cannot be silently ignored.)",
+        "6. INPUT DIGEST: recompute input_digest solely from the signed subject and the fixed classification_input_canonicalization (no dependency bytes required). If it != classification.provenance.input.digest -> invalid. Stop. (Self-contained: this could precede step 3, but is placed after so a single terminal-outcome order is fixed; because it depends on no resolved bytes, a well-formed record with a wrong input digest AND an untrusted registry is reported as unverifiable by step 3 — see corpus vector for the deliberate precedence choice.)",
+        "7. RULE MATCH SET: evaluate every rule's applies_when against the same immutable facts. Let M = rules whose applies_when is all-true. |M|=0 -> no_derivation (stop); |M|>1 -> invalid (stop). Registry-wide validity (duplicate rule ids, malformed non-matching rules) is already established at step 4; a malformed rule invalidates the artifact there, it is never ignored for not matching.",
+        "8. REQUIRES (ordered substeps): 8a. EVALUABILITY: if any required predicate names an operator this ruleset version does not define, or an operand outside its domain -> invalid (unevaluable_predicate), stop. 8b. MEMBERSHIP: classification_registry_membership absent -> no_derivation, stop. 8c. ENFORCEMENT: control.mode != enforced_in_path -> no_derivation, stop. NOTE: v1 has no per-rule INTEGRITY predicate — registry-digest and input-digest integrity are global steps 3/4/6, before matching, so a rule that fails to match can never mask a tampered digest. The two remaining per-rule conditions are both soft (-> no_derivation); no valid/invalid precedence conflict is constructible inside step 8.",
+        "9. DERIVE: all satisfied -> valid; emit rule.derives.authorized_action, fed to the semantic selector as an internal input (never a signed field named 'operation')."
+      ]
+    },
+
+    "resolution": {
+      "match_policy": "exactly_one",
+      "zero_matches": "no_derivation",
+      "multiple_matches": "invalid",
+      "note": "Cardinality is counted over ALL rules against the same immutable facts (step 8), never first-match. A second rule that also matched surfaces as invalid, not a silent pick."
+    },
+
+    "predicate_vocabulary": {
+      "classification_registry_membership": "(classification.subject.connector_identity, classification.subject.canonical_tool_name) MUST be an entry in the resolved+validated classification_registry (algorithm step 4). Absent -> no_derivation. This is the ONLY per-rule predicate in v1.",
+      "global_integrity_note": "registry digest resolution+hash-verification and input-digest recomputation are GLOBAL algorithm steps (3/4/6), not per-rule predicates. They run before matching and yield invalid on failure, so a rule that fails to match can never hide a tampered digest.",
+      "unevaluable": "An unknown predicate operator or an operand outside a predicate's domain is NOT a false predicate; it is unevaluable and yields invalid (algorithm step 8a). A permit referencing a predicate this ruleset version does not define -> invalid (unknown_predicate).",
+      "closed_set": "This is the entire predicate vocabulary for v1. No expression language."
+    },
+
+    "issuer_attested_facts": {
+      "control.mode": "enforced_in_path is an ISSUER-ATTESTED signed fact. An offline verifier cannot independently prove the call was intercepted in path; it verifies only that the issuer signed control.mode = enforced_in_path. This is a named trust boundary, not an independently-derived property. The whole derivation is presentation-only and non-authorizing, so relying on an issuer attestation here cannot escalate authorization; at worst a mis-attesting issuer mislabels its own record.",
+      "connector_identity": "Operator-registered server-owned identity, issuer-attested and frozen into the signed record; the verifier re-validates its grammar but does not re-run registration."
+    },
+
+    "dependencies": [
+      {
+        "role": "classification_registry",
+        "artifact_id": "keel.permit.value_movement_classification.v1",
+        "version_policy": "exact_digest",
+        "digest_source": "signed_permit",
+        "permit_path": "classification.provenance.registry.artifact_digest"
+      },
+      {
+        "role": "classification_input_payload_profile",
+        "artifact_id": "keel.registered_tool_classification_input.v1",
+        "defined_in": "this recipe (classification_input_canonicalization)",
+        "note": "Named and normatively defined here; a verifier MUST use this definition, not infer the input shape."
+      },
+      {
+        "role": "serialization_profile",
+        "artifact_id": "keel.canonical_json.payload.v1",
+        "note": "System-wide serialization convention shared by every recipe; referenced, not redefined."
+      },
+      {
+        "role": "presentation_registry",
+        "artifact_id": "keel.permit.presentation_registry",
+        "note": "payment.execute -> Permit-to-Pay is unchanged from the existing presentation path."
+      }
+    ],
+
+    "historical_resolution": {
+      "model": "keel-verifier version-aware resolution (v3.7.0): resolve each dependency by the version+digest the permit embeds, NEVER by whatever is current, and NEVER substitute a different artifact that merely shares the profile name or a newer version.",
+      "identity": "algorithm + digest is identity; artifact_id + version are metadata and type checks only.",
+      "environmental_vs_semantic": "unverifiable is environmental (this verifier lacks the exact-digest artifact) and MUST resolve deterministically once the artifact is supplied. invalid/valid are semantic properties of the signed record. A verifier's local inventory of OTHER artifacts MUST NOT convert unverifiable into invalid or vice versa."
+    },
+
+    "outcome_taxonomy": {
+      "valid": "all steps pass; authorized_action derived and fed to the selector.",
+      "no_derivation": "rule inapplicable, subject kind unrecognised, registry entry absent, or control.mode != enforced_in_path -> generic title, permit otherwise unaffected.",
+      "invalid": "malformed structure/identifier, digest mismatch, artifact-integrity failure, internal digest disagreement, or multiple rules match -> the semantic binding is invalid.",
+      "unverifiable": "a required exact-digest dependency is unavailable, or an unknown predicate is referenced -> cannot decide; never treated as valid or as generic. Deterministically resolves once the missing artifact is supplied."
+    },
+
+    "invariants": [
+      "invocation.operation stays call.tools; authorized_action is payment.execute; these are distinct signed facts. There is no signed field named 'operation' carrying the derived action; the derivation emits ONLY authorized_action.",
+      "transport_surface and target_surface are distinct signed facts. target_surface = payment_rail is the action's resource class, not a claim the wire was a native payment-rail integration. Neither participates in rule applicability, registry lookup, classification identity, or outcome; they are orthogonal recorded facts.",
+      "control.mode == enforced_in_path is REQUIRED and issuer-attested (see issuer_attested_facts). An observed call never derives a payment authorized_action.",
+      "No provider outcome, settlement, or completion is implied. payment.execute is authority to attempt; observed_evidence carries what happened.",
+      "The classification decision bound here MUST be the same one used to enforce, bound by input_digest + registry digest, not a re-lookup that could diverge under normalization."
+    ],
+
+    "verifier_build_obligations": {
+      "note": "Four-round contract review converged: no determinism hole, the Step-8 conflict is designed out, shape is build-ready. These items are deferrable to the verifier-implementation phase but MUST be finalized as part of completing that verifier (not postponed past its ship), because they govern digest/signature validity:",
+      "canonicalization_boundaries": "the serialization profile keel.canonical_json.payload.v1 must pin: duplicate-object-name handling (reject), exact code-unit/byte identifier comparison (already fixed by the ASCII grammar), absent-vs-null, and number representation. RFC 8785 governs most; the verifier must not let its host parser define these by accident.",
+      "closed_v1_profile": "exactly one digest algorithm (sha256) and one canonicalization version; an unknown/unsupported canonicalization or algorithm identifier -> a specified terminal outcome (unverifiable for unsupported_version, invalid for malformed), never silent acceptance.",
+      "deferred_to_second_rule": "rule-set cardinality semantics (mutual exclusivity / priority / convergence / reject-multiple) become required only when a second rule is added; unrepresentable in single-rule v1.",
+      "deferred_to_pluggable_resolvers": "resolver-multiplicity policy ('accept any candidate whose bytes hash to D; fail only when none do') is required only if multiple resolver backends are exposed; a single reference verifier imposes one deterministic policy."
+    },
+
+    "non_authorizing": "This ruleset governs presentation identity only. It never affects policy evaluation, dispatch, executable authority, or verdicts. A wrong derivation degrades a title; it cannot escalate authorization.",
+
+    "verification_inputs": {
+      "note": "The outcome is a function of these explicit inputs and nothing ambient. A conforming verifier MUST report the trust configuration it used in its transcript so a result is reproducible.",
+      "signed_record": "the permit's classification facts",
+      "trusted_registry_digests": "an IMMUTABLE set of accepted classification_registry digests, supplied as an explicit input to the verification invocation, not read from ambient mutable state. Resolution (step 3) accepts only a digest in this set. Two verifiers with different trust sets may legitimately differ; that is trust-relative, not algorithmic nondeterminism.",
+      "algorithm_version": "this ruleset version",
+      "resolution": "a content-addressed store that returns bytes B for digest D only when sha256(B)==D (step 3 enforces this regardless)."
+    },
+
+    "determinism_claim": "Given the same signed record, the same immutable trusted_registry_digests, the same validated dependency bytes, and the same algorithm version, every conforming executor produces the same outcome. Determinism is stated relative to those explicit inputs by design; it is not a claim of trust-free verification (offline verification requires trust anchors, of which a pinned registry digest is one).",
+
+    "conformance": "The decision_algorithm plus the profile/grammar definitions and the verification_inputs are the complete contract. The test-vector corpus keel.permit.action_classification_derivation.test_vectors.v1 is MANDATORY MINIMUM evidence: passing it is NECESSARY, NOT SUFFICIENT. Conformance is producing the algorithm's outcome for every well-formed input under a given trust configuration, not only for the enumerated vectors. reference_executor.py runs the algorithm against the corpus from the spec."
+  }
+}
