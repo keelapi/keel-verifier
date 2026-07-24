@@ -1,0 +1,657 @@
+{
+  "version": "keel.permit.action_classification_derivation.test_vectors.v1",
+  "ruleset": "../../semantics/permit/action_classification_derivation_v1.json",
+  "classification_registry": "../../semantics/permit/value_movement_classification_v1.json",
+  "classification_registry_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0",
+  "canonicalization_profile": "keel.canonical_json.payload.v1",
+  "given_model": "Each vector's `given` is the verifier's explicit immutable environment. trusted_registry_digests is the trust set (step 3 resolves only a digest in it). The verifier always has the pinned canonical registry's real bytes available for its own digest. `store` optionally supplies byte-concrete (digest, content_utf8) pairs so integrity vectors are realizable: content that does not hash to its claimed digest triggers step-3 dependency_integrity; hash-correct content that is not a valid registry triggers step-4 dependency_artifact_invalid.",
+  "conformance": "Passing every vector is NECESSARY, NOT SUFFICIENT. The ruleset decision_algorithm, profile/grammar definitions, and verification_inputs are the complete contract; this corpus is mandatory minimum evidence. reference_executor.py runs the algorithm against every vector from the spec.",
+  "step9_conflict_designed_out": "Round-3's step-9 counterexample is not constructible in v1: integrity/digest checks are global steps 3/4/6 before rule matching; the rule's only per-rule predicates (membership, enforcement) are both -> no_derivation.",
+  "outcomes": [
+    "valid",
+    "no_derivation",
+    "invalid",
+    "unverifiable"
+  ],
+  "deferred_coverage": "multiple-applicable-rules / rule-order-permutation need a synthetic 2-rule fixture (with the second Permit-to-X rule). Full canonicalization/Unicode/JSON-boundary suites and resolver-multiplicity are property tests co-designed with the reference verifier.",
+  "vectors": [
+    {
+      "id": "positive-payments-value-movement",
+      "title": "Enforced payments value-movement tool derives payment.execute",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "valid",
+        "authorized_action": "payment.execute"
+      }
+    },
+    {
+      "id": "positive-stripe-value-movement",
+      "title": "Enforced stripe value-movement tool derives payment.execute",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:6e362f297e086b27be5ee8ae597237fab9def11af9cd2970684365ffaa7183d2"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "valid",
+        "authorized_action": "payment.execute"
+      }
+    },
+    {
+      "id": "positive-surfaces-are-orthogonal",
+      "title": "Unusual target_surface still derives payment.execute; surfaces orthogonal",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "some_other_resource_class"
+      },
+      "expected": {
+        "outcome": "valid",
+        "authorized_action": "payment.execute"
+      },
+      "note": "transport_surface/target_surface are orthogonal signed facts (2b), not identity inputs."
+    },
+    {
+      "id": "negative-observed-not-enforced",
+      "title": "control.mode != enforced_in_path -> generic title",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "observed"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "no_derivation"
+      }
+    },
+    {
+      "id": "negative-tool-not-in-registry",
+      "title": "Tool absent from the registry derives nothing",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "stripe.customer.create"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "stripe.customer.create"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:84724eebb89fe2e10bffbfa45fc01e6a49bf34842536de840a65f6de8614d01f"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "no_derivation"
+      }
+    },
+    {
+      "id": "negative-unknown-subject-kind",
+      "title": "Unrecognised subject kind (common envelope valid) -> no_derivation",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "future_kind",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:6e362f297e086b27be5ee8ae597237fab9def11af9cd2970684365ffaa7183d2"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "no_derivation"
+      }
+    },
+    {
+      "id": "invalid-wrong-input-digest",
+      "title": "input_digest not matching canonicalized inputs -> invalid",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      }
+    },
+    {
+      "id": "invalid-malformed-registry-digest",
+      "title": "Registry digest not a well-formed sha256: -> invalid (common envelope, step 1)",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "not-a-digest"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:6e362f297e086b27be5ee8ae597237fab9def11af9cd2970684365ffaa7183d2"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      },
+      "note": "Record-determined, store-independent."
+    },
+    {
+      "id": "invalid-malformed-identifier",
+      "title": "Identifier failing the grammar -> invalid",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "AUTHORIZE_PAYMENTX"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "AUTHORIZE_PAYMENTX"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:69fdc481c5271881ad522da9ea6921b8674e64f460ba9f129f17dbd8bf966f06"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      }
+    },
+    {
+      "id": "invalid-whitespace-identifier",
+      "title": "Trailing whitespace fails the grammar -> invalid",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment "
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment "
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:be95bbd3ddbff8f6dba6a9d1ece8603b6bac7b78693435839bcefa6820bbc91c"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      }
+    },
+    {
+      "id": "unverifiable-registry-digest-untrusted",
+      "title": "Well-formed registry digest not in the trusted set -> unverifiable",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "unverifiable",
+        "reason": "artifact_unavailable"
+      },
+      "note": "Environmental; resolves once the exact-digest artifact is trusted+supplied."
+    },
+    {
+      "id": "invalid-unknown-kind-plus-malformed-common-digest",
+      "title": "Unknown kind AND malformed common registry digest -> invalid: common envelope (step 1) validated before subject dispatch (step 2)",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:c46b8bd165ef16c284621e5349b22e5621fe66c4a25a3c8b18c8d88e20de76d0"
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "stripe",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "future_kind",
+            "connector_identity": "stripe",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "not-a-digest"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:6e362f297e086b27be5ee8ae597237fab9def11af9cd2970684365ffaa7183d2"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      },
+      "note": "Locks step-1-before-step-2 (round-3)."
+    },
+    {
+      "id": "invalid-trusted-digest-corrupt-bytes",
+      "title": "Trusted registry digest whose store bytes do NOT hash to it -> invalid (dependency_integrity)",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ],
+        "store": [
+          {
+            "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "content_utf8": "these bytes do not hash to the claimed digest"
+          }
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      },
+      "note": "Locks step 3 hash-verification with byte-concrete store: trusting a digest is not trusting arbitrary bytes offered under it."
+    },
+    {
+      "id": "invalid-trusted-digest-malformed-registry",
+      "title": "Trusted, hash-correct bytes that are not a valid registry -> invalid (dependency_artifact_invalid)",
+      "given": {
+        "trusted_registry_digests": [
+          "sha256:8a0c5414cae73bc0c0dfae2a1655ed1028bbe4661de842ef590087394869c333"
+        ],
+        "store": [
+          {
+            "digest": "sha256:8a0c5414cae73bc0c0dfae2a1655ed1028bbe4661de842ef590087394869c333",
+            "content_utf8": "{\"kind\":\"not-a-registry\",\"version\":\"v1\"}"
+          }
+        ]
+      },
+      "facts": {
+        "invocation": {
+          "operation": "call.tools",
+          "transport": "mcp",
+          "connector_identity": "payments",
+          "canonical_tool_name": "authorize_payment"
+        },
+        "classification": {
+          "class": "value_movement",
+          "subject": {
+            "kind": "registered_tool",
+            "connector_identity": "payments",
+            "canonical_tool_name": "authorize_payment"
+          },
+          "provenance": {
+            "registry": {
+              "artifact_id": "keel.permit.value_movement_classification.v1",
+              "artifact_version": "v1",
+              "artifact_digest": "sha256:8a0c5414cae73bc0c0dfae2a1655ed1028bbe4661de842ef590087394869c333"
+            },
+            "input": {
+              "profile": "keel.registered_tool_classification_input.v1",
+              "digest": "sha256:f0ba6cc4dd39652b29a20e5a157f75dde7928034eae0828b914e5140914900ae"
+            }
+          }
+        },
+        "control": {
+          "mode": "enforced_in_path"
+        },
+        "transport_surface": "mcp_tool_call",
+        "target_surface": "payment_rail"
+      },
+      "expected": {
+        "outcome": "invalid"
+      },
+      "note": "Locks step 4: pinning bytes is not validating them as a registry. Digest is the real hash of the malformed content, so step 3 passes and step 4 fails."
+    }
+  ]
+}

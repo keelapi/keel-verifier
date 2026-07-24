@@ -61,6 +61,9 @@ def test_unverifiable_scope_alone_still_exits_2() -> None:
 
 # vendored resource (under keel_verifier/data/) -> canonical path in keel-permit
 _PARITY_MAP = {
+    "permit_to_x/semantics/permit/value_movement_classification_v1.json": "semantics/permit/value_movement_classification_v1.json",
+    "permit_to_x/semantics/permit/action_classification_derivation_v1.json": "semantics/permit/action_classification_derivation_v1.json",
+    "permit_to_x/test_vectors/action_classification_derivation/v1/corpus.json": "test-vectors/action_classification_derivation/v1/corpus.json",
     "permit_to_x/semantic_registry/v1.json": "semantic_registry/v1.json",
     "permit_to_x/semantic_registry/v1.schema.json": "semantic_registry/v1.schema.json",
     # v1 stays vendored for the life of any permit issued under it: bindings
