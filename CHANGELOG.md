@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.9.0
+
+- Verify canonical `keel.permit_exact/v1` evidence packs for
+  AI Permit-to-Pay, including signed exact amount, currency, payment rail,
+  request digest, privacy-preserving recipient commitments, and optional
+  recipient openings.
+- Re-derive `payment.execute` from the signed payment classification in the
+  production report pipeline and reject mismatched fact, selector, schema, or
+  registry digests.
+- Adjudicate the original signed review decision and the separately signed
+  human-review transition without treating mutable Permit row state as
+  issuance-time evidence.
+- Render actionable incomplete-check reasons and exact Permit-to-Pay facts in
+  the human report while preserving explicit non-claims for dispatch, provider
+  success, and settlement.
+
 ## 3.8.0
 
 - Add the reference verifier for MCP payment classification derivation

@@ -434,12 +434,12 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     digest = f"sha256:{hashlib.sha256(registry_bytes).hexdigest()}"
     assert digest == semantics.CLAIM_REGISTRY_HASH
     assert semantics.CLAIM_REGISTRY_HASH == (
-        "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
+        "sha256:1ce5c3d46e81c989a7a32e1deb1f9c4c216891302699b4050e2f7edff50d7c15"
     )
 
     # The Work-chain registry rolled the co-signature registry into PREVIOUS.
     assert semantics.CLAIM_REGISTRY_PREVIOUS_HASH == (
-        "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
+        "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH

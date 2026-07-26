@@ -60,6 +60,7 @@ _ACTION_LINES = (
 # Evidence coverage (explicit negative space): evidence type -> claim name(s).
 _COVERAGE = (
     ("Permit decision signature", ("permit.decision.v1",)),
+    ("Human review transition", ("permit.review_transition.v1",)),
     (
         "Operator approval",
         (
@@ -175,7 +176,7 @@ def _evidence_state(
         return "INVALID", None
     if trust_mode and trust_mode.get("id") == "untrusted_signer":
         return "UNTRUSTED SIGNER", None
-    if report.get("error") and not claims:
+    if report.get("error"):
         return "INCOMPLETE", None
     if any(
         c.get("required") and c.get("verdict") == "insufficient_evidence"
@@ -334,6 +335,58 @@ def _artifact_identity_lines(
         lines.append(ReportLine("", structural=True))
         lines.append(ReportLine("Authorized action", structural=True))
         lines.extend(action_lines)
+    if artifact.get("kind") == "permit_exact":
+        amount_minor = source.get("amount_minor")
+        currency = source.get("currency")
+        if isinstance(amount_minor, int) and isinstance(currency, str):
+            amount = f"{amount_minor / 100:,.2f}"
+            lines.append(
+                ReportLine(
+                    f"  Amount: {amount} {currency}",
+                    provenance="SIGNED_FIELD",
+                )
+            )
+        for key, label in (
+            ("recipient", "Recipient"),
+            ("payment_rail", "Payment rail"),
+            ("request_digest", "Request digest"),
+            ("recipient_opening_status", "Recipient disclosure"),
+        ):
+            value = source.get(key)
+            if value not in (None, ""):
+                lines.append(
+                    ReportLine(
+                        f"  {label}: {value}",
+                        provenance="SIGNED_FIELD",
+                    )
+                )
+    return lines
+
+
+def _incomplete_check_lines(report: dict[str, Any]) -> list[ReportLine]:
+    lines: list[ReportLine] = []
+    seen: set[str] = set()
+    for claim in report.get("claims", []):
+        if claim.get("required") and claim.get("verdict") == "insufficient_evidence":
+            reason = str(claim.get("reason_code") or claim.get("name") or "").strip()
+            message = str(claim.get("message") or "").strip()
+            text = f"{reason}: {message}" if message else reason
+            if text and text not in seen:
+                seen.add(text)
+                lines.append(
+                    ReportLine(
+                        f"  — {text}",
+                        provenance="DERIVED_VERIFICATION_RESULT",
+                    )
+                )
+    error = str(report.get("error") or "").strip()
+    if error and error not in seen:
+        lines.append(
+            ReportLine(
+                f"  — {error}",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
+        )
     return lines
 
 
@@ -378,7 +431,12 @@ def build_report_lines(
     finding = _finding(report, presentation, verdicts)
 
     is_checkpoint = artifact.get("kind") in _CHECKPOINT_KINDS
-    title = "AUDIT CHECKPOINT" if is_checkpoint else "AI PERMIT — Verification Report"
+    if is_checkpoint:
+        title = "AUDIT CHECKPOINT"
+    elif artifact.get("kind") == "permit_exact":
+        title = "AI PERMIT-TO-PAY — Verification Report"
+    else:
+        title = "AI PERMIT — Verification Report"
 
     lines: list[ReportLine] = [ReportLine(title, structural=True)]
 
@@ -446,6 +504,13 @@ def build_report_lines(
             lines.append(ReportLine("", structural=True))
             lines.append(ReportLine("Evidence coverage", structural=True))
             lines.extend(coverage)
+
+    if evidence_state == "INCOMPLETE":
+        incomplete = _incomplete_check_lines(report)
+        if incomplete:
+            lines.append(ReportLine("", structural=True))
+            lines.append(ReportLine("Incomplete checks", structural=True))
+            lines.extend(incomplete)
 
     # Next step (mechanical; evidence/session deficiencies only).
     next_step = _next_step(evidence_state, qualifier, trust_mode, verdicts)

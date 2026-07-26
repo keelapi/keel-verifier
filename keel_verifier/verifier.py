@@ -659,6 +659,7 @@ _SIGNED_CLOSURE_V2_REQUIRED_KEYS = (
 )
 _SIGNED_CLOSURE_V2_OPTIONAL_KEYS = ("usage_reported_at",)
 PERMIT_DECISION_CLAIM_NAME = "permit.decision.v1"
+PERMIT_REVIEW_TRANSITION_CLAIM_NAME = "permit.review_transition.v1"
 PERMIT_REVOKED_CLAIM_NAME = "permit.revoked.v1"
 PERMIT_DISPATCH_ABSENCE_CLAIM_NAME = "permit.dispatch_absence_after_revocation.v1"
 PERMIT_AUTHORITY_CHAIN_CLAIM_NAME = "permit.authority_chain.v1"
@@ -7683,6 +7684,131 @@ def _adjudicate_permit_decision_v1(
     )
 
 
+def _adjudicate_permit_review_transition_v1(
+    *,
+    export_document: dict[str, Any],
+    key_manifest_source: str | None,
+) -> ClaimVerdict:
+    transition = export_document.get("review_transition")
+    evidence_path = "export.review_transition"
+    permit_decision = export_document.get("permit_decision")
+    canonical_payload = (
+        permit_decision.get("canonical_payload")
+        if isinstance(permit_decision, dict)
+        else None
+    )
+    signed_event = (
+        transition.get("signed_event") if isinstance(transition, dict) else None
+    )
+    permit_id = (
+        str(signed_event.get("permit_id") or "")
+        if isinstance(signed_event, dict)
+        else None
+    )
+    if (
+        not isinstance(transition, dict)
+        or transition.get("status") != "present"
+        or not isinstance(signed_event, dict)
+        or not isinstance(canonical_payload, dict)
+    ):
+        return _permit_claim(
+            PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+            subject_type="permit_review_transition",
+            subject_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_REVIEW_TRANSITION_MISSING",
+            message="signed human-review transition evidence is absent",
+            evidence=[evidence_path],
+        )
+
+    signed_fields = (
+        "event_type",
+        "permit_id",
+        "project_id",
+        "decision_at",
+        "actor_id",
+        "actor_kind",
+        "from_decision",
+        "from_status",
+        "to_decision",
+        "to_status",
+    )
+    if set(signed_event) != {*signed_fields, "signature"}:
+        return _permit_claim(
+            PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+            subject_type="permit_review_transition",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVIEW_TRANSITION_SCHEMA_INVALID",
+            message="signed human-review transition has an invalid shape",
+            evidence=[evidence_path],
+        )
+    unsigned = {key: signed_event[key] for key in signed_fields}
+    canonical_hash = hashlib.sha256(
+        json.dumps(
+            unsigned,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    if transition.get("canonical_hash") != canonical_hash:
+        return _permit_claim(
+            PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+            subject_type="permit_review_transition",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVIEW_TRANSITION_HASH_MISMATCH",
+            message="human-review transition canonical hash does not match",
+            evidence=[evidence_path],
+        )
+
+    key_id = canonical_payload.get("binding_key_id")
+    signing_time = _parse_iso_or_none(signed_event.get("decision_at"))
+    trusted_pub, _trust_source, err = _resolve_trust_key(
+        artifact_pub=None,
+        artifact_key_id=str(key_id or ""),
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+        expected_public_key=None,
+        public_key_url=None,
+        key_manifest_source=key_manifest_source,
+        signing_time=signing_time,
+    )
+    if err is not None or trusted_pub is None:
+        return _permit_claim(
+            PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+            subject_type="permit_review_transition",
+            subject_id=permit_id,
+            verdict="insufficient_evidence",
+            reason_code="PERMIT_REVIEW_TRANSITION_TRUST_ROOT_UNRESOLVABLE",
+            message=str(err or "human-review transition key could not be resolved"),
+            evidence=[evidence_path, "trust_root"],
+        )
+    if not _verify_ed25519(
+        trusted_pub,
+        canonical_hash.encode("utf-8"),
+        str(signed_event["signature"]),
+    ):
+        return _permit_claim(
+            PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+            subject_type="permit_review_transition",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code="PERMIT_REVIEW_TRANSITION_SIGNATURE_INVALID",
+            message="human-review transition signature does not verify",
+            evidence=[evidence_path, "signature"],
+        )
+    return _permit_claim(
+        PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
+        subject_type="permit_review_transition",
+        subject_id=permit_id,
+        verdict="supported",
+        reason_code="PERMIT_REVIEW_TRANSITION_SUPPORTED",
+        message="human-review approval transition signature is supported",
+        evidence=[evidence_path, "trust_root"],
+    )
+
+
 def _find_revocation_evidence(
     document: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None, str]:
@@ -13270,6 +13396,58 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if body is not None:
             artifact["body_schema"] = body.get("schema")
             artifact["artifact_ref"] = body.get("artifact_ref")
+        if (
+            ok
+            and isinstance(body, dict)
+            and body.get("profile") == "keel.permit_exact/v1"
+        ):
+            from keel_verifier.permit_exact import verify_permit_exact_body
+
+            try:
+                exact_summary = verify_permit_exact_body(body)
+            except Exception as exc:
+                ok = False
+                error = f"Permit-to-Pay exact-fact verification failed: {exc}"
+                diagnostics.append(error)
+            else:
+                artifact.update(
+                    {
+                        "kind": "permit_exact",
+                        "profile": "keel.permit_exact/v1",
+                        "permit": exact_summary,
+                    }
+                )
+                decision_claim = _adjudicate_permit_decision_v1(
+                    export_document=body,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+                claims.append(decision_claim)
+                if decision_claim.aggregate_verdict != verdict_value("supported"):
+                    ok = False
+                    error = (
+                        decision_claim.message
+                        or decision_claim.reason_code
+                        or "Permit decision verification did not complete."
+                    )
+                transition = body.get("review_transition")
+                if (
+                    isinstance(transition, dict)
+                    and transition.get("status") == "present"
+                ):
+                    transition_claim = _adjudicate_permit_review_transition_v1(
+                        export_document=body,
+                        key_manifest_source=_key_manifest_source_for_args(args),
+                    )
+                    claims.append(transition_claim)
+                    if transition_claim.aggregate_verdict != verdict_value(
+                        "supported"
+                    ):
+                        ok = False
+                        error = (
+                            transition_claim.message
+                            or transition_claim.reason_code
+                            or "Human-review transition verification did not complete."
+                        )
         if bundle_context is not None:
             claims = [
                 *claims,

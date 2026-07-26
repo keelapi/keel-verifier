@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/payment-exact-facts-v1.schema.json",
+  "title": "Keel exact payment authorization facts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "action",
+    "amount_minor",
+    "currency",
+    "recipient_reference_commitment",
+    "payment_rail",
+    "request_digest"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "keel.payment_exact_facts.v1"
+    },
+    "fact_profile_id": {
+      "type": "string",
+      "const": "keel.facts.payment_exact.v1"
+    },
+    "action": {
+      "type": "string",
+      "const": "payment.execute"
+    },
+    "amount_minor": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 999999999999999
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "recipient_reference_commitment": {
+      "$ref": "#/$defs/saltedCommitment"
+    },
+    "recipient_display_name_commitment": {
+      "$ref": "#/$defs/saltedCommitment"
+    },
+    "payment_rail": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "request_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

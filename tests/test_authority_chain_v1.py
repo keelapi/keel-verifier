@@ -1119,7 +1119,7 @@ def test_claim_registry_hash_lockstep_and_historical_rollover() -> None:
     # earlier registry hashes remain in history behind it.
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH
-        == "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
+        == "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
     )
     assert (
         semantics.CLAIM_REGISTRY_PREVIOUS_HASH

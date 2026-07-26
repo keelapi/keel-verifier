@@ -1,0 +1,43 @@
+{
+  "id": "keel.permit.review_transition.v1",
+  "version": "v1",
+  "kind": "permit_review_transition_signature_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.review_transition.v1",
+    "scope": "challenge_review_transition",
+    "issuer_key_purpose": "permit_binding_signing",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "signed_fields": [
+      "event_type",
+      "permit_id",
+      "project_id",
+      "decision_at",
+      "actor_id",
+      "actor_kind",
+      "from_decision",
+      "from_status",
+      "to_decision",
+      "to_status"
+    ],
+    "canonicalization": "UTF-8 JSON with lexicographically sorted object keys, no insignificant whitespace, and ensure_ascii=false.",
+    "hash_rule": "lowercase hex SHA-256 of the canonical unsigned transition object",
+    "signature_rule": "Ed25519 signature over the UTF-8 bytes of the lowercase canonical hash; signature is unprefixed base64.",
+    "key_resolution": "Resolve the binding_key_id from the linked supported permit.decision.v1 evidence against a permit_binding_signing trust root active at decision_at.",
+    "linkage_rules": {
+      "identity": "permit_id and project_id MUST equal the linked issuance-time Permit decision and evidence-pack identity.",
+      "source": "from_decision MUST equal the signed issuance-time decision.",
+      "target": "to_decision and to_status MUST equal the evidence pack's recorded decision state.",
+      "approval": "permit.challenge_approved MUST transition challenge/awaiting_attestation to allow/attested."
+    },
+    "claim_boundary": {
+      "establishes": "The issuing key recorded the linked review transition and actor identifier.",
+      "does_not_establish": [
+        "the natural-person identity or organizational role behind actor_id",
+        "dispatch",
+        "provider success",
+        "financial settlement"
+      ]
+    }
+  }
+}
