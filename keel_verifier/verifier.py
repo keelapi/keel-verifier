@@ -14760,7 +14760,11 @@ def _warn_legacy_split_export() -> None:
     )
 
 
-def _human_report_session(input_path: str | None) -> dict[str, Any]:
+def _human_report_session(
+    input_path: str | None,
+    *,
+    trust_root_source: str | None = None,
+) -> dict[str, Any]:
     """Session values for the human report, computed at the call site.
 
     Deliberately kept out of the pure renderer: wall-clock time and the input
@@ -14770,6 +14774,13 @@ def _human_report_session(input_path: str | None) -> dict[str, Any]:
         "verifier_version": verifier_version(),
         "verified_at": datetime.now(timezone.utc).isoformat(),
     }
+    if trust_root_source:
+        session["trust_root_source"] = trust_root_source
+        session["trust_root_source_kind"] = (
+            "cached"
+            if trust_root_source == str(CACHED_TRUST_ROOT_PATH)
+            else "explicit_or_bundled"
+        )
     if input_path:
         try:
             digest = hashlib.sha256(Path(input_path).read_bytes()).hexdigest()
@@ -14794,7 +14805,10 @@ def cmd_export(args: argparse.Namespace) -> int:
         print(
             render_human(
                 report.to_dict(),
-                session=_human_report_session(args.export_file),
+                session=_human_report_session(
+                    args.export_file,
+                    trust_root_source=_key_manifest_source_for_args(args),
+                ),
             )
         )
         return report.exit_code
