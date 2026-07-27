@@ -276,17 +276,6 @@
       ]
     },
     {
-      "name": "permit.review_transition.v1",
-      "assertion": "A challenge review transition is validly signed by the permit-binding key and links one issuance-time challenge to the recorded terminal review outcome for the same permit and project; this claim does not establish dispatch, provider success, or settlement.",
-      "required_evidence": "Strict challenge transition fields, canonical hash, signature, linked issuance-time permit.decision.v1 evidence carrying binding_key_id, permit-binding trust root active at decision_at, and matching permit/project/from/to decision and status values.",
-      "verdict_enum": [
-        "supported",
-        "disproved",
-        "insufficient_evidence",
-        "unverifiable_scope"
-      ]
-    },
-    {
       "name": "permit.revoked.v1",
       "assertion": "A new-only post-cutover `permit.revoked` event is validly signed by the permit-binding key, is bound to both `permit_id` and `project_id`, and uses v1 immediate-effect semantics where `effective_at` equals `revoked_at`.",
       "required_evidence": "Strict permit.revoked event payload, signature, permit-binding trust root, referenced permit/project identity, signing time or event time for key-window resolution, and pinned revoked-event semantics.",

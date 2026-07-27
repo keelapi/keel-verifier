@@ -49,7 +49,8 @@
     "permit.revoked.v1",
     "permit.authority_chain.v1",
     "authority.revocation_temporal.v1",
-    "key.status.completeness.v1"
+    "key.status.completeness.v1",
+    "permit.review_transition.v1"
   ],
   "_integrity_claims_doc": "Claims whose `disproved` verdict means the evidence itself was forged or altered (a signature, hash, or chain-continuity failure). A required disproved integrity claim drives the Evidence line to TAMPERED; any other required disproved (non-violation) claim drives it to INVALID. Violation claims (violation_on_disproved) are excluded here and surface in the Finding line instead.",
   "dimensions": [
@@ -226,6 +227,18 @@
         "unverifiable_scope": "Permit decision: not checkable by this verifier version"
       },
       "forbidden_wording": ["permit is active", "permit is current", "permit is valid now"]
+    },
+    {
+      "claim": "permit.review_transition.v1",
+      "dimension": "authorization",
+      "provenance": "DERIVED_VERIFICATION_RESULT",
+      "labels": {
+        "supported": "Human review transition signed by the issuing key",
+        "disproved": "Human review transition signature INVALID",
+        "insufficient_evidence": "Human review transition: insufficient evidence",
+        "unverifiable_scope": "Human review transition: not checkable by this verifier version"
+      },
+      "forbidden_wording": ["human identity verified", "manager role verified", "payment executed"]
     },
     {
       "claim": "permit.operator_approval.v1",

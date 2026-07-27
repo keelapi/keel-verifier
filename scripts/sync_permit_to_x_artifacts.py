@@ -18,10 +18,19 @@ DATA = ROOT / "keel_verifier" / "data"
 COPIES = {
     "semantic_registry/v1.json": "permit_to_x/semantic_registry/v1.json",
     "semantic_registry/v1.schema.json": ("permit_to_x/semantic_registry/v1.schema.json"),
+    "semantic_registry/v2.json": "permit_to_x/semantic_registry/v2.json",
+    "semantic_registry/v2.schema.json": ("permit_to_x/semantic_registry/v2.schema.json"),
+    "semantic_registry/v3.json": "permit_to_x/semantic_registry/v3.json",
+    "semantic_registry/v3.schema.json": ("permit_to_x/semantic_registry/v3.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "schemas/permit-semantic-binding-v1.schema.json": (
         "permit_to_x/schemas/permit-semantic-binding-v1.schema.json"
+    ),
+    "fact_profiles/v1.json": "permit_to_x/fact_profiles/v1.json",
+    "fact_profiles/v1.schema.json": "permit_to_x/fact_profiles/v1.schema.json",
+    "schemas/payment-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/payment-exact-facts-v1.schema.json"
     ),
     "schemas/work-request-v1.schema.json": ("permit_to_x/schemas/work-request-v1.schema.json"),
     "schemas/work-package-v1.schema.json": ("permit_to_x/schemas/work-package-v1.schema.json"),

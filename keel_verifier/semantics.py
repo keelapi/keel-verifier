@@ -40,6 +40,7 @@ SCOPE_STATE_MERKLE_ID = "keel.scope_state.merkle.v1"
 SCOPE_STATE_SIDECAR_FORMAT_ID = "keel.scope_state.sidecar_format.v1"
 EXPORT_SCOPE_FAITHFULNESS_ID = "keel.export.scope_faithfulness.v1"
 PERMIT_DECISION_ID = "keel.permit.decision.v1"
+PERMIT_REVIEW_TRANSITION_ID = "keel.permit.review_transition.v1"
 PERMIT_REVOKED_EVENT_ID = "keel.permit.revoked_event.v1"
 PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID = "keel.permit.dispatch_absence_after_revocation.v1"
 PERMIT_AUTHORITY_CHAIN_ID = "keel.permit.authority_chain.v1"
@@ -63,12 +64,13 @@ WORK_EXECUTION_BOUNDARY_ID = "keel.permit_chain.execution_authorized_at_boundary
 WORK_VALUE_CONSERVATION_ID = "keel.permit.work_value_conservation.v1"
 WORK_PAYMENT_AUTHORITY_COMPARATOR_ID = "keel.work_payment_authority.v1"
 
-CLAIM_REGISTRY_HASH = "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
+CLAIM_REGISTRY_HASH = "sha256:1ce5c3d46e81c989a7a32e1deb1f9c4c216891302699b4050e2f7edff50d7c15"
 CLAIM_REGISTRY_PREVIOUS_HASH = (
-    "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4"
+    "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
     "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1",
     "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa",
     "sha256:02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
@@ -147,6 +149,9 @@ EXPORT_SCOPE_FAITHFULNESS_SOURCE_HASH = (
     "sha256:478150048a5135ebba4550806a814b27ced491a1198c41ad5a40390045a1435b"
 )
 PERMIT_DECISION_HASH = "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb"
+PERMIT_REVIEW_TRANSITION_HASH = (
+    "sha256:bcd8dbb43d65a6f3b172403919f7176772d83245ce50f52818e347c0324fdd33"
+)
 PERMIT_DECISION_V33_HASH = "sha256:3679abd51ca831c30d0fae3825418b71fc9c8f2763b20e7ec8c1dcebea224d0d"
 PERMIT_DECISION_PREVIOUS_HASH = (
     "sha256:f5cb80b8849f4d5e88a796cf76e2edf261a2bc47ca19cec68c6b3189242f44dd"
@@ -299,6 +304,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
         CHECKPOINT_SIGNATURE_ID,
     ),
     "permit.decision.v1": (PERMIT_DECISION_ID,),
+    "permit.review_transition.v1": (PERMIT_REVIEW_TRANSITION_ID,),
     "permit.revoked.v1": (PERMIT_REVOKED_EVENT_ID,),
     "permit.dispatch_absence_after_revocation.v1": (PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID,),
     "permit.authority_chain.v1": (PERMIT_AUTHORITY_CHAIN_ID,),
@@ -372,6 +378,7 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     SCOPE_STATE_SIDECAR_FORMAT_ID: "semantics/scope_state/sidecar_format_v1.json",
     EXPORT_SCOPE_FAITHFULNESS_ID: "semantics/export/scope_faithfulness_v1.json",
     PERMIT_DECISION_ID: "semantics/permit/decision_v1.json",
+    PERMIT_REVIEW_TRANSITION_ID: "semantics/permit/review_transition_v1.json",
     PERMIT_REVOKED_EVENT_ID: "semantics/permit/revoked_event_v1.json",
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (
         "semantics/permit/dispatch_absence_after_revocation_v1.json"
@@ -427,6 +434,7 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     SCOPE_STATE_SIDECAR_FORMAT_ID: SCOPE_STATE_SIDECAR_FORMAT_HASH,
     EXPORT_SCOPE_FAITHFULNESS_ID: EXPORT_SCOPE_FAITHFULNESS_HASH,
     PERMIT_DECISION_ID: PERMIT_DECISION_HASH,
+    PERMIT_REVIEW_TRANSITION_ID: PERMIT_REVIEW_TRANSITION_HASH,
     PERMIT_REVOKED_EVENT_ID: PERMIT_REVOKED_EVENT_HASH,
     PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_ID: (PERMIT_DISPATCH_ABSENCE_AFTER_REVOCATION_HASH),
     PERMIT_AUTHORITY_CHAIN_ID: PERMIT_AUTHORITY_CHAIN_HASH,
@@ -1594,6 +1602,11 @@ def make_permanent_allowlist(
             PERMIT_DECISION_ID,
             PERMIT_DECISION_LEGACY_HASH,
             "permit_decision",
+        ),
+        SemanticImplementation(
+            PERMIT_REVIEW_TRANSITION_ID,
+            PERMIT_REVIEW_TRANSITION_HASH,
+            "permit_review_transition",
         ),
         SemanticImplementation(
             PERMIT_REVOKED_EVENT_ID,

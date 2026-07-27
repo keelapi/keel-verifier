@@ -323,3 +323,27 @@ def test_evidence_coverage_lists_present_and_absent() -> None:
     assert "Operator approval: verified" in out
     assert "Dispatch: not provided" in out
     assert "Timestamp: not provided" in out
+
+
+def test_exact_payment_report_uses_permit_to_pay_title_and_signed_facts() -> None:
+    report = _report(
+        [],
+        artifact={
+            "kind": "permit_exact",
+            "permit": {
+                "permit_id": "permit-123",
+                "decision": "allow",
+                "authorized_action": "payment.execute",
+                "amount_minor": 5000,
+                "currency": "USD",
+                "recipient": "Irene",
+                "payment_rail": "stripe.payment_intent",
+                "request_digest": "sha256:" + "a" * 64,
+                "recipient_opening_status": "disclosed",
+            },
+        },
+    )
+    out = render_human(report)
+    assert out.startswith("AI PERMIT-TO-PAY — Verification Report")
+    assert "Amount: 50.00 USD" in out
+    assert "Recipient: Irene" in out

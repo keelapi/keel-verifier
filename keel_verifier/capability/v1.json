@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.8.0",
+    "version": "3.9.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -365,6 +365,20 @@
       "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v6, canonical hash, v6 resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
       "depends_on_semantics": [
         "keel.permit.decision.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.review_transition.v1",
+      "status": "implemented",
+      "description": "Verifies the signed transition from an issuance-time challenge to the linked terminal human-review decision without re-issuing the original Permit.",
+      "depends_on_semantics": [
+        "keel.permit.review_transition.v1"
       ],
       "verdicts": [
         "supported",
@@ -1040,6 +1054,11 @@
     {
       "id": "keel.permit.decision.v1",
       "hash": "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.permit.review_transition.v1",
+      "hash": "sha256:bcd8dbb43d65a6f3b172403919f7176772d83245ce50f52818e347c0324fdd33",
       "status": "allowlisted"
     },
     {
