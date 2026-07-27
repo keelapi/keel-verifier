@@ -130,6 +130,76 @@ def test_incomplete_required_evidence() -> None:
     assert "Provide the missing evidence" in out
 
 
+def test_stale_cached_permit_binding_trust_root_has_refresh_command() -> None:
+    report = _report(
+        [
+            _claim("export.integrity.v1", "supported"),
+            _claim(
+                "permit.decision.v1",
+                "insufficient_evidence",
+                reason_code="PERMIT_DECISION_UNTRUSTED_KEY",
+                message=(
+                    "key manifest contains no entry with "
+                    "purpose='permit_binding_signing'"
+                ),
+            ),
+            _claim(
+                "permit.review_transition.v1",
+                "insufficient_evidence",
+                reason_code=(
+                    "PERMIT_REVIEW_TRANSITION_TRUST_ROOT_UNRESOLVABLE"
+                ),
+                message=(
+                    "key manifest contains no entry with "
+                    "purpose='permit_binding_signing'"
+                ),
+            ),
+        ],
+        artifact={"kind": "permit_exact"},
+    )
+    cache = "/Users/example/.keel-verifier/trust-root.json"
+
+    out = render_human(
+        report,
+        session={
+            "trust_root_source": cache,
+            "trust_root_source_kind": "cached",
+        },
+    )
+
+    assert f"Refresh the cached trust root at {cache}" in out
+    assert "keel-verify refresh-keys --source api" in out
+    assert "Provide the missing evidence" not in out
+
+
+def test_explicit_incomplete_trust_root_does_not_recommend_cache_refresh() -> None:
+    report = _report(
+        [
+            _claim(
+                "permit.decision.v1",
+                "insufficient_evidence",
+                reason_code="PERMIT_DECISION_UNTRUSTED_KEY",
+                message=(
+                    "key manifest contains no entry with "
+                    "purpose='permit_binding_signing'"
+                ),
+            )
+        ],
+        artifact={"kind": "permit_exact"},
+    )
+
+    out = render_human(
+        report,
+        session={
+            "trust_root_source": "/audit/pinned-trust-root.json",
+            "trust_root_source_kind": "explicit_or_bundled",
+        },
+    )
+
+    assert "Provide the missing evidence" in out
+    assert "refresh-keys" not in out
+
+
 def test_checkpoint_uses_audit_checkpoint_title_and_no_finding() -> None:
     report = _report(
         [_claim("checkpoint.signature.v1", "supported")],

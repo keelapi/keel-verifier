@@ -15,6 +15,9 @@
 - Render actionable incomplete-check reasons and exact Permit-to-Pay facts in
   the human report while preserving explicit non-claims for dispatch, provider
   success, and settlement.
+- When the selected cached trust root lacks the Permit-binding signing key,
+  identify the cache path and recommend the explicit signed-manifest refresh
+  command without enabling automatic network access during verification.
 
 ## 3.8.0
 

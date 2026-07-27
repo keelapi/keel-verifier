@@ -127,13 +127,13 @@
     "keel_verifier/permit_co_signature.py": "7d34f8c81cda4045a5b7c2c2c39f0820b3c76bffb7a6a2d8ef19b888e51dc86f",
     "keel_verifier/permit_exact.py": "5a1cb6a3cc340cc6f22e4f7312b7d60d16d7e1e7c4c529ac198a662e3c27cd84",
     "keel_verifier/permit_presentation.py": "51e287c6f3357591e7cf76e1a9fdccbebb80be606131fdb984f7c8154842b48b",
-    "keel_verifier/report_render.py": "74aee2ce580c4c1a9bd52afa9cbf6cf56eec7fe6657928bacae5348edbcbceed",
+    "keel_verifier/report_render.py": "eb037c66cd969771d6e3f39cbf4d44bc7e6fa722c4b1ae3e0a1b4dd35f7a49bf",
     "keel_verifier/schemas/__init__.py": "4ba50e793b1a1fbb3b7c71df394d94fd4856f6745add3da4964d14123882f58f",
     "keel_verifier/schemas/artifact_ref.py": "fa4602aff953d4b7543fc6ffee04f8e81d6ca78ae43c29931db769b21e5b5347",
     "keel_verifier/self_check.py": "dbcbd633cbd51a01fa8ee58485b27c320309a82ad47f7db266b717d78409977f",
     "keel_verifier/semantics.py": "4698fee925a5b2d7e93631b6fd4a80323eb9ae30b6eb4df4e968c31b79ec0626",
     "keel_verifier/verdicts.py": "2da62c14280a436137aff66c347c281b636387e2ebff27488feaaa5da65b3488",
-    "keel_verifier/verifier.py": "36021e9b75629ac1777595426dfb33c537e8d13112600cdf312a6de556925645",
+    "keel_verifier/verifier.py": "345b9bb730ea9d7ef1744019aa1d93017b421542384a53613cf693751759aaed",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "9331b80389d9d035fd7ac86a4b55d44c40724468993be4956d3597b317b88135"
   }

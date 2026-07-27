@@ -90,6 +90,12 @@ _COVERAGE_STATUS = {
     "unverifiable_scope": "out of scope",
 }
 
+_PERMIT_BINDING_TRUST_ROOT_REASON_CODES = {
+    "PERMIT_DECISION_UNTRUSTED_KEY",
+    "PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE",
+    "PERMIT_REVIEW_TRANSITION_TRUST_ROOT_UNRESOLVABLE",
+}
+
 
 @dataclass(frozen=True)
 class ReportLine:
@@ -240,11 +246,30 @@ def _next_step(
     qualifier: str | None,
     trust_mode: dict[str, Any] | None,
     verdicts: dict[str, str],
+    report: dict[str, Any],
+    session: dict[str, Any] | None,
 ) -> str | None:
     if trust_mode and trust_mode.get("id") == "self_attested":
         return "Re-run without --self-attested to verify against the Keel trust root."
     if verdicts.get("checkpoint.tsa_imprint.v1") == "insufficient_evidence":
         return "Provide the timestamp receipt to enable timestamp verification."
+    if (
+        evidence_state == "INCOMPLETE"
+        and session
+        and session.get("trust_root_source_kind") == "cached"
+        and any(
+            claim.get("verdict") == "insufficient_evidence"
+            and claim.get("reason_code") in _PERMIT_BINDING_TRUST_ROOT_REASON_CODES
+            and "permit_binding_signing" in str(claim.get("message") or "")
+            for claim in report.get("claims", [])
+        )
+    ):
+        cache = str(session.get("trust_root_source") or "").strip()
+        location = f" at {cache}" if cache else ""
+        return (
+            f"Refresh the cached trust root{location}, then retry: "
+            "keel-verify refresh-keys --source api"
+        )
     if evidence_state == "INCOMPLETE":
         return "Provide the missing evidence listed under the incomplete checks."
     if qualifier == "partial coverage":
@@ -513,7 +538,14 @@ def build_report_lines(
             lines.extend(incomplete)
 
     # Next step (mechanical; evidence/session deficiencies only).
-    next_step = _next_step(evidence_state, qualifier, trust_mode, verdicts)
+    next_step = _next_step(
+        evidence_state,
+        qualifier,
+        trust_mode,
+        verdicts,
+        report,
+        session,
+    )
     if next_step:
         lines.append(ReportLine("", structural=True))
         lines.append(ReportLine("Next step", structural=True))
