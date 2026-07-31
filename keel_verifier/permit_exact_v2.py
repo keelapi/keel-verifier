@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from functools import lru_cache
 import hashlib
 from importlib import resources
 import json
@@ -178,6 +179,21 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
     return matches[0]
 
 
+@lru_cache(maxsize=1)
+def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
+    registry = _json("../claim_registry/v2.json")
+    ceilings: dict[str, tuple[str, ...]] = {}
+    for claim in registry.get("claims", []):
+        if not isinstance(claim, Mapping):
+            continue
+        name = claim.get("name")
+        values = claim.get("does_not_establish")
+        if not isinstance(name, str) or not isinstance(values, list):
+            continue
+        ceilings[name] = tuple(str(value) for value in values if isinstance(value, str))
+    return ceilings
+
+
 def _assessment(
     name: str,
     verdict: str,
@@ -187,13 +203,21 @@ def _assessment(
     evidence: tuple[str, ...] = (),
     does_not_establish: tuple[str, ...] = (),
 ) -> ExactClaimAssessment:
+    evidence_ceiling = tuple(
+        dict.fromkeys(
+            (
+                *_claim_evidence_ceilings().get(name, ()),
+                *does_not_establish,
+            )
+        )
+    )
     return ExactClaimAssessment(
         name=name,
         verdict=verdict,
         reason_code=reason_code,
         message=message,
         evidence=evidence,
-        does_not_establish=does_not_establish,
+        does_not_establish=evidence_ceiling,
     )
 
 

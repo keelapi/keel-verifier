@@ -225,6 +225,13 @@ def test_v2_emits_every_declared_claim_once() -> None:
     assert claims["provider.completed.v1"].reason_code == (
         "PROVIDER_STATE_EVIDENCE_MISSING"
     )
+    assert "independent truth of a provider assertion" in claims[
+        "provider.completed.v1"
+    ].does_not_establish
+    assert "provider completion" in claims[
+        "provider.accepted.v1"
+    ].does_not_establish
+    assert all(claim.does_not_establish for claim in claims.values())
 
 
 def test_v2_receipt_projection_divergence_disproves_exact_target() -> None:
@@ -259,6 +266,7 @@ def test_v2_contract_pin_digest_mismatch_never_silently_drops_claims() -> None:
         claim.reason_code == "PERMIT_CONTRACT_PIN_DIGEST_MISMATCH"
         for claim in result.claims
     )
+    assert all(claim.does_not_establish for claim in result.claims)
 
 
 def test_v2_supports_validity_certified_boundary_bounded_use_and_provider_state() -> None:
@@ -413,6 +421,10 @@ def test_v2_supports_validity_certified_boundary_bounded_use_and_provider_state(
     assert claims["provider.completed.v1"].verdict == "insufficient_evidence"
     assert "provider completion" in claims[
         "provider.accepted.v1"
+    ].does_not_establish
+    assert "settlement" in claims["provider.accepted.v1"].does_not_establish
+    assert "independent truth of a provider assertion" in claims[
+        "provider.receipt_state.v1"
     ].does_not_establish
 
 
