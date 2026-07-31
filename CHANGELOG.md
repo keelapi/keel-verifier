@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.10.1
+
+- Make the historical compatibility release gate non-vacuous in tag builds by
+  checking out the exact released `keel-permit` v1.9.1 contract and golden
+  corpus before packaging. The failed v3.10.0 tag produced no release
+  artifacts and is superseded by this patch release.
+
 ## 3.10.0
 
 - Cross-bind exact Permit semantics, authorization facts, and payment
