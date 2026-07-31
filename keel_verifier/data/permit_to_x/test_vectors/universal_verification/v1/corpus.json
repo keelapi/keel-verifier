@@ -1,0 +1,447 @@
+{
+  "suite": "keel.permit.universal_verification.v1",
+  "version": "1.0.0",
+  "description": "Minimum cross-repository behavioral corpus for the S1 universal verification contract. The normalized given model is an adjudication boundary, not a substitute for raw-pack cryptographic tests.",
+  "contracts": {
+    "claim_registry": "../../../claim_registry/v2.json",
+    "fact_profiles": "../../../fact_profiles/v2.json",
+    "semantics": "../../../semantics/permit/universal_verification_v1.json",
+    "provider_receipt_semantics": "../../../semantics/permit/provider_receipt_state_v1.json"
+  },
+  "required_claims": [
+    "permit.type.v1",
+    "permit.exact_target.v1",
+    "permit.material_request.v1",
+    "permit.valid_at_dispatch.v1",
+    "permit.revocation_at_dispatch.v1",
+    "permit.enforced_at_certified_boundary.v1",
+    "permit.bounded_use.v1",
+    "permit.single_use.v1",
+    "permit.replay_prevented.v1",
+    "permit.idempotency_bound.v1",
+    "provider.receipt_state.v1",
+    "provider.rejected.v1",
+    "provider.accepted.v1",
+    "provider.completed.v1"
+  ],
+  "schema_instances": {
+    "semantic_binding": {
+      "version": "keel.permit_semantic_binding.v2",
+      "semantic_id": "keel.action.payment_execute.v1",
+      "selector_registry_version": "keel.semantic_selector_registry.v3",
+      "selector_registry_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "selector_entry_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "trusted_source_kind": "action_verb_execute",
+      "chain_role": "action_child",
+      "action_name": "payment.execute",
+      "operation": "payment.execute",
+      "governed_surface": "payment_rail",
+      "non_authorizing_presentation_profile_id": "permit_to_pay.r1",
+      "claim_registry_version": "verifier-claims.v2",
+      "claim_registry_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "universal_semantics_id": "keel.permit.universal_verification.v1",
+      "universal_semantics_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "fact_profile_id": "keel.facts.payment_exact.v1",
+      "fact_profile_registry_version": "keel.fact_profile_registry.v2",
+      "fact_profile_registry_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "fact_profile_entry_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "authorization_facts_schema_digest": "sha256:b12f4bdca4fd759ea624d73f5d1cf65f4f103a2d55218a8be28b156aba871cf2",
+      "authorization_facts_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "authorization_facts_canonicalization": "rfc8785",
+      "derived_at": "2026-07-30T12:00:00Z"
+    },
+    "adapter_certification": {
+      "version": "keel.adapter_certification.v1",
+      "certification_id": "cert_test_v1",
+      "adapter_id": "keel.test.payment",
+      "adapter_version": "1.2.3",
+      "semantic_ids": ["keel.action.payment_execute.v1"],
+      "governed_surfaces": ["payment_rail"],
+      "conformance_vector_set_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "negative_test_results_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "anti_bypass_requirements": [
+        "all credential-bearing payment dispatches require the final gate"
+      ],
+      "issued_at": "2026-07-30T12:00:00Z",
+      "expires_at": "2026-08-30T12:00:00Z",
+      "revoked_at": null,
+      "revocation_event_digest": null,
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "issuer_key_id": "adapter-certification-test-key",
+      "canonical_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "deployment_assurance": {
+      "version": "keel.deployment_assurance.v1",
+      "assurance_id": "assurance_test_v1",
+      "project_id": "project_test",
+      "deployment_id": "deployment_test",
+      "deployment_revision": "revision_test",
+      "adapter_certification_id": "cert_test_v1",
+      "adapter_certification_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "adapter_id": "keel.test.payment",
+      "adapter_version": "1.2.3",
+      "governed_surface": "payment_rail",
+      "semantic_ids": ["keel.action.payment_execute.v1"],
+      "anti_bypass_evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "verified_at": "2026-07-30T12:05:00Z",
+      "expires_at": "2026-08-15T12:05:00Z",
+      "revoked_at": null,
+      "revocation_event_digest": null,
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "issuer_key_id": "deployment-assurance-test-key",
+      "canonical_hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "runtime_enforcement_proof": {
+      "version": "keel.runtime_enforcement_proof.v1",
+      "proof_id": "proof_test_v1",
+      "permit_id": "permit_test",
+      "project_id": "project_test",
+      "dispatch_id": "dispatch_test",
+      "semantic_id": "keel.action.payment_execute.v1",
+      "exact_request_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "adapter_certification_id": "cert_test_v1",
+      "adapter_certification_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "deployment_assurance_id": "assurance_test_v1",
+      "deployment_assurance_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "gate_id": "final_dispatch_gate",
+      "gate_revision": "revision_test",
+      "gate_result": "allow",
+      "pre_effect": true,
+      "evaluated_at": "2026-07-30T12:10:00Z",
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "issuer_key_id": "runtime-proof-test-key",
+      "canonical_hash": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "bounded_use": {
+      "version": "keel.permit_bounded_use.v1",
+      "counter_id": "counter_test",
+      "permit_id": "permit_test",
+      "project_id": "project_test",
+      "counter_sequence": 1,
+      "previous_transition_digest": null,
+      "dispatch_id": "dispatch_test",
+      "maximum_uses": 1,
+      "consumed_before": 0,
+      "consumed_after": 1,
+      "exact_request_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "idempotency_key_commitment": {
+        "method": "keel.hmac_sha256_jcs.v1",
+        "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+      },
+      "occurred_at": "2026-07-30T12:10:00Z",
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "issuer_key_id": "bounded-use-test-key",
+      "canonical_hash": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    },
+    "selective_disclosure": {
+      "version": "keel.permit_selective_disclosure.v1",
+      "disclosure_id": "disclosure_test",
+      "permit_id": "permit_test",
+      "fact_profile_id": "keel.facts.payment_exact.v1",
+      "audience": "authorized",
+      "audience_principal_commitment": {
+        "method": "keel.hmac_sha256_jcs.v1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "reason": "Authorized audit of the exact recipient reference",
+      "disclosed_at": "2026-07-30T12:20:00Z",
+      "expires_at": "2026-07-30T12:30:00Z",
+      "fields": [
+        {
+          "path": "/recipient_reference_commitment",
+          "disposition": "opening",
+          "commitment": {
+            "method": "keel.salted_sha256_jcs.v1",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "opening": {
+            "value": "recipient_test",
+            "nonce": "dGVzdC1vbmx5LW5vbmNlLTEyMzQ1Njc4OTA"
+          }
+        }
+      ]
+    },
+    "provider_receipt": {
+      "version": "keel.provider_receipt.v1",
+      "receipt_id": "receipt_test",
+      "permit_id": "permit_test",
+      "project_id": "project_test",
+      "dispatch_id": "dispatch_test",
+      "receipt_sequence": 1,
+      "provider": "stripe",
+      "operation": "payment.execute",
+      "semantic_id": "keel.action.payment_execute.v1",
+      "state": "accepted",
+      "observed_at": "2026-07-30T12:10:01Z",
+      "source_class": "provider_response",
+      "provider_reference_commitment": {
+        "method": "keel.randomized_sha256_jcs.v1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "provider_http_status": 200,
+      "exact_request_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "previous_receipt_digest": null,
+      "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "reason_code": null,
+      "does_not_establish": [
+        "provider completion",
+        "settlement",
+        "external real-world outcome"
+      ]
+    }
+  },
+  "vectors": [
+    {
+      "id": "positive-specific-permit-type",
+      "claim": "permit.type.v1",
+      "given": {
+        "decision": "supported",
+        "semantic_matches": ["keel.action.payment_execute.v1"],
+        "fact_profile": "keel.facts.payment_exact.v1",
+        "contracts_pinned": true,
+        "facts_schema_valid": true,
+        "signed_resource_attributes_match": true
+      },
+      "expected": {"verdict": "supported", "reason": "PERMIT_TYPE_VERIFIED"}
+    },
+    {
+      "id": "negative-ambiguous-permit-type",
+      "claim": "permit.type.v1",
+      "given": {
+        "decision": "supported",
+        "semantic_matches": [
+          "keel.action.payment_execute.v1",
+          "keel.action.generate_text.v1"
+        ],
+        "contracts_pinned": true
+      },
+      "expected": {"verdict": "insufficient_evidence", "reason": "PERMIT_TYPE_UNRESOLVED"}
+    },
+    {
+      "id": "negative-exact-target-diverges",
+      "claim": "permit.exact_target.v1",
+      "given": {
+        "type": "supported",
+        "signed_target_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "projected_target_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_EXACT_TARGET_MISMATCH"}
+    },
+    {
+      "id": "negative-material-request-diverges",
+      "claim": "permit.material_request.v1",
+      "given": {
+        "type": "supported",
+        "authorized_request_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "dispatch_request_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_MATERIAL_REQUEST_MISMATCH"}
+    },
+    {
+      "id": "positive-valid-at-dispatch",
+      "claim": "permit.valid_at_dispatch.v1",
+      "given": {
+        "issued_at": "2026-07-30T12:00:00Z",
+        "dispatch_at": "2026-07-30T12:10:00Z",
+        "expires_at": "2026-07-30T13:00:00Z",
+        "dispatch_instant_trusted": true
+      },
+      "expected": {"verdict": "supported", "reason": "PERMIT_VALID_AT_DISPATCH"}
+    },
+    {
+      "id": "negative-expiry-boundary-is-exclusive",
+      "claim": "permit.valid_at_dispatch.v1",
+      "given": {
+        "issued_at": "2026-07-30T12:00:00Z",
+        "dispatch_at": "2026-07-30T13:00:00Z",
+        "expires_at": "2026-07-30T13:00:00Z",
+        "dispatch_instant_trusted": true
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_EXPIRED_AT_DISPATCH"}
+    },
+    {
+      "id": "negative-revoked-at-dispatch",
+      "claim": "permit.revocation_at_dispatch.v1",
+      "given": {
+        "dispatch_at": "2026-07-30T12:10:00Z",
+        "effective_revocation_at": "2026-07-30T12:09:59Z",
+        "lifecycle_scope_faithful": true
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_REVOKED_AT_DISPATCH"}
+    },
+    {
+      "id": "positive-certified-boundary",
+      "claim": "permit.enforced_at_certified_boundary.v1",
+      "given": {
+        "adapter_certification": "supported_active",
+        "deployment_assurance": "supported_active",
+        "runtime_enforcement_proof": "supported_pre_effect",
+        "all_ids_digests_and_scope_match": true,
+        "dispatch_at": "2026-07-30T12:10:00Z"
+      },
+      "expected": {"verdict": "supported", "reason": "CERTIFIED_BOUNDARY_VERIFIED"}
+    },
+    {
+      "id": "negative-certification-id-reuse-with-different-digest",
+      "claim": "permit.enforced_at_certified_boundary.v1",
+      "given": {
+        "adapter_certification_id_matches": true,
+        "adapter_certification_digest_matches": false,
+        "deployment_assurance": "supported_active",
+        "runtime_enforcement_proof": "supported_pre_effect"
+      },
+      "expected": {"verdict": "disproved", "reason": "CERTIFICATION_BINDING_MISMATCH"}
+    },
+    {
+      "id": "negative-certification-expired",
+      "claim": "permit.enforced_at_certified_boundary.v1",
+      "given": {
+        "adapter_certification_expires_at": "2026-07-30T12:09:59Z",
+        "dispatch_at": "2026-07-30T12:10:00Z",
+        "all_ids_digests_and_scope_match": true
+      },
+      "expected": {"verdict": "disproved", "reason": "CERTIFICATION_NOT_ACTIVE_AT_DISPATCH"}
+    },
+    {
+      "id": "positive-bounded-use-first-transition",
+      "claim": "permit.bounded_use.v1",
+      "given": {
+        "counter_sequence": 1,
+        "previous_transition_digest": null,
+        "maximum_uses": 3,
+        "consumed_before": 0,
+        "consumed_after": 1,
+        "identity_and_signature_valid": true
+      },
+      "expected": {"verdict": "supported", "reason": "BOUNDED_USE_VERIFIED"}
+    },
+    {
+      "id": "negative-bounded-use-limit-exceeded",
+      "claim": "permit.bounded_use.v1",
+      "given": {
+        "counter_sequence": 4,
+        "previous_transition_digest_matches": true,
+        "maximum_uses": 3,
+        "consumed_before": 3,
+        "consumed_after": 4,
+        "identity_and_signature_valid": true
+      },
+      "expected": {"verdict": "disproved", "reason": "BOUNDED_USE_LIMIT_EXCEEDED"}
+    },
+    {
+      "id": "negative-single-use-second-transition",
+      "claim": "permit.single_use.v1",
+      "given": {
+        "maximum_uses": 1,
+        "scope_faithful_transition_count": 2
+      },
+      "expected": {"verdict": "disproved", "reason": "SINGLE_USE_POPULATION_MISMATCH"}
+    },
+    {
+      "id": "negative-replay-detected",
+      "claim": "permit.replay_prevented.v1",
+      "given": {
+        "certified_boundary": "supported",
+        "scope_faithful_matching_accepted_dispatches": 2
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_REPLAY_DETECTED"}
+    },
+    {
+      "id": "negative-idempotency-rebound",
+      "claim": "permit.idempotency_bound.v1",
+      "given": {
+        "idempotency_key_commitment": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "bound_request_digests": [
+          "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        ]
+      },
+      "expected": {"verdict": "disproved", "reason": "PERMIT_IDEMPOTENCY_BINDING_MISMATCH"}
+    },
+    {
+      "id": "positive-provider-rejected",
+      "claim": "provider.rejected.v1",
+      "given": {
+        "receipt_state": "supported",
+        "state": "rejected",
+        "source_class": "provider_response",
+        "receipt_chain_valid": true
+      },
+      "expected": {"verdict": "supported", "reason": "PROVIDER_REJECTION_VERIFIED"}
+    },
+    {
+      "id": "negative-transport-observation-cannot-establish-acceptance",
+      "claim": "provider.accepted.v1",
+      "given": {
+        "receipt_state": "supported",
+        "state": "accepted",
+        "source_class": "keel_transport_observation"
+      },
+      "expected": {"verdict": "disproved", "reason": "PROVIDER_RECEIPT_SOURCE_CEILING"}
+    },
+    {
+      "id": "positive-provider-accepted-does-not-complete",
+      "claim": "provider.accepted.v1",
+      "given": {
+        "receipt_state": "supported",
+        "state": "accepted",
+        "source_class": "provider_response"
+      },
+      "expected": {
+        "verdict": "supported",
+        "reason": "PROVIDER_ACCEPTANCE_VERIFIED",
+        "does_not_establish": [
+          "provider completion",
+          "external real-world outcome"
+        ]
+      }
+    },
+    {
+      "id": "positive-provider-completed-remains-provider-asserted",
+      "claim": "provider.completed.v1",
+      "given": {
+        "receipt_state": "supported",
+        "state": "completed",
+        "source_class": "provider_webhook"
+      },
+      "expected": {
+        "verdict": "supported",
+        "reason": "PROVIDER_COMPLETION_REPORTED",
+        "does_not_establish": [
+          "independent truth of a provider assertion",
+          "external real-world outcome without independently verified evidence"
+        ]
+      }
+    },
+    {
+      "id": "negative-low-entropy-plain-hash",
+      "claim": "permit.type.v1",
+      "given": {
+        "field_classification": "personal_data",
+        "low_entropy_possible": true,
+        "commitment_method": "plain_sha256"
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "DISCLOSURE_LOW_ENTROPY_PLAIN_HASH_FORBIDDEN"
+      }
+    },
+    {
+      "id": "negative-declared-claim-never-silently-omitted",
+      "claim": "provider.completed.v1",
+      "given": {
+        "claim_declared": true,
+        "provider_receipt_missing": true
+      },
+      "expected": {
+        "claim_emitted": true,
+        "verdict": "insufficient_evidence",
+        "reason": "PROVIDER_STATE_EVIDENCE_MISSING"
+      }
+    }
+  ]
+}

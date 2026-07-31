@@ -2,15 +2,15 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.10.1",
+    "version": "3.11.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.9.1",
+    "permit_spec_version": "1.10.0",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.9.1/claim_registry/v1.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.10.0/claim_registry/v2.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [
@@ -753,6 +753,216 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
+    },
+    {
+      "name": "permit.type.v1",
+      "status": "implemented",
+      "description": "Proves the admitted Permit consequence from the signed semantic binding and release-pinned selector and fact-profile contracts.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.exact_target.v1",
+      "status": "implemented",
+      "description": "Proves exact target facts are bound to the signed Permit decision and match any receipt projection.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.material_request.v1",
+      "status": "implemented",
+      "description": "Proves material request facts are signed and match supplied dispatch evidence.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.valid_at_dispatch.v1",
+      "status": "implemented",
+      "description": "Proves a trusted dispatch instant fell inside the signed Permit validity window.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.revocation_at_dispatch.v1",
+      "status": "implemented",
+      "description": "Adjudicates effective revocation at dispatch only when scope-faithful revocation evidence is supplied.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.enforced_at_certified_boundary.v1",
+      "status": "implemented",
+      "description": "Verifies signed adapter certification, deployment assurance, and pre-effect runtime enforcement proof as one bound chain.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.bounded_use.v1",
+      "status": "implemented",
+      "description": "Verifies signed monotonic use-counter transitions against the Permit limit.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.single_use.v1",
+      "status": "implemented",
+      "description": "Proves a maximum-use value of one against a scope-faithful bounded-use population.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.replay_prevented.v1",
+      "status": "implemented",
+      "description": "Adjudicates replay only from a scope-faithful population of matching accepted dispatches.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.idempotency_bound.v1",
+      "status": "implemented",
+      "description": "Verifies each idempotency commitment binds one Permit, material request, and dispatch identity.",
+      "depends_on_semantics": [
+        "keel.permit.decision.v1",
+        "keel.permit.universal_verification.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.receipt_state.v1",
+      "status": "implemented",
+      "description": "Verifies provider receipt identity, ordering, predecessor links, and allowed state transitions.",
+      "depends_on_semantics": [
+        "keel.permit.universal_verification.v1",
+        "keel.provider.receipt_state.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.rejected.v1",
+      "status": "implemented",
+      "description": "Reports provider rejection only from a valid bound provider receipt chain.",
+      "depends_on_semantics": [
+        "keel.permit.universal_verification.v1",
+        "keel.provider.receipt_state.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.accepted.v1",
+      "status": "implemented",
+      "description": "Reports provider acceptance only from an authoritative provider source and does not establish completion.",
+      "depends_on_semantics": [
+        "keel.permit.universal_verification.v1",
+        "keel.provider.receipt_state.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.completed.v1",
+      "status": "implemented",
+      "description": "Reports the provider's completed state while preserving the ceiling that provider assertion is not independent real-world outcome proof.",
+      "depends_on_semantics": [
+        "keel.permit.universal_verification.v1",
+        "keel.provider.receipt_state.v1"
+      ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
     }
   ],
   "artifact_formats": [
@@ -1221,6 +1431,16 @@
       "id": "keel.permit.audit_attestation.v2",
       "hash": "sha256:a877ab8e744f685bc891e878fb251bd8f916db87b3e04f5cb007fafb9d8adea2",
       "status": "vendor_soak"
+    },
+    {
+      "id": "keel.permit.universal_verification.v1",
+      "hash": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+      "status": "allowlisted"
+    },
+    {
+      "id": "keel.provider.receipt_state.v1",
+      "hash": "sha256:9fb425c075b853295be0af0fefd80508a2cf2f78901872b76f5aba14bebdaa26",
+      "status": "allowlisted"
     }
   ]
 }

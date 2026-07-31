@@ -61,9 +61,13 @@ def test_unverifiable_scope_alone_still_exits_2() -> None:
 
 # vendored resource (under keel_verifier/data/) -> canonical path in keel-permit
 _PARITY_MAP = {
+    "claim_registry/v2.json": "claim_registry/v2.json",
     "permit_to_x/semantics/permit/value_movement_classification_v1.json": "semantics/permit/value_movement_classification_v1.json",
     "permit_to_x/semantics/permit/action_classification_derivation_v1.json": "semantics/permit/action_classification_derivation_v1.json",
+    "semantics/permit/universal_verification_v1.json": "semantics/permit/universal_verification_v1.json",
+    "semantics/permit/provider_receipt_state_v1.json": "semantics/permit/provider_receipt_state_v1.json",
     "permit_to_x/test_vectors/action_classification_derivation/v1/corpus.json": "test-vectors/action_classification_derivation/v1/corpus.json",
+    "permit_to_x/test_vectors/universal_verification/v1/corpus.json": "test-vectors/universal_verification/v1/corpus.json",
     "permit_to_x/semantic_registry/v1.json": "semantic_registry/v1.json",
     "permit_to_x/semantic_registry/v1.schema.json": "semantic_registry/v1.schema.json",
     # v1 stays vendored for the life of any permit issued under it: bindings
@@ -71,6 +75,16 @@ _PARITY_MAP = {
     # correct resolution for those records.
     "permit_to_x/semantic_registry/v2.json": "semantic_registry/v2.json",
     "permit_to_x/semantic_registry/v2.schema.json": "semantic_registry/v2.schema.json",
+    "permit_to_x/fact_profiles/v2.json": "fact_profiles/v2.json",
+    "permit_to_x/fact_profiles/v2.schema.json": "fact_profiles/v2.schema.json",
+    "permit_to_x/schemas/permit-semantic-binding-v2.schema.json": "schemas/permit-semantic-binding-v2.schema.json",
+    "permit_to_x/schemas/permit-exact-pack-v2.schema.json": "schemas/permit-exact-pack-v2.schema.json",
+    "permit_to_x/schemas/adapter-certification-v1.schema.json": "schemas/adapter-certification-v1.schema.json",
+    "permit_to_x/schemas/deployment-assurance-v1.schema.json": "schemas/deployment-assurance-v1.schema.json",
+    "permit_to_x/schemas/runtime-enforcement-proof-v1.schema.json": "schemas/runtime-enforcement-proof-v1.schema.json",
+    "permit_to_x/schemas/permit-bounded-use-v1.schema.json": "schemas/permit-bounded-use-v1.schema.json",
+    "permit_to_x/schemas/permit-selective-disclosure-v1.schema.json": "schemas/permit-selective-disclosure-v1.schema.json",
+    "permit_to_x/schemas/provider-receipt-v1.schema.json": "schemas/provider-receipt-v1.schema.json",
     "permit_to_x/presentation_registry/v1.json": "presentation_registry/v1.json",
     "permit_to_x/presentation_registry/v1.schema.json": "presentation_registry/v1.schema.json",
     "permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "test-vectors/permit_to_work/v1/corpus.json",

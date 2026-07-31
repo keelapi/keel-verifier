@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/provider-receipt-v1.schema.json",
+  "title": "Keel provider receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "receipt_id",
+    "permit_id",
+    "project_id",
+    "dispatch_id",
+    "receipt_sequence",
+    "provider",
+    "operation",
+    "semantic_id",
+    "state",
+    "observed_at",
+    "source_class",
+    "exact_request_digest",
+    "evidence_digest",
+    "does_not_establish"
+  ],
+  "properties": {
+    "version": {"const": "keel.provider_receipt.v1"},
+    "receipt_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "project_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "dispatch_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "receipt_sequence": {"type": "integer", "minimum": 1},
+    "provider": {"type": "string", "minLength": 1, "maxLength": 128},
+    "operation": {"type": "string", "minLength": 1, "maxLength": 256},
+    "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "state": {
+      "enum": [
+        "rejected",
+        "accepted",
+        "running",
+        "completed",
+        "failed",
+        "rolled_back",
+        "outcome_unknown"
+      ]
+    },
+    "observed_at": {"type": "string", "format": "date-time"},
+    "source_class": {
+      "enum": [
+        "provider_response",
+        "provider_webhook",
+        "provider_audit_log",
+        "independent_external",
+        "keel_transport_observation"
+      ]
+    },
+    "provider_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "provider_http_status": {"type": "integer", "minimum": 100, "maximum": 599},
+    "exact_request_digest": {"$ref": "#/$defs/digest"},
+    "previous_receipt_digest": {"oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+    "evidence_digest": {"$ref": "#/$defs/digest"},
+    "reason_code": {"type": ["string", "null"], "maxLength": 256},
+    "does_not_establish": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"receipt_sequence": {"const": 1}}
+      },
+      "then": {
+        "properties": {"previous_receipt_digest": {"type": "null"}}
+      },
+      "else": {
+        "required": ["previous_receipt_digest"],
+        "properties": {
+          "previous_receipt_digest": {"$ref": "#/$defs/digest"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source_class": {"const": "keel_transport_observation"}
+        }
+      },
+      "then": {
+        "properties": {
+          "state": {"enum": ["rejected", "outcome_unknown"]}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {
+          "enum": [
+            "keel.randomized_sha256_jcs.v1",
+            "keel.hmac_sha256_jcs.v1"
+          ]
+        },
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

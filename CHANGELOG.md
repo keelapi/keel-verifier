@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.11.0
+
+- Add the fact-profile-driven `keel.permit_exact/v2` adjudicator and released
+  `verifier-claims.v2` extension without changing historical v0/v1 claim
+  interpretation.
+- Emit structured, consequence-neutral claims for exact Permit type, target,
+  material request, dispatch-time validity and revocation, certified
+  enforcement, bounded and single use, replay, idempotency, and provider
+  receipt states.
+- Verify the signed Permit decision as the authority source, embedded
+  release-pinned contracts by exact bytes and digests, selector uniqueness,
+  profile-specific facts, and privacy-safe low-entropy commitments.
+- Verify active adapter certification, customer deployment assurance, runtime
+  enforcement proof, and signed monotonic bounded-use transitions as
+  digest-bound chains; missing scope-faithful evidence remains explicitly
+  unverifiable rather than inferred.
+- Add the reusable provider receipt state machine while preserving the
+  transport-observation ceiling and claim-level `does_not_establish` for
+  provider assertions and external outcomes.
+- Vendor the Permit-to-X v1.10.0 universal schemas and cross-repository
+  conformance corpus, and add negative coverage for semantic ambiguity,
+  expiry, revocation, certificate substitution and expiry, limit overflow,
+  replay, idempotency rebinding, provider state ceilings, and low-entropy
+  plain hashes.
+
 ## 3.10.1
 
 - Make the historical compatibility release gate non-vacuous in tag builds by

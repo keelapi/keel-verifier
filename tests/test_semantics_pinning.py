@@ -22,6 +22,7 @@ from keel_verifier.semantics import (
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
     CLAIM_REGISTRY_V1_ID,
+    CLAIM_REGISTRY_V2_ID,
     CLAIM_SEMANTICS,
     EXPORT_SCOPE_FAITHFULNESS_ID,
     EXPORT_MANIFEST_INTEGRITY_HASH,
@@ -408,15 +409,25 @@ def test_permanent_allowlist_matches_bundled_released_artifacts():
 
 
 def test_claim_semantics_and_permanent_allowlist_are_closed():
-    registry_path = (
+    base_registry_path = (
         REPO_ROOT
         / "keel_verifier"
         / "data"
         / RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_V1_ID]
     )
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    extension_registry_path = (
+        REPO_ROOT
+        / "keel_verifier"
+        / "data"
+        / RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_V2_ID]
+    )
+    base_registry = json.loads(base_registry_path.read_text(encoding="utf-8"))
+    extension_registry = json.loads(
+        extension_registry_path.read_text(encoding="utf-8")
+    )
     registry_claims = {
         claim["name"]
+        for registry in (base_registry, extension_registry)
         for claim in registry.get("claims", [])
         if isinstance(claim, dict) and isinstance(claim.get("name"), str)
     }
@@ -436,6 +447,7 @@ def test_claim_semantics_and_permanent_allowlist_are_closed():
     reachable_artifacts = {
         CLAIM_REGISTRY_ID,
         CLAIM_REGISTRY_V1_ID,
+        CLAIM_REGISTRY_V2_ID,
         LEGACY_PROFILE_ID,
         *referenced_semantics,
     }

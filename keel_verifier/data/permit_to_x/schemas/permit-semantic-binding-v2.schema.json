@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-semantic-binding-v2.schema.json",
+  "title": "Keel trusted Permit semantic binding v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "semantic_id",
+    "selector_registry_version",
+    "selector_registry_digest",
+    "selector_entry_digest",
+    "trusted_source_kind",
+    "chain_role",
+    "governed_surface",
+    "claim_registry_version",
+    "claim_registry_digest",
+    "universal_semantics_id",
+    "universal_semantics_digest",
+    "derived_at"
+  ],
+  "properties": {
+    "version": {"const": "keel.permit_semantic_binding.v2"},
+    "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "selector_registry_version": {
+      "type": "string",
+      "pattern": "^keel\\.semantic_selector_registry\\.v[0-9]+$"
+    },
+    "selector_registry_digest": {"$ref": "#/$defs/digest"},
+    "selector_entry_digest": {"$ref": "#/$defs/digest"},
+    "trusted_source_kind": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,127}$"
+    },
+    "chain_role": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,127}$"
+    },
+    "action_name": {"type": "string", "minLength": 1, "maxLength": 256},
+    "operation": {"type": "string", "minLength": 1, "maxLength": 256},
+    "governed_surface": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,127}$"
+    },
+    "non_authorizing_presentation_profile_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "claim_registry_version": {
+      "type": "string",
+      "pattern": "^verifier-claims\\.v[0-9]+$"
+    },
+    "claim_registry_digest": {"$ref": "#/$defs/digest"},
+    "universal_semantics_id": {
+      "type": "string",
+      "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"
+    },
+    "universal_semantics_digest": {"$ref": "#/$defs/digest"},
+    "fact_profile_id": {
+      "type": "string",
+      "pattern": "^keel\\.facts\\.[a-z0-9._-]+\\.v[0-9]+$"
+    },
+    "fact_profile_registry_version": {
+      "type": "string",
+      "pattern": "^keel\\.fact_profile_registry\\.v[0-9]+$"
+    },
+    "fact_profile_registry_digest": {"$ref": "#/$defs/digest"},
+    "fact_profile_entry_digest": {"$ref": "#/$defs/digest"},
+    "authorization_facts_schema_digest": {"$ref": "#/$defs/digest"},
+    "authorization_facts_digest": {"$ref": "#/$defs/digest"},
+    "authorization_facts_canonicalization": {"const": "rfc8785"},
+    "derived_at": {"type": "string", "format": "date-time"}
+  },
+  "dependentRequired": {
+    "fact_profile_id": [
+      "fact_profile_registry_version",
+      "fact_profile_registry_digest",
+      "fact_profile_entry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "fact_profile_registry_version": [
+      "fact_profile_id",
+      "fact_profile_registry_digest",
+      "fact_profile_entry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "fact_profile_registry_digest": [
+      "fact_profile_id",
+      "fact_profile_registry_version",
+      "fact_profile_entry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "fact_profile_entry_digest": [
+      "fact_profile_id",
+      "fact_profile_registry_version",
+      "fact_profile_registry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "authorization_facts_schema_digest": [
+      "fact_profile_id",
+      "fact_profile_registry_version",
+      "fact_profile_registry_digest",
+      "fact_profile_entry_digest",
+      "authorization_facts_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "authorization_facts_digest": [
+      "fact_profile_id",
+      "fact_profile_registry_version",
+      "fact_profile_registry_digest",
+      "fact_profile_entry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_canonicalization"
+    ],
+    "authorization_facts_canonicalization": [
+      "fact_profile_id",
+      "fact_profile_registry_version",
+      "fact_profile_registry_digest",
+      "fact_profile_entry_digest",
+      "authorization_facts_schema_digest",
+      "authorization_facts_digest"
+    ]
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

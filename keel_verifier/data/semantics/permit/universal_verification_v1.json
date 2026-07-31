@@ -1,0 +1,104 @@
+{
+  "id": "keel.permit.universal_verification.v1",
+  "version": "v1",
+  "kind": "permit_universal_verification_recipe",
+  "status": "released",
+  "body": {
+    "claim_registry_version": "verifier-claims.v2",
+    "fact_profile_registry_version": "keel.fact_profile_registry.v2",
+    "canonicalization_profile": "rfc8785",
+    "claim_order": [
+      "permit.decision.v1",
+      "permit.type.v1",
+      "permit.exact_target.v1",
+      "permit.material_request.v1",
+      "permit.valid_at_dispatch.v1",
+      "permit.revocation_at_dispatch.v1",
+      "permit.enforced_at_certified_boundary.v1",
+      "permit.bounded_use.v1",
+      "permit.single_use.v1",
+      "permit.replay_prevented.v1",
+      "permit.idempotency_bound.v1",
+      "provider.receipt_state.v1",
+      "provider.rejected.v1",
+      "provider.accepted.v1",
+      "provider.completed.v1"
+    ],
+    "registry_resolution": {
+      "rule": "Resolve every contract by the exact artifact identity, version, and digest declared by the evidence pack. Resolve verifier-claims.v2 as the ordered union of its pinned base plus its additions.",
+      "duplicate_claim_rule": "A duplicate claim name across a registry extension chain is fatal.",
+      "missing_contract_verdict": "unverifiable_scope",
+      "digest_mismatch_verdict": "disproved"
+    },
+    "exact_action": {
+      "rule": "The supported Permit decision's resource_attributes_json is authoritative. Receipt or display projections are comparison evidence only.",
+      "required_bindings": [
+        "semantic selector entry",
+        "fact-profile entry",
+        "authorization-facts schema",
+        "authorization-facts digest",
+        "trusted classification when the profile declares it"
+      ],
+      "presentation_non_interference": true,
+      "specific_type_without_exact_profile": "insufficient_evidence"
+    },
+    "temporal": {
+      "dispatch_instant_source": "A supported signed runtime-enforcement proof or scope-faithful dispatch-boundary evidence.",
+      "validity_rule": "issued_at <= dispatch_at < expires_at",
+      "revocation_rule": "No effective revocation for the Permit may precede or equal dispatch_at within the supported declared scope.",
+      "mid_flight_rule": "A revocation after dispatch does not prove that an already-dispatched external effect was cancelled."
+    },
+    "certified_enforcement": {
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "artifact_chain": [
+        "keel.adapter_certification.v1",
+        "keel.deployment_assurance.v1",
+        "keel.runtime_enforcement_proof.v1"
+      ],
+      "binding_rule": "Each child names and hashes the exact parent artifact. IDs alone never satisfy binding.",
+      "active_rule": "issued_or_verified_at <= dispatch_at < expires_at and no revocation effective at or before dispatch_at",
+      "scope_rule": "project, semantic, surface, adapter id, adapter version, deployment revision, Permit id, dispatch id, and exact request digest must agree wherever present",
+      "gate_rule": "pre_effect must be true and gate_result must equal the signed decision outcome represented by the claim.",
+      "self_assertion_forbidden": true
+    },
+    "bounded_use": {
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "transition_rule": "consumed_after = consumed_before + 1 and consumed_after <= maximum_uses",
+      "first_rule": "counter_sequence=1, consumed_before=0, consumed_after=1, previous_transition_digest=null",
+      "successor_rule": "counter_sequence increments by one and previous_transition_digest equals the canonical digest of the immediately preceding supported transition",
+      "runtime_atomicity_rule": "Runtime enforcement must serialize transitions for the same project_id and permit_id. Schema validity alone does not establish atomicity.",
+      "single_use_rule": "maximum_uses=1 and exactly one supported transition in a supported scope-faithful counter population",
+      "idempotency_rule": "One committed idempotency identity binds one Permit, exact request digest, dispatch id, and transition.",
+      "replay_rule": "A second accepted dispatch for the same Permit and exact request identity disproves replay prevention within the supported scope."
+    },
+    "provider_receipts": {
+      "state_semantics_id": "keel.provider.receipt_state.v1",
+      "chain_rule": "receipt_sequence starts at one and every successor binds the immediately preceding receipt digest for the same project, Permit, dispatch, provider, operation, semantic, and exact request.",
+      "transport_ceiling": "keel_transport_observation may establish rejected or outcome_unknown only.",
+      "http_error_rule": "A provider HTTP error or transport error never establishes acceptance.",
+      "acceptance_rule": "provider.accepted.v1 requires source-specific authoritative acceptance evidence.",
+      "completion_rule": "provider.completed.v1 reports the provider-defined completed state and remains a provider assertion unless independent outcome evidence is separately supported.",
+      "strongest_state_rule": "Emit every declared state claim with its own verdict and does_not_establish; do not silently omit a failed declared claim."
+    },
+    "privacy": {
+      "default_audience": "verifier_safe",
+      "low_entropy_plain_hash_forbidden": true,
+      "safe_low_entropy_methods": [
+        "keel.salted_sha256_jcs.v1",
+        "keel.randomized_sha256_jcs.v1",
+        "keel.hmac_sha256_jcs.v1",
+        "keel.opaque_reference.v1"
+      ],
+      "opaque_reference_minimum_entropy_bits": 128,
+      "opening_rule": "An opening is separate audience-scoped evidence and requires an audit reason.",
+      "erasure_rule": "Erasure never rewrites signed authorization bytes. It may erase an opening or emit a signed tombstone while preserving the original commitment."
+    },
+    "verdict_precedence": [
+      "disproved",
+      "unverifiable_scope",
+      "insufficient_evidence",
+      "supported"
+    ],
+    "claim_emission_rule": "Every claim declared by the evidence pack is emitted exactly once, including failures."
+  }
+}

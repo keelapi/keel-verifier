@@ -9,6 +9,7 @@ offline drift checks against a source checkout.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from dataclasses import dataclass, field
@@ -28,7 +29,9 @@ from keel_verifier.semantics import (
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
-CLAIM_REGISTRY_VERSION = "verifier-claims.v1"
+CLAIM_REGISTRY_VERSION = "verifier-claims.v2"
+CLAIM_REGISTRY_V1_ID = "keel.verifier_claim_registry.v1"
+CLAIM_REGISTRY_V1_VERSION = "verifier-claims.v1"
 
 
 def _source_tree_version() -> str | None:
@@ -104,18 +107,79 @@ def _load_registry_payload() -> tuple[dict[str, Any], str]:
 
     try:
         bundled = resources.files("keel_verifier").joinpath(
-            "data/claim_registry/v1.json"
+            "data/claim_registry/v2.json"
         )
         return json.loads(bundled.read_text(encoding="utf-8")), str(bundled)
     except Exception as exc:
         raise RuntimeError(
-            "could not load verifier claim registry v1; set KEEL_CLAIM_REGISTRY"
+            "could not load verifier claim registry v2; set KEEL_CLAIM_REGISTRY"
         ) from exc
+
+
+def _compose_registry_payload(
+    payload: dict[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    """Resolve the current composable registry without mutating either artifact."""
+
+    if payload.get("version") != CLAIM_REGISTRY_VERSION:
+        return payload
+    extension = payload.get("extends")
+    if not isinstance(extension, dict):
+        raise ValueError(f"claim registry at {source} is missing extends")
+    if (
+        extension.get("artifact_id") != CLAIM_REGISTRY_V1_ID
+        or extension.get("version") != CLAIM_REGISTRY_V1_VERSION
+    ):
+        raise ValueError(f"claim registry at {source} has an unsupported base")
+    try:
+        base_resource = resources.files("keel_verifier").joinpath(
+            "data/claim_registry/v1.json"
+        )
+        base_raw = base_resource.read_bytes()
+        base_source = str(base_resource)
+    except Exception as exc:
+        raise RuntimeError("could not load verifier claim registry v1 base") from exc
+    expected_digest = str(extension.get("sha256") or "")
+    actual_digest = hashlib.sha256(base_raw).hexdigest()
+    if expected_digest != actual_digest:
+        raise ValueError(
+            f"claim registry at {source} pins v1 digest {expected_digest!r}, "
+            f"but {base_source} has {actual_digest!r}"
+        )
+    base = json.loads(base_raw)
+    if base.get("version") != CLAIM_REGISTRY_V1_VERSION:
+        raise ValueError(f"claim registry base at {base_source} has wrong version")
+    base_claims = base.get("claims")
+    extension_claims = payload.get("claims")
+    if not isinstance(base_claims, list) or not isinstance(extension_claims, list):
+        raise ValueError(f"claim registry at {source} has invalid extension claims")
+    base_names = {
+        item.get("name")
+        for item in base_claims
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    }
+    extension_names = [
+        item.get("name")
+        for item in extension_claims
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    ]
+    duplicates = sorted(base_names.intersection(extension_names))
+    if duplicates:
+        raise ValueError(
+            f"claim registry at {source} duplicates base claims: {duplicates}"
+        )
+    return {
+        **payload,
+        "claims": [*base_claims, *extension_claims],
+    }
 
 
 @lru_cache(maxsize=1)
 def load_claim_registry() -> ClaimRegistry:
     payload, source = _load_registry_payload()
+    payload = _compose_registry_payload(payload, source=source)
     version = payload.get("version")
     if version != CLAIM_REGISTRY_VERSION:
         raise ValueError(

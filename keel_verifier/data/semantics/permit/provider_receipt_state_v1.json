@@ -1,0 +1,49 @@
+{
+  "id": "keel.provider.receipt_state.v1",
+  "version": 1,
+  "description": "State-transition and claim-ceiling rules for provider receipts.",
+  "states": [
+    "rejected",
+    "accepted",
+    "running",
+    "completed",
+    "failed",
+    "rolled_back",
+    "outcome_unknown"
+  ],
+  "allowed_transitions": {
+    "rejected": [],
+    "accepted": ["running", "completed", "failed", "rolled_back", "outcome_unknown"],
+    "running": ["completed", "failed", "rolled_back", "outcome_unknown"],
+    "completed": ["rolled_back"],
+    "failed": ["rolled_back"],
+    "rolled_back": [],
+    "outcome_unknown": ["accepted", "running", "completed", "failed", "rolled_back"]
+  },
+  "chain_rules": {
+    "first_receipt": "receipt_sequence=1 and previous_receipt_digest=null",
+    "successor_receipt": "receipt_sequence increments by one and previous_receipt_digest equals the canonical digest of the immediately preceding supported receipt",
+    "identity_fields": [
+      "project_id",
+      "permit_id",
+      "dispatch_id",
+      "provider",
+      "operation",
+      "semantic_id",
+      "exact_request_digest"
+    ],
+    "identity_change": "disproved"
+  },
+  "rules": {
+    "provider_http_error_establishes_acceptance": false,
+    "network_error_without_authoritative_receipt": "outcome_unknown",
+    "keel_transport_observation_allowed_states": [
+      "rejected",
+      "outcome_unknown"
+    ],
+    "accepted_establishes_completion": false,
+    "running_establishes_completion": false,
+    "completed_source_class_provider_response": "provider_asserted",
+    "external_outcome_requires_independent_evidence": true
+  }
+}

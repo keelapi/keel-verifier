@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-selective-disclosure-v1.schema.json",
+  "title": "Keel Permit selective disclosure v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "disclosure_id",
+    "permit_id",
+    "fact_profile_id",
+    "audience",
+    "reason",
+    "disclosed_at",
+    "fields"
+  ],
+  "properties": {
+    "version": {"const": "keel.permit_selective_disclosure.v1"},
+    "disclosure_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "fact_profile_id": {
+      "type": "string",
+      "pattern": "^keel\\.facts\\.[a-z0-9._-]+\\.v[0-9]+$"
+    },
+    "audience": {"enum": ["verifier_safe", "authorized", "private"]},
+    "audience_principal_commitment": {
+      "oneOf": [{"$ref": "#/$defs/commitment"}, {"type": "null"}]
+    },
+    "reason": {"type": "string", "minLength": 1, "maxLength": 512},
+    "disclosed_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "disposition"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/[a-z0-9_/-]+$"},
+          "disposition": {
+            "enum": ["cleartext", "commitment", "opening", "withheld", "erased"]
+          },
+          "value": {},
+          "commitment": {"$ref": "#/$defs/commitment"},
+          "opening": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value", "nonce"],
+            "properties": {
+              "value": {},
+              "nonce": {"type": "string", "minLength": 22, "maxLength": 512}
+            }
+          },
+          "erasure_event_digest": {"$ref": "#/$defs/digest"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {
+          "enum": [
+            "keel.salted_sha256_jcs.v1",
+            "keel.randomized_sha256_jcs.v1",
+            "keel.hmac_sha256_jcs.v1"
+          ]
+        },
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

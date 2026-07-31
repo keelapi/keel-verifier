@@ -24,7 +24,7 @@ jobs:
         with:
           repository: keelapi/keel-permit
           path: keel-permit
-          ref: v1.9.1
+          ref: v1.10.0
 
       - uses: actions/setup-python@v6
         with:
