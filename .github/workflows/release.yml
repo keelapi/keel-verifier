@@ -19,6 +19,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout released Permit contract
+        uses: actions/checkout@v6
+        with:
+          repository: keelapi/keel-permit
+          path: keel-permit
+          ref: v1.9.1
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
