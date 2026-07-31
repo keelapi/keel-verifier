@@ -34,6 +34,9 @@ jobs:
       - name: Gate GitHub trust-root publication
         run: python scripts/check_release_trust_root.py --source github
 
+      - name: Gate historical compatibility corpus
+        run: python scripts/check_historical_compatibility_corpus.py --run
+
       - name: Generate embedded release manifest
         run: python scripts/generate_release_manifest.py embedded --tag "${GITHUB_REF_NAME}"
 

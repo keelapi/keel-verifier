@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.10.0
+
+- Cross-bind exact Permit semantics, authorization facts, and payment
+  classification to the resource-attribute commitment of a separately
+  supported signed Permit decision. Receipt projections are comparison
+  evidence only and can no longer supply authority.
+- Emit `permit.exact_action.v1` for both success and failure, including a
+  signed-bundle negative proving that a divergent receipt cannot be masked by
+  otherwise-valid outer-pack and Permit-decision signatures.
+- Correct `permit.co_signature.v1` to establish only the WebAuthn ceremony
+  when its target is an unsigned export projection; expose the limitation as
+  claim-level `does_not_establish`.
+- Add target-bound `permit.co_signature.v2` and signed-requirement
+  `permit.co_signature.quorum.v1` adjudication, including a self-consistent
+  false-target replay negative.
+- Adopt released `verifier-claims.v1` while preserving the historical v0
+  registry and pinned semantic recipes, and add claim-level
+  `does_not_establish` output.
+- Resolve semantic registry v3 in Permit presentation so current
+  AI Permit-to-Pay evidence retains its specific title.
+- Confirm the bundled production-signed trust root, remove its stale
+  pre-production note, refresh issuer-verified TSA CRL snapshots, and add a
+  scheduled fail-loud refresh workflow.
+- Add a release-gated historical compatibility corpus covering issued
+  Permits, evidence bundles, registry versions, fact profiles, trust roots,
+  exact-action divergence, and co-signature false-target evidence.
+
 ## 3.9.0
 
 - Verify canonical `keel.permit_exact/v1` evidence packs for

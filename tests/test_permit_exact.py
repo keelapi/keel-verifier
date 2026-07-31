@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import base64
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -9,7 +11,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 import rfc8785
 
+from keel_verifier import verifier
 from keel_verifier.permit_exact import verify_permit_exact_body
+from keel_verifier.canonical.permit_binding import (
+    canonical_binding_payload_v6,
+    canonical_resource_attributes_payload,
+    compute_canonical_binding_hash,
+)
 from keel_verifier.verifier import (
     _adjudicate_permit_review_transition_v1,
     _binding_key_id_from_public_key,
@@ -137,14 +145,18 @@ def _body() -> dict:
             "opening": {"value": "Irene", "salt": "test-salt"},
         },
         "permit_receipt": {
-            "action": {"resource_attributes_json": attrs},
+            "action": {"resource_attributes_json": copy.deepcopy(attrs)},
         },
         "permit_decision": {
             "canonical_payload": {
                 "permit_id": permit_id,
                 "project_id": project_id,
                 "decision": "challenge",
-            }
+                "resource_attributes_canonical_hash": (
+                    canonical_resource_attributes_payload(attrs)
+                ),
+            },
+            "resource_attributes_json": copy.deepcopy(attrs),
         },
         "review_transition": {
             "status": "present",
@@ -153,6 +165,157 @@ def _body() -> dict:
         },
         "decision_state": {"decision": "allow", "status": "attested"},
     }
+
+
+def _signed_exact_bundle_case(
+    tmp_path: Path,
+    *,
+    divergent_receipt: bool,
+) -> tuple[Path, Path]:
+    body = _body()
+    attrs = body["permit_decision"]["resource_attributes_json"]
+    binding_private = Ed25519PrivateKey.generate()
+    binding_public = "ed25519:" + base64.b64encode(
+        binding_private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    ).decode("ascii")
+    binding_key_id = _binding_key_id_from_public_key(binding_public)
+    payload = canonical_binding_payload_v6(
+        permit_id="10000000-0000-4000-8000-000000000001",
+        project_id="20000000-0000-4000-8000-000000000002",
+        parent_permit_id=None,
+        decision="allow",
+        reason="policy.allow",
+        provider="stripe",
+        model="payment-intent",
+        operation="payment.execute",
+        action_name="payment.execute",
+        request_fingerprint="sha256:" + "1" * 64,
+        constraints={},
+        routing={},
+        policy_id="policy-exact",
+        policy_version="2026-07-31",
+        policy_snapshot_hash="sha256:" + "2" * 64,
+        issued_at="2026-07-31T05:00:00Z",
+        expires_at="2026-07-31T06:00:00Z",
+        is_dry_run=False,
+        binding_key_id=binding_key_id,
+        final_request_hash="sha256:" + "3" * 64,
+        binding_session_id=None,
+        binding_session_event_hash=None,
+        binding_project_anchor_hash=None,
+        permit_chain_role="session_root",
+        inherits_from=None,
+        authority_delta={},
+        spend_scope_hash=None,
+        delegation_policy_hash=None,
+        resource_attributes_canonical_hash=canonical_resource_attributes_payload(
+            attrs
+        ),
+    )
+    canonical_hash = compute_canonical_binding_hash(payload)
+    body["permit_id"] = payload["permit_id"]
+    body["project_id"] = payload["project_id"]
+    body["permit_decision"] = {
+        "artifact_type": "permit_decision_binding",
+        "artifact_version": "permit.decision.v1",
+        "canonical_payload": payload,
+        "resource_attributes_json": copy.deepcopy(attrs),
+        "binding_canonical_hash": canonical_hash,
+        "binding_signature": "ed25519:"
+        + base64.b64encode(
+            binding_private.sign(canonical_hash.encode("utf-8"))
+        ).decode("ascii"),
+        "binding_issued_at": payload["issued_at"],
+    }
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attrs
+    )
+    body["review_transition"] = {"status": "not_present"}
+    body["decision_state"] = {"decision": "allow", "status": "issued"}
+    if divergent_receipt:
+        body["permit_receipt"]["action"]["resource_attributes_json"][
+            "permit_authorization_facts_v1"
+        ]["amount_minor"] = 1
+
+    artifact_id = "exact-divergence" if divergent_receipt else "exact-supported"
+    artifact_material = copy.deepcopy(body)
+    body["artifact_ref"] = {
+        "schema_version": "artifact_ref.v1",
+        "type": "permit_exact",
+        "id": artifact_id,
+        "urn": f"urn:x-keel:artifact:permit_exact:{artifact_id}",
+        "region": "us-west-1",
+        "path": f"/v1/test/{artifact_id}",
+        "canonical_url": f"https://api.keelapi.com/v1/test/{artifact_id}",
+        "digest": verifier._artifact_ref_digest_for_body(artifact_material),
+    }
+
+    export_private = Ed25519PrivateKey.generate()
+    export_public = base64.b64encode(
+        export_private.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    ).decode("ascii")
+    content_hash = verifier._content_hash(
+        verifier._bundle_canonical_json_bytes(body)
+    )
+    bundle = {
+        "schema_version": "keel.evidence_bundle/v1",
+        "body": body,
+        "signature_envelope": {
+            "content_hash": content_hash,
+            "signature": base64.b64encode(
+                export_private.sign(content_hash.encode("utf-8"))
+            ).decode("ascii"),
+            "public_key_id": verifier._public_key_fingerprint(export_public),
+            "public_key": export_public,
+            "tsa_receipts": [],
+            "tsa_attempts": [],
+        },
+    }
+    export_path = tmp_path / f"{artifact_id}.json"
+    export_path.write_text(
+        json.dumps(bundle, sort_keys=True),
+        encoding="utf-8",
+    )
+    trust_root = tmp_path / "binding-trust-root.json"
+    trust_root.write_text(
+        json.dumps(
+            {
+                "keys": [
+                    {
+                        "key_id": binding_key_id,
+                        "algorithm": "ed25519",
+                        "public_key": binding_public,
+                        "purpose": "permit_binding_signing",
+                        "status": "active",
+                        "valid_from": "2026-01-01T00:00:00Z",
+                        "valid_to": None,
+                    }
+                ]
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return export_path, trust_root
+
+
+def _exact_export_args(export_path: Path, trust_root: Path) -> argparse.Namespace:
+    return argparse.Namespace(
+        export_file=str(export_path),
+        manifest=None,
+        as_json=True,
+        as_raw=False,
+        expected_public_key=None,
+        key_manifest=str(trust_root),
+        key_manifest_url=None,
+        public_key=None,
+        self_attested=False,
+        allow_unsigned=False,
+        walk_events=False,
+        verify_closure=False,
+        sidecar=None,
+        checkpoint=None,
+    )
 
 
 def test_exact_payment_facts_and_recipient_opening_verify() -> None:
@@ -172,6 +335,66 @@ def test_tampered_amount_is_rejected() -> None:
         assert "authorization_facts_digest mismatch" in str(exc)
     else:
         raise AssertionError("tampered amount must fail verification")
+
+
+def test_divergent_receipt_projection_is_rejected() -> None:
+    body = _body()
+    projected = body["permit_receipt"]["action"]["resource_attributes_json"]
+    projected["permit_authorization_facts_v1"]["amount_minor"] = 1
+
+    try:
+        verify_permit_exact_body(body)
+    except ValueError as exc:
+        assert (
+            "permit receipt projection versus signed permit decision resource "
+            "attributes mismatch"
+        ) in str(exc)
+    else:
+        raise AssertionError(
+            "a divergent receipt projection must not authorize exact facts"
+        )
+
+
+def test_tampered_signed_decision_attributes_are_rejected() -> None:
+    body = _body()
+    body["permit_decision"]["resource_attributes_json"][
+        "permit_authorization_facts_v1"
+    ]["amount_minor"] = 1
+
+    try:
+        verify_permit_exact_body(body)
+    except ValueError as exc:
+        assert (
+            "signed permit decision resource attributes commitment mismatch"
+        ) in str(exc)
+    else:
+        raise AssertionError(
+            "resource attributes outside the signed commitment must fail"
+        )
+
+
+def test_signed_exact_pack_rejects_divergent_receipt_projection(
+    tmp_path: Path,
+) -> None:
+    export_path, trust_root = _signed_exact_bundle_case(
+        tmp_path,
+        divergent_receipt=True,
+    )
+
+    report = verifier.verify_export_structured(
+        _exact_export_args(export_path, trust_root)
+    )
+    claims = {claim["name"]: claim for claim in report.to_dict()["claims"]}
+
+    assert report.exit_code == 1
+    assert claims["evidence_bundle.self_attesting.v1"]["verdict"] == "supported"
+    assert claims["permit.decision.v1"]["verdict"] == "supported"
+    assert claims["permit.exact_action.v1"]["verdict"] == "disproved"
+    assert (
+        claims["permit.exact_action.v1"]["reason_code"]
+        == "PERMIT_EXACT_ACTION_DISPROVED"
+    )
+    assert "receipt projection" in claims["permit.exact_action.v1"]["message"]
 
 
 def test_tampered_recipient_opening_is_rejected() -> None:

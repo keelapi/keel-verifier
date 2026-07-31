@@ -16,13 +16,11 @@ Pre-flight:
   `keel.public_key_manifest.v1` trust root before publishing. `refresh-keys`
   requires signed manifests for every HTTP(S) channel, so an unsigned GitHub
   mirror will fail for `refresh-keys --source github` and auto fallback.
-- Before publishing, Christian/key-ops must sign the GitHub trust-root file
-  with the real production export-signing key:
-
-  ```bash
-  KEEL_EXPORT_SIGNING_KEY=<key-ops-ed25519-seed> \
-    python scripts/sign_public_key_manifest.py
-  ```
+- Confirm the existing bundled and GitHub trust-root files with
+  `scripts/check_release_trust_root.py`. Do not rotate or re-sign an already
+  valid production root merely to cut a release. Key operations should invoke
+  `scripts/sign_public_key_manifest.py` only for an explicitly authorized key
+  rotation or trust-root publication change.
 
   The release workflow runs `scripts/check_release_trust_root.py --source github`
   before building artifacts. It fails closed unless the served trust root is a
@@ -33,6 +31,10 @@ Pre-flight:
   `permit.audit_attestation.v1` semantics hashes still match keel-api main,
   and run the permit v2 slot-signature corpus before tagging.
 - Confirm CI is green on `main`.
+- Run
+  `python scripts/check_historical_compatibility_corpus.py --run`; the release
+  workflow repeats this gate and fails if a required artifact or executable
+  historical case is absent.
 
 Create and push the release tag:
 

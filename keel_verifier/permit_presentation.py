@@ -39,6 +39,7 @@ def _load(name: str) -> tuple[dict[str, Any], bytes]:
 _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v1": "semantic_registry/v1.json",
     "keel.semantic_selector_registry.v2": "semantic_registry/v2.json",
+    "keel.semantic_selector_registry.v3": "semantic_registry/v3.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).

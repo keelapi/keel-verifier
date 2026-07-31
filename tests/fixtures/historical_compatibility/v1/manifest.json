@@ -1,0 +1,124 @@
+{
+  "schema_version": "keel.verifier.historical_compatibility.v1",
+  "cases": [
+    {
+      "id": "issued-permit-binding-v1-through-v7",
+      "category": "issued_permits",
+      "artifacts": [
+        {
+          "path": "tests/fixtures/permit_decision_binding_golden_vectors_v1_v6.json",
+          "sha256": "dbe8e13fed12dc57135546d020fb1939c6a3663f31f727688cef1295385b6e34"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_permit_decision_v1.py::test_golden_permit_decision_vectors_v1_to_v7_supported"
+      ],
+      "expected": "supported_or_versioned_negative"
+    },
+    {
+      "id": "self-attesting-evidence-bundle-v1",
+      "category": "evidence_bundles",
+      "artifacts": [
+        {
+          "path": "tests/test_self_attesting_bundle.py",
+          "sha256": "248f75865f091575b5fe83d8a3ea4b7bf86392a40f980b5adb15c492f1c61f5c"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_self_attesting_bundle.py::test_export_command_accepts_single_file_self_attesting_bundle"
+      ],
+      "expected": "supported"
+    },
+    {
+      "id": "semantic-and-claim-registry-history",
+      "category": "registry_versions",
+      "artifacts": [
+        {
+          "path": "keel_verifier/data/permit_to_x/semantic_registry/v1.json",
+          "sha256": "d7440aed255789fab9c7397bd5fcdb9ea3322d2590d509dc0e385287c0ef24b7"
+        },
+        {
+          "path": "keel_verifier/data/permit_to_x/semantic_registry/v2.json",
+          "sha256": "d07c57a2260166ce9e91fd730a17eb2d7a5389bf261c894ff63a1805149cc6ac"
+        },
+        {
+          "path": "keel_verifier/data/permit_to_x/semantic_registry/v3.json",
+          "sha256": "7ea4e6ab2dde98454cd2254b72bf2499e79b8bead396be9b35d2a6a729480ed4"
+        },
+        {
+          "path": "keel_verifier/data/claim_registry/v0.json",
+          "sha256": "1ce5c3d46e81c989a7a32e1deb1f9c4c216891302699b4050e2f7edff50d7c15"
+        },
+        {
+          "path": "keel_verifier/data/claim_registry/v1.json",
+          "sha256": "ff3fee0993fefb4456e97380f44e23ccf43fc175c8f12c78645cb6b39b2250b2"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_registry_version_resolution.py",
+        "tests/test_semantics_pinning.py::test_claim_semantics_and_permanent_allowlist_are_closed"
+      ],
+      "expected": "version_pinned_without_reinterpretation"
+    },
+    {
+      "id": "payment-exact-fact-profile-v1",
+      "category": "fact_profiles",
+      "artifacts": [
+        {
+          "path": "keel_verifier/data/permit_to_x/fact_profiles/v1.json",
+          "sha256": "3ca05ab61d31c7dfc0cfe6a1c33eebf015e74a3d239ff6909d86c65c548c19ef"
+        },
+        {
+          "path": "keel_verifier/data/permit_to_x/schemas/payment-exact-facts-v1.schema.json",
+          "sha256": "b12f4bdca4fd759ea624d73f5d1cf65f4f103a2d55218a8be28b156aba871cf2"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_permit_exact.py::test_exact_payment_facts_and_recipient_opening_verify"
+      ],
+      "expected": "supported"
+    },
+    {
+      "id": "production-signed-trust-root",
+      "category": "trust_roots",
+      "artifacts": [
+        {
+          "path": "keel_verifier/data/trust_root.json",
+          "sha256": "a3ae1670603124cd35411c6e23a76ad4635b50d14d3b0f802349189d1160096c"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_release_trust_root_gate.py::test_bundled_trust_root_is_production_signed"
+      ],
+      "expected": "production_signed"
+    },
+    {
+      "id": "exact-action-divergent-receipt",
+      "category": "exact_action_divergence",
+      "artifacts": [
+        {
+          "path": "tests/test_permit_exact.py",
+          "sha256": "5e78ef6d7651f1652742fca570d96b9e7797fdc81b7a41fb53415b04f06ef81a"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_permit_exact.py::test_signed_exact_pack_rejects_divergent_receipt_projection"
+      ],
+      "expected": "disproved"
+    },
+    {
+      "id": "co-signature-v2-false-target",
+      "category": "co_signature_false_target",
+      "artifacts": [
+        {
+          "path": "keel_verifier/data/permit_to_x/test_vectors/permit_co_signature/v2/corpus.json",
+          "sha256": "85acd8a95a52232ff25de5d6a4f738cdab13ba88f5ce276098ed6790b358193a"
+        }
+      ],
+      "pytest_nodeids": [
+        "tests/test_permit_co_signature_v2.py::test_signed_pack_rejects_valid_v2_assertion_for_false_signed_target"
+      ],
+      "expected": "disproved"
+    }
+  ]
+}

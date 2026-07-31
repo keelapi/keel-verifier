@@ -1,8 +1,9 @@
-"""Dependency-free WebAuthn verification for ``permit.co_signature.v1``.
+"""Dependency-free WebAuthn verification for Permit co-signature claims.
 
-The check order and reason codes mirror keel-permit's Phase-0 reference
-verifier. Pack integrity and trusted key-manifest resolution are deliberately
-handled by the caller before this protocol-unit verifier runs.
+The check order and reason codes mirror keel-permit's reference verifiers.
+Pack integrity, signed Permit-decision adjudication, and trusted key-manifest
+resolution are deliberately handled by the caller before this protocol-unit
+verifier runs.
 """
 
 from __future__ import annotations
@@ -39,13 +40,24 @@ CO_SIGNATURE_INVALID_SIGNATURE = "CO_SIGNATURE_INVALID_SIGNATURE"
 
 _B64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _SHA256_HEX_RE = re.compile(r"^[a-f0-9]{64}$")
-_CLAIM_FIELDS = {
+_CLAIM_V1_FIELDS = {
     "payload_type",
     "permit_id",
     "permit_canonical_hash",
     "action",
     "resource",
     "modality",
+    "co_signer_id",
+    "role",
+    "key_id",
+    "custody_tier",
+    "signed_at",
+    "assertion",
+}
+_CLAIM_V2_FIELDS = {
+    "payload_type",
+    "permit_id",
+    "permit_decision_canonical_hash",
     "co_signer_id",
     "role",
     "key_id",
@@ -222,20 +234,47 @@ def verify_protocol(
     if claim is None or target_permit is None or registered_key is None:
         return _result("insufficient_evidence", CO_SIGNATURE_EVIDENCE_MISSING)
     payload_type = claim.get("payload_type")
-    if payload_type != "permit.co_signature.v1":
+    if payload_type == "permit.co_signature.v1":
+        claim_fields = _CLAIM_V1_FIELDS
+        permit_hash = claim.get("permit_canonical_hash")
+        binding_fields = (
+            "permit_id",
+            "permit_canonical_hash",
+            "action",
+            "resource",
+            "modality",
+        )
+    elif payload_type == "permit.co_signature.v2":
+        claim_fields = _CLAIM_V2_FIELDS
+        if (
+            target_permit.get("claim_name") != "permit.decision.v1"
+            or target_permit.get("verdict") != "supported"
+        ):
+            return _result(
+                "insufficient_evidence",
+                "CO_SIGNATURE_TARGET_DECISION_UNSUPPORTED",
+            )
+        if (
+            claim.get("permit_id") != target_permit.get("permit_id")
+            or claim.get("permit_decision_canonical_hash")
+            != target_permit.get("binding_canonical_hash")
+        ):
+            return _result("disproved", CO_SIGNATURE_PERMIT_BINDING_MISMATCH)
+        permit_hash = claim.get("permit_decision_canonical_hash")
+        binding_fields = ()
+    else:
         return _result("unverifiable_scope", CO_SIGNATURE_VERSION_UNSUPPORTED)
     assertion = claim.get("assertion")
     if (
-        set(claim) != _CLAIM_FIELDS
+        set(claim) != claim_fields
         or not isinstance(assertion, Mapping)
         or set(assertion) != _ASSERTION_FIELDS
     ):
         return _result("disproved", CO_SIGNATURE_PERMIT_BINDING_MISMATCH)
-    permit_hash = claim.get("permit_canonical_hash")
     if not isinstance(permit_hash, str) or _SHA256_HEX_RE.fullmatch(permit_hash) is None:
         return _result("disproved", CO_SIGNATURE_PERMIT_BINDING_MISMATCH)
 
-    for field in ("permit_id", "permit_canonical_hash", "action", "resource", "modality"):
+    for field in binding_fields:
         if claim.get(field) != target_permit.get(field):
             return _result("disproved", CO_SIGNATURE_PERMIT_BINDING_MISMATCH)
     principal = registered_key.get("principal")

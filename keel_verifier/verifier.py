@@ -293,6 +293,11 @@ def _merge_claims(claims: list[ClaimVerdict]) -> list[ClaimVerdict]:
             required=existing.required or claim.required,
             semantics=existing.semantics if existing.semantics is not None else claim.semantics,
             evidence=[*existing.evidence, *claim.evidence],
+            does_not_establish=(
+                existing.does_not_establish
+                if existing.does_not_establish is not None
+                else claim.does_not_establish
+            ),
             epistemic_state={
                 **(existing.epistemic_state or {}),
                 **(claim.epistemic_state or {}),
@@ -672,6 +677,9 @@ PERMIT_OPERATOR_APPROVAL_CLAIM_NAME = "permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_CLAIM_NAME = "permit.counter_signature.v1"
 PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
 PERMIT_CO_SIGNATURE_CLAIM_NAME = "permit.co_signature.v1"
+PERMIT_CO_SIGNATURE_V2_CLAIM_NAME = "permit.co_signature.v2"
+PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME = "permit.co_signature.quorum.v1"
+PERMIT_EXACT_ACTION_CLAIM_NAME = "permit.exact_action.v1"
 PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME = "permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME = "permit.counter_signature.v2"
 PERMIT_AUDIT_ATTESTATION_V2_CLAIM_NAME = "permit.audit_attestation.v2"
@@ -11307,53 +11315,23 @@ def _verify_co_signer_key_manifest_signature(
 
 def _co_signature_evidence_entries(
     document: Mapping[str, Any] | None,
+    *,
+    payload_type: str | None = None,
 ) -> list[dict[str, Any]]:
     if not isinstance(document, Mapping):
         return []
     entries = document.get("co_signature_evidence")
     if not isinstance(entries, list):
         return []
-    return [dict(entry) for entry in entries if isinstance(entry, Mapping)]
-
-
-def _co_signature_target_from_document(
-    document: Mapping[str, Any],
-    *,
-    permit_id: Any,
-) -> dict[str, str] | None:
-    records: list[Mapping[str, Any]] = []
-    single = document.get("record")
-    if isinstance(single, Mapping):
-        records.append(single)
-    many = document.get("records")
-    if isinstance(many, list):
-        records.extend(record for record in many if isinstance(record, Mapping))
-    for record in records:
-        permit = record.get("permit")
-        if not isinstance(permit, Mapping) or permit.get("id") != permit_id:
-            continue
-        canonical_hash = permit.get("permit_canonical_hash")
-        action = permit.get("action_name")
-        provider = permit.get("resource_provider")
-        model = permit.get("resource_model")
-        operation = permit.get("resource_operation")
-        modality = permit.get("resource_modality") or operation or "unspecified"
-        if not all(
-            isinstance(value, str) and value
-            for value in (canonical_hash, action, provider, model, modality)
-        ):
-            return None
-        resource_parts = [provider, model]
-        if isinstance(operation, str) and operation:
-            resource_parts.append(operation)
-        return {
-            "permit_id": str(permit_id),
-            "permit_canonical_hash": canonical_hash,
-            "action": action,
-            "resource": ":".join(resource_parts),
-            "modality": str(modality),
-        }
-    return None
+    normalized = [dict(entry) for entry in entries if isinstance(entry, Mapping)]
+    if payload_type is None:
+        return normalized
+    return [
+        entry
+        for entry in normalized
+        if isinstance(entry.get("claim"), Mapping)
+        and entry["claim"].get("payload_type") == payload_type
+    ]
 
 
 def _find_co_signer_key_entry(
@@ -11398,12 +11376,22 @@ def _co_signature_claim_from_document(
     export_document: Mapping[str, Any],
     pack_integrity_verified: bool,
     pinned_key_manifest_source: str | None,
+    claim_name: str = PERMIT_CO_SIGNATURE_CLAIM_NAME,
+    decision_claim: ClaimVerdict | None = None,
     integrity_reason: str | None = None,
 ) -> ClaimVerdict:
-    evidence_entries = _co_signature_evidence_entries(export_document)
+    if claim_name not in {
+        PERMIT_CO_SIGNATURE_CLAIM_NAME,
+        PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+    }:
+        raise ValueError(f"unsupported co-signature claim name: {claim_name}")
+    evidence_entries = _co_signature_evidence_entries(
+        export_document,
+        payload_type=claim_name,
+    )
     if not evidence_entries:
         return _permit_claim(
-            PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            claim_name,
             subject_type="permit_co_signature",
             subject_id=None,
             verdict="insufficient_evidence",
@@ -11414,7 +11402,7 @@ def _co_signature_claim_from_document(
 
     if not pack_integrity_verified:
         return ClaimVerdict(
-            name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            name=claim_name,
             subjects=[
                 _subject(
                     subject_type="permit_co_signature",
@@ -11449,7 +11437,7 @@ def _co_signature_claim_from_document(
                 manifest_error = signature_error or "co-signer key manifest is untrusted"
     if manifest_error is not None:
         return ClaimVerdict(
-            name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+            name=claim_name,
             subjects=[
                 _subject(
                     subject_type="permit_co_signature",
@@ -11474,54 +11462,113 @@ def _co_signature_claim_from_document(
     subjects: list[VerdictSubject] = []
     for evidence_index, evidence_entry in enumerate(evidence_entries):
         claim = evidence_entry.get("claim")
-        declared_target = evidence_entry.get("target_permit")
         allowed_origins = evidence_entry.get("allowed_origins")
         require_uv = evidence_entry.get("require_user_verification", True)
         permit_id = claim.get("permit_id") if isinstance(claim, Mapping) else None
-        subject_id = str(permit_id or evidence_index)
-        if not isinstance(claim, Mapping) or not isinstance(declared_target, Mapping):
+        subject_id = str(
+            (
+                claim.get("co_signer_id")
+                if claim_name == PERMIT_CO_SIGNATURE_V2_CLAIM_NAME
+                else permit_id
+            )
+            or evidence_index
+        )
+        if not isinstance(claim, Mapping):
             subjects.append(
                 _subject(
                     subject_type="permit_co_signature",
                     subject_id=subject_id,
                     verdict="insufficient_evidence",
                     reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
-                    message="co-signature claim or target-Permit context is absent",
+                    message="co-signature claim is absent",
                     evidence=[f"export.co_signature_evidence[{evidence_index}]"],
                 )
             )
             continue
-        target = _co_signature_target_from_document(
-            export_document,
-            permit_id=declared_target.get("permit_id"),
-        )
-        if target is None:
-            subjects.append(
-                _subject(
-                    subject_type="permit_co_signature",
-                    subject_id=subject_id,
-                    verdict="insufficient_evidence",
-                    reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
-                    message="independent target-Permit context is absent from the pack",
-                    evidence=["export.records[].permit"],
+        if claim_name == PERMIT_CO_SIGNATURE_CLAIM_NAME:
+            # v1 can establish the WebAuthn ceremony against the target declared
+            # in the signed outer pack. It cannot establish that the target is a
+            # separately signed Permit decision, so no unsigned export record is
+            # treated as an independent target authority.
+            declared_target = evidence_entry.get("target_permit")
+            if not isinstance(declared_target, Mapping):
+                subjects.append(
+                    _subject(
+                        subject_type="permit_co_signature",
+                        subject_id=subject_id,
+                        verdict="insufficient_evidence",
+                        reason_code=CO_SIGNATURE_EVIDENCE_MISSING,
+                        message="v1 ceremony target context is absent",
+                        evidence=[
+                            f"export.co_signature_evidence[{evidence_index}].target_permit"
+                        ],
+                    )
                 )
-            )
-            continue
-        if dict(declared_target) != target:
-            subjects.append(
-                _subject(
-                    subject_type="permit_co_signature",
-                    subject_id=subject_id,
-                    verdict="disproved",
-                    reason_code="CO_SIGNATURE_PERMIT_BINDING_MISMATCH",
-                    message="declared target-Permit context does not match the pack record",
-                    evidence=[
-                        f"export.co_signature_evidence[{evidence_index}].target_permit",
-                        "export.records[].permit",
-                    ],
+                continue
+            target: Mapping[str, Any] = declared_target
+        else:
+            if (
+                decision_claim is None
+                or decision_claim.aggregate_verdict != verdict_value("supported")
+            ):
+                decision_verdict = (
+                    decision_claim.aggregate_verdict
+                    if decision_claim is not None
+                    else verdict_value("insufficient_evidence")
                 )
+                subjects.append(
+                    _subject(
+                        subject_type="permit_co_signature",
+                        subject_id=subject_id,
+                        verdict=(
+                            "disproved"
+                            if decision_verdict == verdict_value("disproved")
+                            else "unverifiable_scope"
+                            if decision_verdict == verdict_value("unverifiable_scope")
+                            else "insufficient_evidence"
+                        ),
+                        reason_code="CO_SIGNATURE_TARGET_DECISION_UNSUPPORTED",
+                        message=(
+                            "v2 requires a separately supported signed Permit decision"
+                        ),
+                        evidence=[
+                            "export.permit_decision",
+                            "claim.permit.decision.v1",
+                        ],
+                    )
+                )
+                continue
+            permit_decision, _ = _find_permit_decision_evidence(export_document)
+            canonical_payload = (
+                permit_decision.get("canonical_payload")
+                if isinstance(permit_decision, Mapping)
+                else None
             )
-            continue
+            binding_hash = (
+                permit_decision.get("binding_canonical_hash")
+                if isinstance(permit_decision, Mapping)
+                else None
+            )
+            if not isinstance(canonical_payload, Mapping) or not isinstance(
+                binding_hash, str
+            ):
+                subjects.append(
+                    _subject(
+                        subject_type="permit_co_signature",
+                        subject_id=subject_id,
+                        verdict="insufficient_evidence",
+                        reason_code="CO_SIGNATURE_TARGET_DECISION_UNSUPPORTED",
+                        message="supported target decision fields are unavailable",
+                        evidence=["export.permit_decision"],
+                    )
+                )
+                continue
+            target = {
+                "claim_name": PERMIT_DECISION_CLAIM_NAME,
+                "verdict": "supported",
+                "permit_id": canonical_payload.get("permit_id"),
+                "binding_canonical_hash": binding_hash,
+            }
         key_entry = _find_co_signer_key_entry(
             key_status_manifest,
             key_id=claim.get("key_id"),
@@ -11581,7 +11628,14 @@ def _co_signature_claim_from_document(
                 verdict=protocol.verdict,
                 reason_code=protocol.reason,
                 message=(
-                    "WebAuthn co-signature and offline pack binding are supported"
+                    (
+                        "WebAuthn co-signature ceremony is supported"
+                        if claim_name == PERMIT_CO_SIGNATURE_CLAIM_NAME
+                        else (
+                            "WebAuthn co-signature and signed Permit target "
+                            "binding are supported"
+                        )
+                    )
                     if protocol.verdict == "supported"
                     else f"permit co-signature failed: {protocol.reason}"
                 ),
@@ -11601,11 +11655,13 @@ def _co_signature_claim_from_document(
         else "CO_SIGNATURE_MULTIPLE_RESULTS"
     )
     return ClaimVerdict(
-        name=PERMIT_CO_SIGNATURE_CLAIM_NAME,
+        name=claim_name,
         subjects=subjects,
         reason_code=aggregate_reason,
         message=(
-            "all permit co-signatures are supported and report custody_tier=human_passkey"
+            "all v1 WebAuthn ceremonies are supported; signed Permit target binding is not established"
+            if all_supported and claim_name == PERMIT_CO_SIGNATURE_CLAIM_NAME
+            else "all v2 WebAuthn co-signatures and signed Permit target bindings are supported"
             if all_supported
             else "one or more permit co-signatures are not supported"
         ),
@@ -11614,7 +11670,416 @@ def _co_signature_claim_from_document(
             "export.key_status_manifest",
             "manifest.signature",
         ],
-        epistemic_state={"custody_tier": "human_passkey"} if all_supported else None,
+        epistemic_state=(
+            {
+                "webauthn_ceremony": "verified",
+                "target_binding": (
+                    "unverifiable"
+                    if claim_name == PERMIT_CO_SIGNATURE_CLAIM_NAME
+                    else "verified"
+                ),
+            }
+            if all_supported
+            else None
+        ),
+    )
+
+
+def _adjudicate_permit_co_signature_quorum_v1(
+    *,
+    export_document: Mapping[str, Any],
+    decision_claim: ClaimVerdict | None,
+    member_claim: ClaimVerdict | None,
+) -> ClaimVerdict:
+    """Adjudicate a target-bound quorum from supported v2 member claims."""
+
+    evidence = export_document.get("co_signature_quorum_evidence")
+    permit_id = (
+        str(evidence.get("permit_id") or "")
+        if isinstance(evidence, Mapping)
+        else None
+    )
+
+    def result(
+        verdict: str,
+        reason_code: str,
+        message: str,
+        paths: list[str],
+    ) -> ClaimVerdict:
+        return _permit_claim(
+            PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME,
+            subject_type="permit_co_signature_quorum",
+            subject_id=permit_id,
+            verdict=verdict,
+            reason_code=reason_code,
+            message=message,
+            evidence=paths,
+        )
+
+    if not isinstance(evidence, Mapping):
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_EVIDENCE_MISSING",
+            "co-signature quorum evidence is absent",
+            ["export.co_signature_quorum_evidence"],
+        )
+    if evidence.get("payload_type") != "permit.co_signature.quorum_evidence.v1":
+        return result(
+            "unverifiable_scope",
+            "CO_SIGNATURE_QUORUM_VERSION_UNSUPPORTED",
+            "co-signature quorum evidence version is unsupported",
+            ["export.co_signature_quorum_evidence.payload_type"],
+        )
+    if (
+        decision_claim is None
+        or decision_claim.aggregate_verdict != verdict_value("supported")
+    ):
+        decision_verdict = (
+            decision_claim.aggregate_verdict
+            if decision_claim is not None
+            else verdict_value("insufficient_evidence")
+        )
+        return result(
+            (
+                "disproved"
+                if decision_verdict == verdict_value("disproved")
+                else "unverifiable_scope"
+                if decision_verdict == verdict_value("unverifiable_scope")
+                else "insufficient_evidence"
+            ),
+            "CO_SIGNATURE_QUORUM_TARGET_DECISION_UNSUPPORTED",
+            "quorum requires a separately supported signed Permit decision",
+            ["export.permit_decision", "claim.permit.decision.v1"],
+        )
+
+    permit_decision, _ = _find_permit_decision_evidence(export_document)
+    canonical_payload = (
+        permit_decision.get("canonical_payload")
+        if isinstance(permit_decision, Mapping)
+        else None
+    )
+    decision_hash = (
+        permit_decision.get("binding_canonical_hash")
+        if isinstance(permit_decision, Mapping)
+        else None
+    )
+    if not isinstance(canonical_payload, Mapping) or not isinstance(
+        decision_hash, str
+    ):
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_TARGET_DECISION_UNSUPPORTED",
+            "supported target decision fields are unavailable",
+            ["export.permit_decision"],
+        )
+    if (
+        evidence.get("permit_id") != canonical_payload.get("permit_id")
+        or evidence.get("permit_decision_canonical_hash") != decision_hash
+    ):
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_TARGET_MISMATCH",
+            "quorum target does not match the supported signed Permit decision",
+            [
+                "export.co_signature_quorum_evidence",
+                "export.permit_decision",
+            ],
+        )
+
+    requirement = evidence.get("requirement")
+    if not isinstance(requirement, Mapping):
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_REQUIREMENT_MISSING",
+            "co-signature requirement is absent",
+            ["export.co_signature_quorum_evidence.requirement"],
+        )
+    if evidence.get("requirement_canonicalization") != "rfc8785":
+        return result(
+            "unverifiable_scope",
+            "CO_SIGNATURE_QUORUM_CANONICALIZATION_UNSUPPORTED",
+            "co-signature requirement canonicalization is unsupported",
+            ["export.co_signature_quorum_evidence.requirement_canonicalization"],
+        )
+    computed_requirement_digest = _prefixed_sha256(rfc8785.dumps(dict(requirement)))
+    if evidence.get("requirement_digest") != computed_requirement_digest:
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_REQUIREMENT_DIGEST_MISMATCH",
+            "requirement digest does not match the RFC 8785 requirement bytes",
+            [
+                "export.co_signature_quorum_evidence.requirement",
+                "export.co_signature_quorum_evidence.requirement_digest",
+            ],
+        )
+
+    decision_attributes, attributes_failure = _permit_decision_resource_attributes(
+        dict(permit_decision)
+    )
+    signed_requirement = (
+        decision_attributes.get("permit_co_signature_requirement_v1")
+        if isinstance(decision_attributes, Mapping)
+        else None
+    )
+    if attributes_failure is not None or not isinstance(
+        signed_requirement, Mapping
+    ):
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_SIGNED_REQUIREMENT_MISSING",
+            (
+                "signed Permit decision does not expose "
+                "permit_co_signature_requirement_v1"
+            ),
+            [
+                "export.permit_decision.resource_attributes_json."
+                "permit_co_signature_requirement_v1"
+            ],
+        )
+    if (
+        signed_requirement.get("requirement_digest")
+        != computed_requirement_digest
+        or signed_requirement.get("requirement") != requirement
+        or signed_requirement.get("requirement_canonicalization") != "rfc8785"
+    ):
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_SIGNED_REQUIREMENT_MISMATCH",
+            "quorum requirement does not match signed Permit resource attributes",
+            [
+                "export.co_signature_quorum_evidence.requirement",
+                "export.permit_decision.resource_attributes_json."
+                "permit_co_signature_requirement_v1",
+            ],
+        )
+
+    role = requirement.get("role")
+    phase = requirement.get("phase")
+    if (
+        requirement.get("type") != "require_co_signature"
+        or role not in {"approver", "witness"}
+        or (role == "approver" and phase != "pre_execution")
+        or (role == "witness" and phase != "post_execution")
+    ):
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_REQUIREMENT_INVALID",
+            "co-signature role and phase requirement is invalid",
+            ["export.co_signature_quorum_evidence.requirement"],
+        )
+    if requirement.get("min_assurance", "any") != "any" or requirement.get(
+        "allowed_aaguids"
+    ):
+        return result(
+            "unverifiable_scope",
+            "CO_SIGNATURE_QUORUM_ASSURANCE_UNSUPPORTED",
+            "device-bound or hardware-attested assurance is not adjudicated by v1",
+            ["export.co_signature_quorum_evidence.requirement"],
+        )
+
+    eligible_raw = evidence.get("eligible_co_signer_ids")
+    refs_raw = evidence.get("co_signature_refs")
+    if (
+        not isinstance(eligible_raw, list)
+        or not eligible_raw
+        or not all(isinstance(value, str) and value for value in eligible_raw)
+        or len(set(eligible_raw)) != len(eligible_raw)
+        or not isinstance(refs_raw, list)
+    ):
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_SIGNER_EXPANSION_MISSING",
+            "trusted eligible-signer expansion or member references are incomplete",
+            [
+                "export.co_signature_quorum_evidence.eligible_co_signer_ids",
+                "export.co_signature_quorum_evidence.co_signature_refs",
+            ],
+        )
+    eligible = set(eligible_raw)
+
+    member_entries = _co_signature_evidence_entries(
+        export_document,
+        payload_type=PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+    )
+    member_subjects = member_claim.subjects if member_claim is not None else []
+    member_results: dict[tuple[str, str], VerdictSubject] = {}
+    member_roles: dict[tuple[str, str], str] = {}
+    member_times: dict[tuple[str, str], datetime] = {}
+    for index, entry in enumerate(member_entries):
+        claim = entry.get("claim")
+        if not isinstance(claim, Mapping):
+            continue
+        signer_id = claim.get("co_signer_id")
+        digest = _prefixed_sha256(rfc8785.dumps(dict(claim)))
+        if not isinstance(signer_id, str) or index >= len(member_subjects):
+            continue
+        key = (signer_id, digest)
+        member_results[key] = member_subjects[index]
+        member_roles[key] = str(claim.get("role") or "")
+        parsed_time = _parse_iso_or_none(claim.get("signed_at"))
+        if parsed_time is not None:
+            member_times[key] = parsed_time
+
+    counted: set[str] = set()
+    requester_id = evidence.get("requester_id")
+    decision_time = _parse_iso_or_none(canonical_payload.get("issued_at"))
+    timeout_seconds = requirement.get("timeout_seconds")
+    for ref in refs_raw:
+        if not isinstance(ref, Mapping):
+            return result(
+                "insufficient_evidence",
+                "CO_SIGNATURE_QUORUM_MEMBER_MISSING",
+                "quorum member reference is malformed",
+                ["export.co_signature_quorum_evidence.co_signature_refs"],
+            )
+        signer_id = ref.get("co_signer_id")
+        claim_digest = ref.get("claim_digest")
+        if not isinstance(signer_id, str) or not isinstance(claim_digest, str):
+            return result(
+                "insufficient_evidence",
+                "CO_SIGNATURE_QUORUM_MEMBER_MISSING",
+                "quorum member reference is incomplete",
+                ["export.co_signature_quorum_evidence.co_signature_refs"],
+            )
+        if signer_id in counted:
+            return result(
+                "disproved",
+                "CO_SIGNATURE_QUORUM_DUPLICATE_SIGNER",
+                "one co-signer is counted more than once",
+                ["export.co_signature_quorum_evidence.co_signature_refs"],
+            )
+        key = (signer_id, claim_digest)
+        subject = member_results.get(key)
+        if subject is None:
+            return result(
+                "insufficient_evidence",
+                "CO_SIGNATURE_QUORUM_MEMBER_MISSING",
+                "referenced v2 co-signature evidence is absent",
+                [
+                    "export.co_signature_quorum_evidence.co_signature_refs",
+                    "export.co_signature_evidence",
+                ],
+            )
+        if subject.verdict != verdict_value("supported"):
+            return result(
+                (
+                    "disproved"
+                    if subject.verdict == verdict_value("disproved")
+                    else "unverifiable_scope"
+                    if subject.verdict == verdict_value("unverifiable_scope")
+                    else "insufficient_evidence"
+                ),
+                "CO_SIGNATURE_QUORUM_MEMBER_UNSUPPORTED",
+                "a counted v2 co-signature is not supported",
+                ["claim.permit.co_signature.v2"],
+            )
+        if signer_id not in eligible or member_roles.get(key) != role:
+            return result(
+                "disproved",
+                "CO_SIGNATURE_QUORUM_MEMBER_INELIGIBLE",
+                "a counted co-signer is ineligible or has the wrong role",
+                [
+                    "export.co_signature_quorum_evidence.eligible_co_signer_ids",
+                    "export.co_signature_evidence",
+                ],
+            )
+        if requirement.get("separation_of_duties") is True and signer_id == requester_id:
+            return result(
+                "disproved",
+                "CO_SIGNATURE_QUORUM_SEPARATION_OF_DUTIES_VIOLATED",
+                "the requester cannot satisfy a separated co-signature requirement",
+                ["export.co_signature_quorum_evidence.requester_id"],
+            )
+        signed_at = member_times.get(key)
+        if (
+            decision_time is None
+            or signed_at is None
+            or isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, int)
+            or timeout_seconds < 1
+        ):
+            return result(
+                "insufficient_evidence",
+                "CO_SIGNATURE_QUORUM_TIME_EVIDENCE_MISSING",
+                "decision or co-signature timing evidence is incomplete",
+                [
+                    "export.permit_decision.canonical_payload.issued_at",
+                    "export.co_signature_evidence[].claim.signed_at",
+                ],
+            )
+        elapsed = (signed_at - decision_time).total_seconds()
+        if elapsed < 0 or elapsed > timeout_seconds:
+            return result(
+                "disproved",
+                "CO_SIGNATURE_QUORUM_TIMEOUT",
+                "a counted co-signature is outside the permitted time window",
+                [
+                    "export.co_signature_quorum_evidence.requirement.timeout_seconds",
+                    "export.co_signature_evidence[].claim.signed_at",
+                ],
+            )
+        counted.add(signer_id)
+
+    minimum = requirement.get("min_approvals")
+    if minimum == "all":
+        required_count = len(eligible)
+    elif isinstance(minimum, int) and not isinstance(minimum, bool):
+        required_count = minimum
+    elif isinstance(minimum, Mapping):
+        n = minimum.get("n")
+        of = minimum.get("of")
+        if (
+            isinstance(n, bool)
+            or not isinstance(n, int)
+            or isinstance(of, bool)
+            or not isinstance(of, int)
+            or n < 1
+            or of != len(eligible)
+            or n > of
+        ):
+            return result(
+                "disproved",
+                "CO_SIGNATURE_QUORUM_THRESHOLD_INVALID",
+                "n-of-m threshold does not match the trusted eligible signer set",
+                ["export.co_signature_quorum_evidence.requirement.min_approvals"],
+            )
+        required_count = n
+    else:
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_THRESHOLD_INVALID",
+            "co-signature threshold is invalid",
+            ["export.co_signature_quorum_evidence.requirement.min_approvals"],
+        )
+    if required_count < 1 or required_count > len(eligible):
+        return result(
+            "disproved",
+            "CO_SIGNATURE_QUORUM_THRESHOLD_INVALID",
+            "co-signature threshold exceeds the eligible signer set",
+            ["export.co_signature_quorum_evidence.requirement.min_approvals"],
+        )
+    if len(counted) < required_count:
+        return result(
+            "insufficient_evidence",
+            "CO_SIGNATURE_QUORUM_NOT_SATISFIED",
+            (
+                f"supported eligible co-signatures {len(counted)} are below "
+                f"required threshold {required_count}"
+            ),
+            ["claim.permit.co_signature.v2"],
+        )
+    return result(
+        "supported",
+        "CO_SIGNATURE_QUORUM_SUPPORTED",
+        (
+            f"co-signature quorum is satisfied by {len(counted)} distinct "
+            f"eligible signer(s)"
+        ),
+        [
+            "export.permit_decision",
+            "export.co_signature_quorum_evidence",
+            "claim.permit.co_signature.v2",
+        ],
     )
 
 
@@ -13322,16 +13787,133 @@ def _co_signature_pack_integrity_claims(
         document = _load_export_json_document(export_data)
     except Exception:
         return []
-    if not isinstance(document, dict) or not _co_signature_evidence_entries(document):
+    if not isinstance(document, dict):
         return []
+    claim_names = {
+        str(entry.get("claim", {}).get("payload_type"))
+        for entry in _co_signature_evidence_entries(document)
+        if isinstance(entry.get("claim"), Mapping)
+    } & {
+        PERMIT_CO_SIGNATURE_CLAIM_NAME,
+        PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+    }
     return [
         _co_signature_claim_from_document(
             export_document=document,
             pack_integrity_verified=False,
             pinned_key_manifest_source=None,
+            claim_name=claim_name,
             integrity_reason=message,
         )
+        for claim_name in sorted(claim_names)
     ]
+
+
+def _adjudicate_permit_exact_action_v1(
+    *,
+    body: dict[str, Any],
+    decision_claim: ClaimVerdict,
+) -> tuple[ClaimVerdict, dict[str, Any] | None]:
+    """Adjudicate exact-action evidence only after the signed decision.
+
+    The exact claim deliberately consumes the decision claim as a dependency:
+    receipt projections never become an authority source and an invalid or
+    unsupported decision can never be upgraded by a self-consistent exact pack.
+    """
+
+    permit_id = str(body.get("permit_id") or "") or None
+    if decision_claim.aggregate_verdict != verdict_value("supported"):
+        decision_verdict = decision_claim.aggregate_verdict
+        claim_verdict = (
+            "disproved"
+            if decision_verdict == verdict_value("disproved")
+            else "unverifiable_scope"
+            if decision_verdict == verdict_value("unverifiable_scope")
+            else "insufficient_evidence"
+        )
+        return (
+            _permit_claim(
+                PERMIT_EXACT_ACTION_CLAIM_NAME,
+                subject_type="permit_exact_action",
+                subject_id=permit_id,
+                verdict=claim_verdict,
+                reason_code="PERMIT_EXACT_ACTION_SIGNED_DECISION_UNSUPPORTED",
+                message=(
+                    "exact-action evidence requires a separately supported "
+                    "signed Permit decision"
+                ),
+                evidence=[
+                    "body.permit_decision",
+                    "claim.permit.decision.v1",
+                ],
+            ),
+            None,
+        )
+
+    from keel_verifier.permit_exact import verify_permit_exact_body
+
+    try:
+        summary = verify_permit_exact_body(body)
+    except Exception as exc:
+        detail = str(exc)
+        lowered = detail.lower()
+        if any(
+            marker in lowered
+            for marker in (
+                " is required",
+                " is missing",
+                " must be present",
+                "absent",
+                "could not load",
+            )
+        ):
+            claim_verdict = "insufficient_evidence"
+            reason_code = "PERMIT_EXACT_ACTION_EVIDENCE_MISSING"
+        elif "unsupported" in lowered:
+            claim_verdict = "unverifiable_scope"
+            reason_code = "PERMIT_EXACT_ACTION_UNSUPPORTED"
+        else:
+            claim_verdict = "disproved"
+            reason_code = "PERMIT_EXACT_ACTION_DISPROVED"
+        return (
+            _permit_claim(
+                PERMIT_EXACT_ACTION_CLAIM_NAME,
+                subject_type="permit_exact_action",
+                subject_id=permit_id,
+                verdict=claim_verdict,
+                reason_code=reason_code,
+                message=f"exact-action verification failed: {detail}",
+                evidence=[
+                    "body.permit_decision.resource_attributes_json",
+                    "body.permit_receipt.action.resource_attributes_json",
+                    "body.permit_semantic_binding_v1",
+                    "body.permit_authorization_facts_v1",
+                ],
+            ),
+            None,
+        )
+
+    return (
+        _permit_claim(
+            PERMIT_EXACT_ACTION_CLAIM_NAME,
+            subject_type="permit_exact_action",
+            subject_id=permit_id,
+            verdict="supported",
+            reason_code="PERMIT_EXACT_ACTION_SUPPORTED",
+            message=(
+                "exact Permit type, authorization facts, and trusted action "
+                "classification are bound to the supported signed decision"
+            ),
+            evidence=[
+                "body.permit_decision",
+                "body.permit_decision.resource_attributes_json",
+                "body.permit_receipt.action.resource_attributes_json",
+                "body.permit_semantic_binding_v1",
+                "body.permit_authorization_facts_v1",
+            ],
+        ),
+        summary,
+    )
 
 
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
@@ -13401,15 +13983,25 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             and isinstance(body, dict)
             and body.get("profile") == "keel.permit_exact/v1"
         ):
-            from keel_verifier.permit_exact import verify_permit_exact_body
-
-            try:
-                exact_summary = verify_permit_exact_body(body)
-            except Exception as exc:
+            decision_claim = _adjudicate_permit_decision_v1(
+                export_document=body,
+                key_manifest_source=_key_manifest_source_for_args(args),
+            )
+            claims.append(decision_claim)
+            exact_claim, exact_summary = _adjudicate_permit_exact_action_v1(
+                body=body,
+                decision_claim=decision_claim,
+            )
+            claims.append(exact_claim)
+            if exact_claim.aggregate_verdict != verdict_value("supported"):
                 ok = False
-                error = f"Permit-to-Pay exact-fact verification failed: {exc}"
+                error = (
+                    exact_claim.message
+                    or exact_claim.reason_code
+                    or "Exact-action verification did not complete."
+                )
                 diagnostics.append(error)
-            else:
+            elif exact_summary is not None:
                 artifact.update(
                     {
                         "kind": "permit_exact",
@@ -13417,37 +14009,25 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                         "permit": exact_summary,
                     }
                 )
-                decision_claim = _adjudicate_permit_decision_v1(
+            transition = body.get("review_transition")
+            if (
+                isinstance(transition, dict)
+                and transition.get("status") == "present"
+            ):
+                transition_claim = _adjudicate_permit_review_transition_v1(
                     export_document=body,
                     key_manifest_source=_key_manifest_source_for_args(args),
                 )
-                claims.append(decision_claim)
-                if decision_claim.aggregate_verdict != verdict_value("supported"):
+                claims.append(transition_claim)
+                if transition_claim.aggregate_verdict != verdict_value(
+                    "supported"
+                ):
                     ok = False
                     error = (
-                        decision_claim.message
-                        or decision_claim.reason_code
-                        or "Permit decision verification did not complete."
+                        transition_claim.message
+                        or transition_claim.reason_code
+                        or "Human-review transition verification did not complete."
                     )
-                transition = body.get("review_transition")
-                if (
-                    isinstance(transition, dict)
-                    and transition.get("status") == "present"
-                ):
-                    transition_claim = _adjudicate_permit_review_transition_v1(
-                        export_document=body,
-                        key_manifest_source=_key_manifest_source_for_args(args),
-                    )
-                    claims.append(transition_claim)
-                    if transition_claim.aggregate_verdict != verdict_value(
-                        "supported"
-                    ):
-                        ok = False
-                        error = (
-                            transition_claim.message
-                            or transition_claim.reason_code
-                            or "Human-review transition verification did not complete."
-                        )
         if bundle_context is not None:
             claims = [
                 *claims,
@@ -13787,6 +14367,16 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         requested,
         PERMIT_CO_SIGNATURE_CLAIM_NAME,
     )
+    permit_co_signature_v2_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+    )
+    permit_co_signature_quorum_pinned = _pinned_claim_requested(
+        semantics,
+        requested,
+        PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME,
+    )
     permit_decision_requested = _pinned_claim_requested(
         semantics,
         requested,
@@ -13893,6 +14483,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     should_try_auto_permit_v2 = export_data.lstrip().startswith(b"{")
     if (
         permit_decision_requested
+        or permit_co_signature_v2_pinned
+        or permit_co_signature_quorum_pinned
         or permit_revoked_requested
         or permit_absence_requested
         or permit_authority_chain_requested
@@ -13908,6 +14500,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             loaded_export_document = None
             if (
                 permit_decision_requested
+                or permit_co_signature_v2_pinned
+                or permit_co_signature_quorum_pinned
                 or permit_revoked_requested
                 or permit_absence_requested
                 or permit_authority_chain_requested
@@ -13920,10 +14514,35 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if isinstance(loaded_export_document, dict):
             export_document_for_claims = loaded_export_document
     permit_v2_auto_required = _permit_v2_auto_required_claims(export_document_for_claims)
-    permit_co_signature_auto_required = bool(
-        _co_signature_evidence_entries(export_document_for_claims)
+    co_signature_entries = _co_signature_evidence_entries(export_document_for_claims)
+    co_signature_payload_types = {
+        str(entry.get("claim", {}).get("payload_type"))
+        for entry in co_signature_entries
+        if isinstance(entry.get("claim"), Mapping)
+    }
+    permit_co_signature_auto_required = (
+        PERMIT_CO_SIGNATURE_CLAIM_NAME in co_signature_payload_types
+    )
+    permit_co_signature_v2_auto_required = (
+        PERMIT_CO_SIGNATURE_V2_CLAIM_NAME in co_signature_payload_types
+    )
+    permit_co_signature_quorum_auto_required = bool(
+        isinstance(export_document_for_claims, Mapping)
+        and isinstance(
+            export_document_for_claims.get("co_signature_quorum_evidence"),
+            Mapping,
+        )
+    )
+    permit_co_signature_quorum_requested = (
+        permit_co_signature_quorum_pinned
+        or permit_co_signature_quorum_auto_required
     )
     permit_co_signature_requested = permit_co_signature_pinned or permit_co_signature_auto_required
+    permit_co_signature_v2_requested = (
+        permit_co_signature_v2_pinned
+        or permit_co_signature_v2_auto_required
+        or permit_co_signature_quorum_requested
+    )
     operator_approval_requested = (
         operator_approval_pinned or PERMIT_OPERATOR_APPROVAL_CLAIM_NAME in permit_v2_auto_required
     )
@@ -13988,6 +14607,8 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
 
     permit_claims: list[ClaimVerdict] = []
     revocation_claim: ClaimVerdict | None = None
+    co_signature_v2_decision_claim: ClaimVerdict | None = None
+    co_signature_v2_member_claim: ClaimVerdict | None = None
     if permit_co_signature_requested:
         if export_document_for_claims is None:
             permit_claims.append(
@@ -14009,7 +14630,75 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                     pinned_key_manifest_source=_key_manifest_source_for_args(args),
                 )
             )
-    if permit_decision_requested:
+    if permit_co_signature_v2_requested:
+        if export_document_for_claims is None:
+            co_signature_v2_decision_claim = _permit_claim(
+                PERMIT_DECISION_CLAIM_NAME,
+                subject_type="permit_decision",
+                subject_id=None,
+                verdict="insufficient_evidence",
+                reason_code="PERMIT_DECISION_EVIDENCE_MISSING",
+                message="target-bound co-signature requires a JSON Permit decision",
+                evidence=["export"],
+            )
+            co_signature_v2_member_claim = _permit_claim(
+                PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+                subject_type="permit_co_signature",
+                subject_id=None,
+                verdict="insufficient_evidence",
+                reason_code="CO_SIGNATURE_TARGET_DECISION_UNSUPPORTED",
+                message=(
+                    "target-bound co-signature requires a separately "
+                    "supported signed Permit decision"
+                ),
+                evidence=["export", "claim.permit.decision.v1"],
+            )
+            permit_claims.extend(
+                [
+                    co_signature_v2_decision_claim,
+                    co_signature_v2_member_claim,
+                ]
+            )
+        else:
+            co_signature_v2_decision_claim = _adjudicate_permit_decision_v1(
+                export_document=export_document_for_claims,
+                key_manifest_source=_key_manifest_source_for_args(args),
+            )
+            co_signature_v2_member_claim = _co_signature_claim_from_document(
+                export_document=export_document_for_claims,
+                pack_integrity_verified=True,
+                pinned_key_manifest_source=_key_manifest_source_for_args(args),
+                claim_name=PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+                decision_claim=co_signature_v2_decision_claim,
+            )
+            permit_claims.extend(
+                [
+                    co_signature_v2_decision_claim,
+                    co_signature_v2_member_claim,
+                ]
+            )
+    if permit_co_signature_quorum_requested:
+        if export_document_for_claims is None:
+            permit_claims.append(
+                _permit_claim(
+                    PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME,
+                    subject_type="permit_co_signature_quorum",
+                    subject_id=None,
+                    verdict="insufficient_evidence",
+                    reason_code="CO_SIGNATURE_QUORUM_EVIDENCE_MISSING",
+                    message="co-signature quorum requires a JSON export payload",
+                    evidence=["export"],
+                )
+            )
+        else:
+            permit_claims.append(
+                _adjudicate_permit_co_signature_quorum_v1(
+                    export_document=export_document_for_claims,
+                    decision_claim=co_signature_v2_decision_claim,
+                    member_claim=co_signature_v2_member_claim,
+                )
+            )
+    if permit_decision_requested and not permit_co_signature_v2_requested:
         if export_document_for_claims is None:
             permit_claims.append(
                 _permit_claim(
@@ -15151,7 +15840,7 @@ TSA_TRUST_BUNDLE_V1_PATH = (
     / "tsa_trust_bundle_v1.json"
 )
 TSA_TRUST_BUNDLE_V1_HASH = (
-    "sha256:f3efb56261e653f775b7c7199bc6e7c200c66d9e51ec0812deb9a21a38a95ede"
+    "sha256:128c15e51f6eaf179fa27a2d484d6853a6719043a441a2acf6b99539ea9bbea8"
 )
 
 

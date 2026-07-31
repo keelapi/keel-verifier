@@ -67,6 +67,14 @@ def test_v2_issued_permit_resolves_against_v2() -> None:
     assert resolved["customer_title"] == "AI Permit-to-Pay"
 
 
+def test_v3_issued_permit_resolves_against_v3() -> None:
+    resolved = resolve_permit_presentation(
+        _binding_for("semantic_registry/v3.json", "keel.action.payment_execute.v1")
+    )
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["customer_title"] == "AI Permit-to-Pay"
+
+
 def test_unknown_registry_version_never_borrows_a_title() -> None:
     """A registry this build has never seen must not lend its titles."""
 

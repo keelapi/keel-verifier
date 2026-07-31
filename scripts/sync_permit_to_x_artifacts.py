@@ -16,6 +16,40 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "keel_verifier" / "data"
 
 COPIES = {
+    "claim_registry/v1.json": "claim_registry/v1.json",
+    "schemas/permit-co-signature-v2.schema.json": (
+        "permit_to_x/schemas/permit-co-signature-v2.schema.json"
+    ),
+    "schemas/permit-co-signature-quorum-v1.schema.json": (
+        "permit_to_x/schemas/permit-co-signature-quorum-v1.schema.json"
+    ),
+    "test-vectors/permit_co_signature/v2/corpus.json": (
+        "permit_to_x/test_vectors/permit_co_signature/v2/corpus.json"
+    ),
+    "semantics/permit/co_signature_v2.json": (
+        "semantics/permit/co_signature_v2.json"
+    ),
+    "semantics/permit/co_signature_quorum_v1.json": (
+        "semantics/permit/co_signature_quorum_v1.json"
+    ),
+    "semantics/permit/exact_action_v1.json": (
+        "semantics/permit/exact_action_v1.json"
+    ),
+    "semantics/permit/authority_edge_revocation_v1.json": (
+        "semantics/permit/authority_edge_revocation_v1.json"
+    ),
+    "semantics/permit/authority_root_status_temporal_v1.json": (
+        "semantics/permit/authority_root_status_temporal_v1.json"
+    ),
+    "semantics/permit/authority_root_status_temporal_v2.json": (
+        "semantics/permit/authority_root_status_temporal_v2.json"
+    ),
+    "semantics/checkpoint/tsa_chain_v1.json": (
+        "semantics/checkpoint/tsa_chain_v1.json"
+    ),
+    "semantics/rail/settlement_reconciled_v1.json": (
+        "semantics/rail/settlement_reconciled_v1.json"
+    ),
     "semantic_registry/v1.json": "permit_to_x/semantic_registry/v1.json",
     "semantic_registry/v1.schema.json": ("permit_to_x/semantic_registry/v1.schema.json"),
     "semantic_registry/v2.json": "permit_to_x/semantic_registry/v2.json",

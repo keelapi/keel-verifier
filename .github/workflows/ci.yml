@@ -58,6 +58,9 @@ jobs:
       - name: Run Ruff
         run: ruff check .
 
+      - name: Run historical compatibility release gate
+        run: python scripts/check_historical_compatibility_corpus.py --run
+
       - name: Run canonical drift lock
         run: pytest -q tests/test_jcs_drift_lock.py
 

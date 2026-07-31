@@ -7,9 +7,11 @@ classification-registry digests), it re-derives the authorized_action the whole
 chain — (connector, tool) -> value_movement -> payment.execute — from signed
 facts plus the versioned, hash-pinned keel-permit artifacts alone.
 
-Display-only and strictly non-authorizing, like permit_presentation: the result
-never flows into verdicts, claim adjudication, cryptographic checks, or exit
-codes. A wrong derivation degrades a title; it cannot escalate authorization.
+This module is non-authorizing: it never grants runtime authority. Its result
+does participate in offline ``permit.exact_action.v1`` adjudication, where a
+failed or contradictory derivation must fail the exact-action claim and the
+verifier exit code. Presentation-only callers may also use it to degrade a
+title, but presentation remains isolated from authorization decisions.
 """
 from __future__ import annotations
 

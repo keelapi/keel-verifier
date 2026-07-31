@@ -1,0 +1,515 @@
+{
+  "suite": "permit.co_signature.v2",
+  "version": "2.0.0",
+  "generated_at": "2026-07-30T00:00:00Z",
+  "description": "Deterministic, test-only WebAuthn assertion vectors bound to a separately supported Permit decision. No private key material appears in this artifact.",
+  "vectors": [
+    {
+      "id": "positive-es256",
+      "title": "Valid ES256 WebAuthn co-signature",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEUCIQDN34MHI-BAtNInRXc3AD5LdC5FY8Hh0kDSCatPcyozAwIgf5XzNLhGFrUdCMZeGluB_qCQLq_h9gNFKTpMk8g8XJU",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "supported",
+        "reason": "CO_SIGNATURE_VERIFIED"
+      }
+    },
+    {
+      "id": "positive-eddsa",
+      "title": "Valid EdDSA WebAuthn co-signature",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:9e7fdf5784ed089868fbafb2c71c0eb25461bcdf6af5ce2c275376bfe9cb1a3e",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "OZw1fXbXTTBpAadVLxnFMTqiDGNcJhK6jsgUGmkrkfA",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "kpzFAaY6dmFYlUaFN5h9i6Q901cl9AeO7GFujZ3KjQ36PJV4s3jtgi98Jt84x6ZdbE0SzmhwDy-Av8erZZgLBw",
+          "cose_alg": -8
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:9e7fdf5784ed089868fbafb2c71c0eb25461bcdf6af5ce2c275376bfe9cb1a3e",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "OZw1fXbXTTBpAadVLxnFMTqiDGNcJhK6jsgUGmkrkfA",
+        "public_key_cose": "pAEBAycgBiFYIItTM1TgyItuiGA2cxBBUY6x6uZOgiwfgDN4_m0Bc8ne",
+        "cose_alg": -8,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000008",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "supported",
+        "reason": "CO_SIGNATURE_VERIFIED"
+      }
+    },
+    {
+      "id": "negative-wrong-challenge",
+      "title": "Valid assertion for the wrong challenge",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoibjFQRkE2emc0WjBGb3NERVNTMFY3dER3ektxQ0gtZjVJVXZsVDVkS29xSSIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEQCIH8ZlsNhq1ergWR3hwyTWphuKonkxtr_2qyBQ7ga2-gJAiAwPrZZPsf7BYHU1FxqRumQ-LkESXtwLBBv-Z_mdICkiw",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_CHALLENGE_MISMATCH"
+      },
+      "negative": {
+        "mutation": "clientDataJSON.challenge is a different 32-byte value; the assertion remains cryptographically valid."
+      }
+    },
+    {
+      "id": "negative-wrong-origin",
+      "title": "Valid assertion from an origin outside the allowlist",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vZXZpbC5leGFtcGxlLnRlc3QiLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+          "signature": "MEUCIQDzBhJweH59Hw1sNzmaEzt-gqJ8m5XVe0mq2b7gkwkWkgIgDwrm_6jyg3ZGW5yUZ5sc05tt4eSEwXw_V0oK4fDk1c0",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_ORIGIN_NOT_ALLOWED"
+      },
+      "negative": {
+        "mutation": "clientDataJSON.origin is changed and the assertion is signed over the changed bytes."
+      }
+    },
+    {
+      "id": "negative-wrong-rp-id-hash",
+      "title": "Valid assertion carrying the wrong RP ID hash",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "2UQj1qG2EDfEZSCCierQaYsa_1EUA3pkpHj-DzYAUi4FAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEQCICbTDQk-i6a-_cHRQOIf8xp0Z5VsUwfO3U9CZiiWiACRAiBsiIYplrg0dEo7PDO92-nxXLrHOCnIR8VwiiBZeCSMTA",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_RP_ID_HASH_MISMATCH"
+      },
+      "negative": {
+        "mutation": "authenticatorData.rpIdHash is computed for another RP ID and the assertion is validly signed."
+      }
+    },
+    {
+      "id": "negative-uv-zero",
+      "title": "UV is clear when user verification is required",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQBAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEUCIQC-DD8_nEOZLswhIWzvozVt96moeMCqZM_QH9JjprFVcQIgP4DPrvxMRpjKw4rA6_DHwuwPlHYfBMbvqe0osM-MqSE",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_USER_VERIFICATION_REQUIRED"
+      },
+      "negative": {
+        "mutation": "The authenticator flags have UP=1 and UV=0; the assertion is validly signed."
+      }
+    },
+    {
+      "id": "negative-tampered-authenticator-data",
+      "title": "Authenticator data changed after signing",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAA",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEUCIQDN34MHI-BAtNInRXc3AD5LdC5FY8Hh0kDSCatPcyozAwIgf5XzNLhGFrUdCMZeGluB_qCQLq_h9gNFKTpMk8g8XJU",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_INVALID_SIGNATURE"
+      },
+      "negative": {
+        "mutation": "The low byte of signCount is changed after signing, preserving a structurally valid authenticatorData value."
+      }
+    },
+    {
+      "id": "negative-tampered-signature",
+      "title": "Assertion signature has a malformed DER encoding",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MAA",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000001",
+          "binding_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_SIGNATURE_MALFORMED"
+      },
+      "negative": {
+        "mutation": "The valid ES256 signature is replaced with an empty ASN.1 sequence."
+      }
+    },
+    {
+      "id": "negative-replay-different-permit",
+      "title": "Valid assertion replayed while adjudicating a different Permit",
+      "claim": {
+        "payload_type": "permit.co_signature.v2",
+        "permit_id": "10000000-0000-4000-8000-000000000001",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "role": "approver",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "custody_tier": "human_passkey",
+        "signed_at": "2026-07-13T12:00:00.000000Z",
+        "assertion": {
+          "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+          "authenticator_data": "RBXNGD7e2AJmAL80gOryv3709GJeo2JF2TwqbetrhfQFAAAAAQ",
+          "client_data_json": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoicVpQUWotQ3hfYU9RSHVsZ056eXBnVmtHdEVfX29SeEhvSHJRVFlsZjI5YyIsIm9yaWdpbiI6Imh0dHBzOi8vcGVybWl0LmV4YW1wbGUudGVzdCIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          "signature": "MEUCIQDN34MHI-BAtNInRXc3AD5LdC5FY8Hh0kDSCatPcyozAwIgf5XzNLhGFrUdCMZeGluB_qCQLq_h9gNFKTpMk8g8XJU",
+          "cose_alg": -7
+        },
+        "permit_decision_canonical_hash": "a993d08fe0b1fda3901ee960373ca9815906b44fffa11c47a07ad04d895fdbd7"
+      },
+      "registered_cose_key": {
+        "record_type": "permit.co_signer_key.v1",
+        "key_id": "sha256:54f9b469f895de7e9caa8ea0560ad4d489e667c4ed02f4988865b3d28296610b",
+        "co_signer_id": "20000000-0000-4000-8000-000000000001",
+        "custody_tier": "human_passkey",
+        "credential_id": "KJEEzz93aOglmkCHEBI_-L-SvBTM-G9r331X_Mbzb54",
+        "public_key_cose": "pQECAyYgASFYIPwSiMOr0QOW4vP-89XYn_JcLioJ9AP152I_PRUMrjRgIlggzOy0aBtKWqwz7vSlVRzIr5iGJ7ROk8Dn_ER4cw6PSoo",
+        "cose_alg": -7,
+        "rp_id": "permit.example.test",
+        "aaguid": "00000000-0000-4000-8000-000000000007",
+        "attestation_format": "none",
+        "attestation_statement": null,
+        "backup_eligible": false,
+        "backup_state": false,
+        "sign_count": 0
+      },
+      "verification_context": {
+        "permit_decision": {
+          "claim_name": "permit.decision.v1",
+          "verdict": "supported",
+          "permit_id": "10000000-0000-4000-8000-000000000002",
+          "binding_canonical_hash": "b4de7a68c4a799bc15575b18d30fd237950eee438cd078467cbefad920a5622b"
+        },
+        "rp_id": "permit.example.test",
+        "allowed_origins": [
+          "https://permit.example.test"
+        ],
+        "require_user_verification": true
+      },
+      "expected": {
+        "verdict": "disproved",
+        "reason": "CO_SIGNATURE_PERMIT_BINDING_MISMATCH"
+      },
+      "negative": {
+        "mutation": "The original claim and assertion are unchanged, but the independently verified target-Permit context is different."
+      }
+    }
+  ]
+}

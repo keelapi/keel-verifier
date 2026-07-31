@@ -14,6 +14,9 @@ from keel_verifier.action_classification_derivation import (
     default_trust_config,
     derive,
 )
+from keel_verifier.canonical.permit_binding import (
+    canonical_resource_attributes_payload,
+)
 
 
 PROFILE = "keel.permit_exact/v1"
@@ -197,9 +200,52 @@ def verify_permit_exact_body(body: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(receipt, dict):
         raise ValueError("permit_receipt is required")
     action = receipt.get("action")
-    attrs = action.get("resource_attributes_json") if isinstance(action, dict) else None
-    if not isinstance(attrs, dict):
+    receipt_attrs = (
+        action.get("resource_attributes_json") if isinstance(action, dict) else None
+    )
+    if not isinstance(receipt_attrs, dict):
         raise ValueError("permit_receipt action resource attributes are required")
+
+    permit_decision = body.get("permit_decision")
+    canonical_payload = (
+        permit_decision.get("canonical_payload")
+        if isinstance(permit_decision, dict)
+        else None
+    )
+    if not isinstance(canonical_payload, dict):
+        raise ValueError("permit_decision canonical_payload is required")
+    decision_attrs = (
+        permit_decision.get("resource_attributes_json")
+        if isinstance(permit_decision, dict)
+        else None
+    )
+    if not isinstance(decision_attrs, dict):
+        raise ValueError(
+            "permit_decision resource_attributes_json is required for exact-action "
+            "cross-binding"
+        )
+    committed_attrs_hash = canonical_payload.get(
+        "resource_attributes_canonical_hash"
+    )
+    if not isinstance(committed_attrs_hash, str) or not committed_attrs_hash:
+        raise ValueError(
+            "signed permit decision resource_attributes_canonical_hash is required"
+        )
+    _require_equal(
+        canonical_resource_attributes_payload(decision_attrs),
+        committed_attrs_hash,
+        field="signed permit decision resource attributes commitment",
+    )
+    _require_equal(
+        receipt_attrs,
+        decision_attrs,
+        field="permit receipt projection versus signed permit decision resource attributes",
+    )
+
+    # From this point on, exact semantics, facts, and classification are read
+    # only from the attributes covered by the signed Permit decision. The
+    # receipt remains comparison evidence, never the authority source.
+    attrs = decision_attrs
     _require_equal(
         attrs.get("permit_semantic_binding_v1"),
         binding,
@@ -220,14 +266,6 @@ def verify_permit_exact_body(body: Mapping[str, Any]) -> dict[str, Any]:
             "signed payment classification does not re-derive payment.execute"
         )
 
-    permit_decision = body.get("permit_decision")
-    canonical_payload = (
-        permit_decision.get("canonical_payload")
-        if isinstance(permit_decision, dict)
-        else None
-    )
-    if not isinstance(canonical_payload, dict):
-        raise ValueError("permit_decision canonical_payload is required")
     _require_equal(
         str(canonical_payload.get("permit_id") or ""),
         str(body.get("permit_id") or ""),
