@@ -1,9 +1,10 @@
 """Structured verifier verdicts.
 
-The verdict enum and claim names are loaded from the v0 claim registry rather
-than duplicated in code. The bundled copy is the verifier-build-time source of
-truth; set KEEL_CLAIM_REGISTRY for explicit offline drift checks against a
-source checkout.
+The verdict enum and claim names are loaded from the current claim registry
+rather than duplicated in code. Historical registries remain available to the
+pack-pinned semantics resolver. The bundled current copy is the
+verifier-build-time source of truth; set KEEL_CLAIM_REGISTRY for explicit
+offline drift checks against a source checkout.
 """
 
 from __future__ import annotations
@@ -19,7 +20,6 @@ from pathlib import Path
 from typing import Any
 
 from keel_verifier.semantics import (
-    CLAIM_REGISTRY_VERSION,
     CLAIM_SEMANTICS,
     LEGACY_PROFILE_HASH,
     LEGACY_PROFILE_ID,
@@ -28,6 +28,7 @@ from keel_verifier.semantics import (
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
+CLAIM_REGISTRY_VERSION = "verifier-claims.v1"
 
 
 def _source_tree_version() -> str | None:
@@ -62,6 +63,7 @@ def verifier_version() -> str:
 class ClaimDefinition:
     name: str
     verdict_enum: tuple[str, ...]
+    does_not_establish: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -102,12 +104,12 @@ def _load_registry_payload() -> tuple[dict[str, Any], str]:
 
     try:
         bundled = resources.files("keel_verifier").joinpath(
-            "data/claim_registry_v0.json"
+            "data/claim_registry/v1.json"
         )
         return json.loads(bundled.read_text(encoding="utf-8")), str(bundled)
     except Exception as exc:
         raise RuntimeError(
-            "could not load verifier claim registry v0; set KEEL_CLAIM_REGISTRY"
+            "could not load verifier claim registry v1; set KEEL_CLAIM_REGISTRY"
         ) from exc
 
 
@@ -145,6 +147,11 @@ def load_claim_registry() -> ClaimRegistry:
         claims[item["name"]] = ClaimDefinition(
             name=item["name"],
             verdict_enum=tuple(claim_enum_raw),
+            does_not_establish=tuple(
+                value
+                for value in item.get("does_not_establish", [])
+                if isinstance(value, str) and value
+            ),
         )
     return ClaimRegistry(
         version=version,
@@ -243,6 +250,7 @@ class ClaimVerdict:
     verdict: str | None = None
     semantics: list[dict[str, Any]] | None = None
     evidence: list[str] = field(default_factory=list)
+    does_not_establish: list[str] | None = None
     epistemic_state: dict[str, str] | None = None
     reason_code: str | None = None
     message: str | None = None
@@ -260,6 +268,7 @@ class ClaimVerdict:
         return aggregate_subject_verdicts(self.subjects)
 
     def to_dict(self) -> dict[str, Any]:
+        definition = load_claim_registry().claim(self.name)
         subject_dicts = [subject.to_dict() for subject in self.subjects]
         reason_code = self.reason_code
         message = self.message
@@ -285,6 +294,11 @@ class ClaimVerdict:
                     else claim_semantics(self.name)
                 ),
                 "evidence": list(self.evidence),
+                "does_not_establish": (
+                    list(self.does_not_establish)
+                    if self.does_not_establish is not None
+                    else list(definition.does_not_establish)
+                ),
                 "epistemic_state": (
                     dict(self.epistemic_state)
                     if self.epistemic_state is not None
@@ -377,6 +391,11 @@ def verdict_output_json_schema() -> dict[str, Any]:
                         "verifier_version": {"type": "string"},
                         "subjects": {"type": "array"},
                         "evidence": {"type": "array"},
+                        "does_not_establish": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "uniqueItems": True,
+                        },
                         "epistemic_state": {
                             "type": "object",
                             "additionalProperties": {

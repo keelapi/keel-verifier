@@ -21,6 +21,7 @@ from keel_verifier.semantics import (
     CHECKPOINT_TSA_IMPRINT_ID,
     CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_ID,
+    CLAIM_REGISTRY_V1_ID,
     CLAIM_SEMANTICS,
     EXPORT_SCOPE_FAITHFULNESS_ID,
     EXPORT_MANIFEST_INTEGRITY_HASH,
@@ -411,7 +412,7 @@ def test_claim_semantics_and_permanent_allowlist_are_closed():
         REPO_ROOT
         / "keel_verifier"
         / "data"
-        / RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_ID]
+        / RELEASED_ARTIFACT_PATHS[CLAIM_REGISTRY_V1_ID]
     )
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     registry_claims = {
@@ -434,6 +435,7 @@ def test_claim_semantics_and_permanent_allowlist_are_closed():
     }
     reachable_artifacts = {
         CLAIM_REGISTRY_ID,
+        CLAIM_REGISTRY_V1_ID,
         LEGACY_PROFILE_ID,
         *referenced_semantics,
     }

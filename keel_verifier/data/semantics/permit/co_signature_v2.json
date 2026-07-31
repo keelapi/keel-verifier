@@ -1,0 +1,27 @@
+{
+  "id": "keel.permit.co_signature.v2",
+  "version": "v2",
+  "kind": "permit_co_signature_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.co_signature.v2",
+    "target_claim": "permit.decision.v1",
+    "target_rule": "The target permit.decision.v1 claim MUST be supported before co-signature adjudication. permit_id and permit_decision_canonical_hash MUST equal the supported decision evidence.",
+    "challenge_rule": "base64url_decode(clientDataJSON.challenge) equals hex_decode(permit_decision_canonical_hash)",
+    "signed_bytes": "authenticatorData || SHA-256(exact clientDataJSON bytes)",
+    "pack_rule": "The signed pack MUST integrity-protect the complete v2 claim, target Permit-decision evidence, and signed co-signer key manifest.",
+    "verdicts": {
+      "supported": "target decision, pack, key, ceremony, and assertion signature all verify",
+      "disproved": "present target binding, ceremony, credential, or signature evidence conflicts",
+      "insufficient_evidence": "target decision, pack, trusted key, or required ceremony evidence is absent",
+      "unverifiable_scope": "claim version, target binding version, or COSE algorithm is unsupported"
+    },
+    "does_not_establish": [
+      "hardware backing",
+      "independent identity",
+      "notarization",
+      "decision correctness",
+      "execution or outcome"
+    ]
+  }
+}

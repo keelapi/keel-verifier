@@ -1,0 +1,28 @@
+{
+  "id": "keel.permit.co_signature.quorum.v1",
+  "version": "v1",
+  "kind": "permit_co_signature_quorum_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.co_signature.quorum.v1",
+    "member_claim": "permit.co_signature.v2",
+    "target_claim": "permit.decision.v1",
+    "requirement_schema": "schemas/require-co-signature-v1.schema.json",
+    "requirement_digest": "SHA-256 over RFC 8785 canonical requirement bytes",
+    "requirement_binding": "The requirement digest MUST be covered by the supported target decision's resource_attributes_canonical_hash.",
+    "counting": {
+      "distinct_by": "co_signer_id",
+      "eligible_source": "trusted signer-set expansion",
+      "role_must_match": true,
+      "permit_and_decision_hash_must_match": true,
+      "apply_separation_of_duties": true,
+      "apply_timeout": true
+    },
+    "verdicts": {
+      "supported": "the signed requirement threshold is satisfied by distinct eligible supported v2 claims",
+      "disproved": "present evidence contradicts the signed requirement or a counted claim",
+      "insufficient_evidence": "signed requirement coverage, signer expansion, target decision, or enough supported members is missing",
+      "unverifiable_scope": "requirement or identity-expansion semantics are unsupported"
+    }
+  }
+}

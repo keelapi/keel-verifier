@@ -1,0 +1,30 @@
+{
+  "id": "keel.permit.exact_action.v1",
+  "version": "v1",
+  "kind": "permit_exact_action_recipe",
+  "status": "released",
+  "body": {
+    "claim": "permit.exact_action.v1",
+    "decision_claim": "permit.decision.v1",
+    "decision_requirement": "The target permit.decision.v1 claim MUST be supported and MUST cover resource_attributes_json through resource_attributes_canonical_hash.",
+    "cross_binding": "The exact semantic binding, authorization facts, and trusted classification MUST be read from the same resource_attributes_json whose RFC 8785 digest matches the signed decision commitment. A receipt projection is comparison evidence only.",
+    "contract_pins": [
+      "semantic selector registry",
+      "fact-profile registry",
+      "authorization-facts schema",
+      "classification derivation semantics"
+    ],
+    "verdicts": {
+      "supported": "the supported signed decision covers exact facts that validate and re-derive the admitted exact action",
+      "disproved": "present signed-decision, receipt, semantic, fact, or classification evidence diverges",
+      "insufficient_evidence": "the supported signed decision, committed attributes, or required pinned contract is missing",
+      "unverifiable_scope": "the semantic, fact profile, schema, or classification recipe is unsupported"
+    },
+    "does_not_establish": [
+      "provider acceptance",
+      "provider completion",
+      "settlement",
+      "external real-world outcome"
+    ]
+  }
+}

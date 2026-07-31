@@ -47,7 +47,6 @@
     "signature_type": "ed25519.content_hash.v1"
   },
   "manifest_version": "keel.public_key_manifest.v1",
-  "publication_note": "GitHub trust-root publications must be signed by export_signing. Before production publish, Christian/key-ops re-runs scripts/sign_public_key_manifest.py with the real KEEL_EXPORT_SIGNING_KEY.",
   "schema_version": 1,
   "sources": {
     "checkpoint_public_key": "https://api.keelapi.com/v1/integrity/checkpoint-public-key",

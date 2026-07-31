@@ -328,7 +328,14 @@ def test_signed_pack_verifies_offline_with_servers_off(
     assert report.exit_code == 0
     assert _claim(report)["verdict"] == "supported"
     assert _claim(report)["reason_code"] == "CO_SIGNATURE_VERIFIED"
-    assert _claim(report)["epistemic_state"] == {"custody_tier": "human_passkey"}
+    assert _claim(report)["epistemic_state"] == {
+        "webauthn_ceremony": "verified",
+        "target_binding": "unverifiable",
+    }
+    assert (
+        "target binding when target context is only an unsigned export projection"
+        in _claim(report)["does_not_establish"]
+    )
 
 
 @pytest.mark.parametrize("missing", [True, False], ids=["missing", "unsigned"])

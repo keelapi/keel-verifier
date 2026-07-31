@@ -1,4 +1,4 @@
-"""Pack-pinned semantic resolution for verifier-claims.v0."""
+"""Pack-pinned semantic resolution for released verifier claim registries."""
 
 from __future__ import annotations
 
@@ -14,6 +14,12 @@ from typing import Any, Callable
 
 CLAIM_REGISTRY_ID = "keel.verifier_claim_registry.v0"
 CLAIM_REGISTRY_VERSION = "verifier-claims.v0"
+CLAIM_REGISTRY_V1_ID = "keel.verifier_claim_registry.v1"
+CLAIM_REGISTRY_V1_VERSION = "verifier-claims.v1"
+CLAIM_REGISTRY_VERSIONS = {
+    CLAIM_REGISTRY_ID: CLAIM_REGISTRY_VERSION,
+    CLAIM_REGISTRY_V1_ID: CLAIM_REGISTRY_V1_VERSION,
+}
 SEMANTICS_PINS_VERSION = "keel-semantics-pins.v0"
 LEGACY_PROFILE_ID = "keel.pre_pinning_default.v0"
 LEGACY_PROFILE_WARNING = (
@@ -52,6 +58,9 @@ RAIL_SETTLEMENT_RECONCILED_ID = "keel.rail.settlement_reconciled.v1"
 PERMIT_OPERATOR_APPROVAL_ID = "keel.permit.operator_approval.v1"
 PERMIT_COUNTER_SIGNATURE_ID = "keel.permit.counter_signature.v1"
 PERMIT_CO_SIGNATURE_ID = "keel.permit.co_signature.v1"
+PERMIT_CO_SIGNATURE_V2_ID = "keel.permit.co_signature.v2"
+PERMIT_CO_SIGNATURE_QUORUM_ID = "keel.permit.co_signature.quorum.v1"
+PERMIT_EXACT_ACTION_ID = "keel.permit.exact_action.v1"
 PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
 PERMIT_OPERATOR_APPROVAL_V2_ID = "keel.permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_ID = "keel.permit.counter_signature.v2"
@@ -65,6 +74,9 @@ WORK_VALUE_CONSERVATION_ID = "keel.permit.work_value_conservation.v1"
 WORK_PAYMENT_AUTHORITY_COMPARATOR_ID = "keel.work_payment_authority.v1"
 
 CLAIM_REGISTRY_HASH = "sha256:1ce5c3d46e81c989a7a32e1deb1f9c4c216891302699b4050e2f7edff50d7c15"
+CLAIM_REGISTRY_V1_HASH = (
+    "sha256:ff3fee0993fefb4456e97380f44e23ccf43fc175c8f12c78645cb6b39b2250b2"
+)
 CLAIM_REGISTRY_PREVIOUS_HASH = (
     "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
 )
@@ -191,6 +203,15 @@ PERMIT_COUNTER_SIGNATURE_HASH = (
     "sha256:04537c19524dca4098442becbeca7b0377759e323b035dadd7f0cd0c79bc2143"
 )
 PERMIT_CO_SIGNATURE_HASH = "sha256:cc85eea21fe98a0944bee69e85e1af1d7884d1dc2a1f9460c8d148a9b7a9a059"
+PERMIT_CO_SIGNATURE_V2_HASH = (
+    "sha256:8ea4807e1b4d4afc41e8bdd132015557e2f16ff33c1ca0d76268ad773c00550a"
+)
+PERMIT_CO_SIGNATURE_QUORUM_HASH = (
+    "sha256:2fa6355456889aeab2feb4c1d80a73e2555a9cb0d6d3f06c2bf8d7ace15986aa"
+)
+PERMIT_EXACT_ACTION_HASH = (
+    "sha256:4c4afcb48f29b77144eedaae4a63f9187303d35a7f7aa5def02d4bbf26fac174"
+)
 PERMIT_AUDIT_ATTESTATION_HASH = (
     "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f"
 )
@@ -316,6 +337,19 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "permit.operator_approval.v1": (PERMIT_OPERATOR_APPROVAL_ID,),
     "permit.counter_signature.v1": (PERMIT_COUNTER_SIGNATURE_ID,),
     "permit.co_signature.v1": (PERMIT_CO_SIGNATURE_ID,),
+    "permit.co_signature.v2": (
+        PERMIT_DECISION_ID,
+        PERMIT_CO_SIGNATURE_V2_ID,
+    ),
+    "permit.co_signature.quorum.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_CO_SIGNATURE_V2_ID,
+        PERMIT_CO_SIGNATURE_QUORUM_ID,
+    ),
+    "permit.exact_action.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_EXACT_ACTION_ID,
+    ),
     "permit.audit_attestation.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
     "permit.operator_approval.v2": (
         PERMIT_OPERATOR_APPROVAL_V2_ID,
@@ -355,6 +389,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
 
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CLAIM_REGISTRY_ID: "claim_registry/v0.json",
+    CLAIM_REGISTRY_V1_ID: "claim_registry/v1.json",
     EXPORT_MANIFEST_INTEGRITY_ID: "semantics/export_manifest/integrity_v1.json",
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: ("semantics/evidence_bundle/self_attesting_v1.json"),
     QUOTA_RESERVATION_LINKAGE_ID: ("semantics/quota/reservation_linkage_v1.json"),
@@ -394,6 +429,11 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     PERMIT_OPERATOR_APPROVAL_ID: ("semantics/permit/permit.operator_approval.v1.json"),
     PERMIT_COUNTER_SIGNATURE_ID: ("semantics/permit/permit.counter_signature.v1.json"),
     PERMIT_CO_SIGNATURE_ID: ("semantics/permit/permit.co_signature.v1.json"),
+    PERMIT_CO_SIGNATURE_V2_ID: "semantics/permit/co_signature_v2.json",
+    PERMIT_CO_SIGNATURE_QUORUM_ID: (
+        "semantics/permit/co_signature_quorum_v1.json"
+    ),
+    PERMIT_EXACT_ACTION_ID: "semantics/permit/exact_action_v1.json",
     PERMIT_AUDIT_ATTESTATION_ID: ("semantics/permit/permit.audit_attestation.v1.json"),
     PERMIT_OPERATOR_APPROVAL_V2_ID: ("semantics/permit/permit.operator_approval.v2.json"),
     PERMIT_COUNTER_SIGNATURE_V2_ID: ("semantics/permit/permit.counter_signature.v2.json"),
@@ -413,6 +453,7 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
 
 RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_HASH,
+    CLAIM_REGISTRY_V1_ID: CLAIM_REGISTRY_V1_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID: EXPORT_MANIFEST_INTEGRITY_HASH,
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
     QUOTA_RESERVATION_LINKAGE_ID: QUOTA_RESERVATION_LINKAGE_HASH,
@@ -446,6 +487,9 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_OPERATOR_APPROVAL_ID: PERMIT_OPERATOR_APPROVAL_HASH,
     PERMIT_COUNTER_SIGNATURE_ID: PERMIT_COUNTER_SIGNATURE_HASH,
     PERMIT_CO_SIGNATURE_ID: PERMIT_CO_SIGNATURE_HASH,
+    PERMIT_CO_SIGNATURE_V2_ID: PERMIT_CO_SIGNATURE_V2_HASH,
+    PERMIT_CO_SIGNATURE_QUORUM_ID: PERMIT_CO_SIGNATURE_QUORUM_HASH,
+    PERMIT_EXACT_ACTION_ID: PERMIT_EXACT_ACTION_HASH,
     PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
     PERMIT_OPERATOR_APPROVAL_V2_ID: PERMIT_OPERATOR_APPROVAL_V2_HASH,
     PERMIT_COUNTER_SIGNATURE_V2_ID: PERMIT_COUNTER_SIGNATURE_V2_HASH,
@@ -652,17 +696,29 @@ def _candidate_local_paths(relative_path: str, *, pack_root: Path | None) -> lis
     return paths
 
 
-def _read_bundled_claim_registry(declared_hash: str | None = None) -> bytes | None:
+def _read_bundled_claim_registry(
+    artifact_id: str,
+    declared_hash: str | None = None,
+) -> bytes | None:
     candidates: list[str] = []
-    if isinstance(declared_hash, str) and declared_hash.startswith("sha256:"):
+    if (
+        artifact_id == CLAIM_REGISTRY_ID
+        and isinstance(declared_hash, str)
+        and declared_hash.startswith("sha256:")
+    ):
         digest = declared_hash.removeprefix("sha256:")
         candidates.append(f"data/claim_registry/historical/v0-sha256-{digest}.json")
-    candidates.extend(
-        [
-            "data/claim_registry_v0.json",
-            "data/claim_registry/v0.json",
-        ]
-    )
+    if artifact_id == CLAIM_REGISTRY_ID:
+        candidates.extend(
+            [
+                "data/claim_registry_v0.json",
+                "data/claim_registry/v0.json",
+            ]
+        )
+    elif artifact_id == CLAIM_REGISTRY_V1_ID:
+        candidates.append("data/claim_registry/v1.json")
+    else:
+        return None
     for relative_path in candidates:
         try:
             bundled = resources.files("keel_verifier").joinpath(relative_path)
@@ -738,7 +794,7 @@ def _resolve_artifact_bytes(
             try:
                 if path.exists():
                     raw = path.read_bytes()
-                    if ref.get("id") == CLAIM_REGISTRY_ID:
+                    if ref.get("id") in CLAIM_REGISTRY_VERSIONS:
                         if declared_hash is None or _content_hash(raw) == declared_hash:
                             return raw, str(path), None
                         if registry_mismatch is None:
@@ -752,7 +808,7 @@ def _resolve_artifact_bytes(
                     return raw, str(path), None
             except OSError as exc:
                 errors.append(f"{path}: {exc}")
-        if ref.get("id") != CLAIM_REGISTRY_ID:
+        if ref.get("id") not in CLAIM_REGISTRY_VERSIONS:
             if ref.get("id") == PERMIT_DECISION_ID:
                 bundled = _read_bundled_permit_decision_semantics(declared_hash)
                 if bundled is not None:
@@ -768,8 +824,11 @@ def _resolve_artifact_bytes(
                 return bundled, f"bundled keel_verifier/data/{path_value}", None
             if sibling_fallback is not None and sibling_fallback_source is not None:
                 return sibling_fallback, sibling_fallback_source, None
-        if ref.get("id") == CLAIM_REGISTRY_ID:
-            bundled = _read_bundled_claim_registry(declared_hash)
+        if ref.get("id") in CLAIM_REGISTRY_VERSIONS:
+            bundled = _read_bundled_claim_registry(
+                str(ref.get("id")),
+                declared_hash,
+            )
             if bundled is not None:
                 return bundled, "bundled keel_verifier/data/claim_registry", None
             if registry_mismatch is not None and registry_mismatch_source is not None:
@@ -819,10 +878,14 @@ def _validate_artifact_identity(
         raise ValueError(
             f"artifact id mismatch: reference id {artifact_id!r}, JSON id {parsed_id!r}"
         )
-    if artifact_id == CLAIM_REGISTRY_ID and payload.get("version") != CLAIM_REGISTRY_VERSION:
+    expected_registry_version = CLAIM_REGISTRY_VERSIONS.get(artifact_id)
+    if (
+        expected_registry_version is not None
+        and payload.get("version") != expected_registry_version
+    ):
         raise ValueError(
             f"claim registry version {payload.get('version')!r}, expected "
-            f"{CLAIM_REGISTRY_VERSION!r}"
+            f"{expected_registry_version!r}"
         )
     if artifact_id == AUTHORITY_ENVELOPE_V0_ID and payload.get("version") != artifact_id:
         raise ValueError(
@@ -933,8 +996,20 @@ def _claim_requests_from_claim_set(
     *,
     registry_payload: dict[str, Any],
 ) -> tuple[ClaimRequest, ...]:
-    if claim_set.get("version") != CLAIM_REGISTRY_VERSION:
-        raise ValueError(f"claim_set.version must be {CLAIM_REGISTRY_VERSION!r}")
+    registry_id = (
+        claim_set.get("registry", {}).get("id")
+        if isinstance(claim_set.get("registry"), dict)
+        else None
+    )
+    expected_version = CLAIM_REGISTRY_VERSIONS.get(str(registry_id or ""))
+    if expected_version is None:
+        raise ValueError(f"unsupported claim registry id {registry_id!r}")
+    if claim_set.get("version") != expected_version:
+        raise ValueError(f"claim_set.version must be {expected_version!r}")
+    if registry_payload.get("version") != expected_version:
+        raise ValueError(
+            f"resolved claim registry version must be {expected_version!r}"
+        )
     claims_raw = claim_set.get("claims")
     if not isinstance(claims_raw, list) or not claims_raw:
         raise ValueError("claim_set.claims must be a non-empty array")
@@ -1449,6 +1524,11 @@ def make_permanent_allowlist(
             CLAIM_REGISTRY_HASH,
             "claim_registry",
         ),
+        SemanticImplementation(
+            CLAIM_REGISTRY_V1_ID,
+            CLAIM_REGISTRY_V1_HASH,
+            "claim_registry",
+        ),
         *(
             SemanticImplementation(
                 CLAIM_REGISTRY_ID,
@@ -1662,6 +1742,21 @@ def make_permanent_allowlist(
             PERMIT_CO_SIGNATURE_ID,
             PERMIT_CO_SIGNATURE_HASH,
             "permit_co_signature_recipe",
+        ),
+        SemanticImplementation(
+            PERMIT_CO_SIGNATURE_V2_ID,
+            PERMIT_CO_SIGNATURE_V2_HASH,
+            "permit_co_signature_recipe",
+        ),
+        SemanticImplementation(
+            PERMIT_CO_SIGNATURE_QUORUM_ID,
+            PERMIT_CO_SIGNATURE_QUORUM_HASH,
+            "permit_co_signature_quorum",
+        ),
+        SemanticImplementation(
+            PERMIT_EXACT_ACTION_ID,
+            PERMIT_EXACT_ACTION_HASH,
+            "permit_exact_action",
         ),
         SemanticImplementation(
             PERMIT_AUDIT_ATTESTATION_ID,

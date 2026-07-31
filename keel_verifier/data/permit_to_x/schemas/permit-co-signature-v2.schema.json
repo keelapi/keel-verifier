@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/schemas/permit-co-signature-v2.schema.json",
+  "title": "Permit Co-Signature Claim v2",
+  "description": "A WebAuthn co-signature bound to a separately verified signed Permit-decision canonical hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "payload_type": {
+      "const": "permit.co_signature.v2"
+    },
+    "permit_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permit_decision_canonical_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase hexadecimal SHA-256 binding_canonical_hash of the separately verified permit.decision.v1 artifact."
+    },
+    "co_signer_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["approver", "witness"]
+    },
+    "key_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "custody_tier": {
+      "const": "human_passkey"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{6}Z$"
+    },
+    "assertion": {
+      "$ref": "webauthn-assertion-envelope-v1.schema.json"
+    }
+  },
+  "required": [
+    "payload_type",
+    "permit_id",
+    "permit_decision_canonical_hash",
+    "co_signer_id",
+    "role",
+    "key_id",
+    "custody_tier",
+    "signed_at",
+    "assertion"
+  ]
+}

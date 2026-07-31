@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/schemas/permit-co-signature-quorum-v1.schema.json",
+  "title": "Permit Co-Signature Quorum Evidence v1",
+  "description": "Inputs for adjudicating a target-bound co-signature quorum without treating the projection as a verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "payload_type": {
+      "const": "permit.co_signature.quorum_evidence.v1"
+    },
+    "permit_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permit_decision_canonical_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "requirement": {
+      "$ref": "require-co-signature-v1.schema.json"
+    },
+    "requirement_canonicalization": {
+      "const": "rfc8785"
+    },
+    "requirement_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "eligible_co_signer_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "requester_id": {
+      "type": ["string", "null"]
+    },
+    "co_signature_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "co_signer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "claim_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": ["co_signer_id", "claim_digest"]
+      }
+    }
+  },
+  "required": [
+    "payload_type",
+    "permit_id",
+    "permit_decision_canonical_hash",
+    "requirement",
+    "requirement_canonicalization",
+    "requirement_digest",
+    "eligible_co_signer_ids",
+    "requester_id",
+    "co_signature_refs"
+  ]
+}

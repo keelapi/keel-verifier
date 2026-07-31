@@ -16,7 +16,7 @@ from keel_verifier.semantics import CLAIM_SEMANTICS, RELEASED_ARTIFACT_HASHES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EMBEDDED_MANIFEST = REPO_ROOT / "keel_verifier" / "_release_manifest.json"
-CLAIM_REGISTRY = REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v0.json"
+CLAIM_REGISTRY = REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v1.json"
 URL_VERSION_RE = re.compile(r"(?:refs/tags/|releases/download/)(v\d+\.\d+\.\d+)")
 VERSION_PATTERN = re.compile(r"\b2\.\d+\.\d+\b")
 URL_FIELDS = (
@@ -317,7 +317,7 @@ def test_verifier_version_matches_package() -> None:
 def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.4.1"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.9.1"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:

@@ -61,6 +61,13 @@ def test_release_trust_root_gate_rejects_unsigned_bundled_anchor() -> None:
         )
 
 
+def test_bundled_trust_root_is_production_signed() -> None:
+    validate_release_trust_root(
+        _bundled_trust_root(),
+        source=str(TRUST_ROOT),
+    )
+
+
 def test_release_trust_root_gate_rejects_test_signed_manifest() -> None:
     with pytest.raises(ValueError, match="allowlisted real export_signing key"):
         validate_release_trust_root(

@@ -1,0 +1,77 @@
+name: Refresh TSA trust snapshots
+
+on:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: tsa-trust-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: keel-verifier
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KEEL_TSA_REQUIRE_OPENSSL3: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: keel-verifier
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: keel-verifier/requirements.txt
+
+      - name: Install refresh and verification dependencies
+        run: |
+          set -euo pipefail
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+
+      - name: Refresh only issuer-verified CRLs and coupled receipts
+        run: python scripts/refresh_tsa_trust_bundle.py --min-valid-days 7
+
+      - name: Require fresh, internally consistent snapshots
+        run: python scripts/check_tsa_trust_bundle_freshness.py --min-valid-days 7
+
+      - name: Run release-pinned public TSA regression tests
+        run: >-
+          pytest -q tests/test_tsa_trust.py
+          -k "release_pinned_public_ca_receipts_validate_offline
+          or release_pinned_public_ca_receipt_tamper_rejects_imprint"
+          -rs
+
+      - name: Open a scoped refresh pull request
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "TSA trust snapshots are already current."
+            exit 0
+          fi
+          branch="automation/tsa-trust-refresh-${GITHUB_RUN_ID}"
+          git config user.name "keel-release-bot"
+          git config user.email "release-bot@keelapi.com"
+          git switch -c "${branch}"
+          git add \
+            keel_verifier/data/tsa_trust \
+            keel_verifier/verifier.py \
+            tests/fixtures/tsa/public_ca_receipts_v1.json
+          git commit -m "Refresh release-pinned TSA trust snapshots"
+          git push origin "${branch}"
+          gh pr create \
+            --repo "${GITHUB_REPOSITORY}" \
+            --base main \
+            --head "${branch}" \
+            --title "Refresh release-pinned TSA trust snapshots" \
+            --body "Automated issuer-verified CRL and coupled public-receipt refresh. CI must pass before merge; this workflow performs no release or deployment."
