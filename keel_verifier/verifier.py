@@ -13916,6 +13916,93 @@ def _adjudicate_permit_exact_action_v1(
     )
 
 
+def _verify_permit_exact_v2_signed_artifact(
+    artifact: Mapping[str, Any],
+    purpose: str,
+    signed_at_field: str,
+    *,
+    key_manifest_source: str | None,
+) -> tuple[bool, str | None]:
+    """Verify a universal-contract child artifact against pinned trust."""
+
+    signed_at = _parse_iso_or_none(artifact.get(signed_at_field))
+    if signed_at is None:
+        return False, f"{signed_at_field} is missing or malformed"
+    trusted_pub, trust_source, trust_error = _resolve_trust_key(
+        artifact_pub=None,
+        artifact_key_id=str(artifact.get("issuer_key_id") or "") or None,
+        purpose=purpose,
+        expected_public_key=None,
+        public_key_url=None,
+        key_manifest_source=key_manifest_source,
+        signing_time=signed_at,
+    )
+    if trusted_pub is None:
+        return False, trust_error or "no pinned signing key is available"
+    canonical_hash = artifact.get("canonical_hash")
+    signature = artifact.get("signature")
+    if not isinstance(canonical_hash, str) or not isinstance(signature, str):
+        return False, "signed artifact hash or signature is missing"
+    if not _verify_ed25519(
+        trusted_pub,
+        canonical_hash.encode("utf-8"),
+        signature,
+    ):
+        return False, f"Ed25519 signature is invalid ({trust_source})"
+    return True, None
+
+
+def _adjudicate_permit_exact_v2(
+    *,
+    body: dict[str, Any],
+    decision_claim: ClaimVerdict,
+    key_manifest_source: str | None,
+) -> tuple[list[ClaimVerdict], dict[str, Any]]:
+    """Adjudicate the fact-profile-driven universal verification contract."""
+
+    from keel_verifier.permit_exact_v2 import adjudicate_permit_exact_v2_body
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict=decision_claim.aggregate_verdict,
+        signed_artifact_verifier=lambda artifact, purpose, signed_at_field: (
+            _verify_permit_exact_v2_signed_artifact(
+                artifact,
+                purpose,
+                signed_at_field,
+                key_manifest_source=key_manifest_source,
+            )
+        ),
+    )
+    claims: list[ClaimVerdict] = []
+    for assessment in result.claims:
+        claim = _permit_claim(
+            assessment.name,
+            subject_type="permit_exact",
+            subject_id=result.permit_id or None,
+            verdict=assessment.verdict,
+            reason_code=assessment.reason_code,
+            message=assessment.message,
+            evidence=list(assessment.evidence),
+        )
+        if assessment.does_not_establish:
+            claim = replace(
+                claim,
+                does_not_establish=list(assessment.does_not_establish),
+            )
+        claims.append(claim)
+    return (
+        claims,
+        {
+            "permit_id": result.permit_id,
+            "project_id": result.project_id,
+            "semantic_id": result.semantic_id,
+            "fact_profile_id": result.fact_profile_id,
+            "authorized_action": result.authorized_action,
+        },
+    )
+
+
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
     manifest_arg = getattr(args, "manifest", None)
@@ -13981,31 +14068,50 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if (
             ok
             and isinstance(body, dict)
-            and body.get("profile") == "keel.permit_exact/v1"
+            and body.get("profile")
+            in {"keel.permit_exact/v1", "keel.permit_exact/v2"}
         ):
             decision_claim = _adjudicate_permit_decision_v1(
                 export_document=body,
                 key_manifest_source=_key_manifest_source_for_args(args),
             )
             claims.append(decision_claim)
-            exact_claim, exact_summary = _adjudicate_permit_exact_action_v1(
-                body=body,
-                decision_claim=decision_claim,
+            profile = str(body.get("profile"))
+            if profile == "keel.permit_exact/v2":
+                exact_claims, exact_summary = _adjudicate_permit_exact_v2(
+                    body=body,
+                    decision_claim=decision_claim,
+                    key_manifest_source=_key_manifest_source_for_args(args),
+                )
+            else:
+                exact_claim, exact_summary = _adjudicate_permit_exact_action_v1(
+                    body=body,
+                    decision_claim=decision_claim,
+                )
+                exact_claims = [exact_claim]
+            claims.extend(exact_claims)
+            failed_exact_claim = next(
+                (
+                    claim
+                    for claim in exact_claims
+                    if claim.required
+                    and claim.aggregate_verdict != verdict_value("supported")
+                ),
+                None,
             )
-            claims.append(exact_claim)
-            if exact_claim.aggregate_verdict != verdict_value("supported"):
+            if failed_exact_claim is not None:
                 ok = False
                 error = (
-                    exact_claim.message
-                    or exact_claim.reason_code
-                    or "Exact-action verification did not complete."
+                    failed_exact_claim.message
+                    or failed_exact_claim.reason_code
+                    or "Exact Permit verification did not complete."
                 )
                 diagnostics.append(error)
-            elif exact_summary is not None:
+            else:
                 artifact.update(
                     {
                         "kind": "permit_exact",
-                        "profile": "keel.permit_exact/v1",
+                        "profile": profile,
                         "permit": exact_summary,
                     }
                 )

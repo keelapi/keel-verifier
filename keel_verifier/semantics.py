@@ -16,9 +16,12 @@ CLAIM_REGISTRY_ID = "keel.verifier_claim_registry.v0"
 CLAIM_REGISTRY_VERSION = "verifier-claims.v0"
 CLAIM_REGISTRY_V1_ID = "keel.verifier_claim_registry.v1"
 CLAIM_REGISTRY_V1_VERSION = "verifier-claims.v1"
+CLAIM_REGISTRY_V2_ID = "keel.verifier_claim_registry.v2"
+CLAIM_REGISTRY_V2_VERSION = "verifier-claims.v2"
 CLAIM_REGISTRY_VERSIONS = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_VERSION,
     CLAIM_REGISTRY_V1_ID: CLAIM_REGISTRY_V1_VERSION,
+    CLAIM_REGISTRY_V2_ID: CLAIM_REGISTRY_V2_VERSION,
 }
 SEMANTICS_PINS_VERSION = "keel-semantics-pins.v0"
 LEGACY_PROFILE_ID = "keel.pre_pinning_default.v0"
@@ -61,6 +64,8 @@ PERMIT_CO_SIGNATURE_ID = "keel.permit.co_signature.v1"
 PERMIT_CO_SIGNATURE_V2_ID = "keel.permit.co_signature.v2"
 PERMIT_CO_SIGNATURE_QUORUM_ID = "keel.permit.co_signature.quorum.v1"
 PERMIT_EXACT_ACTION_ID = "keel.permit.exact_action.v1"
+PERMIT_UNIVERSAL_VERIFICATION_ID = "keel.permit.universal_verification.v1"
+PROVIDER_RECEIPT_STATE_ID = "keel.provider.receipt_state.v1"
 PERMIT_AUDIT_ATTESTATION_ID = "keel.permit.audit_attestation.v1"
 PERMIT_OPERATOR_APPROVAL_V2_ID = "keel.permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_ID = "keel.permit.counter_signature.v2"
@@ -76,6 +81,9 @@ WORK_PAYMENT_AUTHORITY_COMPARATOR_ID = "keel.work_payment_authority.v1"
 CLAIM_REGISTRY_HASH = "sha256:1ce5c3d46e81c989a7a32e1deb1f9c4c216891302699b4050e2f7edff50d7c15"
 CLAIM_REGISTRY_V1_HASH = (
     "sha256:ff3fee0993fefb4456e97380f44e23ccf43fc175c8f12c78645cb6b39b2250b2"
+)
+CLAIM_REGISTRY_V2_HASH = (
+    "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344"
 )
 CLAIM_REGISTRY_PREVIOUS_HASH = (
     "sha256:506cbccd90859dc8d43e6b11fe9bc3fdcb64f7d5dde1c1e2c4ffc61333fb7ea9"
@@ -211,6 +219,12 @@ PERMIT_CO_SIGNATURE_QUORUM_HASH = (
 )
 PERMIT_EXACT_ACTION_HASH = (
     "sha256:4c4afcb48f29b77144eedaae4a63f9187303d35a7f7aa5def02d4bbf26fac174"
+)
+PERMIT_UNIVERSAL_VERIFICATION_HASH = (
+    "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262"
+)
+PROVIDER_RECEIPT_STATE_HASH = (
+    "sha256:9fb425c075b853295be0af0fefd80508a2cf2f78901872b76f5aba14bebdaa26"
 )
 PERMIT_AUDIT_ATTESTATION_HASH = (
     "sha256:29d9d2e430cd9c538807d26e1407de5233e3de07066f5d20946d0323865b295f"
@@ -350,6 +364,62 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
         PERMIT_DECISION_ID,
         PERMIT_EXACT_ACTION_ID,
     ),
+    "permit.type.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.exact_target.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.material_request.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.valid_at_dispatch.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.revocation_at_dispatch.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.enforced_at_certified_boundary.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.bounded_use.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.single_use.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.replay_prevented.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "permit.idempotency_bound.v1": (
+        PERMIT_DECISION_ID,
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+    ),
+    "provider.receipt_state.v1": (
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+        PROVIDER_RECEIPT_STATE_ID,
+    ),
+    "provider.rejected.v1": (
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+        PROVIDER_RECEIPT_STATE_ID,
+    ),
+    "provider.accepted.v1": (
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+        PROVIDER_RECEIPT_STATE_ID,
+    ),
+    "provider.completed.v1": (
+        PERMIT_UNIVERSAL_VERIFICATION_ID,
+        PROVIDER_RECEIPT_STATE_ID,
+    ),
     "permit.audit_attestation.v1": (PERMIT_AUDIT_ATTESTATION_ID,),
     "permit.operator_approval.v2": (
         PERMIT_OPERATOR_APPROVAL_V2_ID,
@@ -390,6 +460,7 @@ CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
 RELEASED_ARTIFACT_PATHS: dict[str, str] = {
     CLAIM_REGISTRY_ID: "claim_registry/v0.json",
     CLAIM_REGISTRY_V1_ID: "claim_registry/v1.json",
+    CLAIM_REGISTRY_V2_ID: "claim_registry/v2.json",
     EXPORT_MANIFEST_INTEGRITY_ID: "semantics/export_manifest/integrity_v1.json",
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: ("semantics/evidence_bundle/self_attesting_v1.json"),
     QUOTA_RESERVATION_LINKAGE_ID: ("semantics/quota/reservation_linkage_v1.json"),
@@ -434,6 +505,10 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
         "semantics/permit/co_signature_quorum_v1.json"
     ),
     PERMIT_EXACT_ACTION_ID: "semantics/permit/exact_action_v1.json",
+    PERMIT_UNIVERSAL_VERIFICATION_ID: (
+        "semantics/permit/universal_verification_v1.json"
+    ),
+    PROVIDER_RECEIPT_STATE_ID: "semantics/permit/provider_receipt_state_v1.json",
     PERMIT_AUDIT_ATTESTATION_ID: ("semantics/permit/permit.audit_attestation.v1.json"),
     PERMIT_OPERATOR_APPROVAL_V2_ID: ("semantics/permit/permit.operator_approval.v2.json"),
     PERMIT_COUNTER_SIGNATURE_V2_ID: ("semantics/permit/permit.counter_signature.v2.json"),
@@ -454,6 +529,7 @@ RELEASED_ARTIFACT_PATHS: dict[str, str] = {
 RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     CLAIM_REGISTRY_ID: CLAIM_REGISTRY_HASH,
     CLAIM_REGISTRY_V1_ID: CLAIM_REGISTRY_V1_HASH,
+    CLAIM_REGISTRY_V2_ID: CLAIM_REGISTRY_V2_HASH,
     EXPORT_MANIFEST_INTEGRITY_ID: EXPORT_MANIFEST_INTEGRITY_HASH,
     EVIDENCE_BUNDLE_SELF_ATTESTING_ID: EVIDENCE_BUNDLE_SELF_ATTESTING_HASH,
     QUOTA_RESERVATION_LINKAGE_ID: QUOTA_RESERVATION_LINKAGE_HASH,
@@ -490,6 +566,8 @@ RELEASED_ARTIFACT_HASHES: dict[str, str] = {
     PERMIT_CO_SIGNATURE_V2_ID: PERMIT_CO_SIGNATURE_V2_HASH,
     PERMIT_CO_SIGNATURE_QUORUM_ID: PERMIT_CO_SIGNATURE_QUORUM_HASH,
     PERMIT_EXACT_ACTION_ID: PERMIT_EXACT_ACTION_HASH,
+    PERMIT_UNIVERSAL_VERIFICATION_ID: PERMIT_UNIVERSAL_VERIFICATION_HASH,
+    PROVIDER_RECEIPT_STATE_ID: PROVIDER_RECEIPT_STATE_HASH,
     PERMIT_AUDIT_ATTESTATION_ID: PERMIT_AUDIT_ATTESTATION_HASH,
     PERMIT_OPERATOR_APPROVAL_V2_ID: PERMIT_OPERATOR_APPROVAL_V2_HASH,
     PERMIT_COUNTER_SIGNATURE_V2_ID: PERMIT_COUNTER_SIGNATURE_V2_HASH,
@@ -717,6 +795,8 @@ def _read_bundled_claim_registry(
         )
     elif artifact_id == CLAIM_REGISTRY_V1_ID:
         candidates.append("data/claim_registry/v1.json")
+    elif artifact_id == CLAIM_REGISTRY_V2_ID:
+        candidates.append("data/claim_registry/v2.json")
     else:
         return None
     for relative_path in candidates:
@@ -991,6 +1071,47 @@ def _allowlist_lookup(
     return None
 
 
+def _registry_claim_names(
+    *,
+    registry_id: str,
+    registry_payload: dict[str, Any],
+) -> set[str]:
+    names = {
+        item.get("name")
+        for item in registry_payload.get("claims", [])
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    }
+    if registry_id != CLAIM_REGISTRY_V2_ID:
+        return names
+    extension = registry_payload.get("extends")
+    if not isinstance(extension, dict):
+        raise ValueError("verifier-claims.v2 is missing its pinned base")
+    expected_base_hash = CLAIM_REGISTRY_V1_HASH.removeprefix("sha256:")
+    if (
+        extension.get("artifact_id") != CLAIM_REGISTRY_V1_ID
+        or extension.get("version") != CLAIM_REGISTRY_V1_VERSION
+        or extension.get("sha256") != expected_base_hash
+    ):
+        raise ValueError("verifier-claims.v2 has an unsupported pinned base")
+    base_raw = _read_bundled_claim_registry(
+        CLAIM_REGISTRY_V1_ID,
+        CLAIM_REGISTRY_V1_HASH,
+    )
+    if base_raw is None:
+        raise ValueError("verifier-claims.v2 pinned base is unavailable")
+    base_payload = _parse_json_bytes(base_raw, source="bundled claim registry v1")
+    assert base_payload is not None
+    base_names = {
+        item.get("name")
+        for item in base_payload.get("claims", [])
+        if isinstance(item, dict) and isinstance(item.get("name"), str)
+    }
+    duplicates = sorted(base_names.intersection(names))
+    if duplicates:
+        raise ValueError(f"verifier-claims.v2 duplicates base claims: {duplicates}")
+    return base_names | names
+
+
 def _claim_requests_from_claim_set(
     claim_set: dict[str, Any],
     *,
@@ -1014,11 +1135,10 @@ def _claim_requests_from_claim_set(
     if not isinstance(claims_raw, list) or not claims_raw:
         raise ValueError("claim_set.claims must be a non-empty array")
 
-    registry_claims = {
-        item.get("name")
-        for item in registry_payload.get("claims", [])
-        if isinstance(item, dict) and isinstance(item.get("name"), str)
-    }
+    registry_claims = _registry_claim_names(
+        registry_id=str(registry_id),
+        registry_payload=registry_payload,
+    )
     requests: list[ClaimRequest] = []
     for index, item in enumerate(claims_raw):
         if not isinstance(item, dict):
@@ -1529,6 +1649,11 @@ def make_permanent_allowlist(
             CLAIM_REGISTRY_V1_HASH,
             "claim_registry",
         ),
+        SemanticImplementation(
+            CLAIM_REGISTRY_V2_ID,
+            CLAIM_REGISTRY_V2_HASH,
+            "claim_registry",
+        ),
         *(
             SemanticImplementation(
                 CLAIM_REGISTRY_ID,
@@ -1757,6 +1882,16 @@ def make_permanent_allowlist(
             PERMIT_EXACT_ACTION_ID,
             PERMIT_EXACT_ACTION_HASH,
             "permit_exact_action",
+        ),
+        SemanticImplementation(
+            PERMIT_UNIVERSAL_VERIFICATION_ID,
+            PERMIT_UNIVERSAL_VERIFICATION_HASH,
+            "permit_universal_verification",
+        ),
+        SemanticImplementation(
+            PROVIDER_RECEIPT_STATE_ID,
+            PROVIDER_RECEIPT_STATE_HASH,
+            "provider_receipt_state",
         ),
         SemanticImplementation(
             PERMIT_AUDIT_ATTESTATION_ID,

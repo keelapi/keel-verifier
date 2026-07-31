@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-bounded-use-v1.schema.json",
+  "title": "Keel Permit bounded-use transition v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "counter_id",
+    "permit_id",
+    "project_id",
+    "counter_sequence",
+    "previous_transition_digest",
+    "dispatch_id",
+    "maximum_uses",
+    "consumed_before",
+    "consumed_after",
+    "exact_request_digest",
+    "idempotency_key_commitment",
+    "occurred_at",
+    "signature_profile",
+    "issuer_key_id",
+    "canonical_hash",
+    "signature"
+  ],
+  "properties": {
+    "version": {"const": "keel.permit_bounded_use.v1"},
+    "counter_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "project_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "counter_sequence": {"type": "integer", "minimum": 1},
+    "previous_transition_digest": {
+      "oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]
+    },
+    "dispatch_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "maximum_uses": {"type": "integer", "minimum": 1},
+    "consumed_before": {"type": "integer", "minimum": 0},
+    "consumed_after": {"type": "integer", "minimum": 1},
+    "exact_request_digest": {"$ref": "#/$defs/digest"},
+    "idempotency_key_commitment": {"$ref": "#/$defs/commitment"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "signature_profile": {
+      "const": "keel.ed25519.sha256_rfc8785.v1"
+    },
+    "issuer_key_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"counter_sequence": {"const": 1}}
+      },
+      "then": {
+        "properties": {
+          "consumed_before": {"const": 0},
+          "consumed_after": {"const": 1},
+          "previous_transition_digest": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "previous_transition_digest": {"$ref": "#/$defs/digest"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {"const": "keel.hmac_sha256_jcs.v1"},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

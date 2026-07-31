@@ -12,11 +12,11 @@ import pytest
 
 import keel_verifier
 from keel_verifier.semantics import CLAIM_SEMANTICS, RELEASED_ARTIFACT_HASHES
+from keel_verifier.verdicts import load_claim_registry
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EMBEDDED_MANIFEST = REPO_ROOT / "keel_verifier" / "_release_manifest.json"
-CLAIM_REGISTRY = REPO_ROOT / "keel_verifier" / "data" / "claim_registry" / "v1.json"
 URL_VERSION_RE = re.compile(r"(?:refs/tags/|releases/download/)(v\d+\.\d+\.\d+)")
 VERSION_PATTERN = re.compile(r"\b2\.\d+\.\d+\b")
 URL_FIELDS = (
@@ -317,7 +317,7 @@ def test_verifier_version_matches_package() -> None:
 def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.9.1"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.10.0"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:
@@ -334,9 +334,8 @@ def test_step4_claims_and_failure_codes_advertised() -> None:
 
 def test_inventory_claims_match_claim_registry() -> None:
     inv = _load_inventory()
-    registry = json.loads(CLAIM_REGISTRY.read_text(encoding="utf-8"))
     inventory_claims = {claim["name"] for claim in inv["claims"]}
-    registry_claims = {claim["name"] for claim in registry["claims"]}
+    registry_claims = set(load_claim_registry().claims)
     assert inventory_claims == registry_claims
 
 
@@ -354,6 +353,7 @@ def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
         or semantic_id.startswith("keel.scope_state.")
         or semantic_id.startswith("keel.quota.")
         or semantic_id.startswith("keel.budget.")
+        or semantic_id.startswith("keel.provider.")
         or semantic_id.startswith("keel.work_")
         or semantic_id == "keel.export.scope_faithfulness.v1"
     }

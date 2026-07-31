@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/adapter-certification-v1.schema.json",
+  "title": "Keel adapter certification v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "certification_id",
+    "adapter_id",
+    "adapter_version",
+    "semantic_ids",
+    "governed_surfaces",
+    "conformance_vector_set_digest",
+    "negative_test_results_digest",
+    "anti_bypass_requirements",
+    "issued_at",
+    "expires_at",
+    "revoked_at",
+    "revocation_event_digest",
+    "signature_profile",
+    "issuer_key_id",
+    "canonical_hash",
+    "signature"
+  ],
+  "properties": {
+    "version": {"const": "keel.adapter_certification.v1"},
+    "certification_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "adapter_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "adapter_version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "semantic_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"}
+    },
+    "governed_surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 128}
+    },
+    "conformance_vector_set_digest": {"$ref": "#/$defs/digest"},
+    "negative_test_results_digest": {"$ref": "#/$defs/digest"},
+    "anti_bypass_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "revoked_at": {"type": ["string", "null"], "format": "date-time"},
+    "revocation_event_digest": {
+      "oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]
+    },
+    "signature_profile": {
+      "const": "keel.ed25519.sha256_rfc8785.v1"
+    },
+    "issuer_key_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"revoked_at": {"type": "null"}}
+      },
+      "then": {
+        "properties": {"revocation_event_digest": {"type": "null"}}
+      },
+      "else": {
+        "properties": {
+          "revocation_event_digest": {"$ref": "#/$defs/digest"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

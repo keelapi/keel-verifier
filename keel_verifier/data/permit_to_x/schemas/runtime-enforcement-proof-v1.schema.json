@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/runtime-enforcement-proof-v1.schema.json",
+  "title": "Keel runtime enforcement proof v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "proof_id",
+    "permit_id",
+    "project_id",
+    "dispatch_id",
+    "semantic_id",
+    "exact_request_digest",
+    "adapter_certification_id",
+    "adapter_certification_digest",
+    "deployment_assurance_id",
+    "deployment_assurance_digest",
+    "gate_id",
+    "gate_revision",
+    "gate_result",
+    "pre_effect",
+    "evaluated_at",
+    "signature_profile",
+    "issuer_key_id",
+    "canonical_hash",
+    "signature"
+  ],
+  "properties": {
+    "version": {"const": "keel.runtime_enforcement_proof.v1"},
+    "proof_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "project_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "dispatch_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "exact_request_digest": {"$ref": "#/$defs/digest"},
+    "adapter_certification_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "adapter_certification_digest": {"$ref": "#/$defs/digest"},
+    "deployment_assurance_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "deployment_assurance_digest": {"$ref": "#/$defs/digest"},
+    "gate_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "gate_revision": {"type": "string", "minLength": 1, "maxLength": 256},
+    "gate_result": {"enum": ["allow", "deny", "review", "throttle"]},
+    "pre_effect": {"const": true},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "signature_profile": {
+      "const": "keel.ed25519.sha256_rfc8785.v1"
+    },
+    "issuer_key_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

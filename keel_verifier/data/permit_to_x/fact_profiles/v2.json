@@ -1,0 +1,146 @@
+{
+  "$schema": "./v2.schema.json",
+  "artifact_id": "keel.permit.fact_profile_registry",
+  "version": "keel.fact_profile_registry.v2",
+  "canonicalization_profile": "rfc8785",
+  "disclosure_contract": {
+    "version": "keel.fact_disclosure.v1",
+    "audiences": ["verifier_safe", "authorized", "private"],
+    "default_audience": "verifier_safe",
+    "opening_requires_audit_reason": true,
+    "plain_hash_for_low_entropy_forbidden": true
+  },
+  "profiles": [
+    {
+      "fact_profile_id": "keel.facts.payment_exact.v1",
+      "semantic_ids": ["keel.action.payment_execute.v1"],
+      "authorized_action": "payment.execute",
+      "facts_schema": "schemas/payment-exact-facts-v1.schema.json",
+      "facts_schema_digest": "sha256:b12f4bdca4fd759ea624d73f5d1cf65f4f103a2d55218a8be28b156aba871cf2",
+      "classification_evidence_path": "/payment_classification_v1",
+      "classification_semantics_id": "keel.permit.action_classification_derivation.v1",
+      "target_fact_paths": [
+        "/recipient_reference_commitment",
+        "/payment_rail"
+      ],
+      "material_request_fact_paths": ["/request_digest"],
+      "fields": [
+        {
+          "path": "/amount_minor",
+          "value_type": "integer",
+          "required_for_authorization": true,
+          "classification": "financial",
+          "low_entropy_possible": true,
+          "disclosure": {
+            "verifier_safe": "omit",
+            "authorized": "cleartext",
+            "private": "cleartext"
+          },
+          "retention": {
+            "class": "permit_evidence",
+            "max_days": null,
+            "erasable": false,
+            "erasure_action": "retain_signed_value"
+          },
+          "commitment_method": "signed_cleartext"
+        },
+        {
+          "path": "/currency",
+          "value_type": "string",
+          "required_for_authorization": true,
+          "classification": "financial",
+          "low_entropy_possible": true,
+          "disclosure": {
+            "verifier_safe": "cleartext",
+            "authorized": "cleartext",
+            "private": "cleartext"
+          },
+          "retention": {
+            "class": "permit_evidence",
+            "max_days": null,
+            "erasable": false,
+            "erasure_action": "retain_signed_value"
+          },
+          "commitment_method": "signed_cleartext"
+        },
+        {
+          "path": "/recipient_reference_commitment",
+          "value_type": "commitment",
+          "required_for_authorization": true,
+          "classification": "personal_data",
+          "low_entropy_possible": true,
+          "disclosure": {
+            "verifier_safe": "commitment",
+            "authorized": "commitment_with_optional_opening",
+            "private": "commitment_with_optional_opening"
+          },
+          "retention": {
+            "class": "deletable_identity",
+            "max_days": null,
+            "erasable": true,
+            "erasure_action": "erase_opening"
+          },
+          "commitment_method": "keel.salted_sha256_jcs.v1"
+        },
+        {
+          "path": "/recipient_display_name_commitment",
+          "value_type": "commitment",
+          "required_for_authorization": false,
+          "classification": "personal_data",
+          "low_entropy_possible": true,
+          "disclosure": {
+            "verifier_safe": "omit",
+            "authorized": "commitment_with_optional_opening",
+            "private": "commitment_with_optional_opening"
+          },
+          "retention": {
+            "class": "deletable_identity",
+            "max_days": null,
+            "erasable": true,
+            "erasure_action": "erase_opening"
+          },
+          "commitment_method": "keel.salted_sha256_jcs.v1"
+        },
+        {
+          "path": "/payment_rail",
+          "value_type": "string",
+          "required_for_authorization": true,
+          "classification": "operational",
+          "low_entropy_possible": true,
+          "disclosure": {
+            "verifier_safe": "cleartext",
+            "authorized": "cleartext",
+            "private": "cleartext"
+          },
+          "retention": {
+            "class": "permit_evidence",
+            "max_days": null,
+            "erasable": false,
+            "erasure_action": "retain_signed_value"
+          },
+          "commitment_method": "signed_cleartext"
+        },
+        {
+          "path": "/request_digest",
+          "value_type": "digest",
+          "required_for_authorization": true,
+          "classification": "operational",
+          "low_entropy_possible": false,
+          "disclosure": {
+            "verifier_safe": "cleartext",
+            "authorized": "cleartext",
+            "private": "cleartext"
+          },
+          "retention": {
+            "class": "permit_evidence",
+            "max_days": null,
+            "erasable": false,
+            "erasure_action": "retain_signed_value"
+          },
+          "commitment_method": "signed_cleartext"
+        }
+      ],
+      "release_state": "eligible"
+    }
+  ]
+}

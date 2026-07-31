@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v2.json",
+  "title": "Verifier Claim Registry - v2",
+  "version": "verifier-claims.v2",
+  "description": "Composable S1 universal verification claims. Consumers resolve the pinned v1 base registry first, then these additions. This artifact defines claims; it does not declare implementation support in any verifier build.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v1",
+    "version": "verifier-claims.v1",
+    "sha256": "ff3fee0993fefb4456e97380f44e23ccf43fc175c8f12c78645cb6b39b2250b2"
+  },
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "permit.type.v1",
+      "assertion": "The signed Permit decision carries exactly one admitted semantic identity whose selector and fact-profile contracts resolve under the versions and digests pinned by the evidence pack.",
+      "required_evidence": "Supported permit.decision.v1; signed resource attributes; semantic binding; pinned semantic selector registry; and, for exact actions, the pinned fact-profile registry and facts schema.",
+      "does_not_establish": [
+        "dispatch",
+        "provider acceptance",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.exact_target.v1",
+      "assertion": "Every target fact required by the pinned fact profile is present, schema-valid, and covered by the signed Permit decision resource-attribute commitment.",
+      "required_evidence": "Supported permit.decision.v1; supported permit.type.v1; fact-profile target_fact_paths; exact authorization facts; pinned facts schema; and signed resource-attribute commitment.",
+      "does_not_establish": [
+        "target existence at dispatch",
+        "provider acceptance",
+        "external identity behind an unopened commitment",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.material_request.v1",
+      "assertion": "Every material request fact required by the pinned fact profile is present, schema-valid, signed, and matches the recorded exact dispatch request digest when dispatch evidence is supplied.",
+      "required_evidence": "Supported permit.decision.v1; supported permit.type.v1; fact-profile material_request_fact_paths; exact authorization facts; and exact dispatch request digest when dispatch is claimed.",
+      "does_not_establish": [
+        "provider receipt",
+        "provider acceptance",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.valid_at_dispatch.v1",
+      "assertion": "The recorded pre-effect dispatch instant is on or after Permit issuance and strictly before the signed effective expiry boundary.",
+      "required_evidence": "Supported permit.decision.v1 with issued_at and expires_at; signed runtime enforcement proof or scope-faithful dispatch-boundary evidence; and a trusted dispatch instant.",
+      "does_not_establish": [
+        "absence of revocation",
+        "single use",
+        "provider acceptance",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.revocation_at_dispatch.v1",
+      "assertion": "No effective Permit revocation preceded the recorded pre-effect dispatch instant within the declared scope-faithful evidence boundary.",
+      "required_evidence": "Supported permit.decision.v1; trusted dispatch instant; signed Permit revocation evidence; scope-faithful lifecycle population through a checkpoint boundary; and pinned revocation temporal semantics.",
+      "does_not_establish": [
+        "events outside the declared scope",
+        "mid-flight cancellation after dispatch",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.enforced_at_certified_boundary.v1",
+      "assertion": "The exact request crossed a pre-effect gate whose adapter certification and customer deployment assurance were active, unexpired, unrevoked, and applicable to the signed Permit consequence at dispatch.",
+      "required_evidence": "Supported permit.decision.v1, permit.type.v1, and permit.material_request.v1; signed adapter certification; signed deployment assurance; signed runtime enforcement proof; certification and deployment revocation evidence; trusted signing keys; and matching project, surface, adapter version, request digest, consequence, and dispatch instant.",
+      "does_not_establish": [
+        "absence of all external bypass routes beyond the certified deployment scope",
+        "provider acceptance",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.bounded_use.v1",
+      "assertion": "A signed monotonic use transition consumed exactly one use for the exact dispatch without exceeding the signed Permit maximum-use limit.",
+      "required_evidence": "Supported permit.decision.v1 with maximum-use limit; signed permit_bounded_use.v1 transition; exact request digest; dispatch id; idempotency-key commitment; previous counter state or scope-faithful counter history; and trusted signing key.",
+      "does_not_establish": [
+        "single use unless maximum_uses equals one",
+        "absence of uses outside the declared scope",
+        "provider acceptance",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.single_use.v1",
+      "assertion": "The signed Permit maximum-use limit equals one and the scope-faithful bounded-use history contains exactly one valid transition for the Permit.",
+      "required_evidence": "Supported permit.bounded_use.v1; signed maximum_uses=1; and scope-faithful bounded-use population through the declared checkpoint boundary.",
+      "does_not_establish": [
+        "absence of activity outside the declared scope",
+        "provider acceptance",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.replay_prevented.v1",
+      "assertion": "No second dispatch with the same Permit and exact request identity was accepted by the certified boundary within the declared scope-faithful dispatch population.",
+      "required_evidence": "Supported permit.enforced_at_certified_boundary.v1; signed exact request digest; bounded-use or dispatch identity; and scope-faithful dispatch population through the declared checkpoint boundary.",
+      "does_not_establish": [
+        "absence of activity outside the certified boundary",
+        "absence of activity outside the declared scope",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.idempotency_bound.v1",
+      "assertion": "The committed idempotency identity is bound to one Permit, one exact request digest, and the recorded dispatch or bounded-use transition.",
+      "required_evidence": "Supported permit.material_request.v1; signed idempotency-key commitment; Permit id; exact request digest; dispatch id; and signed runtime enforcement or bounded-use evidence.",
+      "does_not_establish": [
+        "provider-side idempotency unless provider evidence establishes it",
+        "provider acceptance",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.receipt_state.v1",
+      "assertion": "A provider receipt is schema-valid, bound to the same Permit, dispatch, operation, provider, and exact request digest, and follows the pinned provider-receipt state machine.",
+      "required_evidence": "Supported permit.material_request.v1; provider_receipt.v1 artifact; pinned provider receipt-state semantics; prior receipt when a transition is asserted; evidence digest; and source classification.",
+      "does_not_establish": [
+        "independent truth of a provider assertion",
+        "settlement",
+        "legal completion",
+        "deletion or absence",
+        "deployment health",
+        "external real-world outcome without independently verified evidence"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.rejected.v1",
+      "assertion": "Authoritative provider or transport evidence establishes that the exact dispatch attempt was rejected before provider acceptance.",
+      "required_evidence": "Supported provider.receipt_state.v1 for the same Permit and dispatch with state=rejected; source-specific rejection semantics; and no contradictory later receipt in the scope-faithful receipt chain.",
+      "does_not_establish": [
+        "absence of a separate dispatch attempt",
+        "provider acceptance",
+        "provider completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.accepted.v1",
+      "assertion": "Authoritative provider evidence establishes that the provider accepted the exact dispatch attempt.",
+      "required_evidence": "Supported provider.receipt_state.v1 for the same Permit and dispatch with an acceptance-establishing state and source class; exact request binding; and source-specific acceptance semantics.",
+      "does_not_establish": [
+        "provider completion",
+        "settlement",
+        "deletion or absence",
+        "deployment health",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "provider.completed.v1",
+      "assertion": "Authoritative provider evidence reports that the exact dispatch reached the provider's defined completed state.",
+      "required_evidence": "Supported provider.receipt_state.v1 for the same Permit and dispatch with state=completed; exact request binding; and source-specific completion semantics.",
+      "does_not_establish": [
+        "independent truth of a provider assertion",
+        "settlement",
+        "legal completion",
+        "deletion or absence",
+        "deployment health",
+        "external real-world outcome without independently verified evidence"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    }
+  ]
+}

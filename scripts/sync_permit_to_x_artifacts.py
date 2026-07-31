@@ -17,6 +17,7 @@ DATA = ROOT / "keel_verifier" / "data"
 
 COPIES = {
     "claim_registry/v1.json": "claim_registry/v1.json",
+    "claim_registry/v2.json": "claim_registry/v2.json",
     "schemas/permit-co-signature-v2.schema.json": (
         "permit_to_x/schemas/permit-co-signature-v2.schema.json"
     ),
@@ -34,6 +35,12 @@ COPIES = {
     ),
     "semantics/permit/exact_action_v1.json": (
         "semantics/permit/exact_action_v1.json"
+    ),
+    "semantics/permit/universal_verification_v1.json": (
+        "semantics/permit/universal_verification_v1.json"
+    ),
+    "semantics/permit/provider_receipt_state_v1.json": (
+        "semantics/permit/provider_receipt_state_v1.json"
     ),
     "semantics/permit/authority_edge_revocation_v1.json": (
         "semantics/permit/authority_edge_revocation_v1.json"
@@ -61,10 +68,39 @@ COPIES = {
     "schemas/permit-semantic-binding-v1.schema.json": (
         "permit_to_x/schemas/permit-semantic-binding-v1.schema.json"
     ),
+    "schemas/permit-semantic-binding-v2.schema.json": (
+        "permit_to_x/schemas/permit-semantic-binding-v2.schema.json"
+    ),
     "fact_profiles/v1.json": "permit_to_x/fact_profiles/v1.json",
     "fact_profiles/v1.schema.json": "permit_to_x/fact_profiles/v1.schema.json",
+    "fact_profiles/v2.json": "permit_to_x/fact_profiles/v2.json",
+    "fact_profiles/v2.schema.json": "permit_to_x/fact_profiles/v2.schema.json",
     "schemas/payment-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/payment-exact-facts-v1.schema.json"
+    ),
+    "schemas/permit-exact-pack-v2.schema.json": (
+        "permit_to_x/schemas/permit-exact-pack-v2.schema.json"
+    ),
+    "schemas/adapter-certification-v1.schema.json": (
+        "permit_to_x/schemas/adapter-certification-v1.schema.json"
+    ),
+    "schemas/deployment-assurance-v1.schema.json": (
+        "permit_to_x/schemas/deployment-assurance-v1.schema.json"
+    ),
+    "schemas/runtime-enforcement-proof-v1.schema.json": (
+        "permit_to_x/schemas/runtime-enforcement-proof-v1.schema.json"
+    ),
+    "schemas/permit-bounded-use-v1.schema.json": (
+        "permit_to_x/schemas/permit-bounded-use-v1.schema.json"
+    ),
+    "schemas/permit-selective-disclosure-v1.schema.json": (
+        "permit_to_x/schemas/permit-selective-disclosure-v1.schema.json"
+    ),
+    "schemas/provider-receipt-v1.schema.json": (
+        "permit_to_x/schemas/provider-receipt-v1.schema.json"
+    ),
+    "test-vectors/universal_verification/v1/corpus.json": (
+        "permit_to_x/test_vectors/universal_verification/v1/corpus.json"
     ),
     "schemas/work-request-v1.schema.json": ("permit_to_x/schemas/work-request-v1.schema.json"),
     "schemas/work-package-v1.schema.json": ("permit_to_x/schemas/work-package-v1.schema.json"),
