@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 import rfc8785
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from keel_verifier.canonical.permit_binding import (
     canonical_resource_attributes_payload,
@@ -18,6 +20,7 @@ from keel_verifier.permit_exact_v2 import (
 from keel_verifier.verifier import (
     _adjudicate_permit_exact_v2,
     _permit_claim,
+    _verify_permit_exact_v2_signed_artifact,
 )
 
 
@@ -57,6 +60,16 @@ def _signed_shape(fields: dict) -> dict:
         "canonical_hash": canonical_hash,
         "signature": "ed25519:"
         + base64.b64encode(b"s" * 64).decode("ascii"),
+    }
+
+
+def _real_signed_shape(fields: dict, private_key: Ed25519PrivateKey) -> dict:
+    canonical_hash = _digest_object(fields)
+    signature = private_key.sign(canonical_hash.encode("utf-8"))
+    return {
+        **fields,
+        "canonical_hash": canonical_hash,
+        "signature": "ed25519:" + base64.b64encode(signature).decode("ascii"),
     }
 
 
@@ -473,3 +486,63 @@ def test_v2_verifier_adapter_emits_structured_claims() -> None:
     )
     assert summary["semantic_id"] == "keel.action.payment_execute.v1"
     assert summary["fact_profile_id"] == "keel.facts.payment_exact.v1"
+
+
+def test_bounded_use_child_uses_pinned_permit_binding_authority(
+    tmp_path: Path,
+) -> None:
+    private_key = Ed25519PrivateKey.from_private_bytes(b"\x42" * 32)
+    public_key = private_key.public_key().public_bytes(
+        serialization.Encoding.Raw,
+        serialization.PublicFormat.Raw,
+    )
+    key_id = "permit-binding-test-key"
+    manifest = tmp_path / "trust-root.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "keys": [
+                    {
+                        "key_id": key_id,
+                        "algorithm": "ed25519",
+                        "public_key": (
+                            "ed25519:" + base64.b64encode(public_key).decode("ascii")
+                        ),
+                        "purpose": "permit_binding_signing",
+                        "status": "active",
+                        "valid_from": "2026-01-01T00:00:00Z",
+                        "valid_to": None,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    transition = _real_signed_shape(
+        {
+            "version": "keel.permit_bounded_use.v1",
+            "occurred_at": "2026-07-30T12:10:00Z",
+            "issuer_key_id": key_id,
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+        },
+        private_key,
+    )
+
+    verified, error = _verify_permit_exact_v2_signed_artifact(
+        transition,
+        "permit_bounded_use_signing",
+        "occurred_at",
+        key_manifest_source=str(manifest),
+    )
+
+    assert verified is True
+    assert error is None
+
+    unrelated_verified, unrelated_error = _verify_permit_exact_v2_signed_artifact(
+        transition,
+        "runtime_enforcement_signing",
+        "occurred_at",
+        key_manifest_source=str(manifest),
+    )
+    assert unrelated_verified is False
+    assert "runtime_enforcement_signing" in str(unrelated_error)
