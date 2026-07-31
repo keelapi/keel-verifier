@@ -424,6 +424,7 @@ def test_provider_state_evidence_ceiling(
 
     assert claim.verdict == verdict
     assert claim.reason_code == reason_code
+    assert claim.does_not_establish
     if claim_name == "provider.completed.v1":
         assert "independent truth of a provider assertion" in (
             claim.does_not_establish
