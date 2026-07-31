@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.11.2
+
+- Preserve every universal exact claim's pinned `does_not_establish` ceiling
+  in structured verifier output, including missing, incomplete, disproved, and
+  provider-asserted evidence states.
+- Merge result-specific provider limitations with the registry ceiling rather
+  than replacing broader settlement, deletion, deployment-health, or external
+  outcome limits.
+
 ## 3.11.1
 
 - Resolve `keel.permit_bounded_use.v1` child evidence against the existing
