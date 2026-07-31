@@ -572,6 +572,14 @@ INCIDENT_MANIFEST_SCHEMA_INVALID = "INCIDENT_MANIFEST_SCHEMA_INVALID"
 INCIDENT_UNKNOWN_MANIFEST_VERSION = "INCIDENT_UNKNOWN_MANIFEST_VERSION"
 
 PERMIT_BINDING_SIGNING_PURPOSE = "permit_binding_signing"
+PERMIT_BOUNDED_USE_SIGNING_PURPOSE = "permit_bounded_use_signing"
+_PERMIT_EXACT_CHILD_TRUST_PURPOSE_ALIASES = {
+    # Bounded-use transitions are runtime child evidence issued by the same
+    # Keel Permit-binding authority. The artifact's version and signature
+    # profile domain-separate the signed payload; the trust root intentionally
+    # continues to publish the underlying authority as permit_binding_signing.
+    PERMIT_BOUNDED_USE_SIGNING_PURPOSE: PERMIT_BINDING_SIGNING_PURPOSE,
+}
 WORKFLOW_DECLARATION_BINDING_VERSION = "workflow_declaration.v1"
 WORKFLOW_AMENDMENT_BINDING_VERSION = "workflow_amendment.v1"
 EVIDENCE_SCHEMA = "keel.evidence/v1"
@@ -13928,10 +13936,11 @@ def _verify_permit_exact_v2_signed_artifact(
     signed_at = _parse_iso_or_none(artifact.get(signed_at_field))
     if signed_at is None:
         return False, f"{signed_at_field} is missing or malformed"
+    trust_purpose = _PERMIT_EXACT_CHILD_TRUST_PURPOSE_ALIASES.get(purpose, purpose)
     trusted_pub, trust_source, trust_error = _resolve_trust_key(
         artifact_pub=None,
         artifact_key_id=str(artifact.get("issuer_key_id") or "") or None,
-        purpose=purpose,
+        purpose=trust_purpose,
         expected_public_key=None,
         public_key_url=None,
         key_manifest_source=key_manifest_source,

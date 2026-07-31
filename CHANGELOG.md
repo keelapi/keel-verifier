@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.11.1
+
+- Resolve `keel.permit_bounded_use.v1` child evidence against the existing
+  pinned `permit_binding_signing` authority, matching the API runtime signer
+  while preserving the artifact's domain-separated version and signature
+  profile.
+- Keep the trust-purpose mapping deliberately narrow: adapter certification,
+  deployment assurance, and runtime enforcement proofs still require their
+  own independently pinned signing purposes.
+
 ## 3.11.0
 
 - Add the fact-profile-driven `keel.permit_exact/v2` adjudicator and released
