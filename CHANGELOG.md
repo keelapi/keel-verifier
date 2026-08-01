@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.12.0
+
+- Adjudicate the exact Generate Text and Refund consequence claims
+  (`permit.generate_text_exact_request.v1`,
+  `permit.refund_original_payment_bound.v1`) against the Permit-to-X contract
+  released in keel-permit v1.11.0.
+- Verify Delegate child continuity (`permit.delegate_child_linkage.v1`):
+  intended, created, grant-delegate, and acting-child commitment equality, plus
+  action-Permit binding and authority-chain digests when acting-child linkage
+  is claimed.
+- Bind the Delegate semantic to the signed authority grant and honor transport
+  rejection evidence distinctly from provider acceptance or completion.
+- Add SHA-256-keyed historical claim-registry snapshots so artifacts issued
+  against earlier registries keep resolving their claim definitions after v4.
+- Vendor the Permit-to-X v1.11.0 exact-action schemas, fact profiles, semantic
+  and claim registries, and golden corpora byte-for-byte under the cross-repo
+  parity gate.
+
 ## 3.11.2
 
 - Preserve every universal exact claim's pinned `does_not_establish` ceiling
