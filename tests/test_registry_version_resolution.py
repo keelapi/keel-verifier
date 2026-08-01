@@ -98,7 +98,7 @@ def test_v4_specific_titles_resolve_from_the_v2_presentation_registry() -> None:
             "AI Permit-to-Delegate",
             "permit_to_delegate.r1",
             "agent_delegation_service",
-            "agent.create_child",
+            "authority.grant",
             "agent.delegate",
             "agent_delegation",
         ),

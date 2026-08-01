@@ -361,7 +361,7 @@ def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
             },
             "keel.action.agent_delegate.v1",
             "keel.facts.delegate_exact.v1",
-            "agent.create_child",
+            "authority.grant",
             "agent.delegate",
             "agent_delegation",
             "agent_delegation_service",

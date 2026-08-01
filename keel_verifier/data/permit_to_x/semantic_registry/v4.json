@@ -44,7 +44,7 @@
       "semantic_kind": "exact_action",
       "trusted_source_kinds": ["agent_delegation_service"],
       "fact_profile_id": "keel.facts.delegate_exact.v1",
-      "match": {"action_names": ["agent.create_child"], "operations": ["agent.delegate"], "allowed_chain_roles": ["session_root", "action_child"], "required_evidence_capabilities": ["authorization", "authority_chain", "created_child"]},
+      "match": {"action_names": ["authority.grant"], "operations": ["agent.delegate"], "allowed_chain_roles": ["session_root", "action_child"], "required_evidence_capabilities": ["authorization", "authority_chain", "created_child"]},
       "excluded_permit_products": ["cost_permit"],
       "release_state": "eligible"
     },
