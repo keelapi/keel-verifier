@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/delegate-exact-facts-v1.schema.json",
+  "title": "Delegate exact authorization facts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "fact_profile_id", "action", "parent_principal_id", "intended_child_reference_commitment", "delegated_actions", "delegated_resources", "delegated_endpoints", "maximum_depth", "maximum_uses", "expires_at", "required_identity_assurance", "request_digest"],
+  "properties": {
+    "version": {"const": "keel.delegate_exact_facts.v1"},
+    "fact_profile_id": {"const": "keel.facts.delegate_exact.v1"},
+    "action": {"const": "agent.delegate"},
+    "parent_principal_id": {"type": "string", "format": "uuid"},
+    "intended_child_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "delegated_actions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "maxItems": 128},
+    "delegated_resources": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "maxItems": 128},
+    "delegated_endpoints": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "maxItems": 128},
+    "budget_minor": {"type": "integer", "minimum": 0},
+    "budget_currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "maximum_depth": {"type": "integer", "minimum": 0},
+    "maximum_uses": {"type": "integer", "minimum": 1},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "required_identity_assurance": {"enum": ["A1", "A2", "A3-K", "A3-P", "A3-H"]},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {"const": "keel.salted_sha256_jcs.v1"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

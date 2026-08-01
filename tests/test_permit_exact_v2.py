@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import rfc8785
+import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -14,6 +15,9 @@ from keel_verifier.canonical.permit_binding import (
     canonical_resource_attributes_payload,
 )
 from keel_verifier.permit_exact_v2 import (
+    DELEGATE_CHILD_LINKAGE_CLAIM,
+    GENERATE_TEXT_EXACT_REQUEST_CLAIM,
+    REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM,
     UNIVERSAL_CLAIMS,
     adjudicate_permit_exact_v2_body,
 )
@@ -204,8 +208,594 @@ def _body() -> dict:
     }
 
 
+def _v4_body(
+    *,
+    semantic_id: str,
+    fact_profile_id: str,
+    facts: dict,
+    action_name: str,
+    operation: str,
+    governed_surface: str,
+    source_kind: str = "action_verb_execute",
+    presentation_profile_id: str,
+) -> dict:
+    """Rebind the canonical pack fixture to one registry-v4 exact profile."""
+
+    body = _body()
+    selector_path = PTX / "semantic_registry/v4.json"
+    selector_registry = json.loads(selector_path.read_text(encoding="utf-8"))
+    selector_entry = next(
+        entry
+        for entry in selector_registry["entries"]
+        if entry["semantic_id"] == semantic_id
+    )
+    fact_path = PTX / "fact_profiles/v3.json"
+    fact_registry = json.loads(fact_path.read_text(encoding="utf-8"))
+    fact_profile = next(
+        profile
+        for profile in fact_registry["profiles"]
+        if profile["fact_profile_id"] == fact_profile_id
+    )
+    facts_schema_path = PTX / str(fact_profile["facts_schema"])
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "semantic_id": semantic_id,
+            "selector_registry_version": selector_registry["version"],
+            "selector_registry_digest": _digest_bytes(selector_path.read_bytes()),
+            "selector_entry_digest": _digest_object(selector_entry),
+            "trusted_source_kind": source_kind,
+            "action_name": action_name,
+            "operation": operation,
+            "governed_surface": governed_surface,
+            "non_authorizing_presentation_profile_id": presentation_profile_id,
+            "fact_profile_id": fact_profile_id,
+            "fact_profile_registry_version": fact_registry["version"],
+            "fact_profile_registry_digest": _digest_bytes(fact_path.read_bytes()),
+            "fact_profile_entry_digest": _digest_object(fact_profile),
+            "authorization_facts_schema_digest": _digest_bytes(
+                facts_schema_path.read_bytes()
+            ),
+            "authorization_facts_digest": _digest_object(facts),
+        }
+    )
+    attributes = {
+        "permit_semantic_binding_v2": copy.deepcopy(binding),
+        "permit_authorization_facts_v1": copy.deepcopy(facts),
+    }
+    body["authorization_facts"] = copy.deepcopy(facts)
+    body["permit_decision"]["resource_attributes_json"] = copy.deepcopy(attributes)
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attributes
+    )
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(attributes)
+    body["contract_pins"].update(
+        {
+            "semantic_selector_registry": _pin(
+                selector_path,
+                artifact_id="keel.permit.semantic_selector_registry",
+            ),
+            "semantic_selector_entry_digest": _digest_object(selector_entry),
+            "fact_profile_registry": _pin(
+                fact_path,
+                artifact_id="keel.permit.fact_profile_registry",
+            ),
+            "fact_profile_entry_digest": _digest_object(fact_profile),
+            "authorization_facts_schema": _pin(
+                facts_schema_path,
+                artifact_id=f"{fact_profile_id}.schema",
+            ),
+        }
+    )
+    return body
+
+
 def _claim_map(result) -> dict[str, object]:
     return {claim.name: claim for claim in result.claims}
+
+
+def _with_consequence_claim(body: dict, claim_name: str) -> dict:
+    """Upgrade one exact fixture to the v4/v3 consequence-claim contract."""
+
+    claim_path = ROOT / "claim_registry/v4.json"
+    universal_path = ROOT / "semantics/permit/universal_verification_v3.json"
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v4",
+    )
+    body["contract_pins"]["universal_semantics"] = _pin(
+        universal_path,
+        artifact_id="keel.permit.universal_verification.v3",
+    )
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "claim_registry_version": "verifier-claims.v4",
+            "claim_registry_digest": _digest_bytes(claim_path.read_bytes()),
+            "universal_semantics_id": "keel.permit.universal_verification.v3",
+            "universal_semantics_digest": _digest_bytes(
+                universal_path.read_bytes()
+            ),
+        }
+    )
+    for projection in (
+        body["permit_decision"]["resource_attributes_json"],
+        body["permit_receipt"]["action"]["resource_attributes_json"],
+    ):
+        projection["permit_semantic_binding_v2"] = copy.deepcopy(binding)
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(
+        body["permit_decision"]["resource_attributes_json"]
+    )
+    body["declared_claims"].append(claim_name)
+    return body
+
+
+def _generate_claim_body() -> dict:
+    facts = {
+        "version": "keel.generate_text_exact_facts.v1",
+        "fact_profile_id": "keel.facts.generate_text_exact.v1",
+        "action": "ai.generate",
+        "operation": "generate.text",
+        "provider": "openai",
+        "model": "gpt-test",
+        "request_digest": "sha256:" + "1" * 64,
+        "adapter_id": "managed.openai.chat_completions",
+        "adapter_version": "v1",
+        "certification_id": "keel.adapter.generate-text.openai.v1",
+    }
+    body = _with_consequence_claim(
+        _v4_body(
+            semantic_id="keel.action.generate_text.v1",
+            fact_profile_id="keel.facts.generate_text_exact.v1",
+            facts=facts,
+            action_name="ai.generate",
+            operation="generate.text",
+            governed_surface="model_provider",
+            presentation_profile_id="permit_to_generate_text.r2",
+        ),
+        GENERATE_TEXT_EXACT_REQUEST_CLAIM,
+    )
+    certification = _signed_shape(
+        {
+            "version": "keel.adapter_certification.v1",
+            "certification_id": facts["certification_id"],
+            "adapter_id": facts["adapter_id"],
+            "adapter_version": facts["adapter_version"],
+            "semantic_ids": ["keel.action.generate_text.v1"],
+            "governed_surfaces": ["model_provider"],
+            "conformance_vector_set_digest": "sha256:" + "2" * 64,
+            "negative_test_results_digest": "sha256:" + "3" * 64,
+            "anti_bypass_requirements": ["all effects cross the final gate"],
+            "issued_at": "2026-07-30T11:00:00Z",
+            "expires_at": "2026-08-30T11:00:00Z",
+            "revoked_at": None,
+            "revocation_event_digest": None,
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+            "issuer_key_id": "cert_key",
+        }
+    )
+    deployment = _signed_shape(
+        {
+            "version": "keel.deployment_assurance.v1",
+            "assurance_id": "assurance_generate_test",
+            "project_id": "project_test",
+            "deployment_id": "deployment_generate_test",
+            "deployment_revision": "revision_test",
+            "adapter_certification_id": certification["certification_id"],
+            "adapter_certification_digest": certification["canonical_hash"],
+            "adapter_id": certification["adapter_id"],
+            "adapter_version": certification["adapter_version"],
+            "governed_surface": "model_provider",
+            "semantic_ids": ["keel.action.generate_text.v1"],
+            "anti_bypass_evidence_digest": "sha256:" + "4" * 64,
+            "verified_at": "2026-07-30T11:05:00Z",
+            "expires_at": "2026-08-15T11:05:00Z",
+            "revoked_at": None,
+            "revocation_event_digest": None,
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+            "issuer_key_id": "deployment_key",
+        }
+    )
+    runtime = _signed_shape(
+        {
+            "version": "keel.runtime_enforcement_proof.v1",
+            "proof_id": "proof_generate_test",
+            "permit_id": "permit_test",
+            "project_id": "project_test",
+            "dispatch_id": "dispatch_generate_test",
+            "semantic_id": "keel.action.generate_text.v1",
+            "exact_request_digest": facts["request_digest"],
+            "adapter_certification_id": certification["certification_id"],
+            "adapter_certification_digest": certification["canonical_hash"],
+            "deployment_assurance_id": deployment["assurance_id"],
+            "deployment_assurance_digest": deployment["canonical_hash"],
+            "gate_id": "final_dispatch_gate",
+            "gate_revision": "revision_test",
+            "gate_result": "allow",
+            "pre_effect": True,
+            "evaluated_at": "2026-07-30T12:10:00Z",
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+            "issuer_key_id": "runtime_key",
+        }
+    )
+    body["enforcement_evidence"] = {
+        "adapter_certification": certification,
+        "deployment_assurance": deployment,
+        "runtime_enforcement_proof": runtime,
+    }
+    return body
+
+
+def _refund_claim_body() -> dict:
+    commitment = {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:" + "a" * 64,
+    }
+    facts = {
+        "version": "keel.refund_exact_facts.v1",
+        "fact_profile_id": "keel.facts.refund_exact.v1",
+        "action": "payment.refund",
+        "original_payment_reference_commitment": commitment,
+        "maximum_amount_minor": 5000,
+        "currency": "USD",
+        "payer_reference_commitment": commitment,
+        "payment_rail": "stripe.refund",
+        "reason_commitment": commitment,
+        "idempotency_digest": "sha256:" + "2" * 64,
+        "request_digest": "sha256:" + "3" * 64,
+        "max_uses": 1,
+        "expires_at": "2026-07-30T13:00:00Z",
+    }
+    body = _with_consequence_claim(
+        _v4_body(
+            semantic_id="keel.action.payment_refund.v1",
+            fact_profile_id="keel.facts.refund_exact.v1",
+            facts=facts,
+            action_name="payment.refund",
+            operation="payment.refund",
+            governed_surface="payment_rail",
+            presentation_profile_id="permit_to_refund.r1",
+        ),
+        REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM,
+    )
+    body["permit_decision"]["canonical_payload"]["constraints"] = {
+        "usage_limits": {"max_calls": 1}
+    }
+    return body
+
+
+def _delegate_body_with_linkage() -> dict:
+    commitment = {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:" + "a" * 64,
+    }
+    facts = {
+        "version": "keel.delegate_exact_facts.v1",
+        "fact_profile_id": "keel.facts.delegate_exact.v1",
+        "action": "agent.delegate",
+        "parent_principal_id": "9e73d2aa-9cc5-45d7-aef7-4f8605d28f31",
+        "intended_child_reference_commitment": commitment,
+        "delegated_actions": ["payment.execute"],
+        "delegated_resources": ["account:test"],
+        "delegated_endpoints": ["https://api.example.test"],
+        "maximum_depth": 1,
+        "maximum_uses": 3,
+        "expires_at": "2026-07-30T13:00:00Z",
+        "required_identity_assurance": "A1",
+        "request_digest": "sha256:" + "e" * 64,
+    }
+    body = _v4_body(
+        semantic_id="keel.action.agent_delegate.v1",
+        fact_profile_id="keel.facts.delegate_exact.v1",
+        facts=facts,
+        action_name="authority.grant",
+        operation="agent.delegate",
+        governed_surface="agent_delegation",
+        source_kind="agent_delegation_service",
+        presentation_profile_id="permit_to_delegate.r1",
+    )
+    claim_path = ROOT / "claim_registry/v3.json"
+    universal_path = ROOT / "semantics/permit/universal_verification_v2.json"
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v3",
+    )
+    body["contract_pins"]["universal_semantics"] = _pin(
+        universal_path,
+        artifact_id="keel.permit.universal_verification.v2",
+    )
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "claim_registry_version": "verifier-claims.v3",
+            "claim_registry_digest": _digest_bytes(claim_path.read_bytes()),
+            "universal_semantics_id": "keel.permit.universal_verification.v2",
+            "universal_semantics_digest": _digest_bytes(
+                universal_path.read_bytes()
+            ),
+        }
+    )
+    body["permit_decision"]["resource_attributes_json"][
+        "permit_semantic_binding_v2"
+    ] = copy.deepcopy(binding)
+    body["permit_receipt"]["action"]["resource_attributes_json"][
+        "permit_semantic_binding_v2"
+    ] = copy.deepcopy(binding)
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(
+        body["permit_decision"]["resource_attributes_json"]
+    )
+    body["declared_claims"].append(DELEGATE_CHILD_LINKAGE_CLAIM)
+    unsigned_linkage = {
+        "version": "keel.delegate_child_linkage.v1",
+        "evidence_id": "delegate_linkage_test_1",
+        "permit_id": "permit_test",
+        "project_id": "project_test",
+        "semantic_id": "keel.action.agent_delegate.v1",
+        "authorization_request_digest": facts["request_digest"],
+        "intended_child_reference_commitment": copy.deepcopy(commitment),
+        "created_child_reference_commitment": copy.deepcopy(commitment),
+        "authority_grant": {
+            "edge_id": "edge_1",
+            "edge_digest": "sha256:" + "f" * 64,
+            "delegate_child_reference_commitment": copy.deepcopy(commitment),
+            "issued_at": "2026-07-30T12:05:00Z",
+        },
+        "creation_evidence_event_id": "evt_delegate_created_1",
+        "created_at": "2026-07-30T12:04:00Z",
+        "acting_child": {
+            "child_reference_commitment": copy.deepcopy(commitment),
+            "action_permit_id": "permit_action_1",
+            "action_permit_binding_digest": "sha256:" + "b" * 64,
+            "authority_chain_digest": "sha256:" + "c" * 64,
+            "exact_request_digest": "sha256:" + "d" * 64,
+            "dispatched_at": "2026-07-30T12:10:00Z",
+        },
+        "asserted_at": "2026-07-30T12:20:00Z",
+        "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+        "issuer_key_id": "binding_key_1",
+        "does_not_establish": [
+            "independent real-world identity of the child behind the commitment",
+            "correctness of delegated actions",
+        ],
+    }
+    body["scope_evidence"] = [_signed_shape(unsigned_linkage)]
+    return body
+
+
+def _resign_delegate_linkage(body: dict) -> None:
+    linkage = copy.deepcopy(body["scope_evidence"][0])
+    linkage.pop("canonical_hash", None)
+    linkage.pop("signature", None)
+    body["scope_evidence"] = [_signed_shape(linkage)]
+
+
+def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
+    commitment = {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:" + "a" * 64,
+    }
+    cases = (
+        (
+            {
+                "version": "keel.generate_text_exact_facts.v1",
+                "fact_profile_id": "keel.facts.generate_text_exact.v1",
+                "action": "ai.generate",
+                "operation": "generate.text",
+                "provider": "openai",
+                "model": "gpt-test",
+                "request_digest": "sha256:" + "1" * 64,
+                "adapter_id": "managed.openai.chat_completions",
+                "adapter_version": "v1",
+                "certification_id": "keel.adapter.generate-text.openai.v1",
+            },
+            "keel.action.generate_text.v1",
+            "keel.facts.generate_text_exact.v1",
+            "ai.generate",
+            "generate.text",
+            "model_provider",
+            "action_verb_execute",
+            "permit_to_generate_text.r2",
+        ),
+        (
+            {
+                "version": "keel.refund_exact_facts.v1",
+                "fact_profile_id": "keel.facts.refund_exact.v1",
+                "action": "payment.refund",
+                "original_payment_reference_commitment": commitment,
+                "maximum_amount_minor": 5000,
+                "currency": "USD",
+                "payer_reference_commitment": commitment,
+                "payment_rail": "stripe.refund",
+                "reason_commitment": commitment,
+                "idempotency_digest": "sha256:" + "2" * 64,
+                "request_digest": "sha256:" + "3" * 64,
+                "max_uses": 1,
+                "expires_at": "2026-07-30T13:00:00Z",
+            },
+            "keel.action.payment_refund.v1",
+            "keel.facts.refund_exact.v1",
+            "payment.refund",
+            "payment.refund",
+            "payment_rail",
+            "action_verb_execute",
+            "permit_to_refund.r1",
+        ),
+        (
+            {
+                "version": "keel.delegate_exact_facts.v1",
+                "fact_profile_id": "keel.facts.delegate_exact.v1",
+                "action": "agent.delegate",
+                "parent_principal_id": "9e73d2aa-9cc5-45d7-aef7-4f8605d28f31",
+                "intended_child_reference_commitment": commitment,
+                "delegated_actions": ["payment.execute"],
+                "delegated_resources": ["account:test"],
+                "delegated_endpoints": ["https://api.example.test"],
+                "maximum_depth": 1,
+                "maximum_uses": 3,
+                "expires_at": "2026-07-30T13:00:00Z",
+                "required_identity_assurance": "A1",
+                "request_digest": "sha256:" + "4" * 64,
+            },
+            "keel.action.agent_delegate.v1",
+            "keel.facts.delegate_exact.v1",
+            "authority.grant",
+            "agent.delegate",
+            "agent_delegation",
+            "agent_delegation_service",
+            "permit_to_delegate.r1",
+        ),
+    )
+    for (
+        facts,
+        semantic_id,
+        profile_id,
+        action_name,
+        operation,
+        surface,
+        source_kind,
+        presentation_id,
+    ) in cases:
+        result = adjudicate_permit_exact_v2_body(
+            _v4_body(
+                semantic_id=semantic_id,
+                fact_profile_id=profile_id,
+                facts=facts,
+                action_name=action_name,
+                operation=operation,
+                governed_surface=surface,
+                source_kind=source_kind,
+                presentation_profile_id=presentation_id,
+            ),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+        assert result.semantic_id == semantic_id
+        assert result.fact_profile_id == profile_id
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_generate_text_specific_claim_requires_and_proves_certified_adapter() -> None:
+    result = adjudicate_permit_exact_v2_body(
+        _generate_claim_body(),
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims["permit.enforced_at_certified_boundary.v1"].verdict == "supported"
+    assert claims[GENERATE_TEXT_EXACT_REQUEST_CLAIM].verdict == "supported"
+    assert claims[GENERATE_TEXT_EXACT_REQUEST_CLAIM].reason_code == (
+        "GENERATE_TEXT_EXACT_REQUEST_VERIFIED"
+    )
+
+
+def test_generate_text_specific_claim_rejects_adapter_fact_substitution() -> None:
+    body = _generate_claim_body()
+    evidence = body["enforcement_evidence"]
+    certification = copy.deepcopy(evidence["adapter_certification"])
+    certification.pop("canonical_hash")
+    certification.pop("signature")
+    certification["adapter_id"] = "managed.openai.substituted"
+    certification = _signed_shape(certification)
+    deployment = copy.deepcopy(evidence["deployment_assurance"])
+    deployment.pop("canonical_hash")
+    deployment.pop("signature")
+    deployment.update(
+        {
+            "adapter_id": certification["adapter_id"],
+            "adapter_certification_digest": certification["canonical_hash"],
+        }
+    )
+    deployment = _signed_shape(deployment)
+    runtime = copy.deepcopy(evidence["runtime_enforcement_proof"])
+    runtime.pop("canonical_hash")
+    runtime.pop("signature")
+    runtime.update(
+        {
+            "adapter_certification_digest": certification["canonical_hash"],
+            "deployment_assurance_digest": deployment["canonical_hash"],
+        }
+    )
+    evidence.update(
+        {
+            "adapter_certification": certification,
+            "deployment_assurance": deployment,
+            "runtime_enforcement_proof": _signed_shape(runtime),
+        }
+    )
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims["permit.enforced_at_certified_boundary.v1"].verdict == "supported"
+    assert claims[GENERATE_TEXT_EXACT_REQUEST_CLAIM].verdict == "disproved"
+    assert claims[GENERATE_TEXT_EXACT_REQUEST_CLAIM].reason_code == (
+        "GENERATE_TEXT_ADAPTER_BINDING_MISMATCH"
+    )
+
+
+def test_refund_specific_claim_proves_original_payment_relationship() -> None:
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            _refund_claim_body(),
+            decision_verdict="supported",
+        )
+    )
+
+    assert claims[REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM].verdict == "supported"
+    assert claims[REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM].reason_code == (
+        "REFUND_ORIGINAL_PAYMENT_BOUND"
+    )
+    assert "funds returned" in " ".join(
+        claims[REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM].does_not_establish
+    )
+
+
+def test_refund_specific_claim_rejects_signed_expiry_divergence() -> None:
+    body = _refund_claim_body()
+    body["permit_decision"]["canonical_payload"]["expires_at"] = (
+        "2026-07-30T14:00:00Z"
+    )
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims[REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM].verdict == "disproved"
+    assert claims[REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM].reason_code == (
+        "REFUND_SIGNED_LIMITS_MISMATCH"
+    )
+
+
+def test_pinned_recipe_fails_when_required_consequence_claim_is_omitted() -> None:
+    body = _refund_claim_body()
+    body["declared_claims"].remove(REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM in claims
+    assert all(
+        claim.reason_code == "PERMIT_CONDITIONAL_CLAIM_MISSING"
+        for claim in claims.values()
+    )
 
 
 def test_v2_emits_every_declared_claim_once() -> None:
@@ -220,6 +810,136 @@ def test_v2_emits_every_declared_claim_once() -> None:
     assert claims["permit.type.v1"].verdict == "supported"
     assert claims["permit.exact_target.v1"].verdict == "supported"
     assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_delegate_child_linkage_proves_created_granted_and_acting_child() -> None:
+    result = adjudicate_permit_exact_v2_body(
+        _delegate_body_with_linkage(),
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "supported"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_CHILD_LINKAGE_VERIFIED"
+    )
+    assert "independent real-world identity" in " ".join(
+        claims[DELEGATE_CHILD_LINKAGE_CLAIM].does_not_establish
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutate", "reason_code"),
+    (
+        (
+            lambda evidence: evidence["created_child_reference_commitment"].update(
+                {"digest": "sha256:" + "1" * 64}
+            ),
+            "DELEGATE_CREATED_CHILD_MISMATCH",
+        ),
+        (
+            lambda evidence: evidence["authority_grant"][
+                "delegate_child_reference_commitment"
+            ].update({"digest": "sha256:" + "2" * 64}),
+            "DELEGATE_GRANT_CHILD_MISMATCH",
+        ),
+        (
+            lambda evidence: evidence["acting_child"][
+                "child_reference_commitment"
+            ].update({"digest": "sha256:" + "3" * 64}),
+            "DELEGATE_ACTING_CHILD_MISMATCH",
+        ),
+    ),
+)
+def test_delegate_child_linkage_disproves_child_substitution(
+    mutate,
+    reason_code: str,
+) -> None:
+    body = _delegate_body_with_linkage()
+    linkage = body["scope_evidence"][0]
+    mutate(linkage)
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "disproved"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == reason_code
+
+
+def test_delegate_child_linkage_without_dispatch_is_insufficient() -> None:
+    body = _delegate_body_with_linkage()
+    body["scope_evidence"][0]["acting_child"] = None
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == (
+        "insufficient_evidence"
+    )
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_ACTING_CHILD_EVIDENCE_MISSING"
+    )
+
+
+def test_delegate_child_linkage_requires_a_valid_keel_signature() -> None:
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            _delegate_body_with_linkage(),
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                False,
+                "untrusted Delegate linkage signing key",
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "unverifiable_scope"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_CHILD_LINKAGE_SIGNATURE_INVALID"
+    )
+
+
+def test_delegate_child_linkage_rejects_causally_impossible_dispatch() -> None:
+    body = _delegate_body_with_linkage()
+    body["scope_evidence"][0]["acting_child"]["dispatched_at"] = (
+        "2026-07-30T12:03:00Z"
+    )
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "disproved"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_ACTING_CHILD_TIME_INVALID"
+    )
     assert claims["permit.valid_at_dispatch.v1"].verdict == "insufficient_evidence"
     assert claims["permit.revocation_at_dispatch.v1"].verdict == "unverifiable_scope"
     assert claims["provider.completed.v1"].reason_code == (
@@ -428,6 +1148,43 @@ def test_v2_supports_validity_certified_boundary_bounded_use_and_provider_state(
     ].does_not_establish
 
 
+def test_transport_observation_can_prove_rejection_but_not_acceptance() -> None:
+    body = _body()
+    body["provider_receipts"] = [
+        {
+            "version": "keel.provider_receipt.v1",
+            "receipt_id": "receipt_transport_rejected",
+            "permit_id": "permit_test",
+            "project_id": "project_test",
+            "dispatch_id": "dispatch_test",
+            "receipt_sequence": 1,
+            "provider": "stripe",
+            "operation": "payment.execute",
+            "semantic_id": "keel.action.payment_execute.v1",
+            "state": "rejected",
+            "observed_at": "2026-07-30T12:10:01Z",
+            "source_class": "keel_transport_observation",
+            "provider_http_status": 409,
+            "exact_request_digest": "sha256:" + "6" * 64,
+            "previous_receipt_digest": None,
+            "evidence_digest": "sha256:" + "b" * 64,
+            "reason_code": "provider.conflict",
+            "does_not_establish": [
+                "provider acceptance",
+                "external real-world outcome",
+            ],
+        }
+    ]
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["provider.receipt_state.v1"].verdict == "supported"
+    assert claims["provider.rejected.v1"].verdict == "supported"
+    assert claims["provider.accepted.v1"].verdict == "insufficient_evidence"
+
+
 def test_v2_expiry_boundary_is_exclusive() -> None:
     body = _body()
     body["permit_decision"]["canonical_payload"]["expires_at"] = (
@@ -549,6 +1306,15 @@ def test_bounded_use_child_uses_pinned_permit_binding_authority(
 
     assert verified is True
     assert error is None
+
+    delegate_verified, delegate_error = _verify_permit_exact_v2_signed_artifact(
+        transition,
+        "delegate_child_linkage_signing",
+        "occurred_at",
+        key_manifest_source=str(manifest),
+    )
+    assert delegate_verified is True
+    assert delegate_error is None
 
     unrelated_verified, unrelated_error = _verify_permit_exact_v2_signed_artifact(
         transition,

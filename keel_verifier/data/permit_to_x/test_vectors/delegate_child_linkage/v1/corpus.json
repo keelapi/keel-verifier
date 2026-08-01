@@ -1,0 +1,95 @@
+{
+  "version": "keel.delegate_child_linkage_vectors.v1",
+  "schema": "../../../schemas/delegate-child-linkage-v1.schema.json",
+  "base_evidence": {
+    "version": "keel.delegate_child_linkage.v1",
+    "evidence_id": "delegate_linkage_test_1",
+    "permit_id": "permit_delegate_1",
+    "project_id": "project_1",
+    "semantic_id": "keel.action.agent_delegate.v1",
+    "authorization_request_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "intended_child_reference_commitment": {
+      "method": "keel.salted_sha256_jcs.v1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "created_child_reference_commitment": {
+      "method": "keel.salted_sha256_jcs.v1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "authority_grant": {
+      "edge_id": "edge_1",
+      "edge_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "delegate_child_reference_commitment": {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "issued_at": "2026-07-31T20:00:00Z"
+    },
+    "creation_evidence_event_id": "evt_delegate_created_1",
+    "created_at": "2026-07-31T20:00:00Z",
+    "acting_child": {
+      "child_reference_commitment": {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "action_permit_id": "permit_action_1",
+      "action_permit_binding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "authority_chain_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "exact_request_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "dispatched_at": "2026-07-31T20:01:00Z"
+    },
+    "asserted_at": "2026-07-31T20:02:00Z",
+    "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+    "issuer_key_id": "binding_key_1",
+    "canonical_hash": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+    "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+    "does_not_establish": [
+      "independent real-world identity of the child behind the commitment",
+      "correctness of delegated actions"
+    ]
+  },
+  "vectors": [
+    {
+      "id": "valid-created-granted-and-acting-child",
+      "mutation": null,
+      "expected_verdict": "supported",
+      "expected_reason": "DELEGATE_CHILD_LINKAGE_VERIFIED"
+    },
+    {
+      "id": "created-child-substituted",
+      "mutation": {
+        "path": "/created_child_reference_commitment/digest",
+        "value": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason": "DELEGATE_CREATED_CHILD_MISMATCH"
+    },
+    {
+      "id": "grant-delegate-substituted",
+      "mutation": {
+        "path": "/authority_grant/delegate_child_reference_commitment/digest",
+        "value": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason": "DELEGATE_GRANT_CHILD_MISMATCH"
+    },
+    {
+      "id": "acting-child-substituted",
+      "mutation": {
+        "path": "/acting_child/child_reference_commitment/digest",
+        "value": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason": "DELEGATE_ACTING_CHILD_MISMATCH"
+    },
+    {
+      "id": "no-acting-child-dispatch-evidence",
+      "mutation": {
+        "path": "/acting_child",
+        "value": null
+      },
+      "expected_verdict": "insufficient_evidence",
+      "expected_reason": "DELEGATE_ACTING_CHILD_EVIDENCE_MISSING"
+    }
+  ]
+}

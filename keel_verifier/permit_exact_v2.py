@@ -32,9 +32,22 @@ from keel_verifier.canonical.permit_binding import (
 PROFILE = "keel.permit_exact/v2"
 PROFILE_VERSION = 2
 _DATA_ROOT = "data/permit_to_x"
-_CLAIM_REGISTRY_ID = "keel.verifier_claim_registry.v2"
-_UNIVERSAL_SEMANTICS_ID = "keel.permit.universal_verification.v1"
+_CLAIM_REGISTRY_IDS = {
+    "verifier-claims.v2": "keel.verifier_claim_registry.v2",
+    "verifier-claims.v3": "keel.verifier_claim_registry.v3",
+    "verifier-claims.v4": "keel.verifier_claim_registry.v4",
+}
+_UNIVERSAL_SEMANTICS_IDS = {
+    "v1": "keel.permit.universal_verification.v1",
+    "v2": "keel.permit.universal_verification.v2",
+    "v3": "keel.permit.universal_verification.v3",
+}
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
+DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
+GENERATE_TEXT_EXACT_REQUEST_CLAIM = "permit.generate_text_exact_request.v1"
+REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM = (
+    "permit.refund_original_payment_bound.v1"
+)
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
     "keel.randomized_sha256_jcs.v1",
@@ -181,16 +194,19 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
-    registry = _json("../claim_registry/v2.json")
     ceilings: dict[str, tuple[str, ...]] = {}
-    for claim in registry.get("claims", []):
-        if not isinstance(claim, Mapping):
-            continue
-        name = claim.get("name")
-        values = claim.get("does_not_establish")
-        if not isinstance(name, str) or not isinstance(values, list):
-            continue
-        ceilings[name] = tuple(str(value) for value in values if isinstance(value, str))
+    for registry_name in ("v2.json", "v3.json", "v4.json"):
+        registry = _json(f"../claim_registry/{registry_name}")
+        for claim in registry.get("claims", []):
+            if not isinstance(claim, Mapping):
+                continue
+            name = claim.get("name")
+            values = claim.get("does_not_establish")
+            if not isinstance(name, str) or not isinstance(values, list):
+                continue
+            ceilings[name] = tuple(
+                str(value) for value in values if isinstance(value, str)
+            )
     return ceilings
 
 
@@ -231,6 +247,7 @@ def _schema_registry() -> tuple[dict[str, Any], Registry]:
         "schemas/permit-bounded-use-v1.schema.json",
         "schemas/permit-selective-disclosure-v1.schema.json",
         "schemas/provider-receipt-v1.schema.json",
+        "schemas/delegate-child-linkage-v1.schema.json",
     )
     schemas = [_json(name) for name in names]
     registry = Registry()
@@ -277,7 +294,7 @@ def _decode_pin(
     pin: Any,
     *,
     label: str,
-    bundled_path: str,
+    bundled_path: str | tuple[str, ...],
     artifact_id: str | None,
 ) -> tuple[dict[str, Any], str]:
     if not isinstance(pin, Mapping):
@@ -314,8 +331,8 @@ def _decode_pin(
             "PERMIT_CONTRACT_PIN_DIGEST_MISMATCH",
             f"{label} contract digest does not match embedded bytes",
         )
-    released = _bytes(bundled_path)
-    if raw != released:
+    paths = (bundled_path,) if isinstance(bundled_path, str) else bundled_path
+    if not any(raw == _bytes(path) for path in paths):
         raise _AdjudicationError(
             "unverifiable_scope",
             "PERMIT_CONTRACT_PIN_UNSUPPORTED",
@@ -388,32 +405,79 @@ def _resolve_contracts(
     claim_registry, claim_digest = _decode_pin(
         pins.get("claim_registry"),
         label="claim registry",
-        bundled_path="../claim_registry/v2.json",
-        artifact_id=_CLAIM_REGISTRY_ID,
+        bundled_path=(
+            "../claim_registry/v2.json",
+            "../claim_registry/v3.json",
+            "../claim_registry/v4.json",
+        ),
+        artifact_id=None,
     )
     selector_registry, selector_digest = _decode_pin(
         pins.get("semantic_selector_registry"),
         label="semantic selector registry",
-        bundled_path="semantic_registry/v3.json",
+        bundled_path=("semantic_registry/v3.json", "semantic_registry/v4.json"),
         artifact_id="keel.permit.semantic_selector_registry",
     )
     fact_registry, fact_digest = _decode_pin(
         pins.get("fact_profile_registry"),
         label="fact profile registry",
-        bundled_path="fact_profiles/v2.json",
+        bundled_path=("fact_profiles/v2.json", "fact_profiles/v3.json"),
         artifact_id="keel.permit.fact_profile_registry",
     )
     universal_semantics, universal_digest = _decode_pin(
         pins.get("universal_semantics"),
         label="universal semantics",
-        bundled_path="../semantics/permit/universal_verification_v1.json",
-        artifact_id=_UNIVERSAL_SEMANTICS_ID,
+        bundled_path=(
+            "../semantics/permit/universal_verification_v1.json",
+            "../semantics/permit/universal_verification_v2.json",
+            "../semantics/permit/universal_verification_v3.json",
+        ),
+        artifact_id=None,
     )
-    if claim_registry.get("version") != "verifier-claims.v2":
+    claim_version = str(claim_registry.get("version") or "")
+    expected_claim_id = _CLAIM_REGISTRY_IDS.get(claim_version)
+    claim_pin = pins.get("claim_registry")
+    if expected_claim_id is None or not isinstance(claim_pin, Mapping):
         raise _AdjudicationError(
             "unverifiable_scope",
             "PERMIT_CONTRACT_PIN_UNSUPPORTED",
-            "claim registry is not verifier-claims.v2",
+            "claim registry version is not supported",
+        )
+    if claim_pin.get("artifact_id") != expected_claim_id:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_ID_MISMATCH",
+            "claim registry artifact identity does not match its version",
+        )
+    universal_version = str(universal_semantics.get("version") or "")
+    expected_universal_id = _UNIVERSAL_SEMANTICS_IDS.get(universal_version)
+    universal_pin = pins.get("universal_semantics")
+    if expected_universal_id is None or not isinstance(universal_pin, Mapping):
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            "universal semantics version is not supported",
+        )
+    if universal_pin.get("artifact_id") != expected_universal_id:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_ID_MISMATCH",
+            "universal semantics artifact identity does not match its version",
+        )
+    expected_recipe_claims = {
+        "v1": "verifier-claims.v2",
+        "v2": "verifier-claims.v3",
+        "v3": "verifier-claims.v4",
+    }
+    if universal_semantics.get("body", {}).get(
+        "claim_registry_version"
+    ) != expected_recipe_claims[universal_version] or claim_version != (
+        expected_recipe_claims[universal_version]
+    ):
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_VERSION_MISMATCH",
+            "universal semantics and claim registry versions diverge",
         )
     semantic_id = str(binding.get("semantic_id") or "")
     selector_entry = _one_entry(
@@ -723,7 +787,7 @@ def _provider_receipt_claims(
     for index, receipt in enumerate(ordered):
         if (
             receipt.get("source_class") == "keel_transport_observation"
-            and receipt.get("state") not in {"dispatched", "outcome_unknown"}
+            and receipt.get("state") not in {"rejected", "outcome_unknown"}
         ):
             claims["provider.receipt_state.v1"] = _assessment(
                 "provider.receipt_state.v1",
@@ -894,6 +958,319 @@ def _provider_receipt_claims(
     return claims
 
 
+def _delegate_child_linkage_assessment(
+    *,
+    body: Mapping[str, Any],
+    facts: Mapping[str, Any],
+    binding: Mapping[str, Any],
+    signed_artifact_verifier: SignedArtifactVerifier | None,
+) -> ExactClaimAssessment:
+    """Verify intended -> created -> granted -> acting child continuity."""
+
+    if binding.get("semantic_id") != "keel.action.agent_delegate.v1":
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_NOT_APPLICABLE",
+            "Delegate child-linkage was declared for a non-Delegate Permit",
+        )
+    evidence_values = [
+        value
+        for value in body.get("scope_evidence", [])
+        if isinstance(value, Mapping)
+        and value.get("version") == "keel.delegate_child_linkage.v1"
+    ]
+    if not evidence_values:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "insufficient_evidence",
+            "DELEGATE_CHILD_LINKAGE_EVIDENCE_MISSING",
+            "signed Delegate child-linkage evidence is missing",
+            evidence=("body.scope_evidence",),
+        )
+    if len(evidence_values) != 1:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_AMBIGUOUS",
+            "the exact pack contains multiple Delegate child-linkage artifacts",
+            evidence=("body.scope_evidence",),
+        )
+    evidence = evidence_values[0]
+    signed, error = _signed_artifact_status(
+        evidence,
+        schema_name="delegate-child-linkage-v1.schema.json",
+        purpose="delegate_child_linkage_signing",
+        signed_at_field="asserted_at",
+        verifier=signed_artifact_verifier,
+    )
+    if not signed:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved" if error and "hash" in error else "unverifiable_scope",
+            "DELEGATE_CHILD_LINKAGE_SIGNATURE_INVALID",
+            error or "Delegate child-linkage signature is invalid",
+            evidence=("body.scope_evidence",),
+        )
+
+    identity_pairs = (
+        (evidence.get("permit_id"), body.get("permit_id")),
+        (evidence.get("project_id"), body.get("project_id")),
+        (evidence.get("semantic_id"), binding.get("semantic_id")),
+        (
+            evidence.get("authorization_request_digest"),
+            facts.get("request_digest"),
+        ),
+    )
+    if any(actual != expected for actual, expected in identity_pairs):
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_IDENTITY_MISMATCH",
+            "Delegate linkage Permit, project, semantic, or request identity diverges",
+            evidence=("body.scope_evidence", "body.authorization_facts"),
+        )
+    intended = facts.get("intended_child_reference_commitment")
+    if evidence.get("intended_child_reference_commitment") != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_INTENDED_CHILD_MISMATCH",
+            "linkage evidence does not carry the signed intended-child commitment",
+            evidence=("body.scope_evidence", "body.authorization_facts"),
+        )
+    if evidence.get("created_child_reference_commitment") != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CREATED_CHILD_MISMATCH",
+            "the created child does not match the child authorized by the Delegate Permit",
+            evidence=("body.scope_evidence",),
+        )
+    authority_grant = evidence.get("authority_grant")
+    granted_child = (
+        authority_grant.get("delegate_child_reference_commitment")
+        if isinstance(authority_grant, Mapping)
+        else None
+    )
+    if granted_child != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_GRANT_CHILD_MISMATCH",
+            "the authority grant was issued to a different child commitment",
+            evidence=("body.scope_evidence",),
+        )
+    created_at = _parse_time(evidence.get("created_at"))
+    granted_at = _parse_time(
+        authority_grant.get("issued_at")
+        if isinstance(authority_grant, Mapping)
+        else None
+    )
+    asserted_at = _parse_time(evidence.get("asserted_at"))
+    if (
+        created_at is None
+        or granted_at is None
+        or asserted_at is None
+        or created_at > granted_at
+        or granted_at > asserted_at
+    ):
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_TIME_INVALID",
+            "Delegate child creation, grant, and assertion times are not causally ordered",
+            evidence=("body.scope_evidence",),
+        )
+    acting = evidence.get("acting_child")
+    if acting is None:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "insufficient_evidence",
+            "DELEGATE_ACTING_CHILD_EVIDENCE_MISSING",
+            "the child was created and granted authority, but no child dispatch is evidenced",
+            evidence=("body.scope_evidence",),
+        )
+    if not isinstance(acting, Mapping) or acting.get(
+        "child_reference_commitment"
+    ) != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_ACTING_CHILD_MISMATCH",
+            "the child that acted does not match the authorized child commitment",
+            evidence=("body.scope_evidence",),
+        )
+    dispatched_at = _parse_time(acting.get("dispatched_at"))
+    if dispatched_at is None or dispatched_at < granted_at or dispatched_at > asserted_at:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_ACTING_CHILD_TIME_INVALID",
+            "the evidenced child dispatch is outside the grant/assertion interval",
+            evidence=("body.scope_evidence",),
+        )
+    return _assessment(
+        DELEGATE_CHILD_LINKAGE_CLAIM,
+        "supported",
+        "DELEGATE_CHILD_LINKAGE_VERIFIED",
+        "the authorized, created, granted, and acting child commitments match",
+        evidence=("body.scope_evidence", "body.authorization_facts"),
+    )
+
+
+def _consequence_exact_assessment(
+    *,
+    claim_name: str,
+    assessments: Mapping[str, ExactClaimAssessment],
+    body: Mapping[str, Any],
+    facts: Mapping[str, Any],
+    binding: Mapping[str, Any],
+    canonical_payload: Mapping[str, Any],
+) -> ExactClaimAssessment:
+    """Adjudicate the explicit Generate Text and Refund consequence claims."""
+
+    if claim_name == GENERATE_TEXT_EXACT_REQUEST_CLAIM:
+        expected_semantic = "keel.action.generate_text.v1"
+        expected_profile = "keel.facts.generate_text_exact.v1"
+        required = (
+            "permit.type.v1",
+            "permit.exact_target.v1",
+            "permit.material_request.v1",
+            "permit.enforced_at_certified_boundary.v1",
+        )
+        mismatch_reason = "GENERATE_TEXT_EXACT_REQUEST_MISMATCH"
+        unproven_reason = "GENERATE_TEXT_CERTIFIED_BOUNDARY_UNPROVEN"
+    elif claim_name == REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM:
+        expected_semantic = "keel.action.payment_refund.v1"
+        expected_profile = "keel.facts.refund_exact.v1"
+        required = (
+            "permit.type.v1",
+            "permit.exact_target.v1",
+            "permit.material_request.v1",
+        )
+        mismatch_reason = "REFUND_ORIGINAL_PAYMENT_BINDING_MISMATCH"
+        unproven_reason = "REFUND_AUTHORIZATION_BINDING_UNPROVEN"
+    else:  # pragma: no cover - caller supplies the closed claim set
+        raise ValueError(f"unsupported consequence claim: {claim_name}")
+
+    if (
+        binding.get("semantic_id") != expected_semantic
+        or binding.get("fact_profile_id") != expected_profile
+    ):
+        return _assessment(
+            claim_name,
+            "disproved",
+            mismatch_reason,
+            "the consequence claim does not match the signed Permit semantic and fact profile",
+            evidence=("body.semantic_binding", "body.authorization_facts"),
+        )
+
+    required_assessments = [assessments.get(name) for name in required]
+    if any(item is None for item in required_assessments):
+        return _assessment(
+            claim_name,
+            "unverifiable_scope",
+            unproven_reason,
+            "the verifier did not adjudicate every prerequisite claim",
+        )
+    resolved = [item for item in required_assessments if item is not None]
+    if any(item.verdict == "disproved" for item in resolved):
+        return _assessment(
+            claim_name,
+            "disproved",
+            mismatch_reason,
+            "a prerequisite exact authorization or enforcement claim was disproved",
+            evidence=tuple(item.name for item in resolved),
+        )
+    if any(item.verdict == "unverifiable_scope" for item in resolved):
+        return _assessment(
+            claim_name,
+            "unverifiable_scope",
+            unproven_reason,
+            "the prerequisite exact evidence scope is not independently verifiable",
+            evidence=tuple(item.name for item in resolved),
+        )
+    if not all(item.verdict == "supported" for item in resolved):
+        return _assessment(
+            claim_name,
+            "insufficient_evidence",
+            unproven_reason,
+            "the consequence claim lacks supported prerequisite evidence",
+            evidence=tuple(item.name for item in resolved),
+        )
+
+    if claim_name == GENERATE_TEXT_EXACT_REQUEST_CLAIM:
+        enforcement = body.get("enforcement_evidence")
+        certification = (
+            enforcement.get("adapter_certification")
+            if isinstance(enforcement, Mapping)
+            else None
+        )
+        if not isinstance(certification, Mapping):
+            return _assessment(
+                claim_name,
+                "insufficient_evidence",
+                unproven_reason,
+                "the exact Generate Text Permit lacks certified-adapter evidence",
+                evidence=("body.enforcement_evidence",),
+            )
+        facts_match = all(
+            (
+                facts.get("action") == "ai.generate",
+                facts.get("operation") == "generate.text",
+                facts.get("adapter_id") == certification.get("adapter_id"),
+                facts.get("adapter_version")
+                == certification.get("adapter_version"),
+                facts.get("certification_id")
+                == certification.get("certification_id"),
+                binding.get("semantic_id")
+                in certification.get("semantic_ids", []),
+            )
+        )
+        if not facts_match:
+            return _assessment(
+                claim_name,
+                "disproved",
+                "GENERATE_TEXT_ADAPTER_BINDING_MISMATCH",
+                "signed Generate Text facts diverge from certified-adapter evidence",
+                evidence=("body.authorization_facts", "body.enforcement_evidence"),
+            )
+        return _assessment(
+            claim_name,
+            "supported",
+            "GENERATE_TEXT_EXACT_REQUEST_VERIFIED",
+            "the signed Generate Text request and certified adapter identities match",
+            evidence=("body.authorization_facts", "body.enforcement_evidence"),
+        )
+
+    signed_expiry = _parse_time(canonical_payload.get("expires_at"))
+    facts_expiry = _parse_time(facts.get("expires_at"))
+    if not all(
+        (
+            facts.get("action") == "payment.refund",
+            facts.get("max_uses") == 1,
+            _signed_maximum_uses(canonical_payload) == 1,
+            signed_expiry is not None,
+            signed_expiry == facts_expiry,
+        )
+    ):
+        return _assessment(
+            claim_name,
+            "disproved",
+            "REFUND_SIGNED_LIMITS_MISMATCH",
+            "Refund facts, one-use limit, or expiry diverge from the signed Permit",
+            evidence=("body.authorization_facts", "body.permit_decision"),
+        )
+    return _assessment(
+        claim_name,
+        "supported",
+        "REFUND_ORIGINAL_PAYMENT_BOUND",
+        "the signed Refund Permit binds the exact original-payment relationship and limits",
+        evidence=("body.authorization_facts", "body.permit_decision"),
+    )
+
+
 def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
@@ -987,6 +1364,30 @@ def adjudicate_permit_exact_v2_body(
     except _AdjudicationError as exc:
         return fail_all(exc)
 
+    semantic_id = str(binding.get("semantic_id") or "")
+    conditional_claims = contracts.universal_semantics.get("body", {}).get(
+        "conditional_claims", {}
+    )
+    expected_conditional = (
+        conditional_claims.get(semantic_id, [])
+        if isinstance(conditional_claims, Mapping)
+        else []
+    )
+    missing_conditional = [
+        str(name)
+        for name in expected_conditional
+        if isinstance(name, str) and name not in declared
+    ]
+    if missing_conditional:
+        declared.extend(missing_conditional)
+        return fail_all(
+            _AdjudicationError(
+                "disproved",
+                "PERMIT_CONDITIONAL_CLAIM_MISSING",
+                "the exact pack omitted a consequence claim required by its pinned recipe",
+            )
+        )
+
     decision = body.get("permit_decision")
     canonical_payload = (
         decision.get("canonical_payload") if isinstance(decision, Mapping) else None
@@ -1051,7 +1452,6 @@ def adjudicate_permit_exact_v2_body(
         else None
     )
     receipt_matches = isinstance(receipt_attrs, Mapping) and receipt_attrs == decision_attrs
-    semantic_id = str(binding.get("semantic_id") or "")
     fact_profile_id = str(binding.get("fact_profile_id") or "")
     authorized_action = str(contracts.fact_profile.get("authorized_action") or "")
 
@@ -1499,6 +1899,29 @@ def adjudicate_permit_exact_v2_body(
             semantics=contracts.provider_receipt_semantics,
         )
     )
+    if DELEGATE_CHILD_LINKAGE_CLAIM in declared:
+        assessments[DELEGATE_CHILD_LINKAGE_CLAIM] = (
+            _delegate_child_linkage_assessment(
+                body=body,
+                facts=facts,
+                binding=binding,
+                signed_artifact_verifier=signed_artifact_verifier,
+            )
+        )
+    for claim_name in (
+        GENERATE_TEXT_EXACT_REQUEST_CLAIM,
+        REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM,
+    ):
+        if claim_name not in declared:
+            continue
+        assessments[claim_name] = _consequence_exact_assessment(
+            claim_name=claim_name,
+            assessments=assessments,
+            body=body,
+            facts=facts,
+            binding=binding,
+            canonical_payload=canonical_payload,
+        )
     for name in declared:
         if name in _EXTERNAL_CLAIMS or name in assessments:
             continue
@@ -1519,8 +1942,11 @@ def adjudicate_permit_exact_v2_body(
 
 
 __all__ = [
+    "DELEGATE_CHILD_LINKAGE_CLAIM",
+    "GENERATE_TEXT_EXACT_REQUEST_CLAIM",
     "PROFILE",
     "PROFILE_VERSION",
+    "REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM",
     "UNIVERSAL_CLAIMS",
     "ExactClaimAssessment",
     "PermitExactV2Result",

@@ -90,6 +90,10 @@ CLAIM_REGISTRY_PREVIOUS_HASH = (
 )
 CLAIM_REGISTRY_HISTORICAL_HASHES = (
     CLAIM_REGISTRY_PREVIOUS_HASH,
+    # R10 and R9 were emitted by deployed keel-api additive packs before the
+    # consolidated exact-consequence registry. Keep both verifier-readable.
+    "sha256:7539c1e9432860e756aebf1056cc50046a94f4f1e105385310eba4aff24734fd",
+    "sha256:5bf2ce6c3007f1171348f20db269962167b4ec111b278acc427857c8f57ead42",
     "sha256:0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
     "sha256:731d8afeb8770cc7a09a0ce1761580c98eb3c01a75e271f727d4992843c197f1",
     "sha256:3c9327949bf077c4c447112f78af6f7edb1c2611048da150cf8ad890eed7dbfa",

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v3.json",
+  "title": "Verifier Claim Registry - v3",
+  "version": "verifier-claims.v3",
+  "description": "Consequence-specific exact-action claims layered on the universal v2 claim registry. This artifact defines claims; it does not declare implementation support in any verifier build.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v2",
+    "version": "verifier-claims.v2",
+    "sha256": "b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344"
+  },
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "permit.delegate_child_linkage.v1",
+      "assertion": "The child created and granted authority is the privacy-safe child reference bound by the signed exact Delegate Permit, and, when acting-child evidence is present, the dispatched action Permit is bound to that same child and authority chain.",
+      "required_evidence": "Supported permit.decision.v1, permit.type.v1, and permit.material_request.v1 for keel.action.agent_delegate.v1; a signed keel.delegate_child_linkage.v1 artifact; matching Permit/project/request identities; equal intended, created, grant-delegate, and acting-child commitments; and a signed action-Permit binding digest plus authority-chain digest when acting-child linkage is claimed.",
+      "does_not_establish": [
+        "independent real-world identity of the child behind the commitment",
+        "general agent identity registration control",
+        "correctness of delegated actions",
+        "provider acceptance",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    }
+  ]
+}

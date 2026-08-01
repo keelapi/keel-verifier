@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v4.json",
+  "title": "Verifier Claim Registry - v4",
+  "version": "verifier-claims.v4",
+  "description": "Short-term consequence-specific exact claims layered on the v3 Delegate linkage registry. This artifact defines claims; it does not declare verifier implementation or runtime certification support.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v3",
+    "version": "verifier-claims.v3",
+    "sha256": "56d41c9245df3ddef6033be9ef192cfdda01cdaa380c38ea427321f8139ea922"
+  },
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "permit.generate_text_exact_request.v1",
+      "assertion": "The signed AI Permit-to-Generate Text binds the provider, model, operation, material request digest, adapter identity, adapter version, and certification identity, and the exact request crossed the corresponding active certified boundary when dispatch evidence is supplied.",
+      "required_evidence": "Supported permit.decision.v1, permit.type.v1, permit.exact_target.v1, permit.material_request.v1, and permit.enforced_at_certified_boundary.v1 for keel.action.generate_text.v1; exact Generate Text facts; and matching adapter and certification identities across the facts and certified-boundary evidence.",
+      "does_not_establish": [
+        "semantic meaning or correctness of generated content",
+        "provider completion",
+        "absence of actions outside the certified deployment scope",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.refund_original_payment_bound.v1",
+      "assertion": "The signed AI Permit-to-Refund binds one original-payment commitment, payer commitment, maximum amount, currency, rail, reason commitment, exact request, idempotency identity, expiry, and one-use limit.",
+      "required_evidence": "Supported permit.decision.v1, permit.type.v1, permit.exact_target.v1, and permit.material_request.v1 for keel.action.payment_refund.v1; schema-valid exact Refund facts; maximum_uses=1 in both the signed facts and signed Permit constraints; and matching signed expiry. Dispatch, bounded use, replay, idempotency-at-dispatch, and provider outcome remain separate claims.",
+      "does_not_establish": [
+        "independent existence or ownership of the original payment behind the commitment",
+        "dispatch or consumption of the authorized use",
+        "provider-side idempotency",
+        "processor acceptance",
+        "funds returned or settlement",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    }
+  ]
+}
