@@ -277,7 +277,7 @@ def _decode_pin(
     pin: Any,
     *,
     label: str,
-    bundled_path: str,
+    bundled_path: str | tuple[str, ...],
     artifact_id: str | None,
 ) -> tuple[dict[str, Any], str]:
     if not isinstance(pin, Mapping):
@@ -314,8 +314,8 @@ def _decode_pin(
             "PERMIT_CONTRACT_PIN_DIGEST_MISMATCH",
             f"{label} contract digest does not match embedded bytes",
         )
-    released = _bytes(bundled_path)
-    if raw != released:
+    paths = (bundled_path,) if isinstance(bundled_path, str) else bundled_path
+    if not any(raw == _bytes(path) for path in paths):
         raise _AdjudicationError(
             "unverifiable_scope",
             "PERMIT_CONTRACT_PIN_UNSUPPORTED",
@@ -394,13 +394,13 @@ def _resolve_contracts(
     selector_registry, selector_digest = _decode_pin(
         pins.get("semantic_selector_registry"),
         label="semantic selector registry",
-        bundled_path="semantic_registry/v3.json",
+        bundled_path=("semantic_registry/v3.json", "semantic_registry/v4.json"),
         artifact_id="keel.permit.semantic_selector_registry",
     )
     fact_registry, fact_digest = _decode_pin(
         pins.get("fact_profile_registry"),
         label="fact profile registry",
-        bundled_path="fact_profiles/v2.json",
+        bundled_path=("fact_profiles/v2.json", "fact_profiles/v3.json"),
         artifact_id="keel.permit.fact_profile_registry",
     )
     universal_semantics, universal_digest = _decode_pin(

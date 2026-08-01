@@ -40,6 +40,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v1": "semantic_registry/v1.json",
     "keel.semantic_selector_registry.v2": "semantic_registry/v2.json",
     "keel.semantic_selector_registry.v3": "semantic_registry/v3.json",
+    "keel.semantic_selector_registry.v4": "semantic_registry/v4.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).
@@ -73,7 +74,7 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v1.json")
+    registry, _raw = _load("presentation_registry/v2.json")
     return json.loads(json.dumps(registry))
 
 
@@ -97,7 +98,14 @@ def resolve_permit_presentation(
     semantics, semantics_raw = _load_semantic_registry_for(semantic_binding) or _load(
         _DEFAULT_SEMANTIC_REGISTRY
     )
-    presentations, _presentation_raw = _load("presentation_registry/v1.json")
+    presentation_name = (
+        "presentation_registry/v2.json"
+        if isinstance(semantic_binding, Mapping)
+        and semantic_binding.get("selector_registry_version")
+        == "keel.semantic_selector_registry.v4"
+        else "presentation_registry/v1.json"
+    )
+    presentations, _presentation_raw = _load(presentation_name)
     if semantic_registry is not None:
         semantics = dict(semantic_registry)
     if presentation_registry is not None:
@@ -120,7 +128,10 @@ def resolve_permit_presentation(
         return {**generic, "resolution": "cost_permit_unchanged"}
     if not isinstance(semantic_binding, Mapping):
         return {**generic, "resolution": "generic_no_signed_semantic"}
-    if semantic_binding.get("version") != "keel.permit_semantic_binding.v1":
+    if semantic_binding.get("version") not in {
+        "keel.permit_semantic_binding.v1",
+        "keel.permit_semantic_binding.v2",
+    }:
         return {**generic, "resolution": "generic_unsupported_binding"}
     semantic_id = semantic_binding.get("semantic_id")
     entries = [

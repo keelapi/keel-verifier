@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/refund-exact-facts-v1.schema.json",
+  "title": "Refund exact authorization facts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "fact_profile_id", "action", "original_payment_reference_commitment", "maximum_amount_minor", "currency", "payer_reference_commitment", "payment_rail", "reason_commitment", "idempotency_digest", "request_digest", "max_uses", "expires_at"],
+  "properties": {
+    "version": {"const": "keel.refund_exact_facts.v1"},
+    "fact_profile_id": {"const": "keel.facts.refund_exact.v1"},
+    "action": {"const": "payment.refund"},
+    "original_payment_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "maximum_amount_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "payer_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "payment_rail": {"type": "string", "minLength": 1, "maxLength": 128},
+    "reason_commitment": {"$ref": "#/$defs/commitment"},
+    "idempotency_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "max_uses": {"const": 1},
+    "expires_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {"const": "keel.salted_sha256_jcs.v1"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

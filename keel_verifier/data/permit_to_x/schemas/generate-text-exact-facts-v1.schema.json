@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/generate-text-exact-facts-v1.schema.json",
+  "title": "Generate Text exact authorization facts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "fact_profile_id", "action", "operation", "provider", "model", "request_digest", "adapter_id", "adapter_version", "certification_id"],
+  "properties": {
+    "version": {"const": "keel.generate_text_exact_facts.v1"},
+    "fact_profile_id": {"const": "keel.facts.generate_text_exact.v1"},
+    "action": {"const": "ai.generate"},
+    "operation": {"const": "generate.text"},
+    "provider": {"type": "string", "minLength": 1, "maxLength": 128},
+    "model": {"type": "string", "minLength": 1, "maxLength": 256},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "adapter_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "adapter_version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "certification_id": {"type": "string", "minLength": 1, "maxLength": 256}
+  }
+}

@@ -204,8 +204,199 @@ def _body() -> dict:
     }
 
 
+def _v4_body(
+    *,
+    semantic_id: str,
+    fact_profile_id: str,
+    facts: dict,
+    action_name: str,
+    operation: str,
+    governed_surface: str,
+    source_kind: str = "action_verb_execute",
+    presentation_profile_id: str,
+) -> dict:
+    """Rebind the canonical pack fixture to one registry-v4 exact profile."""
+
+    body = _body()
+    selector_path = PTX / "semantic_registry/v4.json"
+    selector_registry = json.loads(selector_path.read_text(encoding="utf-8"))
+    selector_entry = next(
+        entry
+        for entry in selector_registry["entries"]
+        if entry["semantic_id"] == semantic_id
+    )
+    fact_path = PTX / "fact_profiles/v3.json"
+    fact_registry = json.loads(fact_path.read_text(encoding="utf-8"))
+    fact_profile = next(
+        profile
+        for profile in fact_registry["profiles"]
+        if profile["fact_profile_id"] == fact_profile_id
+    )
+    facts_schema_path = PTX / str(fact_profile["facts_schema"])
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "semantic_id": semantic_id,
+            "selector_registry_version": selector_registry["version"],
+            "selector_registry_digest": _digest_bytes(selector_path.read_bytes()),
+            "selector_entry_digest": _digest_object(selector_entry),
+            "trusted_source_kind": source_kind,
+            "action_name": action_name,
+            "operation": operation,
+            "governed_surface": governed_surface,
+            "non_authorizing_presentation_profile_id": presentation_profile_id,
+            "fact_profile_id": fact_profile_id,
+            "fact_profile_registry_version": fact_registry["version"],
+            "fact_profile_registry_digest": _digest_bytes(fact_path.read_bytes()),
+            "fact_profile_entry_digest": _digest_object(fact_profile),
+            "authorization_facts_schema_digest": _digest_bytes(
+                facts_schema_path.read_bytes()
+            ),
+            "authorization_facts_digest": _digest_object(facts),
+        }
+    )
+    attributes = {
+        "permit_semantic_binding_v2": copy.deepcopy(binding),
+        "permit_authorization_facts_v1": copy.deepcopy(facts),
+    }
+    body["authorization_facts"] = copy.deepcopy(facts)
+    body["permit_decision"]["resource_attributes_json"] = copy.deepcopy(attributes)
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attributes
+    )
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(attributes)
+    body["contract_pins"].update(
+        {
+            "semantic_selector_registry": _pin(
+                selector_path,
+                artifact_id="keel.permit.semantic_selector_registry",
+            ),
+            "semantic_selector_entry_digest": _digest_object(selector_entry),
+            "fact_profile_registry": _pin(
+                fact_path,
+                artifact_id="keel.permit.fact_profile_registry",
+            ),
+            "fact_profile_entry_digest": _digest_object(fact_profile),
+            "authorization_facts_schema": _pin(
+                facts_schema_path,
+                artifact_id=f"{fact_profile_id}.schema",
+            ),
+        }
+    )
+    return body
+
+
 def _claim_map(result) -> dict[str, object]:
     return {claim.name: claim for claim in result.claims}
+
+
+def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
+    commitment = {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:" + "a" * 64,
+    }
+    cases = (
+        (
+            {
+                "version": "keel.generate_text_exact_facts.v1",
+                "fact_profile_id": "keel.facts.generate_text_exact.v1",
+                "action": "ai.generate",
+                "operation": "generate.text",
+                "provider": "openai",
+                "model": "gpt-test",
+                "request_digest": "sha256:" + "1" * 64,
+                "adapter_id": "managed.openai.chat_completions",
+                "adapter_version": "v1",
+                "certification_id": "keel.adapter.generate-text.openai.v1",
+            },
+            "keel.action.generate_text.v1",
+            "keel.facts.generate_text_exact.v1",
+            "ai.generate",
+            "generate.text",
+            "model_provider",
+            "action_verb_execute",
+            "permit_to_generate_text.r2",
+        ),
+        (
+            {
+                "version": "keel.refund_exact_facts.v1",
+                "fact_profile_id": "keel.facts.refund_exact.v1",
+                "action": "payment.refund",
+                "original_payment_reference_commitment": commitment,
+                "maximum_amount_minor": 5000,
+                "currency": "USD",
+                "payer_reference_commitment": commitment,
+                "payment_rail": "stripe.refund",
+                "reason_commitment": commitment,
+                "idempotency_digest": "sha256:" + "2" * 64,
+                "request_digest": "sha256:" + "3" * 64,
+                "max_uses": 1,
+                "expires_at": "2026-07-30T13:00:00Z",
+            },
+            "keel.action.payment_refund.v1",
+            "keel.facts.refund_exact.v1",
+            "payment.refund",
+            "payment.refund",
+            "payment_rail",
+            "action_verb_execute",
+            "permit_to_refund.r1",
+        ),
+        (
+            {
+                "version": "keel.delegate_exact_facts.v1",
+                "fact_profile_id": "keel.facts.delegate_exact.v1",
+                "action": "agent.delegate",
+                "parent_principal_id": "9e73d2aa-9cc5-45d7-aef7-4f8605d28f31",
+                "intended_child_reference_commitment": commitment,
+                "delegated_actions": ["payment.execute"],
+                "delegated_resources": ["account:test"],
+                "delegated_endpoints": ["https://api.example.test"],
+                "maximum_depth": 1,
+                "maximum_uses": 3,
+                "expires_at": "2026-07-30T13:00:00Z",
+                "required_identity_assurance": "A1",
+                "request_digest": "sha256:" + "4" * 64,
+            },
+            "keel.action.agent_delegate.v1",
+            "keel.facts.delegate_exact.v1",
+            "agent.create_child",
+            "agent.delegate",
+            "agent_delegation",
+            "agent_delegation_service",
+            "permit_to_delegate.r1",
+        ),
+    )
+    for (
+        facts,
+        semantic_id,
+        profile_id,
+        action_name,
+        operation,
+        surface,
+        source_kind,
+        presentation_id,
+    ) in cases:
+        result = adjudicate_permit_exact_v2_body(
+            _v4_body(
+                semantic_id=semantic_id,
+                fact_profile_id=profile_id,
+                facts=facts,
+                action_name=action_name,
+                operation=operation,
+                governed_surface=surface,
+                source_kind=source_kind,
+                presentation_profile_id=presentation_id,
+            ),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+        assert result.semantic_id == semantic_id
+        assert result.fact_profile_id == profile_id
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
 
 
 def test_v2_emits_every_declared_claim_once() -> None:

@@ -75,6 +75,63 @@ def test_v3_issued_permit_resolves_against_v3() -> None:
     assert resolved["customer_title"] == "AI Permit-to-Pay"
 
 
+def test_v4_specific_titles_resolve_from_the_v2_presentation_registry() -> None:
+    registry, raw = _registry("semantic_registry/v4.json")
+    cases = {
+        "keel.action.generate_text.v1": (
+            "AI Permit-to-Generate Text",
+            "permit_to_generate_text.r2",
+            "action_verb_execute",
+            "ai.generate",
+            "generate.text",
+            "model_provider",
+        ),
+        "keel.action.payment_refund.v1": (
+            "AI Permit-to-Refund",
+            "permit_to_refund.r1",
+            "action_verb_execute",
+            "payment.refund",
+            "payment.refund",
+            "payment_rail",
+        ),
+        "keel.action.agent_delegate.v1": (
+            "AI Permit-to-Delegate",
+            "permit_to_delegate.r1",
+            "agent_delegation_service",
+            "agent.create_child",
+            "agent.delegate",
+            "agent_delegation",
+        ),
+    }
+    for semantic_id, (
+        title,
+        profile_id,
+        source_kind,
+        action_name,
+        operation,
+        surface,
+    ) in cases.items():
+        entry = next(e for e in registry["entries"] if e["semantic_id"] == semantic_id)
+        binding = {
+            "version": "keel.permit_semantic_binding.v2",
+            "semantic_id": semantic_id,
+            "trusted_source_kind": source_kind,
+            "chain_role": "session_root",
+            "action_name": action_name,
+            "operation": operation,
+            "governed_surface": surface,
+            "non_authorizing_presentation_profile_id": profile_id,
+            "selector_registry_version": registry["version"],
+            "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+            "selector_entry_digest": (
+                f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+            ),
+        }
+        resolved = resolve_permit_presentation(binding)
+        assert resolved["resolution"] == "trusted_signed_semantic"
+        assert resolved["customer_title"] == title
+
+
 def test_unknown_registry_version_never_borrows_a_title() -> None:
     """A registry this build has never seen must not lend its titles."""
 
