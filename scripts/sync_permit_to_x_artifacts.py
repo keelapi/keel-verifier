@@ -19,6 +19,7 @@ COPIES = {
     "claim_registry/v1.json": "claim_registry/v1.json",
     "claim_registry/v2.json": "claim_registry/v2.json",
     "claim_registry/v3.json": "claim_registry/v3.json",
+    "claim_registry/v4.json": "claim_registry/v4.json",
     "schemas/permit-co-signature-v2.schema.json": (
         "permit_to_x/schemas/permit-co-signature-v2.schema.json"
     ),
@@ -42,6 +43,9 @@ COPIES = {
     ),
     "semantics/permit/universal_verification_v2.json": (
         "semantics/permit/universal_verification_v2.json"
+    ),
+    "semantics/permit/universal_verification_v3.json": (
+        "semantics/permit/universal_verification_v3.json"
     ),
     "semantics/permit/provider_receipt_state_v1.json": (
         "semantics/permit/provider_receipt_state_v1.json"
@@ -126,6 +130,9 @@ COPIES = {
     ),
     "test-vectors/delegate_child_linkage/v1/corpus.json": (
         "permit_to_x/test_vectors/delegate_child_linkage/v1/corpus.json"
+    ),
+    "test-vectors/consequence_claims/v1/corpus.json": (
+        "permit_to_x/test_vectors/consequence_claims/v1/corpus.json"
     ),
     "schemas/work-request-v1.schema.json": ("permit_to_x/schemas/work-request-v1.schema.json"),
     "schemas/work-package-v1.schema.json": ("permit_to_x/schemas/work-package-v1.schema.json"),

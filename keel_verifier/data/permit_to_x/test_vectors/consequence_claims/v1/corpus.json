@@ -1,0 +1,71 @@
+{
+  "version": "keel.consequence_claim_vectors.v1",
+  "vectors": [
+    {
+      "id": "generate-text-exact-certified",
+      "semantic_id": "keel.action.generate_text.v1",
+      "fact_profile_id": "keel.facts.generate_text_exact.v1",
+      "universal_verdicts": {
+        "permit.type.v1": "supported",
+        "permit.exact_target.v1": "supported",
+        "permit.material_request.v1": "supported",
+        "permit.enforced_at_certified_boundary.v1": "supported"
+      },
+      "facts_match_certification": true,
+      "expected": {
+        "claim": "permit.generate_text_exact_request.v1",
+        "verdict": "supported",
+        "reason": "GENERATE_TEXT_EXACT_REQUEST_VERIFIED"
+      }
+    },
+    {
+      "id": "generate-text-certification-missing",
+      "semantic_id": "keel.action.generate_text.v1",
+      "fact_profile_id": "keel.facts.generate_text_exact.v1",
+      "universal_verdicts": {
+        "permit.type.v1": "supported",
+        "permit.exact_target.v1": "supported",
+        "permit.material_request.v1": "supported",
+        "permit.enforced_at_certified_boundary.v1": "insufficient_evidence"
+      },
+      "facts_match_certification": false,
+      "expected": {
+        "claim": "permit.generate_text_exact_request.v1",
+        "verdict": "insufficient_evidence",
+        "reason": "GENERATE_TEXT_CERTIFIED_BOUNDARY_UNPROVEN"
+      }
+    },
+    {
+      "id": "refund-original-payment-and-use-bound",
+      "semantic_id": "keel.action.payment_refund.v1",
+      "fact_profile_id": "keel.facts.refund_exact.v1",
+      "universal_verdicts": {
+        "permit.type.v1": "supported",
+        "permit.exact_target.v1": "supported",
+        "permit.material_request.v1": "supported"
+      },
+      "facts_match_signed_limits": true,
+      "expected": {
+        "claim": "permit.refund_original_payment_bound.v1",
+        "verdict": "supported",
+        "reason": "REFUND_ORIGINAL_PAYMENT_BOUND"
+      }
+    },
+    {
+      "id": "refund-signed-limits-mismatch",
+      "semantic_id": "keel.action.payment_refund.v1",
+      "fact_profile_id": "keel.facts.refund_exact.v1",
+      "universal_verdicts": {
+        "permit.type.v1": "supported",
+        "permit.exact_target.v1": "supported",
+        "permit.material_request.v1": "supported"
+      },
+      "facts_match_signed_limits": false,
+      "expected": {
+        "claim": "permit.refund_original_payment_bound.v1",
+        "verdict": "disproved",
+        "reason": "REFUND_SIGNED_LIMITS_MISMATCH"
+      }
+    }
+  ]
+}

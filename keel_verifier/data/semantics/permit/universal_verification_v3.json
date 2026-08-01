@@ -1,0 +1,48 @@
+{
+  "id": "keel.permit.universal_verification.v3",
+  "version": "v3",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "candidate",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v2",
+    "version": "v2",
+    "sha256": "4fb3ee63ec2c9c0c64716234e05ed7379de07a65b89fcbbe4aa20b39216d9fdd"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v4",
+    "conditional_claims": {
+      "keel.action.generate_text.v1": [
+        "permit.generate_text_exact_request.v1"
+      ],
+      "keel.action.payment_refund.v1": [
+        "permit.refund_original_payment_bound.v1"
+      ],
+      "keel.action.agent_delegate.v1": [
+        "permit.delegate_child_linkage.v1"
+      ]
+    },
+    "generate_text_rule": {
+      "fact_profile_id": "keel.facts.generate_text_exact.v1",
+      "required_universal_claims": [
+        "permit.type.v1",
+        "permit.exact_target.v1",
+        "permit.material_request.v1",
+        "permit.enforced_at_certified_boundary.v1"
+      ],
+      "binding_rule": "provider, model, request digest, adapter identity, adapter version, and certification identity must match across the signed Permit facts and certified-boundary evidence.",
+      "missing_certification_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved"
+    },
+    "refund_rule": {
+      "fact_profile_id": "keel.facts.refund_exact.v1",
+      "required_universal_claims": [
+        "permit.type.v1",
+        "permit.exact_target.v1",
+        "permit.material_request.v1"
+      ],
+      "binding_rule": "the original-payment, payer, reason, amount, currency, rail, exact-request, idempotency, expiry, and one-use facts must remain signed and internally consistent; dispatch and use are adjudicated by separate universal claims.",
+      "mismatch_verdict": "disproved",
+      "claim_ceiling": "The claim proves the exact authorization relationship; processor acceptance and funds returned require separate provider evidence."
+    }
+  }
+}

@@ -35,13 +35,19 @@ _DATA_ROOT = "data/permit_to_x"
 _CLAIM_REGISTRY_IDS = {
     "verifier-claims.v2": "keel.verifier_claim_registry.v2",
     "verifier-claims.v3": "keel.verifier_claim_registry.v3",
+    "verifier-claims.v4": "keel.verifier_claim_registry.v4",
 }
 _UNIVERSAL_SEMANTICS_IDS = {
     "v1": "keel.permit.universal_verification.v1",
     "v2": "keel.permit.universal_verification.v2",
+    "v3": "keel.permit.universal_verification.v3",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
+GENERATE_TEXT_EXACT_REQUEST_CLAIM = "permit.generate_text_exact_request.v1"
+REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM = (
+    "permit.refund_original_payment_bound.v1"
+)
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
     "keel.randomized_sha256_jcs.v1",
@@ -189,7 +195,7 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
     ceilings: dict[str, tuple[str, ...]] = {}
-    for registry_name in ("v2.json", "v3.json"):
+    for registry_name in ("v2.json", "v3.json", "v4.json"):
         registry = _json(f"../claim_registry/{registry_name}")
         for claim in registry.get("claims", []):
             if not isinstance(claim, Mapping):
@@ -399,7 +405,11 @@ def _resolve_contracts(
     claim_registry, claim_digest = _decode_pin(
         pins.get("claim_registry"),
         label="claim registry",
-        bundled_path=("../claim_registry/v2.json", "../claim_registry/v3.json"),
+        bundled_path=(
+            "../claim_registry/v2.json",
+            "../claim_registry/v3.json",
+            "../claim_registry/v4.json",
+        ),
         artifact_id=None,
     )
     selector_registry, selector_digest = _decode_pin(
@@ -420,6 +430,7 @@ def _resolve_contracts(
         bundled_path=(
             "../semantics/permit/universal_verification_v1.json",
             "../semantics/permit/universal_verification_v2.json",
+            "../semantics/permit/universal_verification_v3.json",
         ),
         artifact_id=None,
     )
@@ -456,6 +467,7 @@ def _resolve_contracts(
     expected_recipe_claims = {
         "v1": "verifier-claims.v2",
         "v2": "verifier-claims.v3",
+        "v3": "verifier-claims.v4",
     }
     if universal_semantics.get("body", {}).get(
         "claim_registry_version"
@@ -1107,6 +1119,158 @@ def _delegate_child_linkage_assessment(
     )
 
 
+def _consequence_exact_assessment(
+    *,
+    claim_name: str,
+    assessments: Mapping[str, ExactClaimAssessment],
+    body: Mapping[str, Any],
+    facts: Mapping[str, Any],
+    binding: Mapping[str, Any],
+    canonical_payload: Mapping[str, Any],
+) -> ExactClaimAssessment:
+    """Adjudicate the explicit Generate Text and Refund consequence claims."""
+
+    if claim_name == GENERATE_TEXT_EXACT_REQUEST_CLAIM:
+        expected_semantic = "keel.action.generate_text.v1"
+        expected_profile = "keel.facts.generate_text_exact.v1"
+        required = (
+            "permit.type.v1",
+            "permit.exact_target.v1",
+            "permit.material_request.v1",
+            "permit.enforced_at_certified_boundary.v1",
+        )
+        mismatch_reason = "GENERATE_TEXT_EXACT_REQUEST_MISMATCH"
+        unproven_reason = "GENERATE_TEXT_CERTIFIED_BOUNDARY_UNPROVEN"
+    elif claim_name == REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM:
+        expected_semantic = "keel.action.payment_refund.v1"
+        expected_profile = "keel.facts.refund_exact.v1"
+        required = (
+            "permit.type.v1",
+            "permit.exact_target.v1",
+            "permit.material_request.v1",
+        )
+        mismatch_reason = "REFUND_ORIGINAL_PAYMENT_BINDING_MISMATCH"
+        unproven_reason = "REFUND_AUTHORIZATION_BINDING_UNPROVEN"
+    else:  # pragma: no cover - caller supplies the closed claim set
+        raise ValueError(f"unsupported consequence claim: {claim_name}")
+
+    if (
+        binding.get("semantic_id") != expected_semantic
+        or binding.get("fact_profile_id") != expected_profile
+    ):
+        return _assessment(
+            claim_name,
+            "disproved",
+            mismatch_reason,
+            "the consequence claim does not match the signed Permit semantic and fact profile",
+            evidence=("body.semantic_binding", "body.authorization_facts"),
+        )
+
+    required_assessments = [assessments.get(name) for name in required]
+    if any(item is None for item in required_assessments):
+        return _assessment(
+            claim_name,
+            "unverifiable_scope",
+            unproven_reason,
+            "the verifier did not adjudicate every prerequisite claim",
+        )
+    resolved = [item for item in required_assessments if item is not None]
+    if any(item.verdict == "disproved" for item in resolved):
+        return _assessment(
+            claim_name,
+            "disproved",
+            mismatch_reason,
+            "a prerequisite exact authorization or enforcement claim was disproved",
+            evidence=tuple(item.name for item in resolved),
+        )
+    if any(item.verdict == "unverifiable_scope" for item in resolved):
+        return _assessment(
+            claim_name,
+            "unverifiable_scope",
+            unproven_reason,
+            "the prerequisite exact evidence scope is not independently verifiable",
+            evidence=tuple(item.name for item in resolved),
+        )
+    if not all(item.verdict == "supported" for item in resolved):
+        return _assessment(
+            claim_name,
+            "insufficient_evidence",
+            unproven_reason,
+            "the consequence claim lacks supported prerequisite evidence",
+            evidence=tuple(item.name for item in resolved),
+        )
+
+    if claim_name == GENERATE_TEXT_EXACT_REQUEST_CLAIM:
+        enforcement = body.get("enforcement_evidence")
+        certification = (
+            enforcement.get("adapter_certification")
+            if isinstance(enforcement, Mapping)
+            else None
+        )
+        if not isinstance(certification, Mapping):
+            return _assessment(
+                claim_name,
+                "insufficient_evidence",
+                unproven_reason,
+                "the exact Generate Text Permit lacks certified-adapter evidence",
+                evidence=("body.enforcement_evidence",),
+            )
+        facts_match = all(
+            (
+                facts.get("action") == "ai.generate",
+                facts.get("operation") == "generate.text",
+                facts.get("adapter_id") == certification.get("adapter_id"),
+                facts.get("adapter_version")
+                == certification.get("adapter_version"),
+                facts.get("certification_id")
+                == certification.get("certification_id"),
+                binding.get("semantic_id")
+                in certification.get("semantic_ids", []),
+            )
+        )
+        if not facts_match:
+            return _assessment(
+                claim_name,
+                "disproved",
+                "GENERATE_TEXT_ADAPTER_BINDING_MISMATCH",
+                "signed Generate Text facts diverge from certified-adapter evidence",
+                evidence=("body.authorization_facts", "body.enforcement_evidence"),
+            )
+        return _assessment(
+            claim_name,
+            "supported",
+            "GENERATE_TEXT_EXACT_REQUEST_VERIFIED",
+            "the signed Generate Text request and certified adapter identities match",
+            evidence=("body.authorization_facts", "body.enforcement_evidence"),
+        )
+
+    signed_expiry = _parse_time(canonical_payload.get("expires_at"))
+    facts_expiry = _parse_time(facts.get("expires_at"))
+    if not all(
+        (
+            facts.get("action") == "payment.refund",
+            facts.get("max_uses") == 1,
+            _signed_maximum_uses(canonical_payload) == 1,
+            signed_expiry is not None,
+            signed_expiry == facts_expiry,
+        )
+    ):
+        return _assessment(
+            claim_name,
+            "disproved",
+            "REFUND_SIGNED_LIMITS_MISMATCH",
+            "Refund facts, one-use limit, or expiry diverge from the signed Permit",
+            evidence=("body.authorization_facts", "body.permit_decision"),
+        )
+    return _assessment(
+        claim_name,
+        "supported",
+        "REFUND_ORIGINAL_PAYMENT_BOUND",
+        "the signed Refund Permit binds the exact original-payment relationship and limits",
+        evidence=("body.authorization_facts", "body.permit_decision"),
+    )
+
+
 def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
@@ -1200,6 +1364,30 @@ def adjudicate_permit_exact_v2_body(
     except _AdjudicationError as exc:
         return fail_all(exc)
 
+    semantic_id = str(binding.get("semantic_id") or "")
+    conditional_claims = contracts.universal_semantics.get("body", {}).get(
+        "conditional_claims", {}
+    )
+    expected_conditional = (
+        conditional_claims.get(semantic_id, [])
+        if isinstance(conditional_claims, Mapping)
+        else []
+    )
+    missing_conditional = [
+        str(name)
+        for name in expected_conditional
+        if isinstance(name, str) and name not in declared
+    ]
+    if missing_conditional:
+        declared.extend(missing_conditional)
+        return fail_all(
+            _AdjudicationError(
+                "disproved",
+                "PERMIT_CONDITIONAL_CLAIM_MISSING",
+                "the exact pack omitted a consequence claim required by its pinned recipe",
+            )
+        )
+
     decision = body.get("permit_decision")
     canonical_payload = (
         decision.get("canonical_payload") if isinstance(decision, Mapping) else None
@@ -1264,7 +1452,6 @@ def adjudicate_permit_exact_v2_body(
         else None
     )
     receipt_matches = isinstance(receipt_attrs, Mapping) and receipt_attrs == decision_attrs
-    semantic_id = str(binding.get("semantic_id") or "")
     fact_profile_id = str(binding.get("fact_profile_id") or "")
     authorized_action = str(contracts.fact_profile.get("authorized_action") or "")
 
@@ -1721,6 +1908,20 @@ def adjudicate_permit_exact_v2_body(
                 signed_artifact_verifier=signed_artifact_verifier,
             )
         )
+    for claim_name in (
+        GENERATE_TEXT_EXACT_REQUEST_CLAIM,
+        REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM,
+    ):
+        if claim_name not in declared:
+            continue
+        assessments[claim_name] = _consequence_exact_assessment(
+            claim_name=claim_name,
+            assessments=assessments,
+            body=body,
+            facts=facts,
+            binding=binding,
+            canonical_payload=canonical_payload,
+        )
     for name in declared:
         if name in _EXTERNAL_CLAIMS or name in assessments:
             continue
@@ -1742,8 +1943,10 @@ def adjudicate_permit_exact_v2_body(
 
 __all__ = [
     "DELEGATE_CHILD_LINKAGE_CLAIM",
+    "GENERATE_TEXT_EXACT_REQUEST_CLAIM",
     "PROFILE",
     "PROFILE_VERSION",
+    "REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM",
     "UNIVERSAL_CLAIMS",
     "ExactClaimAssessment",
     "PermitExactV2Result",
