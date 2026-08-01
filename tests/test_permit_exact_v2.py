@@ -858,6 +858,43 @@ def test_v2_supports_validity_certified_boundary_bounded_use_and_provider_state(
     ].does_not_establish
 
 
+def test_transport_observation_can_prove_rejection_but_not_acceptance() -> None:
+    body = _body()
+    body["provider_receipts"] = [
+        {
+            "version": "keel.provider_receipt.v1",
+            "receipt_id": "receipt_transport_rejected",
+            "permit_id": "permit_test",
+            "project_id": "project_test",
+            "dispatch_id": "dispatch_test",
+            "receipt_sequence": 1,
+            "provider": "stripe",
+            "operation": "payment.execute",
+            "semantic_id": "keel.action.payment_execute.v1",
+            "state": "rejected",
+            "observed_at": "2026-07-30T12:10:01Z",
+            "source_class": "keel_transport_observation",
+            "provider_http_status": 409,
+            "exact_request_digest": "sha256:" + "6" * 64,
+            "previous_receipt_digest": None,
+            "evidence_digest": "sha256:" + "b" * 64,
+            "reason_code": "provider.conflict",
+            "does_not_establish": [
+                "provider acceptance",
+                "external real-world outcome",
+            ],
+        }
+    ]
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["provider.receipt_state.v1"].verdict == "supported"
+    assert claims["provider.rejected.v1"].verdict == "supported"
+    assert claims["provider.accepted.v1"].verdict == "insufficient_evidence"
+
+
 def test_v2_expiry_boundary_is_exclusive() -> None:
     body = _body()
     body["permit_decision"]["canonical_payload"]["expires_at"] = (

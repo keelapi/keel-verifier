@@ -775,7 +775,7 @@ def _provider_receipt_claims(
     for index, receipt in enumerate(ordered):
         if (
             receipt.get("source_class") == "keel_transport_observation"
-            and receipt.get("state") not in {"dispatched", "outcome_unknown"}
+            and receipt.get("state") not in {"rejected", "outcome_unknown"}
         ):
             claims["provider.receipt_state.v1"] = _assessment(
                 "provider.receipt_state.v1",
