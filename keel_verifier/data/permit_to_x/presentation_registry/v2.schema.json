@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/presentation_registry/v2.schema.json",
+  "title": "Keel Permit presentation registry v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_id", "version", "semantic_registry_version", "allowed_leading_fields", "allowed_evidence_sections", "profiles", "fallback_profiles"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "artifact_id": {"const": "keel.permit.presentation_registry"},
+    "version": {"const": "keel.presentation_registry.v2"},
+    "semantic_registry_version": {"const": "keel.semantic_selector_registry.v4"},
+    "allowed_leading_fields": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "allowed_evidence_sections": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "profiles": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/profile"}},
+    "fallback_profiles": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/fallback"}}
+  },
+  "$defs": {
+    "field": {"type": "object", "additionalProperties": false, "required": ["field", "label"], "properties": {"field": {"type": "string"}, "label": {"type": "string"}}},
+    "profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["semantic_id", "presentation_profile_id", "customer_title", "type_definition", "leading_fields", "evidence_sections", "does_not_establish", "fallback_profile", "release_state"],
+      "properties": {
+        "semantic_id": {"type": "string"}, "presentation_profile_id": {"type": "string"}, "customer_title": {"type": "string"}, "type_definition": {"type": "string"},
+        "leading_fields": {"type": "array", "items": {"$ref": "#/$defs/field"}}, "evidence_sections": {"type": "array", "items": {"type": "string"}},
+        "does_not_establish": {"type": "array", "items": {"type": "string"}}, "fallback_profile": {"type": "string"}, "release_state": {"enum": ["eligible", "generic_qualified", "reserved", "internal_only"]}
+      }
+    },
+    "fallback": {"type": "object", "additionalProperties": false, "required": ["presentation_profile_id", "customer_title", "type_definition", "evidence_sections"], "properties": {"presentation_profile_id": {"type": "string"}, "customer_title": {"type": "string"}, "type_definition": {"type": "string"}, "evidence_sections": {"type": "array", "items": {"type": "string"}}}}
+  }
+}
