@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import rfc8785
+import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -14,6 +15,7 @@ from keel_verifier.canonical.permit_binding import (
     canonical_resource_attributes_payload,
 )
 from keel_verifier.permit_exact_v2 import (
+    DELEGATE_CHILD_LINKAGE_CLAIM,
     UNIVERSAL_CLAIMS,
     adjudicate_permit_exact_v2_body,
 )
@@ -292,6 +294,113 @@ def _claim_map(result) -> dict[str, object]:
     return {claim.name: claim for claim in result.claims}
 
 
+def _delegate_body_with_linkage() -> dict:
+    commitment = {
+        "method": "keel.salted_sha256_jcs.v1",
+        "digest": "sha256:" + "a" * 64,
+    }
+    facts = {
+        "version": "keel.delegate_exact_facts.v1",
+        "fact_profile_id": "keel.facts.delegate_exact.v1",
+        "action": "agent.delegate",
+        "parent_principal_id": "9e73d2aa-9cc5-45d7-aef7-4f8605d28f31",
+        "intended_child_reference_commitment": commitment,
+        "delegated_actions": ["payment.execute"],
+        "delegated_resources": ["account:test"],
+        "delegated_endpoints": ["https://api.example.test"],
+        "maximum_depth": 1,
+        "maximum_uses": 3,
+        "expires_at": "2026-07-30T13:00:00Z",
+        "required_identity_assurance": "A1",
+        "request_digest": "sha256:" + "e" * 64,
+    }
+    body = _v4_body(
+        semantic_id="keel.action.agent_delegate.v1",
+        fact_profile_id="keel.facts.delegate_exact.v1",
+        facts=facts,
+        action_name="authority.grant",
+        operation="agent.delegate",
+        governed_surface="agent_delegation",
+        source_kind="agent_delegation_service",
+        presentation_profile_id="permit_to_delegate.r1",
+    )
+    claim_path = ROOT / "claim_registry/v3.json"
+    universal_path = ROOT / "semantics/permit/universal_verification_v2.json"
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v3",
+    )
+    body["contract_pins"]["universal_semantics"] = _pin(
+        universal_path,
+        artifact_id="keel.permit.universal_verification.v2",
+    )
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "claim_registry_version": "verifier-claims.v3",
+            "claim_registry_digest": _digest_bytes(claim_path.read_bytes()),
+            "universal_semantics_id": "keel.permit.universal_verification.v2",
+            "universal_semantics_digest": _digest_bytes(
+                universal_path.read_bytes()
+            ),
+        }
+    )
+    body["permit_decision"]["resource_attributes_json"][
+        "permit_semantic_binding_v2"
+    ] = copy.deepcopy(binding)
+    body["permit_receipt"]["action"]["resource_attributes_json"][
+        "permit_semantic_binding_v2"
+    ] = copy.deepcopy(binding)
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(
+        body["permit_decision"]["resource_attributes_json"]
+    )
+    body["declared_claims"].append(DELEGATE_CHILD_LINKAGE_CLAIM)
+    unsigned_linkage = {
+        "version": "keel.delegate_child_linkage.v1",
+        "evidence_id": "delegate_linkage_test_1",
+        "permit_id": "permit_test",
+        "project_id": "project_test",
+        "semantic_id": "keel.action.agent_delegate.v1",
+        "authorization_request_digest": facts["request_digest"],
+        "intended_child_reference_commitment": copy.deepcopy(commitment),
+        "created_child_reference_commitment": copy.deepcopy(commitment),
+        "authority_grant": {
+            "edge_id": "edge_1",
+            "edge_digest": "sha256:" + "f" * 64,
+            "delegate_child_reference_commitment": copy.deepcopy(commitment),
+            "issued_at": "2026-07-30T12:05:00Z",
+        },
+        "creation_evidence_event_id": "evt_delegate_created_1",
+        "created_at": "2026-07-30T12:04:00Z",
+        "acting_child": {
+            "child_reference_commitment": copy.deepcopy(commitment),
+            "action_permit_id": "permit_action_1",
+            "action_permit_binding_digest": "sha256:" + "b" * 64,
+            "authority_chain_digest": "sha256:" + "c" * 64,
+            "exact_request_digest": "sha256:" + "d" * 64,
+            "dispatched_at": "2026-07-30T12:10:00Z",
+        },
+        "asserted_at": "2026-07-30T12:20:00Z",
+        "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+        "issuer_key_id": "binding_key_1",
+        "does_not_establish": [
+            "independent real-world identity of the child behind the commitment",
+            "correctness of delegated actions",
+        ],
+    }
+    body["scope_evidence"] = [_signed_shape(unsigned_linkage)]
+    return body
+
+
+def _resign_delegate_linkage(body: dict) -> None:
+    linkage = copy.deepcopy(body["scope_evidence"][0])
+    linkage.pop("canonical_hash", None)
+    linkage.pop("signature", None)
+    body["scope_evidence"] = [_signed_shape(linkage)]
+
+
 def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
     commitment = {
         "method": "keel.salted_sha256_jcs.v1",
@@ -411,6 +520,136 @@ def test_v2_emits_every_declared_claim_once() -> None:
     assert claims["permit.type.v1"].verdict == "supported"
     assert claims["permit.exact_target.v1"].verdict == "supported"
     assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_delegate_child_linkage_proves_created_granted_and_acting_child() -> None:
+    result = adjudicate_permit_exact_v2_body(
+        _delegate_body_with_linkage(),
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "supported"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_CHILD_LINKAGE_VERIFIED"
+    )
+    assert "independent real-world identity" in " ".join(
+        claims[DELEGATE_CHILD_LINKAGE_CLAIM].does_not_establish
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutate", "reason_code"),
+    (
+        (
+            lambda evidence: evidence["created_child_reference_commitment"].update(
+                {"digest": "sha256:" + "1" * 64}
+            ),
+            "DELEGATE_CREATED_CHILD_MISMATCH",
+        ),
+        (
+            lambda evidence: evidence["authority_grant"][
+                "delegate_child_reference_commitment"
+            ].update({"digest": "sha256:" + "2" * 64}),
+            "DELEGATE_GRANT_CHILD_MISMATCH",
+        ),
+        (
+            lambda evidence: evidence["acting_child"][
+                "child_reference_commitment"
+            ].update({"digest": "sha256:" + "3" * 64}),
+            "DELEGATE_ACTING_CHILD_MISMATCH",
+        ),
+    ),
+)
+def test_delegate_child_linkage_disproves_child_substitution(
+    mutate,
+    reason_code: str,
+) -> None:
+    body = _delegate_body_with_linkage()
+    linkage = body["scope_evidence"][0]
+    mutate(linkage)
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "disproved"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == reason_code
+
+
+def test_delegate_child_linkage_without_dispatch_is_insufficient() -> None:
+    body = _delegate_body_with_linkage()
+    body["scope_evidence"][0]["acting_child"] = None
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == (
+        "insufficient_evidence"
+    )
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_ACTING_CHILD_EVIDENCE_MISSING"
+    )
+
+
+def test_delegate_child_linkage_requires_a_valid_keel_signature() -> None:
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            _delegate_body_with_linkage(),
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                False,
+                "untrusted Delegate linkage signing key",
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "unverifiable_scope"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_CHILD_LINKAGE_SIGNATURE_INVALID"
+    )
+
+
+def test_delegate_child_linkage_rejects_causally_impossible_dispatch() -> None:
+    body = _delegate_body_with_linkage()
+    body["scope_evidence"][0]["acting_child"]["dispatched_at"] = (
+        "2026-07-30T12:03:00Z"
+    )
+    _resign_delegate_linkage(body)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+            signed_artifact_verifier=lambda _artifact, _purpose, _time: (
+                True,
+                None,
+            ),
+        )
+    )
+
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].verdict == "disproved"
+    assert claims[DELEGATE_CHILD_LINKAGE_CLAIM].reason_code == (
+        "DELEGATE_ACTING_CHILD_TIME_INVALID"
+    )
     assert claims["permit.valid_at_dispatch.v1"].verdict == "insufficient_evidence"
     assert claims["permit.revocation_at_dispatch.v1"].verdict == "unverifiable_scope"
     assert claims["provider.completed.v1"].reason_code == (

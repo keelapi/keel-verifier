@@ -18,6 +18,7 @@ DATA = ROOT / "keel_verifier" / "data"
 COPIES = {
     "claim_registry/v1.json": "claim_registry/v1.json",
     "claim_registry/v2.json": "claim_registry/v2.json",
+    "claim_registry/v3.json": "claim_registry/v3.json",
     "schemas/permit-co-signature-v2.schema.json": (
         "permit_to_x/schemas/permit-co-signature-v2.schema.json"
     ),
@@ -38,6 +39,9 @@ COPIES = {
     ),
     "semantics/permit/universal_verification_v1.json": (
         "semantics/permit/universal_verification_v1.json"
+    ),
+    "semantics/permit/universal_verification_v2.json": (
+        "semantics/permit/universal_verification_v2.json"
     ),
     "semantics/permit/provider_receipt_state_v1.json": (
         "semantics/permit/provider_receipt_state_v1.json"
@@ -93,6 +97,9 @@ COPIES = {
     "schemas/delegate-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/delegate-exact-facts-v1.schema.json"
     ),
+    "schemas/delegate-child-linkage-v1.schema.json": (
+        "permit_to_x/schemas/delegate-child-linkage-v1.schema.json"
+    ),
     "schemas/permit-exact-pack-v2.schema.json": (
         "permit_to_x/schemas/permit-exact-pack-v2.schema.json"
     ),
@@ -116,6 +123,9 @@ COPIES = {
     ),
     "test-vectors/universal_verification/v1/corpus.json": (
         "permit_to_x/test_vectors/universal_verification/v1/corpus.json"
+    ),
+    "test-vectors/delegate_child_linkage/v1/corpus.json": (
+        "permit_to_x/test_vectors/delegate_child_linkage/v1/corpus.json"
     ),
     "schemas/work-request-v1.schema.json": ("permit_to_x/schemas/work-request-v1.schema.json"),
     "schemas/work-package-v1.schema.json": ("permit_to_x/schemas/work-package-v1.schema.json"),

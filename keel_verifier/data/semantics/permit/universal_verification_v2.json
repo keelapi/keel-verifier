@@ -1,0 +1,31 @@
+{
+  "id": "keel.permit.universal_verification.v2",
+  "version": "v2",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "candidate",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v1",
+    "version": "v1",
+    "sha256": "13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v3",
+    "conditional_claims": {
+      "keel.action.agent_delegate.v1": [
+        "permit.delegate_child_linkage.v1"
+      ]
+    },
+    "delegate_child_linkage": {
+      "schema": "delegate-child-linkage-v1.schema.json",
+      "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+      "signature_purpose": "delegate_child_linkage_signing",
+      "identity_rule": "permit_id, project_id, semantic_id, and authorization_request_digest must match the supported exact Delegate Permit.",
+      "creation_rule": "The intended, created, and authority-grant delegate commitments must be byte-identical safe commitments.",
+      "acting_rule": "A supported acting-child linkage additionally requires the acting commitment to match, an exact action-Permit binding digest, a non-empty authority-chain digest, exact request digest, and dispatch instant.",
+      "missing_acting_child_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved",
+      "privacy_rule": "Verifier-safe evidence contains commitments only. Clear child identifiers remain tenant-private or selectively disclosed with an audit reason.",
+      "claim_ceiling": "The claim proves Keel-issued child linkage under the signed evidence and does not independently establish external identity or action correctness."
+    }
+  }
+}

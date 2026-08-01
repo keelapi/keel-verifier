@@ -32,9 +32,16 @@ from keel_verifier.canonical.permit_binding import (
 PROFILE = "keel.permit_exact/v2"
 PROFILE_VERSION = 2
 _DATA_ROOT = "data/permit_to_x"
-_CLAIM_REGISTRY_ID = "keel.verifier_claim_registry.v2"
-_UNIVERSAL_SEMANTICS_ID = "keel.permit.universal_verification.v1"
+_CLAIM_REGISTRY_IDS = {
+    "verifier-claims.v2": "keel.verifier_claim_registry.v2",
+    "verifier-claims.v3": "keel.verifier_claim_registry.v3",
+}
+_UNIVERSAL_SEMANTICS_IDS = {
+    "v1": "keel.permit.universal_verification.v1",
+    "v2": "keel.permit.universal_verification.v2",
+}
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
+DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
     "keel.randomized_sha256_jcs.v1",
@@ -181,16 +188,19 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
-    registry = _json("../claim_registry/v2.json")
     ceilings: dict[str, tuple[str, ...]] = {}
-    for claim in registry.get("claims", []):
-        if not isinstance(claim, Mapping):
-            continue
-        name = claim.get("name")
-        values = claim.get("does_not_establish")
-        if not isinstance(name, str) or not isinstance(values, list):
-            continue
-        ceilings[name] = tuple(str(value) for value in values if isinstance(value, str))
+    for registry_name in ("v2.json", "v3.json"):
+        registry = _json(f"../claim_registry/{registry_name}")
+        for claim in registry.get("claims", []):
+            if not isinstance(claim, Mapping):
+                continue
+            name = claim.get("name")
+            values = claim.get("does_not_establish")
+            if not isinstance(name, str) or not isinstance(values, list):
+                continue
+            ceilings[name] = tuple(
+                str(value) for value in values if isinstance(value, str)
+            )
     return ceilings
 
 
@@ -231,6 +241,7 @@ def _schema_registry() -> tuple[dict[str, Any], Registry]:
         "schemas/permit-bounded-use-v1.schema.json",
         "schemas/permit-selective-disclosure-v1.schema.json",
         "schemas/provider-receipt-v1.schema.json",
+        "schemas/delegate-child-linkage-v1.schema.json",
     )
     schemas = [_json(name) for name in names]
     registry = Registry()
@@ -388,8 +399,8 @@ def _resolve_contracts(
     claim_registry, claim_digest = _decode_pin(
         pins.get("claim_registry"),
         label="claim registry",
-        bundled_path="../claim_registry/v2.json",
-        artifact_id=_CLAIM_REGISTRY_ID,
+        bundled_path=("../claim_registry/v2.json", "../claim_registry/v3.json"),
+        artifact_id=None,
     )
     selector_registry, selector_digest = _decode_pin(
         pins.get("semantic_selector_registry"),
@@ -406,14 +417,55 @@ def _resolve_contracts(
     universal_semantics, universal_digest = _decode_pin(
         pins.get("universal_semantics"),
         label="universal semantics",
-        bundled_path="../semantics/permit/universal_verification_v1.json",
-        artifact_id=_UNIVERSAL_SEMANTICS_ID,
+        bundled_path=(
+            "../semantics/permit/universal_verification_v1.json",
+            "../semantics/permit/universal_verification_v2.json",
+        ),
+        artifact_id=None,
     )
-    if claim_registry.get("version") != "verifier-claims.v2":
+    claim_version = str(claim_registry.get("version") or "")
+    expected_claim_id = _CLAIM_REGISTRY_IDS.get(claim_version)
+    claim_pin = pins.get("claim_registry")
+    if expected_claim_id is None or not isinstance(claim_pin, Mapping):
         raise _AdjudicationError(
             "unverifiable_scope",
             "PERMIT_CONTRACT_PIN_UNSUPPORTED",
-            "claim registry is not verifier-claims.v2",
+            "claim registry version is not supported",
+        )
+    if claim_pin.get("artifact_id") != expected_claim_id:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_ID_MISMATCH",
+            "claim registry artifact identity does not match its version",
+        )
+    universal_version = str(universal_semantics.get("version") or "")
+    expected_universal_id = _UNIVERSAL_SEMANTICS_IDS.get(universal_version)
+    universal_pin = pins.get("universal_semantics")
+    if expected_universal_id is None or not isinstance(universal_pin, Mapping):
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            "universal semantics version is not supported",
+        )
+    if universal_pin.get("artifact_id") != expected_universal_id:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_ID_MISMATCH",
+            "universal semantics artifact identity does not match its version",
+        )
+    expected_recipe_claims = {
+        "v1": "verifier-claims.v2",
+        "v2": "verifier-claims.v3",
+    }
+    if universal_semantics.get("body", {}).get(
+        "claim_registry_version"
+    ) != expected_recipe_claims[universal_version] or claim_version != (
+        expected_recipe_claims[universal_version]
+    ):
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_VERSION_MISMATCH",
+            "universal semantics and claim registry versions diverge",
         )
     semantic_id = str(binding.get("semantic_id") or "")
     selector_entry = _one_entry(
@@ -892,6 +944,167 @@ def _provider_receipt_claims(
         ),
     )
     return claims
+
+
+def _delegate_child_linkage_assessment(
+    *,
+    body: Mapping[str, Any],
+    facts: Mapping[str, Any],
+    binding: Mapping[str, Any],
+    signed_artifact_verifier: SignedArtifactVerifier | None,
+) -> ExactClaimAssessment:
+    """Verify intended -> created -> granted -> acting child continuity."""
+
+    if binding.get("semantic_id") != "keel.action.agent_delegate.v1":
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_NOT_APPLICABLE",
+            "Delegate child-linkage was declared for a non-Delegate Permit",
+        )
+    evidence_values = [
+        value
+        for value in body.get("scope_evidence", [])
+        if isinstance(value, Mapping)
+        and value.get("version") == "keel.delegate_child_linkage.v1"
+    ]
+    if not evidence_values:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "insufficient_evidence",
+            "DELEGATE_CHILD_LINKAGE_EVIDENCE_MISSING",
+            "signed Delegate child-linkage evidence is missing",
+            evidence=("body.scope_evidence",),
+        )
+    if len(evidence_values) != 1:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_AMBIGUOUS",
+            "the exact pack contains multiple Delegate child-linkage artifacts",
+            evidence=("body.scope_evidence",),
+        )
+    evidence = evidence_values[0]
+    signed, error = _signed_artifact_status(
+        evidence,
+        schema_name="delegate-child-linkage-v1.schema.json",
+        purpose="delegate_child_linkage_signing",
+        signed_at_field="asserted_at",
+        verifier=signed_artifact_verifier,
+    )
+    if not signed:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved" if error and "hash" in error else "unverifiable_scope",
+            "DELEGATE_CHILD_LINKAGE_SIGNATURE_INVALID",
+            error or "Delegate child-linkage signature is invalid",
+            evidence=("body.scope_evidence",),
+        )
+
+    identity_pairs = (
+        (evidence.get("permit_id"), body.get("permit_id")),
+        (evidence.get("project_id"), body.get("project_id")),
+        (evidence.get("semantic_id"), binding.get("semantic_id")),
+        (
+            evidence.get("authorization_request_digest"),
+            facts.get("request_digest"),
+        ),
+    )
+    if any(actual != expected for actual, expected in identity_pairs):
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_IDENTITY_MISMATCH",
+            "Delegate linkage Permit, project, semantic, or request identity diverges",
+            evidence=("body.scope_evidence", "body.authorization_facts"),
+        )
+    intended = facts.get("intended_child_reference_commitment")
+    if evidence.get("intended_child_reference_commitment") != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_INTENDED_CHILD_MISMATCH",
+            "linkage evidence does not carry the signed intended-child commitment",
+            evidence=("body.scope_evidence", "body.authorization_facts"),
+        )
+    if evidence.get("created_child_reference_commitment") != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CREATED_CHILD_MISMATCH",
+            "the created child does not match the child authorized by the Delegate Permit",
+            evidence=("body.scope_evidence",),
+        )
+    authority_grant = evidence.get("authority_grant")
+    granted_child = (
+        authority_grant.get("delegate_child_reference_commitment")
+        if isinstance(authority_grant, Mapping)
+        else None
+    )
+    if granted_child != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_GRANT_CHILD_MISMATCH",
+            "the authority grant was issued to a different child commitment",
+            evidence=("body.scope_evidence",),
+        )
+    created_at = _parse_time(evidence.get("created_at"))
+    granted_at = _parse_time(
+        authority_grant.get("issued_at")
+        if isinstance(authority_grant, Mapping)
+        else None
+    )
+    asserted_at = _parse_time(evidence.get("asserted_at"))
+    if (
+        created_at is None
+        or granted_at is None
+        or asserted_at is None
+        or created_at > granted_at
+        or granted_at > asserted_at
+    ):
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_CHILD_LINKAGE_TIME_INVALID",
+            "Delegate child creation, grant, and assertion times are not causally ordered",
+            evidence=("body.scope_evidence",),
+        )
+    acting = evidence.get("acting_child")
+    if acting is None:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "insufficient_evidence",
+            "DELEGATE_ACTING_CHILD_EVIDENCE_MISSING",
+            "the child was created and granted authority, but no child dispatch is evidenced",
+            evidence=("body.scope_evidence",),
+        )
+    if not isinstance(acting, Mapping) or acting.get(
+        "child_reference_commitment"
+    ) != intended:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_ACTING_CHILD_MISMATCH",
+            "the child that acted does not match the authorized child commitment",
+            evidence=("body.scope_evidence",),
+        )
+    dispatched_at = _parse_time(acting.get("dispatched_at"))
+    if dispatched_at is None or dispatched_at < granted_at or dispatched_at > asserted_at:
+        return _assessment(
+            DELEGATE_CHILD_LINKAGE_CLAIM,
+            "disproved",
+            "DELEGATE_ACTING_CHILD_TIME_INVALID",
+            "the evidenced child dispatch is outside the grant/assertion interval",
+            evidence=("body.scope_evidence",),
+        )
+    return _assessment(
+        DELEGATE_CHILD_LINKAGE_CLAIM,
+        "supported",
+        "DELEGATE_CHILD_LINKAGE_VERIFIED",
+        "the authorized, created, granted, and acting child commitments match",
+        evidence=("body.scope_evidence", "body.authorization_facts"),
+    )
 
 
 def adjudicate_permit_exact_v2_body(
@@ -1499,6 +1712,15 @@ def adjudicate_permit_exact_v2_body(
             semantics=contracts.provider_receipt_semantics,
         )
     )
+    if DELEGATE_CHILD_LINKAGE_CLAIM in declared:
+        assessments[DELEGATE_CHILD_LINKAGE_CLAIM] = (
+            _delegate_child_linkage_assessment(
+                body=body,
+                facts=facts,
+                binding=binding,
+                signed_artifact_verifier=signed_artifact_verifier,
+            )
+        )
     for name in declared:
         if name in _EXTERNAL_CLAIMS or name in assessments:
             continue
@@ -1519,6 +1741,7 @@ def adjudicate_permit_exact_v2_body(
 
 
 __all__ = [
+    "DELEGATE_CHILD_LINKAGE_CLAIM",
     "PROFILE",
     "PROFILE_VERSION",
     "UNIVERSAL_CLAIMS",

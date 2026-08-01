@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/delegate-child-linkage-v1.schema.json",
+  "title": "Keel Delegate child-linkage evidence v1",
+  "description": "A Keel-signed, privacy-safe linkage between the child authorized by an exact Delegate Permit, the child created and granted authority, and an optional child that later dispatched under that authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "evidence_id",
+    "permit_id",
+    "project_id",
+    "semantic_id",
+    "authorization_request_digest",
+    "intended_child_reference_commitment",
+    "created_child_reference_commitment",
+    "authority_grant",
+    "creation_evidence_event_id",
+    "created_at",
+    "acting_child",
+    "asserted_at",
+    "signature_profile",
+    "issuer_key_id",
+    "canonical_hash",
+    "signature",
+    "does_not_establish"
+  ],
+  "properties": {
+    "version": {"const": "keel.delegate_child_linkage.v1"},
+    "evidence_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "project_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "semantic_id": {"const": "keel.action.agent_delegate.v1"},
+    "authorization_request_digest": {"$ref": "#/$defs/digest"},
+    "intended_child_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "created_child_reference_commitment": {"$ref": "#/$defs/commitment"},
+    "authority_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "edge_digest",
+        "delegate_child_reference_commitment",
+        "issued_at"
+      ],
+      "properties": {
+        "edge_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "edge_digest": {"$ref": "#/$defs/digest"},
+        "delegate_child_reference_commitment": {"$ref": "#/$defs/commitment"},
+        "issued_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "creation_evidence_event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "acting_child": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "child_reference_commitment",
+            "action_permit_id",
+            "action_permit_binding_digest",
+            "authority_chain_digest",
+            "exact_request_digest",
+            "dispatched_at"
+          ],
+          "properties": {
+            "child_reference_commitment": {"$ref": "#/$defs/commitment"},
+            "action_permit_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "action_permit_binding_digest": {"$ref": "#/$defs/digest"},
+            "authority_chain_digest": {"$ref": "#/$defs/digest"},
+            "exact_request_digest": {"$ref": "#/$defs/digest"},
+            "dispatched_at": {"type": "string", "format": "date-time"}
+          }
+        }
+      ]
+    },
+    "asserted_at": {"type": "string", "format": "date-time"},
+    "signature_profile": {"const": "keel.ed25519.sha256_rfc8785.v1"},
+    "issuer_key_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"},
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {
+          "enum": [
+            "keel.salted_sha256_jcs.v1",
+            "keel.randomized_sha256_jcs.v1",
+            "keel.hmac_sha256_jcs.v1",
+            "keel.opaque_reference.v1"
+          ]
+        },
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}
