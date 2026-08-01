@@ -980,6 +980,15 @@ def test_bounded_use_child_uses_pinned_permit_binding_authority(
     assert verified is True
     assert error is None
 
+    delegate_verified, delegate_error = _verify_permit_exact_v2_signed_artifact(
+        transition,
+        "delegate_child_linkage_signing",
+        "occurred_at",
+        key_manifest_source=str(manifest),
+    )
+    assert delegate_verified is True
+    assert delegate_error is None
+
     unrelated_verified, unrelated_error = _verify_permit_exact_v2_signed_artifact(
         transition,
         "runtime_enforcement_signing",
