@@ -13985,6 +13985,18 @@ def _adjudicate_permit_exact_v2(
             )
         ),
     )
+    contract_pins = body.get("contract_pins")
+    universal_pin = (
+        contract_pins.get("universal_semantics")
+        if isinstance(contract_pins, dict)
+        else None
+    )
+    exact_semantics: list[dict[str, Any]] = []
+    if isinstance(universal_pin, dict):
+        artifact_id = universal_pin.get("artifact_id")
+        artifact_hash = universal_pin.get("sha256")
+        if isinstance(artifact_id, str) and isinstance(artifact_hash, str):
+            exact_semantics = [{"id": artifact_id, "hash": artifact_hash}]
     claims: list[ClaimVerdict] = []
     for assessment in result.claims:
         claim = _permit_claim(
@@ -14001,6 +14013,7 @@ def _adjudicate_permit_exact_v2(
                 claim,
                 does_not_establish=list(assessment.does_not_establish),
             )
+        claim = replace(claim, semantics=exact_semantics)
         claims.append(claim)
     return (
         claims,
@@ -14076,11 +14089,39 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         if body is not None:
             artifact["body_schema"] = body.get("schema")
             artifact["artifact_ref"] = body.get("artifact_ref")
+        exact_profile = (
+            str(body.get("profile"))
+            if isinstance(body, dict) and isinstance(body.get("profile"), str)
+            else None
+        )
+        supported_exact_profiles = {
+            "keel.permit_exact/v1",
+            "keel.permit_exact/v2",
+            "keel.permit_exact/v3",
+        }
+        if (
+            ok
+            and exact_profile is not None
+            and exact_profile.startswith("keel.permit_exact/")
+            and exact_profile not in supported_exact_profiles
+        ):
+            ok = False
+            error = (
+                "PERMIT_EXACT_PROFILE_UNSUPPORTED: "
+                f"this verifier does not adjudicate {exact_profile}"
+            )
+            diagnostics.append(error)
+            artifact.update(
+                {
+                    "kind": "permit_exact",
+                    "profile": exact_profile,
+                    "unsupported_profile": True,
+                }
+            )
         if (
             ok
             and isinstance(body, dict)
-            and body.get("profile")
-            in {"keel.permit_exact/v1", "keel.permit_exact/v2"}
+            and exact_profile in supported_exact_profiles
         ):
             decision_claim = _adjudicate_permit_decision_v1(
                 export_document=body,
@@ -14088,7 +14129,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             )
             claims.append(decision_claim)
             profile = str(body.get("profile"))
-            if profile == "keel.permit_exact/v2":
+            if profile in {"keel.permit_exact/v2", "keel.permit_exact/v3"}:
                 exact_claims, exact_summary = _adjudicate_permit_exact_v2(
                     body=body,
                     decision_claim=decision_claim,

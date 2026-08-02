@@ -274,6 +274,21 @@ IntegrityBatchHash = Callable[[list[dict[str, str]]], str]
 AuthorityEnvelopeComparator = Callable[..., Any]
 
 
+# Claims whose semantics are resolved from the exact evidence pack's
+# digest-pinned universal recipe rather than the permanent legacy allowlist.
+# Keep these separate from CLAIM_SEMANTICS: adding them there would silently
+# turn pack-scoped contracts into verifier-global semantics.
+PROFILE_DRIVEN_CLAIMS = frozenset(
+    {
+        "permit.delegate_child_linkage.v1",
+        "permit.generate_text_exact_request.v1",
+        "permit.refund_original_payment_bound.v1",
+        "permit.enforcement_regime_at_issuance.v1",
+        "permit.enforcement_regime_at_dispatch.v1",
+    }
+)
+
+
 CLAIM_SEMANTICS: dict[str, tuple[str, ...]] = {
     "export.integrity.v1": (EXPORT_MANIFEST_INTEGRITY_ID,),
     "evidence_bundle.self_attesting.v1": (EVIDENCE_BUNDLE_SELF_ATTESTING_ID,),

@@ -11,11 +11,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import lru_cache
 import hashlib
+from importlib import resources
 import json
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import rfc8785
 
 from keel_verifier.semantics import (
@@ -41,6 +44,7 @@ WORK_CLAIMS = (
     "permit_chain.execution_authorized_at_boundary.v1",
     "permit.work_value_conservation.v1",
 )
+WORK_ENFORCEMENT_ISSUANCE_CLAIM = "permit.enforcement_regime_at_issuance.v1"
 POPULATIONS = {
     "work_authorities": ("authorities", "permit_work_authorities"),
     "child_permits": ("child_permits", "permits"),
@@ -233,7 +237,7 @@ def _report(
     claims: list[ClaimVerdict],
     diagnostics: list[str] | None = None,
 ) -> VerificationReport:
-    verdicts = [claim.aggregate_verdict for claim in claims]
+    verdicts = [claim.aggregate_verdict for claim in claims if claim.required]
     ok = bool(verdicts) and all(value == "supported" for value in verdicts)
     # A disproved claim must dominate the exit code even when another claim is
     # out of scope: 1 (failed) beats 2 (unverifiable scope). Mirrors the
@@ -251,7 +255,7 @@ def _report(
             subject
             for claim in claims
             for subject in claim.subjects
-            if subject.required and subject.verdict != "supported"
+            if claim.required and subject.required and subject.verdict != "supported"
         ),
         None,
     )
@@ -263,6 +267,136 @@ def _report(
         claims=claims,
         diagnostics=list(diagnostics or ()),
         semantics=_work_semantics(),
+    )
+
+
+@lru_cache(maxsize=1)
+def _work_enforcement_state_validator() -> jsonschema.Draft202012Validator:
+    schema = json.loads(
+        resources.files("keel_verifier").joinpath(
+            "data/permit_to_x/schemas/permit-enforcement-state-v1.schema.json"
+        ).read_text(encoding="utf-8")
+    )
+    return jsonschema.Draft202012Validator(
+        schema,
+        format_checker=jsonschema.FormatChecker(),
+    )
+
+
+@lru_cache(maxsize=1)
+def _work_enforcement_claim_semantics() -> tuple[dict[str, str], ...]:
+    resource = resources.files("keel_verifier").joinpath(
+        "data/semantics/permit/universal_verification_v4.json"
+    )
+    raw = resource.read_bytes()
+    payload = json.loads(raw)
+    return ({"id": str(payload["id"]), "hash": _content_hash(raw)},)
+
+
+def _work_enforcement_issuance_claim(
+    *,
+    root_id: str,
+    root_material: _PermitMaterial | None,
+    child_materials: Mapping[str, _PermitMaterial],
+) -> ClaimVerdict:
+    """Adjudicate historical issuance regimes from signed Work Permit facts.
+
+    The claim is optional for work-chain.v1 compatibility. A historical pack
+    remains valid when the newly introduced fact is absent, but the verifier
+    reports the regime as not recorded rather than deriving it from today's
+    project configuration.
+    """
+
+    materials: list[tuple[str, str, _PermitMaterial]] = []
+    if root_material is not None:
+        materials.append(("work_root", root_id, root_material))
+    materials.extend(
+        ("work_child", child_id, material)
+        for child_id, material in sorted(child_materials.items())
+    )
+    regime_recorded = any(
+        material.resource_attributes.get("permit_enforcement_state_v1") is not None
+        for _subject_type, _permit_id, material in materials
+    )
+    subjects: list[VerdictSubject] = []
+    for subject_type, permit_id, material in materials:
+        state = material.resource_attributes.get("permit_enforcement_state_v1")
+        if state is None:
+            subjects.append(
+                VerdictSubject(
+                    type=subject_type,
+                    id=permit_id,
+                    verdict="insufficient_evidence",
+                    reason_code="PERMIT_ENFORCEMENT_REGIME_NOT_RECORDED",
+                    message=(
+                        "this historical signed Work Permit does not record its "
+                        "issuance-time enforcement regime"
+                    ),
+                    evidence=["permit_decision_binding.resource_attributes_json"],
+                )
+            )
+            continue
+        try:
+            _work_enforcement_state_validator().validate(state)
+        except jsonschema.ValidationError as exc:
+            subjects.append(
+                VerdictSubject(
+                    type=subject_type,
+                    id=permit_id,
+                    verdict="disproved",
+                    reason_code="PERMIT_ENFORCEMENT_REGIME_INVALID",
+                    message=f"signed issuance-time enforcement state is invalid: {exc.message}",
+                    evidence=[
+                        "permit_decision_binding.resource_attributes_json.permit_enforcement_state_v1"
+                    ],
+                )
+            )
+            continue
+        canonical_id = material.canonical_payload.get("permit_id")
+        if canonical_id != permit_id:
+            subjects.append(
+                VerdictSubject(
+                    type=subject_type,
+                    id=permit_id,
+                    verdict="disproved",
+                    reason_code="PERMIT_ENFORCEMENT_REGIME_IDENTITY_MISMATCH",
+                    message="enforcement-state subject conflicts with the signed Permit identity",
+                    evidence=["permit_decision_binding.canonical_payload.permit_id"],
+                )
+            )
+            continue
+        subjects.append(
+            VerdictSubject(
+                type=subject_type,
+                id=permit_id,
+                verdict="supported",
+                reason_code="PERMIT_ENFORCEMENT_REGIME_AT_ISSUANCE_SUPPORTED",
+                message=(
+                    "the signed Work Permit records a schema-valid issuance-time "
+                    "enforcement regime"
+                ),
+                evidence=[
+                    "permit_decision_binding.canonical_payload.resource_attributes_canonical_hash",
+                    "permit_decision_binding.resource_attributes_json.permit_enforcement_state_v1",
+                ],
+            )
+        )
+    if not subjects:
+        subjects.append(
+            VerdictSubject(
+                type="work_permit_population",
+                id=root_id,
+                verdict="insufficient_evidence",
+                reason_code="PERMIT_ENFORCEMENT_REGIME_NOT_RECORDED",
+                message="no supported Work Permit material records an issuance regime",
+                evidence=["root.permit_artifact", "child_permits"],
+            )
+        )
+    return ClaimVerdict(
+        name=WORK_ENFORCEMENT_ISSUANCE_CLAIM,
+        subjects=subjects,
+        required=regime_recorded,
+        semantics=list(_work_enforcement_claim_semantics()),
     )
 
 
@@ -1860,13 +1994,24 @@ def verify_work_chain_pack(
         }
     )
     authority_claim, context = _authority_manifest(document, artifacts, entries)
-    child_claim, _materials = _child_containment(document, artifacts, entries, context)
+    child_claim, materials = _child_containment(document, artifacts, entries, context)
     boundary_claim = _execution_boundary(document, artifacts, child_claim)
     value_claim = _work_value(document, artifacts, context)
+    enforcement_claim = _work_enforcement_issuance_claim(
+        root_id=document["root_permit_id"],
+        root_material=context.get("root_material"),
+        child_materials=materials,
+    )
     return _report(
         document=document,
         artifact=artifact,
-        claims=[authority_claim, child_claim, boundary_claim, value_claim],
+        claims=[
+            authority_claim,
+            child_claim,
+            boundary_claim,
+            value_claim,
+            enforcement_claim,
+        ],
         diagnostics=[
             "The scope commitment is faithful to Keel-recorded populations through the cutoff; it does not assert comprehensive runtime recording.",
             "Authorization, dispatch, provider acceptance, business completion, and settlement remain distinct evidence states.",
@@ -1874,4 +2019,8 @@ def verify_work_chain_pack(
     )
 
 
-__all__ = ["WORK_CLAIMS", "verify_work_chain_pack"]
+__all__ = [
+    "WORK_CLAIMS",
+    "WORK_ENFORCEMENT_ISSUANCE_CLAIM",
+    "verify_work_chain_pack",
+]

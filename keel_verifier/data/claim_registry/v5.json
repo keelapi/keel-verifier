@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v5.json",
+  "title": "Verifier Claim Registry - v5",
+  "version": "verifier-claims.v5",
+  "description": "Work enforcement-regime claims layered on the v4 consequence registry. These claims report signed historical regime evidence; they do not assert current project configuration or universal correctness of an enforcement implementation.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v4",
+    "version": "verifier-claims.v4",
+    "sha256": "64b6f11c5cbf1168cff77d1b708018a5a069da00effee81eb27f78c731e63936"
+  },
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "permit.enforcement_regime_at_issuance.v1",
+      "assertion": "The signed Permit records the server-derived Work enforcement regime, global ceiling, project rung, mapping version, and resolution instant that applied when that Permit was issued.",
+      "required_evidence": "A supported signed Permit decision or supported Work-chain Permit artifact whose signed resource attributes contain one schema-valid keel.permit_enforcement_state.v1 block with enforcement_surface_key=program:work. The Permit and evidence identities must match, the signed resource-attributes commitment must verify, and the effective-mode tuple must satisfy the pinned rung mapping. Root and child Permits are evaluated independently.",
+      "does_not_establish": [
+        "the enforcement regime at any later dispatch",
+        "the project's current configuration",
+        "that an enforcement implementation was correctly implemented",
+        "that any specific action was blocked",
+        "absence of actions outside the governed boundary",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.enforcement_regime_at_dispatch.v1",
+      "assertion": "A signed pre-effect runtime proof records the Work enforcement regime, global ceiling, project rung, mapping version, and gate outcome that applied to one exact Permit-bound dispatch attempt.",
+      "required_evidence": "A supported signed Permit decision or supported Work-chain child Permit, matching exact request and dispatch identities, and a signature-valid keel.runtime_enforcement_proof.v2 with enforcement_surface_key=program:work, pre_effect=true, a schema-valid regime tuple, and internally consistent gate_result, dispatch_attempted, and upstream_called values. A v1 runtime proof or missing runtime proof is historical evidence with the regime not recorded and yields insufficient_evidence for this claim.",
+      "does_not_establish": [
+        "the enforcement regime when the Permit was issued",
+        "the project's current configuration",
+        "that an enforcement implementation was correctly implemented",
+        "absence of actions outside the governed boundary",
+        "provider acceptance or completion",
+        "external real-world outcome"
+      ],
+      "verdict_enum": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    }
+  ]
+}

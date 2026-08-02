@@ -16,9 +16,13 @@ from keel_verifier.canonical.permit_binding import (
 )
 from keel_verifier.permit_exact_v2 import (
     DELEGATE_CHILD_LINKAGE_CLAIM,
+    ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+    ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
+    ENFORCEMENT_REGIME_CLAIMS,
     GENERATE_TEXT_EXACT_REQUEST_CLAIM,
     REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM,
     UNIVERSAL_CLAIMS,
+    _compose_universal_semantics,
     adjudicate_permit_exact_v2_body,
 )
 from keel_verifier.verifier import (
@@ -206,6 +210,143 @@ def _body() -> dict:
         "scope_evidence": [],
         "does_not_establish": ["external real-world outcome"],
     }
+
+
+def _v3_work_body(*, runtime_version: int | None = 2) -> dict:
+    body = _body()
+    claim_path = ROOT / "claim_registry/v5.json"
+    universal_path = ROOT / "semantics/permit/universal_verification_v4.json"
+    body.update(
+        {
+            "profile": "keel.permit_exact/v3",
+            "profile_version": 3,
+            "declared_claims": [
+                *body["declared_claims"],
+                *ENFORCEMENT_REGIME_CLAIMS,
+            ],
+        }
+    )
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "claim_registry_version": "verifier-claims.v5",
+            "claim_registry_digest": _digest_bytes(claim_path.read_bytes()),
+            "universal_semantics_id": "keel.permit.universal_verification.v4",
+            "universal_semantics_digest": _digest_bytes(
+                universal_path.read_bytes()
+            ),
+        }
+    )
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v5",
+    )
+    body["contract_pins"]["universal_semantics"] = _pin(
+        universal_path,
+        artifact_id="keel.permit.universal_verification.v4",
+    )
+    issuance_state = {
+        "version": "keel.permit_enforcement_state.v1",
+        "surface": "work",
+        "effective_mode": "shadow",
+        "global_ceiling": "enforce",
+        "project_rung": "shadow",
+        "mapping_version": "keel.enforcement_rung_mapping.v1",
+        "resolved_at": "2026-07-30T12:00:00Z",
+        "enforcement_surface_key": "program:work",
+    }
+    attributes = body["permit_decision"]["resource_attributes_json"]
+    attributes["permit_semantic_binding_v2"] = copy.deepcopy(binding)
+    attributes["permit_enforcement_state_v1"] = issuance_state
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attributes
+    )
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(attributes)
+    if runtime_version is None:
+        body["enforcement_evidence"] = None
+        return body
+
+    certification = _signed_shape(
+        {
+            "version": "keel.adapter_certification.v1",
+            "certification_id": "cert_work_test",
+            "adapter_id": "keel.test.payment",
+            "adapter_version": "1.0.0",
+            "semantic_ids": ["keel.action.payment_execute.v1"],
+            "governed_surfaces": ["payment_rail"],
+            "conformance_vector_set_digest": "sha256:" + "1" * 64,
+            "negative_test_results_digest": "sha256:" + "2" * 64,
+            "anti_bypass_requirements": ["all effects cross the final gate"],
+            "issued_at": "2026-07-30T11:00:00Z",
+            "expires_at": "2026-08-30T11:00:00Z",
+            "revoked_at": None,
+            "revocation_event_digest": None,
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+            "issuer_key_id": "cert_key",
+        }
+    )
+    deployment = _signed_shape(
+        {
+            "version": "keel.deployment_assurance.v1",
+            "assurance_id": "assurance_work_test",
+            "project_id": "project_test",
+            "deployment_id": "deployment_work_test",
+            "deployment_revision": "revision_test",
+            "adapter_certification_id": certification["certification_id"],
+            "adapter_certification_digest": certification["canonical_hash"],
+            "adapter_id": certification["adapter_id"],
+            "adapter_version": certification["adapter_version"],
+            "governed_surface": "payment_rail",
+            "semantic_ids": ["keel.action.payment_execute.v1"],
+            "anti_bypass_evidence_digest": "sha256:" + "3" * 64,
+            "verified_at": "2026-07-30T11:05:00Z",
+            "expires_at": "2026-08-15T11:05:00Z",
+            "revoked_at": None,
+            "revocation_event_digest": None,
+            "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+            "issuer_key_id": "deployment_key",
+        }
+    )
+    runtime_fields = {
+        "version": f"keel.runtime_enforcement_proof.v{runtime_version}",
+        "proof_id": "proof_work_test",
+        "permit_id": "permit_test",
+        "project_id": "project_test",
+        "dispatch_id": "dispatch_work_test",
+        "semantic_id": "keel.action.payment_execute.v1",
+        "exact_request_digest": "sha256:" + "6" * 64,
+        "adapter_certification_id": certification["certification_id"],
+        "adapter_certification_digest": certification["canonical_hash"],
+        "deployment_assurance_id": deployment["assurance_id"],
+        "deployment_assurance_digest": deployment["canonical_hash"],
+        "gate_id": "final_dispatch_gate",
+        "gate_revision": "revision_test",
+        "gate_result": "allow",
+        "pre_effect": True,
+        "evaluated_at": "2026-07-30T12:10:00Z",
+        "signature_profile": "keel.ed25519.sha256_rfc8785.v1",
+        "issuer_key_id": "runtime_key",
+    }
+    if runtime_version == 2:
+        runtime_fields.update(
+            {
+                "effective_mode": "enforce",
+                "global_ceiling": "enforce",
+                "project_rung": "enforce",
+                "mapping_version": "keel.enforcement_rung_mapping.v1",
+                "dispatch_attempted": True,
+                "upstream_called": True,
+                "enforcement_surface_key": "program:work",
+            }
+        )
+    body["enforcement_evidence"] = {
+        "adapter_certification": certification,
+        "deployment_assurance": deployment,
+        "runtime_enforcement_proof": _signed_shape(runtime_fields),
+    }
+    return body
 
 
 def _v4_body(
@@ -1255,6 +1396,125 @@ def test_v2_verifier_adapter_emits_structured_claims() -> None:
     )
     assert summary["semantic_id"] == "keel.action.payment_execute.v1"
     assert summary["fact_profile_id"] == "keel.facts.payment_exact.v1"
+
+
+def test_v3_proves_distinct_work_issuance_and_dispatch_regimes() -> None:
+    result = adjudicate_permit_exact_v2_body(
+        _v3_work_body(),
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM].verdict == "supported"
+    assert claims[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM].reason_code == (
+        "ENFORCEMENT_REGIME_AT_ISSUANCE_VERIFIED"
+    )
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].verdict == "supported"
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].reason_code == (
+        "ENFORCEMENT_REGIME_AT_DISPATCH_VERIFIED"
+    )
+
+
+def test_v3_public_claims_render_with_the_pinned_recipe_semantics() -> None:
+    decision_claim = _permit_claim(
+        "permit.decision.v1",
+        subject_type="permit",
+        subject_id="permit_test",
+        verdict="supported",
+        reason_code="PERMIT_DECISION_SUPPORTED",
+        message="signed Permit decision verified",
+    )
+
+    claims, _summary = _adjudicate_permit_exact_v2(
+        body=_v3_work_body(),
+        decision_claim=decision_claim,
+        key_manifest_source=None,
+    )
+
+    rendered = {claim.name: claim.to_dict() for claim in claims}
+    assert rendered[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM]["semantics"] == [
+        {
+            "id": "keel.permit.universal_verification.v4",
+            "hash": _digest_bytes(
+                (ROOT / "semantics/permit/universal_verification_v4.json").read_bytes()
+            ),
+        }
+    ]
+
+
+def test_v3_historical_runtime_v1_reports_regime_not_recorded() -> None:
+    result = adjudicate_permit_exact_v2_body(
+        _v3_work_body(runtime_version=1),
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM].verdict == "supported"
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].verdict == (
+        "insufficient_evidence"
+    )
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].reason_code == (
+        "ENFORCEMENT_REGIME_AT_DISPATCH_NOT_RECORDED"
+    )
+
+
+def test_v3_missing_work_claims_fails_every_declared_claim() -> None:
+    body = _v3_work_body(runtime_version=None)
+    body["declared_claims"] = [
+        name for name in body["declared_claims"] if name not in ENFORCEMENT_REGIME_CLAIMS
+    ]
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+    )
+
+    assert result.claims
+    assert all(claim.verdict == "disproved" for claim in result.claims)
+    assert all(
+        claim.reason_code == "PERMIT_CONDITIONAL_CLAIM_MISSING"
+        for claim in result.claims
+    )
+
+
+def test_v3_tampered_dispatch_regime_is_disproved() -> None:
+    body = _v3_work_body()
+    runtime = body["enforcement_evidence"]["runtime_enforcement_proof"]
+    runtime["effective_mode"] = "shadow"
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].verdict == "disproved"
+    assert claims[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM].reason_code == (
+        "ENFORCEMENT_DISPATCH_PROOF_INVALID"
+    )
+
+
+def test_universal_v4_composes_inherited_consequence_and_work_rules() -> None:
+    v4 = json.loads(
+        (ROOT / "semantics/permit/universal_verification_v4.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    effective = _compose_universal_semantics(v4, source="test universal v4")
+
+    body = effective["body"]
+    assert set(body["conditional_claims"]) == {
+        "keel.action.generate_text.v1",
+        "keel.action.payment_refund.v1",
+        "keel.action.agent_delegate.v1",
+    }
+    assert body["conditional_evidence_claims"]["program:work"] == {
+        "issuance": [ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM],
+        "dispatch": [ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM],
+    }
+    assert body["claim_registry_version"] == "verifier-claims.v5"
 
 
 def test_bounded_use_child_uses_pinned_permit_binding_authority(

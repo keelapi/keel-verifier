@@ -1,4 +1,4 @@
-"""Fact-profile-driven adjudication for ``keel.permit_exact/v2`` bodies.
+"""Fact-profile-driven adjudication for exact-pack v2 and v3 bodies.
 
 The signed Permit decision is the authority source. Embedded contracts are
 replay inputs, receipt fields are comparison projections, and every declared
@@ -31,22 +31,40 @@ from keel_verifier.canonical.permit_binding import (
 
 PROFILE = "keel.permit_exact/v2"
 PROFILE_VERSION = 2
+PROFILE_V3 = "keel.permit_exact/v3"
+PROFILE_V3_VERSION = 3
+SUPPORTED_PROFILES = {
+    PROFILE: PROFILE_VERSION,
+    PROFILE_V3: PROFILE_V3_VERSION,
+}
 _DATA_ROOT = "data/permit_to_x"
 _CLAIM_REGISTRY_IDS = {
     "verifier-claims.v2": "keel.verifier_claim_registry.v2",
     "verifier-claims.v3": "keel.verifier_claim_registry.v3",
     "verifier-claims.v4": "keel.verifier_claim_registry.v4",
+    "verifier-claims.v5": "keel.verifier_claim_registry.v5",
 }
 _UNIVERSAL_SEMANTICS_IDS = {
     "v1": "keel.permit.universal_verification.v1",
     "v2": "keel.permit.universal_verification.v2",
     "v3": "keel.permit.universal_verification.v3",
+    "v4": "keel.permit.universal_verification.v4",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
 GENERATE_TEXT_EXACT_REQUEST_CLAIM = "permit.generate_text_exact_request.v1"
 REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM = (
     "permit.refund_original_payment_bound.v1"
+)
+ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM = (
+    "permit.enforcement_regime_at_issuance.v1"
+)
+ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM = (
+    "permit.enforcement_regime_at_dispatch.v1"
+)
+ENFORCEMENT_REGIME_CLAIMS = (
+    ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
+    ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
 )
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
@@ -195,7 +213,7 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
     ceilings: dict[str, tuple[str, ...]] = {}
-    for registry_name in ("v2.json", "v3.json", "v4.json"):
+    for registry_name in ("v2.json", "v3.json", "v4.json", "v5.json"):
         registry = _json(f"../claim_registry/{registry_name}")
         for claim in registry.get("claims", []):
             if not isinstance(claim, Mapping):
@@ -237,13 +255,22 @@ def _assessment(
     )
 
 
-def _schema_registry() -> tuple[dict[str, Any], Registry]:
+@lru_cache(maxsize=2)
+def _schema_registry(profile: str) -> tuple[dict[str, Any], Registry]:
+    pack_schema = {
+        PROFILE: "schemas/permit-exact-pack-v2.schema.json",
+        PROFILE_V3: "schemas/permit-exact-pack-v3.schema.json",
+    }.get(profile)
+    if pack_schema is None:
+        raise ValueError(f"unsupported exact-pack profile: {profile}")
     names = (
-        "schemas/permit-exact-pack-v2.schema.json",
+        pack_schema,
         "schemas/permit-semantic-binding-v2.schema.json",
         "schemas/adapter-certification-v1.schema.json",
         "schemas/deployment-assurance-v1.schema.json",
         "schemas/runtime-enforcement-proof-v1.schema.json",
+        "schemas/runtime-enforcement-proof-v2.schema.json",
+        "schemas/permit-enforcement-state-v1.schema.json",
         "schemas/permit-bounded-use-v1.schema.json",
         "schemas/permit-selective-disclosure-v1.schema.json",
         "schemas/provider-receipt-v1.schema.json",
@@ -271,7 +298,13 @@ def _validate_schema(instance: Any, schema_name: str) -> None:
 
 
 def _validate_exact_pack_schema(body: Mapping[str, Any]) -> None:
-    schema, registry = _schema_registry()
+    profile = str(body.get("profile") or "")
+    expected_version = SUPPORTED_PROFILES.get(profile)
+    if expected_version is None or body.get("profile_version") != expected_version:
+        raise jsonschema.ValidationError(
+            f"unsupported exact-pack profile identity: {profile}"
+        )
+    schema, registry = _schema_registry(profile)
     validation_body = dict(body)
     # Dynamic child evidence is adjudicated claim-by-claim below so one invalid
     # child cannot collapse every declared claim into a generic pack error.
@@ -389,6 +422,77 @@ def _selector_matches(
     )
 
 
+def _compose_universal_semantics(
+    payload: Mapping[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    """Resolve a digest-pinned universal-recipe extension chain.
+
+    Extension artifacts intentionally contain only their deltas. Adjudication
+    must compose the pinned base bodies before consulting consequence or
+    evidence requirements; treating v4 as a replacement would silently drop
+    the v2/v3 consequence rules.
+    """
+
+    extension = payload.get("extends")
+    if not isinstance(extension, Mapping):
+        return dict(payload)
+    artifact_id = extension.get("artifact_id")
+    version = extension.get("version")
+    expected_digest = extension.get("sha256")
+    if (
+        not isinstance(artifact_id, str)
+        or artifact_id != _UNIVERSAL_SEMANTICS_IDS.get(str(version or ""))
+        or not isinstance(expected_digest, str)
+    ):
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            f"universal semantics at {source} has an unsupported base",
+        )
+    base_path = f"../semantics/permit/universal_verification_{version}.json"
+    try:
+        base_raw = _bytes(base_path)
+        base = json.loads(base_raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            f"could not load the universal semantics base for {source}",
+        ) from exc
+    actual_digest = hashlib.sha256(base_raw).hexdigest()
+    if actual_digest != expected_digest:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_DIGEST_MISMATCH",
+            f"universal semantics at {source} does not match its pinned base",
+        )
+    if base.get("id") != artifact_id or base.get("version") != version:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CONTRACT_PIN_ID_MISMATCH",
+            f"universal semantics at {source} names the wrong base",
+        )
+    composed_base = _compose_universal_semantics(base, source=base_path)
+    base_body = composed_base.get("body")
+    child_body = payload.get("body")
+    if not isinstance(base_body, Mapping) or not isinstance(child_body, Mapping):
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            f"universal semantics at {source} has an invalid body",
+        )
+    merged_body: dict[str, Any] = dict(base_body)
+    for key, value in child_body.items():
+        existing = merged_body.get(key)
+        if isinstance(existing, Mapping) and isinstance(value, Mapping):
+            merged_body[key] = {**existing, **value}
+        else:
+            merged_body[key] = value
+    return {**dict(payload), "body": merged_body}
+
+
 def _resolve_contracts(
     body: Mapping[str, Any],
     *,
@@ -409,6 +513,7 @@ def _resolve_contracts(
             "../claim_registry/v2.json",
             "../claim_registry/v3.json",
             "../claim_registry/v4.json",
+            "../claim_registry/v5.json",
         ),
         artifact_id=None,
     )
@@ -431,6 +536,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v1.json",
             "../semantics/permit/universal_verification_v2.json",
             "../semantics/permit/universal_verification_v3.json",
+            "../semantics/permit/universal_verification_v4.json",
         ),
         artifact_id=None,
     )
@@ -468,6 +574,7 @@ def _resolve_contracts(
         "v1": "verifier-claims.v2",
         "v2": "verifier-claims.v3",
         "v3": "verifier-claims.v4",
+        "v4": "verifier-claims.v5",
     }
     if universal_semantics.get("body", {}).get(
         "claim_registry_version"
@@ -574,13 +681,17 @@ def _resolve_contracts(
             "PERMIT_CONTRACT_BINDING_MISMATCH",
             "signed semantic or fact binding does not match embedded contracts",
         )
+    effective_universal_semantics = _compose_universal_semantics(
+        universal_semantics,
+        source=f"universal_verification_{universal_version}.json",
+    )
     return _ResolvedContracts(
         selector_registry=selector_registry,
         selector_entry=selector_entry,
         fact_registry=fact_registry,
         fact_profile=fact_profile,
         facts_schema=facts_schema,
-        universal_semantics=universal_semantics,
+        universal_semantics=effective_universal_semantics,
         provider_receipt_semantics=provider_semantics,
     )
 
@@ -1271,6 +1382,131 @@ def _consequence_exact_assessment(
     )
 
 
+def _runtime_proof_schema_name(runtime_proof: Mapping[str, Any]) -> str | None:
+    return {
+        "keel.runtime_enforcement_proof.v1": (
+            "runtime-enforcement-proof-v1.schema.json"
+        ),
+        "keel.runtime_enforcement_proof.v2": (
+            "runtime-enforcement-proof-v2.schema.json"
+        ),
+    }.get(str(runtime_proof.get("version") or ""))
+
+
+def _enforcement_regime_assessments(
+    *,
+    body: Mapping[str, Any],
+    signed_attributes: Mapping[str, Any],
+    permit_id: str,
+    project_id: str,
+    semantic_id: str,
+    material_values: list[Any],
+    signed_artifact_verifier: SignedArtifactVerifier | None,
+) -> dict[str, ExactClaimAssessment]:
+    assessments: dict[str, ExactClaimAssessment] = {}
+    issuance_state = signed_attributes.get("permit_enforcement_state_v1")
+    if not isinstance(issuance_state, Mapping):
+        assessments[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM] = _assessment(
+            ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
+            "insufficient_evidence",
+            "ENFORCEMENT_REGIME_AT_ISSUANCE_NOT_RECORDED",
+            "the historical signed Permit does not record its issuance-time Work regime",
+            evidence=("body.permit_decision.resource_attributes_json",),
+        )
+    else:
+        try:
+            _validate_schema(
+                issuance_state,
+                "permit-enforcement-state-v1.schema.json",
+            )
+        except jsonschema.ValidationError as exc:
+            assessments[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM] = _assessment(
+                ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
+                "disproved",
+                "ENFORCEMENT_ISSUANCE_STATE_INVALID",
+                f"the signed issuance regime is invalid: {exc.message}",
+                evidence=("body.permit_decision.resource_attributes_json",),
+            )
+        else:
+            assessments[ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM] = _assessment(
+                ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
+                "supported",
+                "ENFORCEMENT_REGIME_AT_ISSUANCE_VERIFIED",
+                "the signed Permit records a schema-valid Work regime at issuance",
+                evidence=("body.permit_decision.resource_attributes_json",),
+            )
+
+    enforcement = body.get("enforcement_evidence")
+    runtime_proof = (
+        enforcement.get("runtime_enforcement_proof")
+        if isinstance(enforcement, Mapping)
+        else None
+    )
+    if not isinstance(runtime_proof, Mapping) or runtime_proof.get(
+        "version"
+    ) == "keel.runtime_enforcement_proof.v1":
+        assessments[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM] = _assessment(
+            ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+            "insufficient_evidence",
+            "ENFORCEMENT_REGIME_AT_DISPATCH_NOT_RECORDED",
+            "the dispatch proof is absent or predates enforcement-regime recording",
+            evidence=("body.enforcement_evidence",),
+        )
+        return assessments
+
+    schema_name = _runtime_proof_schema_name(runtime_proof)
+    if schema_name != "runtime-enforcement-proof-v2.schema.json":
+        assessments[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM] = _assessment(
+            ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+            "unverifiable_scope",
+            "ENFORCEMENT_PROOF_VERSION_UNSUPPORTED",
+            "the runtime proof version is not supported for regime adjudication",
+            evidence=("body.enforcement_evidence.runtime_enforcement_proof",),
+        )
+        return assessments
+    signed, signed_error = _signed_artifact_status(
+        runtime_proof,
+        schema_name=schema_name,
+        purpose="runtime_enforcement_signing",
+        signed_at_field="evaluated_at",
+        verifier=signed_artifact_verifier,
+    )
+    if not signed:
+        assessments[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM] = _assessment(
+            ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+            "disproved" if signed_artifact_verifier is not None else "insufficient_evidence",
+            "ENFORCEMENT_DISPATCH_PROOF_INVALID",
+            signed_error or "the runtime proof signature is invalid",
+            evidence=("body.enforcement_evidence.runtime_enforcement_proof",),
+        )
+        return assessments
+    identity_matches = all(
+        (
+            runtime_proof.get("permit_id") == permit_id,
+            runtime_proof.get("project_id") == project_id,
+            runtime_proof.get("semantic_id") == semantic_id,
+            runtime_proof.get("exact_request_digest") in material_values,
+            runtime_proof.get("enforcement_surface_key") == "program:work",
+        )
+    )
+    assessments[ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM] = _assessment(
+        ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+        "supported" if identity_matches else "disproved",
+        (
+            "ENFORCEMENT_REGIME_AT_DISPATCH_VERIFIED"
+            if identity_matches
+            else "ENFORCEMENT_DISPATCH_IDENTITY_MISMATCH"
+        ),
+        (
+            "the signed pre-effect proof records the Work regime for this exact dispatch"
+            if identity_matches
+            else "the runtime proof does not bind this Permit, project, semantic, request, or Work surface"
+        ),
+        evidence=("body.enforcement_evidence.runtime_enforcement_proof",),
+    )
+    return assessments
+
+
 def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
@@ -1281,7 +1517,7 @@ def adjudicate_permit_exact_v2_body(
     bounded_use_scope_faithful: bool = False,
     matching_accepted_dispatches: int | None = None,
 ) -> PermitExactV2Result:
-    """Adjudicate every declared v2 claim without silently dropping failures."""
+    """Adjudicate every declared v2/v3 claim without silently dropping failures."""
 
     declared_raw = body.get("declared_claims")
     declared = (
@@ -1427,6 +1663,40 @@ def adjudicate_permit_exact_v2_body(
                 "semantic binding or authorization facts are not present in signed attributes",
             )
         )
+    work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")
+    work_governed = bool(
+        (
+            isinstance(work_enforcement_state, Mapping)
+            and work_enforcement_state.get("enforcement_surface_key")
+            == "program:work"
+        )
+        or isinstance(decision_attrs.get("work_binding_v1"), Mapping)
+        or isinstance(decision_attrs.get("work_package_v1"), Mapping)
+    )
+    evidence_claims = contracts.universal_semantics.get("body", {}).get(
+        "conditional_evidence_claims", {}
+    )
+    if work_governed and isinstance(evidence_claims, Mapping):
+        work_recipe = evidence_claims.get("program:work")
+        if isinstance(work_recipe, Mapping):
+            expected_work_claims = [
+                str(name)
+                for phase in ("issuance", "dispatch")
+                for name in work_recipe.get(phase, [])
+                if isinstance(name, str)
+            ]
+            missing_work_claims = [
+                name for name in expected_work_claims if name not in declared
+            ]
+            if missing_work_claims:
+                declared.extend(missing_work_claims)
+                return fail_all(
+                    _AdjudicationError(
+                        "disproved",
+                        "PERMIT_CONDITIONAL_CLAIM_MISSING",
+                        "the exact pack omitted Work enforcement claims required by its pinned recipe",
+                    )
+                )
     try:
         _verify_profile_classification(
             fact_profile=contracts.fact_profile,
@@ -1535,16 +1805,33 @@ def adjudicate_permit_exact_v2_body(
         evidence=("body.authorization_facts", "body.enforcement_evidence"),
     )
 
+    if work_governed and any(
+        name in declared for name in ENFORCEMENT_REGIME_CLAIMS
+    ):
+        assessments.update(
+            _enforcement_regime_assessments(
+                body=body,
+                signed_attributes=decision_attrs,
+                permit_id=permit_id,
+                project_id=project_id,
+                semantic_id=semantic_id,
+                material_values=material_values,
+                signed_artifact_verifier=signed_artifact_verifier,
+            )
+        )
+
     dispatch_at: datetime | None = None
     runtime_signature_ok = False
     if isinstance(runtime_proof, Mapping):
-        runtime_signature_ok, _ = _signed_artifact_status(
-            runtime_proof,
-            schema_name="runtime-enforcement-proof-v1.schema.json",
-            purpose="runtime_enforcement_signing",
-            signed_at_field="evaluated_at",
-            verifier=signed_artifact_verifier,
-        )
+        runtime_schema_name = _runtime_proof_schema_name(runtime_proof)
+        if runtime_schema_name is not None:
+            runtime_signature_ok, _ = _signed_artifact_status(
+                runtime_proof,
+                schema_name=runtime_schema_name,
+                purpose="runtime_enforcement_signing",
+                signed_at_field="evaluated_at",
+                verifier=signed_artifact_verifier,
+            )
         if runtime_signature_ok:
             dispatch_at = _parse_time(runtime_proof.get("evaluated_at"))
     if dispatch_at is None:
@@ -1636,13 +1923,20 @@ def adjudicate_permit_exact_v2_body(
                 signed_at_field="verified_at",
                 verifier=signed_artifact_verifier,
             )
-            runtime_ok, runtime_error = _signed_artifact_status(
-                runtime_proof,
-                schema_name="runtime-enforcement-proof-v1.schema.json",
-                purpose="runtime_enforcement_signing",
-                signed_at_field="evaluated_at",
-                verifier=signed_artifact_verifier,
-            )
+            runtime_schema_name = _runtime_proof_schema_name(runtime_proof)
+            if runtime_schema_name is None:
+                runtime_ok, runtime_error = (
+                    False,
+                    "runtime enforcement proof version is unsupported",
+                )
+            else:
+                runtime_ok, runtime_error = _signed_artifact_status(
+                    runtime_proof,
+                    schema_name=runtime_schema_name,
+                    purpose="runtime_enforcement_signing",
+                    signed_at_field="evaluated_at",
+                    verifier=signed_artifact_verifier,
+                )
             if not all((cert_ok, deployment_ok, runtime_ok)):
                 boundary_reason = "; ".join(
                     value
@@ -1943,10 +2237,16 @@ def adjudicate_permit_exact_v2_body(
 
 __all__ = [
     "DELEGATE_CHILD_LINKAGE_CLAIM",
+    "ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM",
+    "ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM",
+    "ENFORCEMENT_REGIME_CLAIMS",
     "GENERATE_TEXT_EXACT_REQUEST_CLAIM",
     "PROFILE",
     "PROFILE_VERSION",
+    "PROFILE_V3",
+    "PROFILE_V3_VERSION",
     "REFUND_ORIGINAL_PAYMENT_BOUND_CLAIM",
+    "SUPPORTED_PROFILES",
     "UNIVERSAL_CLAIMS",
     "ExactClaimAssessment",
     "PermitExactV2Result",

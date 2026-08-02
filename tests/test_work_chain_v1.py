@@ -17,7 +17,11 @@ from keel_verifier.permit_presentation import (
     load_permit_presentation_registry,
     resolve_permit_presentation,
 )
-from keel_verifier.work_chain import WORK_CLAIMS, verify_work_chain_pack
+from keel_verifier.work_chain import (
+    WORK_CLAIMS,
+    WORK_ENFORCEMENT_ISSUANCE_CLAIM,
+    verify_work_chain_pack,
+)
 
 
 PROJECT_ID = "11111111-1111-4111-8111-111111111111"
@@ -180,6 +184,7 @@ def _build_pack(
     child_amount: int = 8_400,
     boundary_live: bool = True,
     sequence_gap: bool = False,
+    enforcement_state: bool = False,
 ) -> tuple[dict[str, Any], Path]:
     export_private, export_public = _keypair()
     binding_private, binding_public = _keypair()
@@ -304,6 +309,17 @@ def _build_pack(
         "work_package_v1": package,
         "permit_semantic_binding_v1": root_semantic,
     }
+    if enforcement_state:
+        root_attrs["permit_enforcement_state_v1"] = {
+            "version": "keel.permit_enforcement_state.v1",
+            "surface": "work",
+            "effective_mode": "shadow",
+            "global_ceiling": "enforce",
+            "project_rung": "shadow",
+            "mapping_version": "keel.enforcement_rung_mapping.v1",
+            "resolved_at": ISSUED_AT,
+            "enforcement_surface_key": "program:work",
+        }
     root_artifact = _permit_artifact(
         private_key=binding_private,
         public_key=binding_public,
@@ -342,6 +358,17 @@ def _build_pack(
             "description_digest": "2" * 64,
         },
     }
+    if enforcement_state:
+        child_attrs["permit_enforcement_state_v1"] = {
+            "version": "keel.permit_enforcement_state.v1",
+            "surface": "work",
+            "effective_mode": "enforce",
+            "global_ceiling": "enforce",
+            "project_rung": "enforce",
+            "mapping_version": "keel.enforcement_rung_mapping.v1",
+            "resolved_at": ISSUED_AT,
+            "enforcement_surface_key": "program:work",
+        }
     child_fingerprint = "3" * 64
     child_artifact = _permit_artifact(
         private_key=binding_private,
@@ -563,14 +590,37 @@ def _claim(report, name: str) -> dict[str, Any]:
     return next(item for item in report.to_dict()["claims"] if item["name"] == name)
 
 
-def test_valid_work_chain_supports_all_four_claims(tmp_path: Path) -> None:
+def test_valid_historical_work_chain_preserves_required_claims(tmp_path: Path) -> None:
     pack, trust_root = _build_pack(tmp_path)
     report = verify_work_chain_pack(pack, trust_root=trust_root)
 
     assert report.ok is True
     assert report.exit_code == 0
-    assert [claim.aggregate_verdict for claim in report.claims] == ["supported"] * 4
+    assert [claim.aggregate_verdict for claim in report.claims[:4]] == ["supported"] * 4
+    enforcement = _claim(report, WORK_ENFORCEMENT_ISSUANCE_CLAIM)
+    assert enforcement["required"] is False
+    assert enforcement["verdict"] == "insufficient_evidence"
+    assert {subject["reason_code"] for subject in enforcement["subjects"]} == {
+        "PERMIT_ENFORCEMENT_REGIME_NOT_RECORDED"
+    }
     assert report.artifact["runtime_recording_claim"] == "not_asserted"
+
+
+def test_work_root_and_child_issuance_regimes_are_independently_supported(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(tmp_path, enforcement_state=True)
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert report.ok is True
+    claim = _claim(report, WORK_ENFORCEMENT_ISSUANCE_CLAIM)
+    assert claim["required"] is True
+    assert claim["verdict"] == "supported"
+    assert [(subject["type"], subject["id"], subject["verdict"]) for subject in claim["subjects"]] == [
+        ("work_root", ROOT_ID, "supported"),
+        ("work_child", CHILD_ID, "supported"),
+    ]
 
 
 def test_work_chain_cli_auto_detects_downloaded_pack(tmp_path: Path, run_cli) -> None:
@@ -583,7 +633,9 @@ def test_work_chain_cli_auto_detects_downloaded_pack(tmp_path: Path, run_cli) ->
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
     assert payload["artifact"]["kind"] == "work_chain_pack"
-    assert [claim["verdict"] for claim in payload["claims"]] == ["supported"] * 4
+    assert [claim["verdict"] for claim in payload["claims"][:4]] == ["supported"] * 4
+    assert payload["claims"][4]["name"] == WORK_ENFORCEMENT_ISSUANCE_CLAIM
+    assert payload["claims"][4]["verdict"] == "insufficient_evidence"
 
 
 def test_embedded_artifact_tamper_is_disproved(tmp_path: Path) -> None:

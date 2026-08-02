@@ -1,0 +1,404 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/runtime-enforcement-proof-v2.schema.json",
+  "title": "Keel runtime enforcement proof v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "proof_id",
+    "permit_id",
+    "project_id",
+    "dispatch_id",
+    "semantic_id",
+    "exact_request_digest",
+    "adapter_certification_id",
+    "adapter_certification_digest",
+    "deployment_assurance_id",
+    "deployment_assurance_digest",
+    "gate_id",
+    "gate_revision",
+    "gate_result",
+    "pre_effect",
+    "evaluated_at",
+    "signature_profile",
+    "issuer_key_id",
+    "canonical_hash",
+    "signature",
+    "effective_mode",
+    "global_ceiling",
+    "project_rung",
+    "mapping_version",
+    "dispatch_attempted",
+    "upstream_called",
+    "enforcement_surface_key"
+  ],
+  "properties": {
+    "version": {
+      "const": "keel.runtime_enforcement_proof.v2"
+    },
+    "proof_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "permit_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "dispatch_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "semantic_id": {
+      "type": "string",
+      "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"
+    },
+    "exact_request_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "adapter_certification_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "adapter_certification_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "deployment_assurance_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "deployment_assurance_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "gate_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "gate_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "gate_result": {
+      "enum": [
+        "allow",
+        "deny",
+        "review",
+        "throttle"
+      ]
+    },
+    "pre_effect": {
+      "const": true
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signature_profile": {
+      "const": "keel.ed25519.sha256_rfc8785.v1"
+    },
+    "issuer_key_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "canonical_hash": {
+      "$ref": "#/$defs/digest"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"
+    },
+    "effective_mode": {
+      "enum": [
+        "off",
+        "shadow",
+        "enforce"
+      ]
+    },
+    "global_ceiling": {
+      "enum": [
+        "off",
+        "shadow",
+        "enforce"
+      ]
+    },
+    "project_rung": {
+      "enum": [
+        "observe",
+        "shadow",
+        "enforce"
+      ]
+    },
+    "mapping_version": {
+      "const": "keel.enforcement_rung_mapping.v1"
+    },
+    "dispatch_attempted": {
+      "type": "boolean"
+    },
+    "upstream_called": {
+      "type": "boolean"
+    },
+    "enforcement_surface_key": {
+      "const": "program:work",
+      "description": "The enforcement program whose rung was resolved, independent of semantic_id."
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "description": "Signed pre-effect proof for one dispatch attempt, extending v1 with the enforcement regime resolved at the gate. The regime is persisted at the pre-effect gate and read back at export; it is never recomputed from current project settings. v1 remains valid for historical evidence, where the regime reads as not recorded.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gate_result": {
+            "enum": [
+              "deny",
+              "review",
+              "throttle"
+            ]
+          }
+        },
+        "required": [
+          "gate_result"
+        ]
+      },
+      "then": {
+        "properties": {
+          "dispatch_attempted": {
+            "const": false
+          },
+          "upstream_called": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "upstream_called": {
+            "const": true
+          }
+        },
+        "required": [
+          "upstream_called"
+        ]
+      },
+      "then": {
+        "properties": {
+          "dispatch_attempted": {
+            "const": true
+          },
+          "gate_result": {
+            "const": "allow"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "effective_mode": {
+            "const": "off"
+          }
+        },
+        "required": [
+          "effective_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "gate_result": {
+            "const": "deny"
+          },
+          "dispatch_attempted": {
+            "const": false
+          },
+          "upstream_called": {
+            "const": false
+          }
+        }
+      }
+    }
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "enforce"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    }
+  ]
+}

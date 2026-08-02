@@ -1,0 +1,145 @@
+{
+  "version": "keel.enforcement_regime_claim_vectors.v1",
+  "claims": [
+    "permit.enforcement_regime_at_issuance.v1",
+    "permit.enforcement_regime_at_dispatch.v1"
+  ],
+  "vectors": [
+    {
+      "id": "work-root-issuance-enforce",
+      "claim": "permit.enforcement_regime_at_issuance.v1",
+      "scope": "work_root",
+      "surface_key": "program:work",
+      "signed_binding_supported": true,
+      "state_present": true,
+      "state_schema_valid": true,
+      "identity_matches": true,
+      "expected": {"verdict": "supported", "reason": "ENFORCEMENT_REGIME_AT_ISSUANCE_VERIFIED"}
+    },
+    {
+      "id": "work-child-issuance-shadow",
+      "claim": "permit.enforcement_regime_at_issuance.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "signed_binding_supported": true,
+      "state_present": true,
+      "state_schema_valid": true,
+      "identity_matches": true,
+      "expected": {"verdict": "supported", "reason": "ENFORCEMENT_REGIME_AT_ISSUANCE_VERIFIED"}
+    },
+    {
+      "id": "issuance-state-tampered",
+      "claim": "permit.enforcement_regime_at_issuance.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "signed_binding_supported": false,
+      "state_present": true,
+      "state_schema_valid": true,
+      "identity_matches": true,
+      "expected": {"verdict": "disproved", "reason": "ENFORCEMENT_ISSUANCE_BINDING_MISMATCH"}
+    },
+    {
+      "id": "historical-issuance-state-missing",
+      "claim": "permit.enforcement_regime_at_issuance.v1",
+      "scope": "work_root",
+      "surface_key": "program:work",
+      "signed_binding_supported": true,
+      "state_present": false,
+      "state_schema_valid": false,
+      "identity_matches": true,
+      "expected": {"verdict": "insufficient_evidence", "reason": "ENFORCEMENT_REGIME_AT_ISSUANCE_NOT_RECORDED"}
+    },
+    {
+      "id": "current-config-does-not-rewrite-issuance",
+      "claim": "permit.enforcement_regime_at_issuance.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "signed_binding_supported": true,
+      "state_present": true,
+      "state_schema_valid": true,
+      "identity_matches": true,
+      "current_effective_mode": "off",
+      "signed_effective_mode": "enforce",
+      "expected": {"verdict": "supported", "reason": "ENFORCEMENT_REGIME_AT_ISSUANCE_VERIFIED"}
+    },
+    {
+      "id": "preview-issued-enforce-dispatch",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v2",
+      "runtime_proof_signature_valid": true,
+      "runtime_proof_schema_valid": true,
+      "identity_matches": true,
+      "issued_effective_mode": "shadow",
+      "dispatch_effective_mode": "enforce",
+      "expected": {"verdict": "supported", "reason": "ENFORCEMENT_REGIME_AT_DISPATCH_VERIFIED"}
+    },
+    {
+      "id": "historical-runtime-proof-v1",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v1",
+      "runtime_proof_signature_valid": true,
+      "runtime_proof_schema_valid": true,
+      "identity_matches": true,
+      "expected": {"verdict": "insufficient_evidence", "reason": "ENFORCEMENT_REGIME_AT_DISPATCH_NOT_RECORDED"}
+    },
+    {
+      "id": "dispatch-regime-impossible-tuple",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v2",
+      "runtime_proof_signature_valid": true,
+      "runtime_proof_schema_valid": false,
+      "identity_matches": true,
+      "expected": {"verdict": "disproved", "reason": "ENFORCEMENT_DISPATCH_PROOF_INVALID"}
+    },
+    {
+      "id": "dispatch-proof-tampered",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v2",
+      "runtime_proof_signature_valid": false,
+      "runtime_proof_schema_valid": true,
+      "identity_matches": true,
+      "expected": {"verdict": "disproved", "reason": "ENFORCEMENT_DISPATCH_PROOF_INVALID"}
+    },
+    {
+      "id": "off-deny-dispatch-absence",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v2",
+      "runtime_proof_signature_valid": true,
+      "runtime_proof_schema_valid": true,
+      "identity_matches": true,
+      "dispatch_effective_mode": "off",
+      "gate_result": "deny",
+      "dispatch_attempted": false,
+      "upstream_called": false,
+      "expected": {"verdict": "supported", "reason": "ENFORCEMENT_REGIME_AT_DISPATCH_VERIFIED"}
+    },
+    {
+      "id": "dispatch-identity-mismatch",
+      "claim": "permit.enforcement_regime_at_dispatch.v1",
+      "scope": "work_child",
+      "surface_key": "program:work",
+      "runtime_proof_version": "keel.runtime_enforcement_proof.v2",
+      "runtime_proof_signature_valid": true,
+      "runtime_proof_schema_valid": true,
+      "identity_matches": false,
+      "expected": {"verdict": "disproved", "reason": "ENFORCEMENT_DISPATCH_IDENTITY_MISMATCH"}
+    },
+    {
+      "id": "unrelated-surface-does-not-request-claims",
+      "claim": null,
+      "scope": "action_child",
+      "surface_key": "payment_rail",
+      "expected": {"claim_required": false}
+    }
+  ]
+}
