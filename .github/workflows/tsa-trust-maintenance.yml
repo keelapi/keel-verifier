@@ -1,0 +1,196 @@
+name: TSA trust bundle maintenance
+
+# The release-pinned TSA CRL snapshots expire on the CAs' own schedule
+# (GlobalSign ~13 days, DigiCert ~21) while CI guards a 7-day window. Without a
+# scheduled refresh the bundle rots silently and red-lights every keel-verifier
+# PR until someone works out why.
+#
+# This job NEVER updates trust material on its own. It refreshes into a branch,
+# proves the result against the vendored issuer certificates and the full
+# verifier suite, then opens a pull request for human review. Cryptographic
+# trust material is merged by a person, not by a cron.
+
+on:
+  schedule:
+    # Twice daily. The freshness guard trips 7 days before the earliest CRL
+    # next_update, so this leaves many chances to land a reviewed PR in time.
+    - cron: "23 5,17 * * *"
+  workflow_dispatch:
+    inputs:
+      min_valid_days:
+        description: Freshness headroom to require, in days
+        required: false
+        default: "7"
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: tsa-trust-maintenance
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Verify and propose a TSA trust refresh
+    runs-on: ubuntu-latest
+    env:
+      KEEL_TSA_REQUIRE_OPENSSL3: "1"
+      MIN_VALID_DAYS: ${{ inputs.min_valid_days || '7' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: keel-verifier
+
+      # The vendored keel-permit corpus is a hard dependency of the verifier
+      # suite; without it the golden-corpus tests fail loudly rather than
+      # passing vacuously.
+      - uses: actions/checkout@v6
+        with:
+          repository: keelapi/keel-permit
+          path: keel-permit
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: keel-verifier/requirements.txt
+
+      - name: Require OpenSSL 3
+        working-directory: keel-verifier
+        run: |
+          set -euo pipefail
+          VERSION="$(openssl version)"
+          echo "${VERSION}"
+          case "${VERSION}" in
+            OpenSSL\ 3.*) ;;
+            *) echo "OpenSSL 3.x is required for TSA trust work." >&2; exit 1 ;;
+          esac
+          echo "KEEL_OPENSSL_BIN=$(command -v openssl)" >> "${GITHUB_ENV}"
+
+      - name: Install dependencies
+        working-directory: keel-verifier
+        run: |
+          pip install -r requirements.txt
+          pip install -e ".[dev]"
+
+      - name: Report current freshness
+        id: current
+        working-directory: keel-verifier
+        run: |
+          set +e
+          python scripts/check_tsa_trust_bundle_freshness.py --min-valid-days "${MIN_VALID_DAYS}"
+          echo "status=$?" >> "${GITHUB_OUTPUT}"
+          set -e
+
+      # Verify-only first. If the CAs are unreachable or a response fails to
+      # verify against the vendored issuer certificate, stop here and touch
+      # nothing.
+      - name: Verify upstream CRLs without writing
+        working-directory: keel-verifier
+        run: python scripts/refresh_tsa_trust_bundle.py --dry-run --min-valid-days "${MIN_VALID_DAYS}"
+
+      - name: Refresh into the working tree
+        working-directory: keel-verifier
+        run: python scripts/refresh_tsa_trust_bundle.py --min-valid-days "${MIN_VALID_DAYS}"
+
+      # refresh_tsa_trust_bundle.py prints "remember to regenerate the release
+      # manifest": the embedded manifest records a hash per vendored file,
+      # including the CRL snapshots that just changed. Regenerating here keeps
+      # the proposed tree self-consistent instead of leaving a stale manifest
+      # for whoever cuts the next release.
+      - name: Regenerate the embedded release manifest
+        working-directory: keel-verifier
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import tomllib,pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          python scripts/generate_release_manifest.py embedded --tag "v${VERSION}"
+
+      - name: Determine whether anything changed
+        id: diff
+        working-directory: keel-verifier
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "No trust material changed; bundle is already current."
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            {
+              echo '### Files'
+              echo '```'
+              git diff --stat
+              echo '```'
+              echo '### Declared refresh deadline'
+              echo '```diff'
+              git diff -U0 -- keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json \
+                | grep -E '^[+-].*(next_update|crl_refresh_required_before)' || true
+              echo '```'
+            } > /tmp/tsa-diff.md
+            cat /tmp/tsa-diff.md
+          fi
+
+      # Prove the refreshed bundle before proposing it. The coupled real-crypto
+      # receipt fixtures must still validate: their fixed genTime has to fall
+      # inside the new CRL window, so a bad refresh fails here rather than in
+      # somebody's unrelated PR.
+      - name: Prove the refreshed bundle
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: keel-verifier
+        run: |
+          set -euo pipefail
+          python scripts/check_tsa_trust_bundle_freshness.py --min-valid-days "${MIN_VALID_DAYS}"
+          ruff check .
+          python scripts/check_historical_compatibility_corpus.py --run
+          pytest -q tests/test_tsa_trust.py -rs
+          pytest -q
+
+      - name: Open a review pull request
+        if: steps.diff.outputs.changed == 'true'
+        working-directory: keel-verifier
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BRANCH="chore/tsa-trust-refresh-$(date -u +%Y%m%dT%H%M%SZ)"
+          git config user.name "keel-tsa-maintenance"
+          git config user.email "noreply@keelapi.com"
+          git checkout -b "${BRANCH}"
+          git add -A
+          printf '%s\n' \
+            'chore: refresh release-pinned TSA CRL snapshots' \
+            '' \
+            'Scheduled maintenance. Each CRL was accepted only after its issuer matched' \
+            'the vendored issuer certificate and its signature verified against that' \
+            "certificate's public key. Coupled real-crypto receipt fixtures were" \
+            're-minted so their fixed genTime falls inside the new CRL window.' \
+            '' \
+            'Proposed for review; trust material is not merged automatically.' \
+            > /tmp/tsa-commit.txt
+          git commit -F /tmp/tsa-commit.txt
+          git push -u origin "${BRANCH}"
+          {
+            echo 'Scheduled refresh of the release-pinned TSA CRL snapshots.'
+            echo
+            cat /tmp/tsa-diff.md
+            echo
+            echo '### Why this is safe to review quickly'
+            echo
+            echo '- A CRL entered the bundle only after its issuer matched the **vendored**'
+            echo '  issuer certificate and its signature verified against that public key.'
+            echo '  A wrong URL, stale mirror, or poisoned response cannot pass.'
+            echo '- The full verifier suite, Ruff, the historical compatibility corpus, and'
+            echo '  the TSA real-crypto tests ran green against the refreshed bundle before'
+            echo '  this PR opened.'
+            echo '- This job never merges. A human merges trust material.'
+          } > /tmp/tsa-pr-body.md
+          gh pr create --base main --head "${BRANCH}" \
+            --title "chore: refresh release-pinned TSA CRL snapshots" \
+            --body-file /tmp/tsa-pr-body.md
+
+      - name: Warn when the bundle is stale and no refresh was available
+        if: steps.diff.outputs.changed != 'true' && steps.current.outputs.status != '0'
+        run: |
+          echo "::error::Freshness guard is failing but no upstream refresh was available. Investigate before the next release."
+          exit 1
