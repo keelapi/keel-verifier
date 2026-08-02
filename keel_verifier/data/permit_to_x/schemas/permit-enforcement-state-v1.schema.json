@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-enforcement-state-v1.schema.json",
+  "title": "Permit enforcement state at issuance v1",
+  "description": "The enforcement regime recorded when a Permit was issued. Server-derived only; a caller-supplied value must be rejected or overwritten. This records the regime in force at issuance and does not describe the regime under which any action was later dispatched, nor the project's current configuration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "surface",
+    "effective_mode",
+    "global_ceiling",
+    "project_rung",
+    "mapping_version",
+    "resolved_at",
+    "enforcement_surface_key"
+  ],
+  "properties": {
+    "version": {
+      "const": "keel.permit_enforcement_state.v1"
+    },
+    "surface": {
+      "$ref": "#/$defs/surface"
+    },
+    "effective_mode": {
+      "$ref": "#/$defs/mode"
+    },
+    "global_ceiling": {
+      "$ref": "#/$defs/mode",
+      "description": "Operator-owned ceiling. Recorded separately so evidence shows why a mode applied, not only what it was."
+    },
+    "project_rung": {
+      "$ref": "#/$defs/rung",
+      "description": "The customer-operated per-project setting."
+    },
+    "mapping_version": {
+      "const": "keel.enforcement_rung_mapping.v1",
+      "description": "Pins the rung-to-mode mapping, so a later mapping change cannot retroactively alter how a historical stamp reads."
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "enforcement_surface_key": {
+      "const": "program:work",
+      "description": "The enforcement program whose rung was resolved. semantic_id is insufficient: a Work-linked child may carry a different consequence while the rung recorded is the Work program's."
+    }
+  },
+  "$defs": {
+    "mode": {
+      "enum": [
+        "off",
+        "shadow",
+        "enforce"
+      ]
+    },
+    "rung": {
+      "enum": [
+        "observe",
+        "shadow",
+        "enforce"
+      ]
+    },
+    "surface": {
+      "enum": [
+        "work"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "off"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "shadow"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "observe"
+        },
+        "effective_mode": {
+          "const": "off"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "shadow"
+        },
+        "effective_mode": {
+          "const": "shadow"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    },
+    {
+      "properties": {
+        "global_ceiling": {
+          "const": "enforce"
+        },
+        "project_rung": {
+          "const": "enforce"
+        },
+        "effective_mode": {
+          "const": "enforce"
+        }
+      },
+      "required": [
+        "global_ceiling",
+        "project_rung",
+        "effective_mode"
+      ]
+    }
+  ]
+}

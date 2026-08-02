@@ -29,7 +29,7 @@ from keel_verifier.semantics import (
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
-CLAIM_REGISTRY_VERSION = "verifier-claims.v2"
+CLAIM_REGISTRY_VERSION = "verifier-claims.v5"
 CLAIM_REGISTRY_V1_ID = "keel.verifier_claim_registry.v1"
 CLAIM_REGISTRY_V1_VERSION = "verifier-claims.v1"
 
@@ -107,12 +107,12 @@ def _load_registry_payload() -> tuple[dict[str, Any], str]:
 
     try:
         bundled = resources.files("keel_verifier").joinpath(
-            "data/claim_registry/v2.json"
+            "data/claim_registry/v5.json"
         )
         return json.loads(bundled.read_text(encoding="utf-8")), str(bundled)
     except Exception as exc:
         raise RuntimeError(
-            "could not load verifier claim registry v2; set KEEL_CLAIM_REGISTRY"
+            "could not load the current verifier claim registry; set KEEL_CLAIM_REGISTRY"
         ) from exc
 
 
@@ -121,36 +121,42 @@ def _compose_registry_payload(
     *,
     source: str,
 ) -> dict[str, Any]:
-    """Resolve the current composable registry without mutating either artifact."""
+    """Resolve a digest-pinned registry chain without mutating any artifact."""
 
-    if payload.get("version") != CLAIM_REGISTRY_VERSION:
-        return payload
     extension = payload.get("extends")
     if not isinstance(extension, dict):
-        raise ValueError(f"claim registry at {source} is missing extends")
-    if (
-        extension.get("artifact_id") != CLAIM_REGISTRY_V1_ID
-        or extension.get("version") != CLAIM_REGISTRY_V1_VERSION
-    ):
+        return payload
+    artifact_id = extension.get("artifact_id")
+    base_version = extension.get("version")
+    if not isinstance(artifact_id, str) or not isinstance(base_version, str):
+        raise ValueError(f"claim registry at {source} has an unsupported base")
+    prefix = "keel.verifier_claim_registry.v"
+    if not artifact_id.startswith(prefix):
+        raise ValueError(f"claim registry at {source} has an unsupported base")
+    suffix = artifact_id.removeprefix(prefix)
+    if not suffix.isdigit():
         raise ValueError(f"claim registry at {source} has an unsupported base")
     try:
         base_resource = resources.files("keel_verifier").joinpath(
-            "data/claim_registry/v1.json"
+            f"data/claim_registry/v{suffix}.json"
         )
         base_raw = base_resource.read_bytes()
         base_source = str(base_resource)
     except Exception as exc:
-        raise RuntimeError("could not load verifier claim registry v1 base") from exc
+        raise RuntimeError(
+            f"could not load verifier claim registry v{suffix} base"
+        ) from exc
     expected_digest = str(extension.get("sha256") or "")
     actual_digest = hashlib.sha256(base_raw).hexdigest()
     if expected_digest != actual_digest:
         raise ValueError(
-            f"claim registry at {source} pins v1 digest {expected_digest!r}, "
+            f"claim registry at {source} pins v{suffix} digest {expected_digest!r}, "
             f"but {base_source} has {actual_digest!r}"
         )
     base = json.loads(base_raw)
-    if base.get("version") != CLAIM_REGISTRY_V1_VERSION:
+    if base.get("version") != base_version:
         raise ValueError(f"claim registry base at {base_source} has wrong version")
+    base = _compose_registry_payload(base, source=base_source)
     base_claims = base.get("claims")
     extension_claims = payload.get("claims")
     if not isinstance(base_claims, list) or not isinstance(extension_claims, list):

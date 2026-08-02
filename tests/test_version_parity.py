@@ -11,7 +11,11 @@ from typing import Callable, Literal
 import pytest
 
 import keel_verifier
-from keel_verifier.semantics import CLAIM_SEMANTICS, RELEASED_ARTIFACT_HASHES
+from keel_verifier.semantics import (
+    CLAIM_SEMANTICS,
+    PROFILE_DRIVEN_CLAIMS,
+    RELEASED_ARTIFACT_HASHES,
+)
 from keel_verifier.verdicts import load_claim_registry
 
 
@@ -317,7 +321,7 @@ def test_verifier_version_matches_package() -> None:
 def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.10.0"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.13.0"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:
@@ -367,7 +371,7 @@ def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
 def test_every_code_claim_is_implemented_in_inventory() -> None:
     inv = _load_inventory()
     implemented = _claim_names_with_status(inv, "implemented")
-    code_claims = set(CLAIM_SEMANTICS.keys())
+    code_claims = set(CLAIM_SEMANTICS) | set(PROFILE_DRIVEN_CLAIMS)
     missing = code_claims - implemented
     assert not missing, (
         "CLAIM_SEMANTICS contains claims that the inventory does not mark "
@@ -378,7 +382,7 @@ def test_every_code_claim_is_implemented_in_inventory() -> None:
 def test_every_implemented_claim_has_code_implementation() -> None:
     inv = _load_inventory()
     implemented = _claim_names_with_status(inv, "implemented")
-    code_claims = set(CLAIM_SEMANTICS.keys())
+    code_claims = set(CLAIM_SEMANTICS) | set(PROFILE_DRIVEN_CLAIMS)
     extra = implemented - code_claims
     assert not extra, (
         "Inventory marks these claims 'implemented' but they have no "
@@ -389,7 +393,7 @@ def test_every_implemented_claim_has_code_implementation() -> None:
 def test_planned_claims_have_no_code_implementation() -> None:
     inv = _load_inventory()
     planned = _claim_names_with_status(inv, "planned")
-    code_claims = set(CLAIM_SEMANTICS.keys())
+    code_claims = set(CLAIM_SEMANTICS) | set(PROFILE_DRIVEN_CLAIMS)
     leaks = planned & code_claims
     assert not leaks, (
         "Inventory marks these claims 'planned' but they have a CLAIM_SEMANTICS "

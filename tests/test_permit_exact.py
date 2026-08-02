@@ -171,8 +171,12 @@ def _signed_exact_bundle_case(
     tmp_path: Path,
     *,
     divergent_receipt: bool,
+    profile: str | None = None,
 ) -> tuple[Path, Path]:
     body = _body()
+    if profile is not None:
+        body["profile"] = profile
+        body["profile_version"] = int(profile.rsplit("v", 1)[1])
     attrs = body["permit_decision"]["resource_attributes_json"]
     binding_private = Ed25519PrivateKey.generate()
     binding_public = "ed25519:" + base64.b64encode(
@@ -395,6 +399,27 @@ def test_signed_exact_pack_rejects_divergent_receipt_projection(
         == "PERMIT_EXACT_ACTION_DISPROVED"
     )
     assert "receipt projection" in claims["permit.exact_action.v1"]["message"]
+
+
+def test_signed_future_exact_profile_fails_loudly(tmp_path: Path) -> None:
+    export_path, trust_root = _signed_exact_bundle_case(
+        tmp_path,
+        divergent_receipt=False,
+        profile="keel.permit_exact/v4",
+    )
+
+    report = verifier.verify_export_structured(
+        _exact_export_args(export_path, trust_root)
+    )
+
+    assert report.ok is False
+    assert report.exit_code == 1
+    assert report.artifact["unsupported_profile"] is True
+    assert report.artifact["profile"] == "keel.permit_exact/v4"
+    assert report.error == (
+        "PERMIT_EXACT_PROFILE_UNSUPPORTED: "
+        "this verifier does not adjudicate keel.permit_exact/v4"
+    )
 
 
 def test_tampered_recipient_opening_is_rejected() -> None:

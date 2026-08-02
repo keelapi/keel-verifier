@@ -8,9 +8,9 @@
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.10.0",
+    "permit_spec_version": "1.13.0",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.10.0/claim_registry/v2.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.13.0/claim_registry/v5.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [
@@ -957,6 +957,71 @@
         "keel.permit.universal_verification.v1",
         "keel.provider.receipt_state.v1"
       ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.delegate_child_linkage.v1",
+      "status": "implemented",
+      "description": "Proves intended-child, created-child, authority-grant, and acting-child continuity from the exact Delegate Permit's pinned evidence recipe.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.generate_text_exact_request.v1",
+      "status": "implemented",
+      "description": "Proves the exact Generate Text provider, model, request digest, and certified adapter binding from the pack-pinned recipe.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.refund_original_payment_bound.v1",
+      "status": "implemented",
+      "description": "Proves an exact Refund Permit binds the original payment, amount, currency, rail, reason, expiry, and one-use limit under its pinned recipe.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.enforcement_regime_at_issuance.v1",
+      "status": "implemented",
+      "description": "Adjudicates the signed historical Work enforcement regime recorded independently on each root or child Permit at issuance; it never infers current project configuration.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.enforcement_regime_at_dispatch.v1",
+      "status": "implemented",
+      "description": "Adjudicates a signed pre-effect runtime proof's Work regime and gate outcome for one exact Permit-bound dispatch; it does not claim current configuration or external outcome.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
       "verdicts": [
         "supported",
         "disproved",

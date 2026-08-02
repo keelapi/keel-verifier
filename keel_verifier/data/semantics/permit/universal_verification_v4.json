@@ -1,0 +1,44 @@
+{
+  "id": "keel.permit.universal_verification.v4",
+  "version": "v4",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "candidate",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v3",
+    "version": "v3",
+    "sha256": "c43a7cac09e217f78f203de7c082f06f2e2282e586d4025b6a84bbc1ce651e9c"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v5",
+    "conditional_evidence_claims": {
+      "program:work": {
+        "issuance": [
+          "permit.enforcement_regime_at_issuance.v1"
+        ],
+        "dispatch": [
+          "permit.enforcement_regime_at_dispatch.v1"
+        ]
+      }
+    },
+    "issuance_regime_rule": {
+      "schema": "permit-enforcement-state-v1.schema.json",
+      "applicability": "The claim is requested only for a signed Permit carrying enforcement_surface_key=program:work. Work roots and executable children are evaluated independently.",
+      "identity_rule": "The enforcement-state block must be covered by the supported signed Permit resource-attributes commitment and belong to the same Permit and project under adjudication.",
+      "mapping_rule": "effective_mode must equal min(global_ceiling, map(project_rung)) under keel.enforcement_rung_mapping.v1, where observe maps to off, shadow maps to shadow, and enforce maps to enforce.",
+      "missing_state_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved",
+      "current_configuration_rule": "Current project settings are excluded and must never be inferred from or used to rewrite historical signed evidence."
+    },
+    "dispatch_regime_rule": {
+      "schema": "runtime-enforcement-proof-v2.schema.json",
+      "applicability": "The claim is requested only for a Work-governed dispatch carrying enforcement_surface_key=program:work.",
+      "identity_rule": "permit_id, project_id, dispatch_id, semantic_id, exact_request_digest, and the certified-boundary identities must match the supported Permit and dispatch evidence.",
+      "pre_effect_rule": "The proof must be signature-valid, persisted from the pre-effect boundary, and carry pre_effect=true.",
+      "mapping_rule": "The v2 proof regime tuple and gate outcome must satisfy the closed runtime-enforcement-proof-v2 schema.",
+      "historical_v1_verdict": "insufficient_evidence",
+      "missing_state_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved",
+      "current_configuration_rule": "Current project settings are excluded and must never be inferred from or used to rewrite historical dispatch evidence."
+    }
+  }
+}
