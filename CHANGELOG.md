@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.13.0
+
+- Adjudicate `keel.permit_exact/v3` packs and reject unknown future exact-pack
+  profiles instead of silently omitting exact consequence claims.
+- Verify Work issuance-time and dispatch-time enforcement regimes against the
+  keel-permit v1.13.0 claim contract, while preserving an honest
+  `not recorded` result for historical v1 runtime proofs.
+- Compose digest-pinned universal verification semantics through v4 so newer
+  recipes retain every inherited verification rule.
+- Verify Work enforcement state independently for the root and every child,
+  and fail closed when a partially stamped chain claims enforcement evidence.
+- Vendor keel-permit v1.13.0 schemas, claim registry v5, universal semantics
+  v4, and their golden corpora under the cross-repository parity gate.
+- Refresh the TSA trust bundle and schedule reviewed refresh pull requests
+  before its freshness guard can block verifier releases.
+
 ## 3.12.0
 
 - Adjudicate the exact Generate Text and Refund consequence claims
