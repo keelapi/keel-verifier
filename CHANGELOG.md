@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.13.1
+
+- Verify current `permit_semantic_binding_v2` material in `work-chain.v1`
+  roots and action children while preserving historical v1 compatibility.
+- Fail closed when a Work Permit carries ambiguous or field/version-mismatched
+  semantic-binding material.
+
 ## 3.13.0
 
 - Adjudicate `keel.permit_exact/v3` packs and reject unknown future exact-pack
