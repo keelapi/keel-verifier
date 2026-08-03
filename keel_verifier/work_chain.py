@@ -90,6 +90,38 @@ class _PermitMaterial:
     signed_decision: str
 
 
+def _signed_semantic_binding(resource_attributes: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """Return the one versioned semantic binding signed into a Permit.
+
+    Historical Work evidence carries ``permit_semantic_binding_v1`` while
+    current Permit-to-X evidence carries ``permit_semantic_binding_v2``.  The
+    versioned attribute name and the embedded version must agree, and a Permit
+    carrying both versions is ambiguous and therefore fails closed.
+    """
+
+    candidates = (
+        (
+            "permit_semantic_binding_v1",
+            "keel.permit_semantic_binding.v1",
+        ),
+        (
+            "permit_semantic_binding_v2",
+            "keel.permit_semantic_binding.v2",
+        ),
+    )
+    present: list[Mapping[str, Any]] = []
+    for field, expected_version in candidates:
+        value = resource_attributes.get(field)
+        if value is None:
+            continue
+        if not isinstance(value, Mapping) or value.get("version") != expected_version:
+            return None
+        present.append(value)
+    if len(present) != 1:
+        return None
+    return present[0]
+
+
 def _digest(value: Any) -> str:
     return f"sha256:{hashlib.sha256(rfc8785.dumps(value)).hexdigest()}"
 
@@ -273,9 +305,9 @@ def _report(
 @lru_cache(maxsize=1)
 def _work_enforcement_state_validator() -> jsonschema.Draft202012Validator:
     schema = json.loads(
-        resources.files("keel_verifier").joinpath(
-            "data/permit_to_x/schemas/permit-enforcement-state-v1.schema.json"
-        ).read_text(encoding="utf-8")
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/schemas/permit-enforcement-state-v1.schema.json")
+        .read_text(encoding="utf-8")
     )
     return jsonschema.Draft202012Validator(
         schema,
@@ -311,8 +343,7 @@ def _work_enforcement_issuance_claim(
     if root_material is not None:
         materials.append(("work_root", root_id, root_material))
     materials.extend(
-        ("work_child", child_id, material)
-        for child_id, material in sorted(child_materials.items())
+        ("work_child", child_id, material) for child_id, material in sorted(child_materials.items())
     )
     regime_recorded = any(
         material.resource_attributes.get("permit_enforcement_state_v1") is not None
@@ -372,8 +403,7 @@ def _work_enforcement_issuance_claim(
                 verdict="supported",
                 reason_code="PERMIT_ENFORCEMENT_REGIME_AT_ISSUANCE_SUPPORTED",
                 message=(
-                    "the signed Work Permit records a schema-valid issuance-time "
-                    "enforcement regime"
+                    "the signed Work Permit records a schema-valid issuance-time enforcement regime"
                 ),
                 evidence=[
                     "permit_decision_binding.canonical_payload.resource_attributes_canonical_hash",
@@ -1130,9 +1160,7 @@ def _authority_manifest(
                 "root Work package does not match the signed Permit resource attributes",
                 ("root.work_package", "root.permit_artifact"),
             )
-        if material.resource_attributes.get("permit_semantic_binding_v1") != root.get(
-            "semantic_binding"
-        ):
+        if _signed_semantic_binding(material.resource_attributes) != root.get("semantic_binding"):
             raise _Failure(
                 "disproved",
                 "WORK_AUTHORITY_SCOPE_MISMATCH",
@@ -1388,8 +1416,8 @@ def _child_containment(
                     f"child {child_id} exact signed Permit identity or request digest conflicts",
                     (f"child_permits[{index}]",),
                 )
-            if child.get("semantic_binding") is not None and attrs.get(
-                "permit_semantic_binding_v1"
+            if child.get("semantic_binding") is not None and _signed_semantic_binding(
+                attrs
             ) != child.get("semantic_binding"):
                 raise _Failure(
                     "disproved",

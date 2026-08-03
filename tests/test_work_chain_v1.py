@@ -98,6 +98,48 @@ def _semantic_binding(semantic_id: str) -> dict[str, Any]:
     }
 
 
+def _semantic_binding_v2(semantic_id: str) -> dict[str, Any]:
+    root = Path(__file__).resolve().parents[1]
+    selector_path = root / "keel_verifier/data/permit_to_x/semantic_registry/v4.json"
+    selector_registry = json.loads(selector_path.read_text(encoding="utf-8"))
+    entry = next(
+        item for item in selector_registry["entries"] if item["semantic_id"] == semantic_id
+    )
+    if semantic_id == "keel.context.work.v1":
+        fields = {
+            "trusted_source_kind": "work_request_server_reconciled",
+            "chain_role": "work_root",
+            "action_name": "work.authorize",
+            "operation": "work.authorize",
+            "governed_surface": "permit_decision",
+            "non_authorizing_presentation_profile_id": "permit_to_work.r1",
+        }
+    else:
+        fields = {
+            "trusted_source_kind": "action_verb_execute",
+            "chain_role": "action_child",
+            "action_name": "payment.execute",
+            "operation": "payment.execute",
+            "governed_surface": "payment_rail",
+            "non_authorizing_presentation_profile_id": "permit_to_pay.r1",
+        }
+    claim_path = root / "keel_verifier/data/claim_registry/v5.json"
+    universal_path = root / "keel_verifier/data/semantics/permit/universal_verification_v4.json"
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "selector_registry_version": selector_registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(selector_path.read_bytes()).hexdigest()}",
+        "selector_entry_digest": _digest(entry),
+        **fields,
+        "claim_registry_version": "verifier-claims.v5",
+        "claim_registry_digest": f"sha256:{hashlib.sha256(claim_path.read_bytes()).hexdigest()}",
+        "universal_semantics_id": "keel.permit.universal_verification.v4",
+        "universal_semantics_digest": f"sha256:{hashlib.sha256(universal_path.read_bytes()).hexdigest()}",
+        "derived_at": ISSUED_AT,
+    }
+
+
 def _permit_artifact(
     *,
     private_key: Ed25519PrivateKey,
@@ -185,6 +227,8 @@ def _build_pack(
     boundary_live: bool = True,
     sequence_gap: bool = False,
     enforcement_state: bool = False,
+    semantic_binding_version: int = 1,
+    dual_semantic_binding: bool = False,
 ) -> tuple[dict[str, Any], Path]:
     export_private, export_public = _keypair()
     binding_private, binding_public = _keypair()
@@ -303,12 +347,16 @@ def _build_pack(
         "not_before": "2026-07-21T16:00:00Z",
         "expires_at": "2026-08-31T23:59:59Z",
     }
-    root_semantic = _semantic_binding("keel.context.work.v1")
+    semantic_binding = _semantic_binding_v2 if semantic_binding_version == 2 else _semantic_binding
+    semantic_binding_field = f"permit_semantic_binding_v{semantic_binding_version}"
+    root_semantic = semantic_binding("keel.context.work.v1")
     root_attrs = {
         "operation": "work.authorize",
         "work_package_v1": package,
-        "permit_semantic_binding_v1": root_semantic,
+        semantic_binding_field: root_semantic,
     }
+    if dual_semantic_binding:
+        root_attrs["permit_semantic_binding_v1"] = _semantic_binding("keel.context.work.v1")
     if enforcement_state:
         root_attrs["permit_enforcement_state_v1"] = {
             "version": "keel.permit_enforcement_state.v1",
@@ -338,7 +386,7 @@ def _build_pack(
         "authority_canonical_hash": authority["authority_canonical_hash"],
         "root_manifest_hash": _digest(package),
     }
-    child_semantic = _semantic_binding("keel.action.payment_execute.v1")
+    child_semantic = semantic_binding("keel.action.payment_execute.v1")
     child_attrs = {
         "operation": "payment.execute",
         "work_binding_v1": work_binding,
@@ -346,7 +394,7 @@ def _build_pack(
             "version": "keel.work_resource_scope.v1",
             **authority["resource_scope"],
         },
-        "permit_semantic_binding_v1": child_semantic,
+        semantic_binding_field: child_semantic,
         "work_resource_digest": authority["resource_scope"]["digest"],
         "spend_scope": {
             "amount_max": str(child_amount),
@@ -358,6 +406,10 @@ def _build_pack(
             "description_digest": "2" * 64,
         },
     }
+    if dual_semantic_binding:
+        child_attrs["permit_semantic_binding_v1"] = _semantic_binding(
+            "keel.action.payment_execute.v1"
+        )
     if enforcement_state:
         child_attrs["permit_enforcement_state_v1"] = {
             "version": "keel.permit_enforcement_state.v1",
@@ -606,6 +658,31 @@ def test_valid_historical_work_chain_preserves_required_claims(tmp_path: Path) -
     assert report.artifact["runtime_recording_claim"] == "not_asserted"
 
 
+def test_current_v2_semantic_bindings_are_cross_bound_for_root_and_child(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(tmp_path, semantic_binding_version=2)
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert report.ok is True
+    assert [claim.aggregate_verdict for claim in report.claims[:4]] == ["supported"] * 4
+
+
+def test_ambiguous_dual_semantic_bindings_fail_closed(tmp_path: Path) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        semantic_binding_version=2,
+        dual_semantic_binding=True,
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    claim = _claim(report, "permit.work_authority_manifest.v1")
+    assert claim["verdict"] == "disproved"
+    assert claim["reason_code"] == "WORK_AUTHORITY_SCOPE_MISMATCH"
+
+
 def test_work_root_and_child_issuance_regimes_are_independently_supported(
     tmp_path: Path,
 ) -> None:
@@ -617,7 +694,9 @@ def test_work_root_and_child_issuance_regimes_are_independently_supported(
     claim = _claim(report, WORK_ENFORCEMENT_ISSUANCE_CLAIM)
     assert claim["required"] is True
     assert claim["verdict"] == "supported"
-    assert [(subject["type"], subject["id"], subject["verdict"]) for subject in claim["subjects"]] == [
+    assert [
+        (subject["type"], subject["id"], subject["verdict"]) for subject in claim["subjects"]
+    ] == [
         ("work_root", ROOT_ID, "supported"),
         ("work_child", CHILD_ID, "supported"),
     ]
