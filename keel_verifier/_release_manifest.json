@@ -165,7 +165,7 @@
     "keel_verifier/data/tsa_trust/globalsign/root_r6.pem": "5ff8425be71c1805446bf10601ce3cb9619889866766fc9285583ca5a4a7de94",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.crl.pem": "9603569c7421eb3e8d94bf4899a7f4176ae6be04304c7c5a23746c6f23c6df3d",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.pem": "f3c1abb03ca2a8399c864320266daf32d7a86b93adb7ee011857c72810c384b5",
-    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "1dc188b32beb16d08d0f0c3410c102301d432db0da6f62a9e895a7dda657e24e",
+    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "8e8abc56005adf312483a5bbdb69764c3237240afbef89b1885ba714930ce917",
     "keel_verifier/doctor.py": "22afc7d6916ed5803a0e580a918138a949c32fc52aff896c2a43a684caa8bf88",
     "keel_verifier/install_diagnostics.py": "b7559943f7c8d2c184326b8a5399dbf5881bd3c74929567969409a6e7db386ee",
     "keel_verifier/keys/keel_checkpoint.pub.json": "4b22dcfd53e591dba8a6d6546099c50f1019e8f714234316fb8bbeae560bbd8a",
@@ -180,7 +180,7 @@
     "keel_verifier/self_check.py": "dbcbd633cbd51a01fa8ee58485b27c320309a82ad47f7db266b717d78409977f",
     "keel_verifier/semantics.py": "354a382946a8733b7445749e38d2aba18d256a8c7b83dba762a16039c9e1f001",
     "keel_verifier/verdicts.py": "fe64dc94f2d8ce90b3c230dfb95afa9c3ca6ef875fe3b365b544a517af29d65e",
-    "keel_verifier/verifier.py": "1b04878e7fc2914a0e72b4693578e1f47e595fd66e3ce479105238109c7a6d5b",
+    "keel_verifier/verifier.py": "389e0253d2d2c59c1d11472c2d7d7feaeb3a32fc4ace12d06335e9c9d8f348ea",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "1029a877325c879b09e76cf7f07169b19a7d7564c49d9ea090c8df892bb3fed4"
   }
