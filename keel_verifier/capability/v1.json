@@ -1092,6 +1092,24 @@
       "note": "Workflow evidence artifact emitted as a sibling of audit-export bundles."
     },
     {
+      "name": "evidence_bundle_v1",
+      "status": "supported",
+      "permit_spec": null,
+      "note": "Self-attesting single-file container. A body profile this verifier does not adjudicate is reported as an envelope-only result."
+    },
+    {
+      "name": "evidence_bundle_v2",
+      "status": "supported",
+      "permit_spec": null,
+      "note": "Same shape as v1, stricter reader obligation: the body profile must be adjudicated or the artifact fails closed. Emitted for co-signature evidence so a verifier lacking keel.permit_co_signature/v1 refuses the file rather than reporting the envelope alone as verified."
+    },
+    {
+      "name": "permit_co_signature_v1",
+      "status": "supported",
+      "permit_spec": null,
+      "note": "Body profile keel.permit_co_signature/v1: signed Permit decision, WebAuthn co-signature evidence, and Keel-signed co-signer key status manifest in one file. Quorum is adjudicated only when the requirement is bound into a v6+ decision binding."
+    },
+    {
       "name": "checkpoint_scope_state_v1",
       "status": "supported",
       "permit_spec": "spec/checkpoint-scope-state-v1.md",
