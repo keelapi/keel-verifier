@@ -77,6 +77,11 @@ _COVERAGE = (
             "permit.counter_signed.v1",
         ),
     ),
+    (
+        "Human co-signature",
+        ("permit.co_signature.v1", "permit.co_signature.v2"),
+    ),
+    ("Co-signature quorum", ("permit.co_signature.quorum.v1",)),
     ("Dispatch", ("closure.dispatch_binding.v1",)),
     ("Closure", ("closure.signature.v1",)),
     ("Revocation", ("permit.revoked.v1",)),
