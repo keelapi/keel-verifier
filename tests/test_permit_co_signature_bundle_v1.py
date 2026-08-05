@@ -33,7 +33,6 @@ from keel_verifier.canonical.permit_binding import (
 
 from test_permit_co_signature_v1 import (
     _public_key,
-    _signature,
     _signed_trust_root,
     _write_json,
 )
