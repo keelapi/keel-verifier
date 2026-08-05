@@ -159,6 +159,18 @@ LEGACY_VANTA_SCHEMA_WARNING = (
 _legacy_artifact_ref_warning_printed = False
 _legacy_vanta_schema_warning_printed = False
 SELF_ATTESTING_BUNDLE_SCHEMA_VERSION = "keel.evidence_bundle/v1"
+# v2 is byte-identical in shape to v1 and differs only in what it obliges a
+# verifier to do: the body declares a profile that MUST be adjudicated, and a
+# verifier that does not recognise it must fail closed rather than report the
+# envelope alone as verified. Emitting co-signature evidence under v2 is what
+# makes an older CLI refuse the file instead of returning a bare green.
+SELF_ATTESTING_BUNDLE_SCHEMA_VERSION_V2 = "keel.evidence_bundle/v2"
+SUPPORTED_SELF_ATTESTING_BUNDLE_SCHEMA_VERSIONS = frozenset(
+    {
+        SELF_ATTESTING_BUNDLE_SCHEMA_VERSION,
+        SELF_ATTESTING_BUNDLE_SCHEMA_VERSION_V2,
+    }
+)
 _LEGACY_SPLIT_EXPORT_WARNING_EMITTED = False
 QUOTA_RESERVATION_LINKAGE_CLAIM_NAME = "quota.reservation_linkage.v1"
 BUDGET_PARTITION_LEDGER_CLAIM_NAME = "budget.partition_ledger.v1"
@@ -689,6 +701,8 @@ PERMIT_AUDIT_ATTESTATION_CLAIM_NAME = "permit.audit_attestation.v1"
 PERMIT_CO_SIGNATURE_CLAIM_NAME = "permit.co_signature.v1"
 PERMIT_CO_SIGNATURE_V2_CLAIM_NAME = "permit.co_signature.v2"
 PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME = "permit.co_signature.quorum.v1"
+PERMIT_CO_SIGNATURE_PROFILE_V1 = "keel.permit_co_signature/v1"
+SUPPORTED_CO_SIGNATURE_PROFILES = frozenset({PERMIT_CO_SIGNATURE_PROFILE_V1})
 PERMIT_EXACT_ACTION_CLAIM_NAME = "permit.exact_action.v1"
 PERMIT_OPERATOR_APPROVAL_V2_CLAIM_NAME = "permit.operator_approval.v2"
 PERMIT_COUNTER_SIGNATURE_V2_CLAIM_NAME = "permit.counter_signature.v2"
@@ -1199,7 +1213,7 @@ def _bundle_canonical_json_bytes(value: Any) -> bytes:
 def _is_self_attesting_bundle(value: Any) -> bool:
     return (
         isinstance(value, dict)
-        and value.get("schema_version") == SELF_ATTESTING_BUNDLE_SCHEMA_VERSION
+        and value.get("schema_version") in SUPPORTED_SELF_ATTESTING_BUNDLE_SCHEMA_VERSIONS
         and isinstance(value.get("body"), dict)
         and isinstance(value.get("signature_envelope"), dict)
     )
@@ -1319,7 +1333,10 @@ def _verify_self_attesting_bundle_payload(
     BundleTrustContext | None,
 ]:
     diagnostics: list[str] = []
-    if bundle.get("schema_version") != SELF_ATTESTING_BUNDLE_SCHEMA_VERSION:
+    if (
+        bundle.get("schema_version")
+        not in SUPPORTED_SELF_ATTESTING_BUNDLE_SCHEMA_VERSIONS
+    ):
         message = "unsupported evidence bundle schema_version"
         return (
             False,
@@ -11389,6 +11406,7 @@ def _co_signature_claim_from_document(
     claim_name: str = PERMIT_CO_SIGNATURE_CLAIM_NAME,
     decision_claim: ClaimVerdict | None = None,
     integrity_reason: str | None = None,
+    enforce_user_verification: bool = False,
 ) -> ClaimVerdict:
     if claim_name not in {
         PERMIT_CO_SIGNATURE_CLAIM_NAME,
@@ -11606,6 +11624,29 @@ def _co_signature_claim_from_document(
                     reason_code="CO_SIGNATURE_KEY_NOT_VALID",
                     message=key_error or "co-signer key is not valid",
                     evidence=["export.key_status_manifest.keys"],
+                )
+            )
+            continue
+        if enforce_user_verification and require_uv is not True:
+            # A single-file self-attesting bundle carries its ceremony
+            # parameters under an envelope key that is not itself pinned to the
+            # Keel trust root. A body-supplied user-verification downgrade must
+            # therefore never weaken the ceremony: reject it explicitly rather
+            # than silently re-verifying under the stricter setting.
+            subjects.append(
+                _subject(
+                    subject_type="permit_co_signature",
+                    subject_id=subject_id,
+                    verdict="disproved",
+                    reason_code="CO_SIGNATURE_USER_VERIFICATION_DOWNGRADED",
+                    message=(
+                        "self-attesting co-signature evidence must require "
+                        "WebAuthn user verification"
+                    ),
+                    evidence=[
+                        f"export.co_signature_evidence[{evidence_index}]."
+                        "require_user_verification"
+                    ],
                 )
             )
             continue
@@ -13819,6 +13860,145 @@ def _co_signature_pack_integrity_claims(
     ]
 
 
+def _adjudicate_permit_co_signature_bundle_v1(
+    *,
+    body: Mapping[str, Any],
+    key_manifest_source: str | None,
+) -> tuple[list[ClaimVerdict], bool, str | None, dict[str, Any] | None]:
+    """Adjudicate a single-file ``keel.permit_co_signature/v1`` bundle body.
+
+    The outer evidence-bundle envelope binds these parts together but its key
+    is not pinned to the Keel trust root, so nothing here may rest on it. Every
+    load-bearing fact is re-derived from independently pinned material: the
+    signed Permit decision binding, the Keel-signed co-signer key status
+    manifest, and the WebAuthn assertion itself.
+    """
+
+    claims: list[ClaimVerdict] = []
+    decision_claim = _adjudicate_permit_decision_v1(
+        export_document=body,
+        key_manifest_source=key_manifest_source,
+    )
+    claims.append(decision_claim)
+    member_claim = _co_signature_claim_from_document(
+        export_document=body,
+        pack_integrity_verified=True,
+        pinned_key_manifest_source=key_manifest_source,
+        claim_name=PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+        decision_claim=decision_claim,
+        enforce_user_verification=True,
+    )
+    claims.append(member_claim)
+
+    # A signed decision that declares a co-signature requirement must be
+    # accompanied by quorum evidence. Otherwise stripping the quorum block
+    # would convert an unsatisfied requirement into a silently narrower —
+    # but still green — report.
+    permit_decision, _ = _find_permit_decision_evidence(body)
+    signed_requirement: Any = None
+    attributes_bound = False
+    if isinstance(permit_decision, Mapping):
+        canonical_payload = permit_decision.get("canonical_payload")
+        # Only v6+ bindings hash resource_attributes_json into the signed
+        # canonical payload. Below that the attributes ride along unsigned, so
+        # a requirement read from them would be attacker-authored, not signed.
+        attributes_bound = (
+            isinstance(canonical_payload, Mapping)
+            and canonical_payload.get("binding_version") in {"v6", "v7"}
+        )
+        decision_attributes, attributes_failure = _permit_decision_resource_attributes(
+            dict(permit_decision)
+        )
+        if (
+            attributes_bound
+            and attributes_failure is None
+            and isinstance(decision_attributes, Mapping)
+        ):
+            signed_requirement = decision_attributes.get(
+                "permit_co_signature_requirement_v1"
+            )
+    quorum_evidence = body.get("co_signature_quorum_evidence")
+    if isinstance(quorum_evidence, Mapping) and not attributes_bound:
+        claims.append(
+            _permit_claim(
+                PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME,
+                subject_type="permit_co_signature_quorum",
+                subject_id=str(body.get("permit_id") or "") or None,
+                verdict="unverifiable_scope",
+                reason_code="CO_SIGNATURE_QUORUM_ATTRIBUTES_UNBOUND",
+                message=(
+                    "quorum requires a v6+ Permit decision binding that hashes "
+                    "resource attributes into the signed payload"
+                ),
+                evidence=[
+                    "export.permit_decision.canonical_payload.binding_version",
+                    "export.permit_decision.resource_attributes_json",
+                ],
+            )
+        )
+    elif isinstance(quorum_evidence, Mapping) or isinstance(signed_requirement, Mapping):
+        claims.append(
+            _adjudicate_permit_co_signature_quorum_v1(
+                export_document=body,
+                decision_claim=decision_claim,
+                member_claim=member_claim,
+            )
+        )
+
+    failed = next(
+        (
+            claim
+            for claim in claims
+            if claim.aggregate_verdict != verdict_value("supported")
+        ),
+        None,
+    )
+    if failed is not None:
+        return (
+            claims,
+            False,
+            (
+                failed.message
+                or failed.reason_code
+                or "Permit co-signature verification did not complete."
+            ),
+            None,
+        )
+
+    entries = _co_signature_evidence_entries(
+        body,
+        payload_type=PERMIT_CO_SIGNATURE_V2_CLAIM_NAME,
+    )
+    quorum_established = any(
+        claim.name == PERMIT_CO_SIGNATURE_QUORUM_CLAIM_NAME for claim in claims
+    )
+    summary: dict[str, Any] = {
+        "permit_id": body.get("permit_id"),
+        "project_id": body.get("project_id"),
+        "co_signatures": [
+            {
+                # The WebAuthn assertion binds the Permit decision hash, not the
+                # role label. Role is adjudicated only against a signed
+                # requirement via the quorum claim, so it is reported as
+                # established only when that claim is present.
+                "role": entry.get("claim", {}).get("role"),
+                "role_established": quorum_established,
+                "custody_tier": entry.get("claim", {}).get("custody_tier"),
+                "signed_at": entry.get("claim", {}).get("signed_at"),
+            }
+            for entry in entries
+            if isinstance(entry.get("claim"), Mapping)
+        ],
+        "quorum_established": quorum_established,
+    }
+    if not quorum_established:
+        summary["does_not_establish"] = [
+            "that policy required this co-signature",
+            "the approver/witness role recorded for this co-signature",
+        ]
+    return claims, True, None, summary
+
+
 def _adjudicate_permit_exact_action_v1(
     *,
     body: dict[str, Any],
@@ -14186,6 +14366,96 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                         or transition_claim.reason_code
                         or "Human-review transition verification did not complete."
                     )
+        if (
+            ok
+            and isinstance(body, dict)
+            and exact_profile is not None
+            and exact_profile.startswith("keel.permit_co_signature/")
+            and exact_profile not in SUPPORTED_CO_SIGNATURE_PROFILES
+        ):
+            ok = False
+            error = (
+                "PERMIT_CO_SIGNATURE_PROFILE_UNSUPPORTED: "
+                f"this verifier does not adjudicate {exact_profile}"
+            )
+            diagnostics.append(error)
+            artifact.update(
+                {
+                    "kind": "permit_co_signature",
+                    "profile": exact_profile,
+                    "unsupported_profile": True,
+                }
+            )
+        elif (
+            ok
+            and isinstance(body, dict)
+            and exact_profile in SUPPORTED_CO_SIGNATURE_PROFILES
+        ):
+            (
+                co_signature_claims,
+                co_signature_ok,
+                co_signature_error,
+                co_signature_summary,
+            ) = _adjudicate_permit_co_signature_bundle_v1(
+                body=body,
+                key_manifest_source=_key_manifest_source_for_args(args),
+            )
+            claims.extend(co_signature_claims)
+            if not co_signature_ok:
+                ok = False
+                error = co_signature_error
+                diagnostics.append(
+                    co_signature_error
+                    or "Permit co-signature verification did not complete."
+                )
+            else:
+                artifact.update(
+                    {
+                        "kind": "permit_co_signature",
+                        "profile": exact_profile,
+                        "permit": co_signature_summary,
+                    }
+                )
+        elif (
+            ok
+            and isinstance(body, dict)
+            and _co_signature_evidence_entries(body)
+        ):
+            # Co-signature evidence rode along inside a bundle body that
+            # declares no profile this verifier adjudicates. Reporting the
+            # envelope as verified would present an unexamined ceremony as a
+            # checked one, so refuse instead of narrowing silently.
+            ok = False
+            error = (
+                "CO_SIGNATURE_PROFILE_UNDECLARED: bundle body carries "
+                "co-signature evidence but declares no adjudicable "
+                "co-signature profile"
+            )
+            diagnostics.append(error)
+            artifact.update(
+                {
+                    "kind": "permit_co_signature",
+                    "profile": exact_profile,
+                    "unsupported_profile": True,
+                }
+            )
+        if (
+            ok
+            and bundle.get("schema_version")
+            == SELF_ATTESTING_BUNDLE_SCHEMA_VERSION_V2
+            and exact_profile
+            not in (SUPPORTED_CO_SIGNATURE_PROFILES | supported_exact_profiles)
+        ):
+            # v2 exists precisely so that a body profile cannot be ignored.
+            # Reaching here means the profile was never adjudicated, so the
+            # envelope claim alone must not be reported as a verification.
+            ok = False
+            error = (
+                "EVIDENCE_BUNDLE_V2_PROFILE_UNADJUDICATED: "
+                f"this verifier does not adjudicate body profile {exact_profile!r}"
+            )
+            diagnostics.append(error)
+            artifact["unsupported_profile"] = True
         if bundle_context is not None:
             claims = [
                 *claims,
