@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.14.0
+
+- Adjudicate `keel.permit_co_signature/v1` bodies in single-file evidence
+  bundles, so a downloaded Permit co-signature artifact verifies with
+  `keel-verify export <file>` and no manifest sidecar. Previously such a body
+  produced an envelope-only `VERIFIED` result with no co-signature claim.
+- Accept `keel.evidence_bundle/v2`, which carries the same shape as v1 but
+  obliges a reader to adjudicate the declared body profile or fail closed.
+  Co-signature evidence ships as v2 so a verifier lacking this support refuses
+  the artifact rather than reporting the envelope alone as verified.
+- Fail closed when an evidence-bundle body carries co-signature evidence under
+  no adjudicable profile, and when a co-signature profile is unknown.
+- Reject body-supplied WebAuthn user-verification downgrades in self-attesting
+  co-signature bundles; the envelope key is not pinned to the Keel trust root
+  and must not be able to weaken the ceremony.
+- Adjudicate co-signature quorum only when the requirement is bound into a
+  v6-or-later decision binding, where resource attributes are hashed into the
+  signed canonical payload.
+
 ## 3.13.1
 
 - Verify current `permit_semantic_binding_v2` material in `work-chain.v1`
