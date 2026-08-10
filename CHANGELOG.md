@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Vendor byte-identical Coding Workspace consequence v6, semantic v11,
+  fact-profile v9, presentation v10, exact-facts, and v7 vector artifacts from
+  `keel-permit`.
+- Verify exact package installation, new-branch push, and pull-request creation
+  as separate consequences without implying merge or deployment authority.
+- Render human-first AI Permit-to-Install-Package, AI Permit-to-Push-Branch,
+  and AI Permit-to-Create-Pull-Request targets with issuance and expiry.
+- Reject stale Coding Workspace preflights, cross-action fact-profile
+  substitution, non-disposable installs, lifecycle scripts, unsafe branch
+  mutation, protected-path changes, duplicate PRs, and implicit merge authority.
 - Vendor byte-identical identity/security consequence v5, semantic v10,
   fact-profile v8, presentation v9, exact-facts, and v6 vector artifacts from
   `keel-permit`.

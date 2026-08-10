@@ -103,6 +103,20 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     facts = permit.get("authorization_facts")
     if not isinstance(facts, Mapping):
         return None
+    package_name = _normalize(facts.get("package_name"))
+    package_version = _normalize(facts.get("target_dependency_version"))
+    if package_name and package_version:
+        return f"package {package_name}@{package_version}"
+    repository = _commitment_label(
+        facts.get("repository_reference_commitment"), "repository"
+    )
+    target_branch = _normalize(facts.get("target_branch"))
+    if repository and target_branch:
+        return f"{repository}, branch {target_branch}"
+    head_branch = _normalize(facts.get("head_branch"))
+    base_branch = _normalize(facts.get("base_branch"))
+    if repository and head_branch and base_branch:
+        return f"{repository}, {head_branch} to {base_branch}"
     provider = _normalize(facts.get("provider"))
     model = _normalize(facts.get("model"))
     committed_target = _commitment_label(

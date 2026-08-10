@@ -259,6 +259,15 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
         wheel_names = set(wheel_file.namelist())
     for relative_path in RELEASED_ARTIFACT_PATHS.values():
         assert f"keel_verifier/data/{relative_path}" in wheel_names
+    for relative_path in (
+        "permit_to_x/consequence_registry/v6.json",
+        "permit_to_x/fact_profiles/v9.json",
+        "permit_to_x/presentation_registry/v10.json",
+        "permit_to_x/semantic_registry/v11.json",
+        "permit_to_x/schemas/coding-workspace-exact-facts-v1.schema.json",
+        "permit_to_x/test_vectors/consequence_registry/v7.json",
+    ):
+        assert f"keel_verifier/data/{relative_path}" in wheel_names
     assert "keel_verifier/data/claim_registry_v0.json" in wheel_names
     assert "keel_verifier/data/schemas/permit-revoked-event.schema.json" in wheel_names
     assert "keel_verifier/data/trust_root.json" in wheel_names
