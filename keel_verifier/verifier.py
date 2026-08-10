@@ -16366,7 +16366,7 @@ TSA_TRUST_BUNDLE_V1_PATH = (
     / "tsa_trust_bundle_v1.json"
 )
 TSA_TRUST_BUNDLE_V1_HASH = (
-    "sha256:1dc188b32beb16d08d0f0c3410c102301d432db0da6f62a9e895a7dda657e24e"
+    "sha256:ba9574e6f413df910a69dea0cee20f43180d382a2421e6136ed39c2e66a9dafe"
 )
 
 
