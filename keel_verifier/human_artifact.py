@@ -122,6 +122,8 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     committed_target = _commitment_label(
         facts.get("original_payment_reference_commitment"), "payment"
     ) or _commitment_label(
+        facts.get("claim_reference_commitment"), "insurance claim"
+    ) or _commitment_label(
         facts.get("obligation_reference_commitment"), "obligation"
     ) or _commitment_label(
         facts.get("plan_reference_commitment"), "payment plan"

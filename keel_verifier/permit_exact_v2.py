@@ -192,6 +192,7 @@ def _verify_trusted_preflight_window(
         "keel.identity_security_exact_facts.v1",
         "keel.coding_workspace_exact_facts.v1",
         "keel.collections_exact_facts.v1",
+        "keel.insurance_claims_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -531,6 +532,106 @@ def _verify_collections_invariants(facts: Mapping[str, Any]) -> None:
             "disproved",
             "PERMIT_COLLECTIONS_INVARIANT_INVALID",
             "the signed Collections Arrangement facts violate an exact provider-action invariant",
+        )
+
+
+def _verify_insurance_claims_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Insurance Claims relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.insurance_claims_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    action = facts.get("action")
+    valid = True
+    if action == "insurance.claim.decision.record":
+        reasons = {
+            "approved": {"covered_loss_verified", "partial_coverage_verified"},
+            "denied": {"coverage_exclusion_applies", "insufficient_documentation"},
+        }
+        valid = (
+            facts.get("connector_identity") == "claims.system"
+            and facts.get("claim_status_before") == "under_review"
+            and integer("decision_record_count_before") == 0
+            and facts.get("decision_reason_code")
+            in reasons.get(facts.get("requested_outcome"), set())
+            and facts.get("human_review_required") is True
+            and facts.get("required_approver_role") == "licensed_claims_adjuster"
+            and facts.get("separation_of_duties_required") is True
+            and facts.get("appeal_path_included") is True
+            and facts.get("jurisdiction") == "DEMO-NOT-A-REAL-JURISDICTION"
+        )
+    elif action == "insurance.claim.settlement.set":
+        settlement = integer("settlement_amount_minor")
+        covered = integer("covered_amount_minor")
+        policy_limit = integer("policy_limit_minor")
+        valid = (
+            facts.get("connector_identity") == "claims.system"
+            and facts.get("claim_status_before") == "approved"
+            and facts.get("decision_outcome") == "approved"
+            and integer("settlement_record_count_before") == 0
+            and settlement is not None
+            and covered is not None
+            and policy_limit is not None
+            and 0 < settlement <= covered
+            and settlement <= policy_limit
+            and facts.get("amount_within_covered_amount") is True
+            and facts.get("amount_within_policy_limit") is True
+            and facts.get("terms_template_id") == "demo-claim-settlement"
+            and facts.get("terms_template_version") == "v1"
+        )
+    elif action == "insurance.claim.payment.send":
+        settlement = integer("settlement_amount_minor")
+        paid = integer("paid_amount_minor_before")
+        remaining = integer("remaining_payable_minor")
+        payment = integer("payment_amount_minor")
+        valid = (
+            facts.get("connector_identity") == "payments"
+            and facts.get("claim_status_before") == "settled"
+            and facts.get("settlement_status_before") == "approved_for_payment"
+            and settlement is not None
+            and paid is not None
+            and remaining is not None
+            and payment is not None
+            and paid >= 0
+            and remaining > 0
+            and paid + remaining == settlement
+            and payment == remaining
+            and facts.get("amount_matches_remaining_payable") is True
+            and facts.get("destination_allowlisted") is True
+            and facts.get("transfer_status_before") == "absent"
+        )
+    elif action == "insurance.claim.notice.send":
+        outcome = facts.get("recorded_decision_outcome")
+        amount = integer("settlement_amount_minor")
+        valid = (
+            facts.get("connector_identity") == "notification.email"
+            and facts.get("recipient_is_dedicated_demo") is True
+            and facts.get("template_id")
+            == {
+                "approved": "claim-approval-notice",
+                "denied": "claim-denial-notice",
+            }.get(outcome)
+            and amount is not None
+            and (
+                (outcome == "approved" and amount > 0)
+                or (outcome == "denied" and amount == 0)
+            )
+            and facts.get("appeal_instructions_included") is True
+            and integer("notice_record_count_before") == 0
+            and facts.get("jurisdiction") == "DEMO-NOT-A-REAL-JURISDICTION"
+            and facts.get("delivery_mode") == "provider_email"
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_INSURANCE_CLAIMS_INVARIANT_INVALID",
+            "the signed Insurance Claims facts violate an exact provider-action invariant",
         )
 
 
@@ -919,6 +1020,7 @@ def _resolve_contracts(
             "semantic_registry/v10.json",
             "semantic_registry/v11.json",
             "semantic_registry/v12.json",
+            "semantic_registry/v13.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -935,6 +1037,7 @@ def _resolve_contracts(
             "fact_profiles/v8.json",
             "fact_profiles/v9.json",
             "fact_profiles/v10.json",
+            "fact_profiles/v11.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2092,6 +2195,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_identity_security_invariants(facts)
         _verify_coding_workspace_invariants(facts)
         _verify_collections_invariants(facts)
+        _verify_insurance_claims_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

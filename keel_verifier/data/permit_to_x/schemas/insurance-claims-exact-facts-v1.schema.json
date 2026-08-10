@@ -1,0 +1,685 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/insurance-claims-exact-facts-v1.schema.json",
+  "title": "Keel exact Insurance Claims authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/insurance_claim_decision_record"
+    },
+    {
+      "$ref": "#/$defs/insurance_claim_settlement_set"
+    },
+    {
+      "$ref": "#/$defs/insurance_claim_payment_send"
+    },
+    {
+      "$ref": "#/$defs/insurance_claim_notice_send"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "insurance_claim_decision_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "claim_reference_commitment",
+        "policy_reference_commitment",
+        "claimant_reference_commitment",
+        "claim_status_before",
+        "requested_outcome",
+        "decision_reason_code",
+        "coverage_evaluation_digest",
+        "evidence_bundle_digest",
+        "criteria_pack_id",
+        "criteria_pack_version",
+        "criteria_pack_digest",
+        "decision_record_count_before",
+        "human_review_required",
+        "required_approver_role",
+        "separation_of_duties_required",
+        "co_signature_requirement_digest",
+        "appeal_path_included",
+        "jurisdiction"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.insurance_claims_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.insurance_claim_decision_record_exact.v1"
+        },
+        "action": {
+          "const": "insurance.claim.decision.record"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "claims.system"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "claim_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "policy_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claimant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claim_status_before": {
+          "const": "under_review"
+        },
+        "requested_outcome": {
+          "enum": [
+            "approved",
+            "denied"
+          ]
+        },
+        "decision_reason_code": {
+          "enum": [
+            "covered_loss_verified",
+            "partial_coverage_verified",
+            "coverage_exclusion_applies",
+            "insufficient_documentation"
+          ]
+        },
+        "coverage_evaluation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "criteria_pack_id": {
+          "const": "demo-auto-claims"
+        },
+        "criteria_pack_version": {
+          "const": "v1"
+        },
+        "criteria_pack_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "decision_record_count_before": {
+          "const": 0
+        },
+        "human_review_required": {
+          "const": true
+        },
+        "required_approver_role": {
+          "const": "licensed_claims_adjuster"
+        },
+        "separation_of_duties_required": {
+          "const": true
+        },
+        "co_signature_requirement_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "appeal_path_included": {
+          "const": true
+        },
+        "jurisdiction": {
+          "const": "DEMO-NOT-A-REAL-JURISDICTION"
+        }
+      }
+    },
+    "insurance_claim_settlement_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "claim_reference_commitment",
+        "decision_reference_commitment",
+        "policy_reference_commitment",
+        "claim_status_before",
+        "decision_outcome",
+        "decision_record_digest",
+        "settlement_record_count_before",
+        "claimed_amount_minor",
+        "covered_amount_minor",
+        "policy_limit_minor",
+        "settlement_amount_minor",
+        "currency",
+        "amount_within_covered_amount",
+        "amount_within_policy_limit",
+        "terms_template_id",
+        "terms_template_version",
+        "terms_template_digest",
+        "co_signature_requirement_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.insurance_claims_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.insurance_claim_settlement_set_exact.v1"
+        },
+        "action": {
+          "const": "insurance.claim.settlement.set"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "claims.system"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "claim_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "decision_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "policy_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claim_status_before": {
+          "const": "approved"
+        },
+        "decision_outcome": {
+          "const": "approved"
+        },
+        "decision_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "settlement_record_count_before": {
+          "const": 0
+        },
+        "claimed_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "covered_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_limit_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "settlement_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "amount_within_covered_amount": {
+          "const": true
+        },
+        "amount_within_policy_limit": {
+          "const": true
+        },
+        "terms_template_id": {
+          "const": "demo-claim-settlement"
+        },
+        "terms_template_version": {
+          "const": "v1"
+        },
+        "terms_template_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "co_signature_requirement_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "insurance_claim_payment_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "claim_reference_commitment",
+        "settlement_reference_commitment",
+        "claimant_reference_commitment",
+        "destination_account_reference_commitment",
+        "claim_status_before",
+        "settlement_status_before",
+        "settlement_record_digest",
+        "settlement_amount_minor",
+        "paid_amount_minor_before",
+        "remaining_payable_minor",
+        "payment_amount_minor",
+        "currency",
+        "amount_matches_remaining_payable",
+        "destination_allowlisted",
+        "transfer_status_before",
+        "transfer_group"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.insurance_claims_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.insurance_claim_payment_send_exact.v1"
+        },
+        "action": {
+          "const": "insurance.claim.payment.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "payments"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "claim_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "settlement_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claimant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "destination_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claim_status_before": {
+          "const": "settled"
+        },
+        "settlement_status_before": {
+          "const": "approved_for_payment"
+        },
+        "settlement_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "settlement_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "paid_amount_minor_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remaining_payable_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payment_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "amount_matches_remaining_payable": {
+          "const": true
+        },
+        "destination_allowlisted": {
+          "const": true
+        },
+        "transfer_status_before": {
+          "const": "absent"
+        },
+        "transfer_group": {
+          "type": "string",
+          "pattern": "^claim_[a-z0-9_]{1,64}$"
+        }
+      }
+    },
+    "insurance_claim_notice_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "claim_reference_commitment",
+        "decision_reference_commitment",
+        "recipient_reference_commitment",
+        "recipient_is_dedicated_demo",
+        "recorded_decision_outcome",
+        "decision_record_digest",
+        "channel",
+        "template_id",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "settlement_amount_minor",
+        "currency",
+        "appeal_instructions_included",
+        "jurisdiction",
+        "notice_record_count_before",
+        "delivery_mode"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.insurance_claims_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.insurance_claim_notice_send_exact.v1"
+        },
+        "action": {
+          "const": "insurance.claim.notice.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "notification.email"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "claim_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "decision_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        },
+        "recorded_decision_outcome": {
+          "enum": [
+            "approved",
+            "denied"
+          ]
+        },
+        "decision_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "channel": {
+          "const": "email"
+        },
+        "template_id": {
+          "enum": [
+            "claim-approval-notice",
+            "claim-denial-notice"
+          ]
+        },
+        "template_version": {
+          "const": "v1"
+        },
+        "template_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_content_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "settlement_amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "appeal_instructions_included": {
+          "const": true
+        },
+        "jurisdiction": {
+          "const": "DEMO-NOT-A-REAL-JURISDICTION"
+        },
+        "notice_record_count_before": {
+          "const": 0
+        },
+        "delivery_mode": {
+          "const": "provider_email"
+        }
+      }
+    }
+  }
+}

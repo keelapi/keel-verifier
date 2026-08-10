@@ -202,6 +202,43 @@ def _collections_binding(semantic_id: str) -> dict:
     }
 
 
+def _insurance_claims_binding(semantic_id: str) -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v13.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item for item in registry["entries"] if item["semantic_id"] == semantic_id
+    )
+    presentation = json.loads(
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/presentation_registry/v12.json")
+        .read_text(encoding="utf-8")
+    )
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": entry["match"]["action_names"][0],
+        "operation": "call.tools",
+        "governed_surface": "mcp_tool",
+        "non_authorizing_presentation_profile_id": profile[
+            "presentation_profile_id"
+        ],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
     return {"name": name, "verdict": verdict, "required": required, **extra}
 
@@ -1016,5 +1053,67 @@ def test_human_artifact_resolves_collections_title_target_and_lifecycle(
     assert human["title"] == expected_title
     assert human["authorization"]["target"] == expected_target
     assert expected_target in human["summary"]["text"]
+    assert human["lifecycle"]["issued_at"] == "2026-08-10T12:00:00Z"
+    assert human["lifecycle"]["expires_at"] == "2026-08-10T12:05:00Z"
+
+
+@pytest.mark.parametrize(
+    ("semantic_id", "expected_title"),
+    (
+        (
+            "keel.action.insurance_claim_decision_record.v1",
+            "AI Permit-to-Decide-Claim",
+        ),
+        (
+            "keel.action.insurance_claim_settlement_set.v1",
+            "AI Permit-to-Settle-Claim",
+        ),
+        (
+            "keel.action.insurance_claim_payment_send.v1",
+            "AI Permit-to-Pay-Claim",
+        ),
+        (
+            "keel.action.insurance_claim_notice_send.v1",
+            "AI Permit-to-Send-Claim-Determination-Notice",
+        ),
+    ),
+)
+def test_human_artifact_resolves_insurance_claims_title_target_and_lifecycle(
+    semantic_id: str,
+    expected_title: str,
+) -> None:
+    binding = _insurance_claims_binding(semantic_id)
+    claim_digest = "sha256:" + "f" * 64
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "pinned expected public key",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-insurance-claims",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "insurance-claims-agent",
+                "authorized_action": binding["action_name"],
+                "issued_at": "2026-08-10T12:00:00Z",
+                "expires_at": "2026-08-10T12:05:00Z",
+                "semantic_id": semantic_id,
+                "semantic_binding": binding,
+                "authorization_facts": {
+                    "claim_reference_commitment": {"digest": claim_digest}
+                },
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+
+    assert human is not None
+    assert human["title"] == expected_title
+    assert human["authorization"]["target"] == (
+        f"insurance claim commitment {claim_digest}"
+    )
+    assert human["authorization"]["target"] in human["summary"]["text"]
     assert human["lifecycle"]["issued_at"] == "2026-08-10T12:00:00Z"
     assert human["lifecycle"]["expires_at"] == "2026-08-10T12:05:00Z"
