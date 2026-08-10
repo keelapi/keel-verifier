@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Vendor byte-identical Insurance Claims consequence v8, semantic v13,
+  fact-profile v11, presentation v12, exact-facts, and v9 vector artifacts from
+  `keel-permit`.
+- Verify claim determination, bounded settlement, Stripe test claim payment,
+  and approved determination notice as four separate consequences.
+- Render the four human-first Insurance Claims AI Permit-to-X titles, exact
+  committed claim target, issuance, and expiry without caller-supplied labels.
+- Reject stale preflights, cross-action fact-profile substitution, outcome and
+  reason mismatches, settlement overages, incoherent payment arithmetic,
+  unapproved destinations, and mismatched determination notices.
 - Vendor byte-identical Collections Arrangement consequence v7, semantic v12,
   fact-profile v10, presentation v11, exact-facts, and v8 vector artifacts from
   `keel-permit`.
