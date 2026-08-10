@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.18.0
+
+- Vendor the exact Payment & Ledger contracts, fact-profile registry v5,
+  semantic selector registry v7, presentation registry v6, and conformance
+  vectors from `keel-permit v1.17.0`.
+- Resolve and verify signed AI Permit-to-Pay-Invoice,
+  AI Permit-to-Record-Ledger-Entry, and AI Permit-to-Reconcile-Payment
+  artifacts while retaining byte-identical support for every earlier registry.
+- Reject cross-action fact/profile substitution and fail closed when invoice,
+  double-entry, or reconciliation preconditions do not validate against the
+  signed exact-facts schema.
+
 ## 3.17.0
 
 - Vendor the immutable database exact-facts contract, fact-profile registry v4,

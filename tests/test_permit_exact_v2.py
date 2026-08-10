@@ -635,6 +635,30 @@ def _database_body_from_vector(vector: dict) -> dict:
     )
 
 
+def _payment_ledger_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v6.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    return _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v7.json",
+        fact_registry_file="v5.json",
+    )
+
+
 def _replace_authorization_facts(body: dict, facts: dict) -> None:
     body["authorization_facts"] = copy.deepcopy(facts)
     binding = body["semantic_binding"]
@@ -952,6 +976,162 @@ def test_v6_coherent_insert_facts_cannot_ride_inside_delete_binding() -> None:
     assert claims["permit.type.v1"].reason_code == (
         "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
     )
+
+
+def test_v7_payment_ledger_exact_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v3.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for vector in vectors:
+        result = adjudicate_permit_exact_v2_body(
+            _payment_ledger_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_v7_payment_ledger_cross_action_profile_substitution_is_disproved() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v3.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for index, vector in enumerate(vectors):
+        body = _payment_ledger_body_from_vector(vector)
+        facts = copy.deepcopy(vector["valid_authorization_facts"])
+        facts["fact_profile_id"] = vectors[(index + 1) % len(vectors)][
+            "expected_fact_profile_id"
+        ]
+        _replace_authorization_facts(body, facts)
+
+        claims = _claim_map(
+            adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+        )
+
+        assert claims["permit.type.v1"].verdict == "disproved"
+        assert claims["permit.type.v1"].reason_code == (
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+        )
+
+
+def test_v7_coherent_invoice_facts_cannot_ride_in_reconciliation_binding() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v3.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+    invoice = next(
+        vector for vector in vectors if vector["id"] == "payment.invoice.pay.v1"
+    )
+    reconciliation = next(
+        vector
+        for vector in vectors
+        if vector["id"] == "payment.reconciliation.record.v1"
+    )
+    body = _payment_ledger_body_from_vector(reconciliation)
+    _replace_authorization_facts(
+        body,
+        copy.deepcopy(invoice["valid_authorization_facts"]),
+    )
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+    )
+
+
+@pytest.mark.parametrize(
+    ("vector_id", "field", "invalid_value"),
+    (
+        ("payment.invoice.pay.v1", "invoice_status_before", "paid"),
+        ("ledger.entry.record.v1", "value_conserved", False),
+        ("ledger.entry.record.v1", "accounts_distinct", False),
+        ("payment.reconciliation.record.v1", "amounts_match", False),
+        ("payment.reconciliation.record.v1", "currencies_match", False),
+        (
+            "payment.reconciliation.record.v1",
+            "provider_outcome_state",
+            "pending",
+        ),
+    ),
+)
+def test_v7_payment_ledger_trusted_preconditions_fail_closed(
+    vector_id: str,
+    field: str,
+    invalid_value: object,
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v3.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == vector_id
+    )
+    body = _payment_ledger_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts[field] = invalid_value
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_AUTHORIZATION_FACTS_SCHEMA_INVALID"
+    )
+
+
+@pytest.mark.parametrize(
+    ("observed_at", "expires_at"),
+    (
+        ("2026-07-30T11:59:00Z", "2026-07-30T12:00:00Z"),
+        ("2026-07-30T12:00:01Z", "2026-07-30T12:04:00Z"),
+        ("2026-07-30T11:54:59Z", "2026-07-30T12:04:00Z"),
+    ),
+)
+def test_v7_payment_ledger_preflight_must_be_fresh_at_authorization(
+    observed_at: str,
+    expires_at: str,
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v3.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == "payment.invoice.pay.v1"
+    )
+    body = _payment_ledger_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["preflight_observed_at"] = observed_at
+    facts["preflight_expires_at"] = expires_at
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == "PERMIT_PREFLIGHT_WINDOW_INVALID"
 
 
 def test_generate_text_specific_claim_requires_and_proves_certified_adapter() -> None:

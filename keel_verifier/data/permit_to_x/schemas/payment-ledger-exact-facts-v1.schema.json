@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/payment-ledger-exact-facts-v1.schema.json",
+  "title": "Keel exact payment and ledger authorization facts v1",
+  "oneOf": [
+    { "$ref": "#/$defs/invoicePayment" },
+    { "$ref": "#/$defs/ledgerEntry" },
+    { "$ref": "#/$defs/paymentReconciliation" }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "versionText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "amountMinor": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 999999999999999
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "digest"],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "invoicePayment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "invoice_reference_commitment",
+        "payer_reference_commitment",
+        "merchant_reference_commitment",
+        "amount_minor",
+        "currency",
+        "payment_rail",
+        "invoice_status_before",
+        "invoice_state_digest",
+        "idempotency_digest",
+        "max_uses"
+      ],
+      "properties": {
+        "version": { "const": "keel.payment_ledger_exact_facts.v1" },
+        "fact_profile_id": {
+          "const": "keel.facts.invoice_payment_exact.v1"
+        },
+        "action": { "const": "payment.invoice.pay" },
+        "operation": { "const": "call.tools" },
+        "connector_identity": { "enum": ["payments", "stripe"] },
+        "connector_contract_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_schema_hash": { "$ref": "#/$defs/rawDigest" },
+        "decision_trace_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_arguments_hash": { "$ref": "#/$defs/rawDigest" },
+        "request_digest": { "$ref": "#/$defs/digest" },
+        "enforcement_mode": { "const": "enforced_in_path" },
+        "preflight_observed_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_expires_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_snapshot_digest": { "$ref": "#/$defs/digest" },
+        "invoice_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "merchant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "amount_minor": { "$ref": "#/$defs/amountMinor" },
+        "currency": { "$ref": "#/$defs/currency" },
+        "payment_rail": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        },
+        "invoice_status_before": { "const": "open" },
+        "invoice_state_digest": { "$ref": "#/$defs/digest" },
+        "idempotency_digest": { "$ref": "#/$defs/digest" },
+        "max_uses": { "const": 1 }
+      }
+    },
+    "ledgerEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "ledger_reference_commitment",
+        "entry_reference_commitment",
+        "debit_account_commitment",
+        "credit_account_commitment",
+        "amount_minor",
+        "currency",
+        "entry_effective_at",
+        "ledger_schema_version",
+        "expected_ledger_version",
+        "value_conserved",
+        "accounts_distinct",
+        "idempotency_digest"
+      ],
+      "properties": {
+        "version": { "const": "keel.payment_ledger_exact_facts.v1" },
+        "fact_profile_id": {
+          "const": "keel.facts.ledger_entry_record_exact.v1"
+        },
+        "action": { "const": "ledger.entry.record" },
+        "operation": { "const": "call.tools" },
+        "connector_identity": {
+          "enum": ["database.readwrite", "postgres.readwrite"]
+        },
+        "connector_contract_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_schema_hash": { "$ref": "#/$defs/rawDigest" },
+        "decision_trace_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_arguments_hash": { "$ref": "#/$defs/rawDigest" },
+        "request_digest": { "$ref": "#/$defs/digest" },
+        "enforcement_mode": { "const": "enforced_in_path" },
+        "preflight_observed_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_expires_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_snapshot_digest": { "$ref": "#/$defs/digest" },
+        "ledger_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "entry_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "debit_account_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "credit_account_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "amount_minor": { "$ref": "#/$defs/amountMinor" },
+        "currency": { "$ref": "#/$defs/currency" },
+        "entry_effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ledger_schema_version": { "$ref": "#/$defs/versionText" },
+        "expected_ledger_version": { "$ref": "#/$defs/versionText" },
+        "value_conserved": { "const": true },
+        "accounts_distinct": { "const": true },
+        "idempotency_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "paymentReconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "payment_reference_commitment",
+        "ledger_entry_reference_commitment",
+        "provider_observation_digest",
+        "ledger_observation_digest",
+        "amount_minor",
+        "currency",
+        "provider_outcome_state",
+        "ledger_entry_state",
+        "amounts_match",
+        "currencies_match",
+        "expected_current_status",
+        "requested_status",
+        "reconciliation_basis_version",
+        "idempotency_digest"
+      ],
+      "properties": {
+        "version": { "const": "keel.payment_ledger_exact_facts.v1" },
+        "fact_profile_id": {
+          "const": "keel.facts.payment_reconciliation_exact.v1"
+        },
+        "action": { "const": "payment.reconciliation.record" },
+        "operation": { "const": "call.tools" },
+        "connector_identity": {
+          "enum": ["database.readwrite", "postgres.readwrite"]
+        },
+        "connector_contract_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_schema_hash": { "$ref": "#/$defs/rawDigest" },
+        "decision_trace_hash": { "$ref": "#/$defs/rawDigest" },
+        "tool_arguments_hash": { "$ref": "#/$defs/rawDigest" },
+        "request_digest": { "$ref": "#/$defs/digest" },
+        "enforcement_mode": { "const": "enforced_in_path" },
+        "preflight_observed_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_expires_at": { "$ref": "#/$defs/timestamp" },
+        "preflight_snapshot_digest": { "$ref": "#/$defs/digest" },
+        "payment_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "ledger_entry_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_observation_digest": { "$ref": "#/$defs/digest" },
+        "ledger_observation_digest": { "$ref": "#/$defs/digest" },
+        "amount_minor": { "$ref": "#/$defs/amountMinor" },
+        "currency": { "$ref": "#/$defs/currency" },
+        "provider_outcome_state": { "const": "completed" },
+        "ledger_entry_state": { "const": "posted" },
+        "amounts_match": { "const": true },
+        "currencies_match": { "const": true },
+        "expected_current_status": { "const": "unreconciled" },
+        "requested_status": { "const": "reconciled" },
+        "reconciliation_basis_version": { "$ref": "#/$defs/versionText" },
+        "idempotency_digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
