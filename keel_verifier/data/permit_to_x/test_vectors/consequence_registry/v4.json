@@ -1,0 +1,647 @@
+{
+  "version": "keel.consequence_registry.test_vectors.v4",
+  "consequence_registry_version": "keel.consequence_registry.v3",
+  "semantic_registry_version": "keel.semantic_selector_registry.v8",
+  "presentation_registry_version": "keel.presentation_registry.v7",
+  "vectors": [
+    {
+      "id": "database.rows.insert.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.insert",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_insert.v1",
+      "expected_title": "AI Permit-to-Insert-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_insert_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_insert_exact.v1",
+        "action": "database.rows.insert",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "rows_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "row_count": 1,
+        "schema_version": "2026-08-10.1",
+        "table_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    },
+    {
+      "id": "database.rows.update.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.update",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_update.v1",
+      "expected_title": "AI Permit-to-Update-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_update_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_update_exact.v1",
+        "action": "database.rows.update",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "changes_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "row_limit": 1,
+        "expected_current_version": "7",
+        "table_allowlist_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "database.rows.delete.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.delete",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_delete.v1",
+      "expected_title": "AI Permit-to-Delete-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_delete_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_delete_exact.v1",
+        "action": "database.rows.delete",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "row_limit": 1,
+        "expected_current_version": "7",
+        "table_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    },
+    {
+      "id": "database.migration.apply.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.migration.apply",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_migration_apply.v1",
+      "expected_title": "AI Permit-to-Apply-Database-Migration",
+      "expected_fact_profile_id": "keel.facts.database_migration_apply_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_migration_apply_exact.v1",
+        "action": "database.migration.apply",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "migration_id": "add_customer_risk_tier",
+        "migration_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "from_schema_version": "2026-08-10.1",
+        "to_schema_version": "2026-08-10.2",
+        "migration_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "current_schema_version": "2026-08-10.1"
+      }
+    },
+    {
+      "id": "database.dataset.export.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.dataset.export",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_dataset_export.v1",
+      "expected_title": "AI Permit-to-Export-Dataset",
+      "expected_fact_profile_id": "keel.facts.database_dataset_export_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_dataset_export_exact.v1",
+        "action": "database.dataset.export",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "fields_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "row_limit": 100,
+        "table_allowlist_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "restricted_field_classification": "none",
+        "field_classifier_version": "keel.database.fields.v1"
+      }
+    },
+    {
+      "id": "payment.invoice.pay.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "payment.invoice.pay",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.invoice_payment_execute.v1",
+      "expected_title": "AI Permit-to-Pay-Invoice",
+      "expected_fact_profile_id": "keel.facts.invoice_payment_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.payment_ledger_exact_facts.v1",
+        "fact_profile_id": "keel.facts.invoice_payment_exact.v1",
+        "action": "payment.invoice.pay",
+        "operation": "call.tools",
+        "connector_identity": "payments",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "preflight_observed_at": "2026-07-30T11:59:00Z",
+        "preflight_expires_at": "2026-07-30T12:04:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invoice_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "payer_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "merchant_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+        },
+        "amount_minor": 12500,
+        "currency": "USD",
+        "payment_rail": "stripe.invoice",
+        "invoice_status_before": "open",
+        "invoice_state_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1
+      }
+    },
+    {
+      "id": "ledger.entry.record.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "ledger.entry.record",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.ledger_entry_record.v1",
+      "expected_title": "AI Permit-to-Record-Ledger-Entry",
+      "expected_fact_profile_id": "keel.facts.ledger_entry_record_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.payment_ledger_exact_facts.v1",
+        "fact_profile_id": "keel.facts.ledger_entry_record_exact.v1",
+        "action": "ledger.entry.record",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "preflight_observed_at": "2026-07-30T11:59:00Z",
+        "preflight_expires_at": "2026-07-30T12:04:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ledger_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "entry_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "debit_account_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+        },
+        "credit_account_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        "amount_minor": 12500,
+        "currency": "USD",
+        "entry_effective_at": "2026-08-10T08:00:00Z",
+        "ledger_schema_version": "keel.demo.ledger.v1",
+        "expected_ledger_version": "7",
+        "value_conserved": true,
+        "accounts_distinct": true,
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "id": "payment.reconciliation.record.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "payment.reconciliation.record",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.payment_reconciliation_record.v1",
+      "expected_title": "AI Permit-to-Reconcile-Payment",
+      "expected_fact_profile_id": "keel.facts.payment_reconciliation_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.payment_ledger_exact_facts.v1",
+        "fact_profile_id": "keel.facts.payment_reconciliation_exact.v1",
+        "action": "payment.reconciliation.record",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "preflight_observed_at": "2026-07-30T11:59:00Z",
+        "preflight_expires_at": "2026-07-30T12:04:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "payment_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "ledger_entry_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "provider_observation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "ledger_observation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "amount_minor": 12500,
+        "currency": "USD",
+        "provider_outcome_state": "completed",
+        "ledger_entry_state": "posted",
+        "amounts_match": true,
+        "currencies_match": true,
+        "expected_current_status": "unreconciled",
+        "requested_status": "reconciled",
+        "reconciliation_basis_version": "keel.payment_reconciliation.v1",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    {
+      "id": "payment.refund.execute.v2",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "payment.refund",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.payment_refund.v2",
+      "expected_title": "AI Permit-to-Refund-Payment",
+      "expected_fact_profile_id": "keel.facts.refund_exact.v2",
+      "valid_authorization_facts": {
+        "version": "keel.transactional_cx_exact_facts.v1",
+        "fact_profile_id": "keel.facts.refund_exact.v2",
+        "action": "payment.refund",
+        "operation": "call.tools",
+        "connector_identity": "stripe",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "provider_environment": "test",
+        "provider_api_version": "2025-07-30.basil",
+        "preflight_observed_at": "2026-08-10T12:00:00Z",
+        "preflight_expires_at": "2026-08-10T12:05:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1,
+        "payment_reference_kind": "payment_intent",
+        "original_payment_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "payer_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "amount_minor": 2500,
+        "refundable_amount_minor_before": 5000,
+        "currency": "USD",
+        "refund_reason": "requested_by_customer",
+        "refund_application_fee": false,
+        "reverse_transfer": false,
+        "payment_state_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "customer.credit.issue.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "customer.credit.issue",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.customer_credit_issue.v1",
+      "expected_title": "AI Permit-to-Issue-Account-Credit",
+      "expected_fact_profile_id": "keel.facts.customer_credit_issue_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.transactional_cx_exact_facts.v1",
+        "fact_profile_id": "keel.facts.customer_credit_issue_exact.v1",
+        "action": "customer.credit.issue",
+        "operation": "call.tools",
+        "connector_identity": "stripe",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "provider_environment": "test",
+        "provider_api_version": "2025-07-30.basil",
+        "preflight_observed_at": "2026-08-10T12:00:00Z",
+        "preflight_expires_at": "2026-08-10T12:05:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1,
+        "customer_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "amount_minor": 1500,
+        "provider_amount_minor": -1500,
+        "currency": "USD",
+        "customer_balance_before_minor": 0,
+        "expected_customer_balance_after_minor": -1500,
+        "credit_direction": "customer_credit",
+        "description_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "customer_balance_state_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "subscription.cancellation.schedule.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "subscription.cancellation.schedule",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.subscription_cancellation_schedule.v1",
+      "expected_title": "AI Permit-to-Schedule-Subscription-Cancellation",
+      "expected_fact_profile_id": "keel.facts.subscription_cancellation_schedule_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.transactional_cx_exact_facts.v1",
+        "fact_profile_id": "keel.facts.subscription_cancellation_schedule_exact.v1",
+        "action": "subscription.cancellation.schedule",
+        "operation": "call.tools",
+        "connector_identity": "stripe",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "provider_environment": "test",
+        "provider_api_version": "2025-07-30.basil",
+        "preflight_observed_at": "2026-08-10T12:00:00Z",
+        "preflight_expires_at": "2026-08-10T12:05:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1,
+        "subscription_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "customer_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "subscription_status_before": "active",
+        "cancel_at_period_end_before": false,
+        "cancel_at_period_end_requested": true,
+        "current_period_end": "2026-09-10T12:00:00Z",
+        "subscription_state_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "subscription.cancellation.withdraw.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "subscription.cancellation.withdraw",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.subscription_cancellation_withdraw.v1",
+      "expected_title": "AI Permit-to-Withdraw-Subscription-Cancellation",
+      "expected_fact_profile_id": "keel.facts.subscription_cancellation_withdraw_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.transactional_cx_exact_facts.v1",
+        "fact_profile_id": "keel.facts.subscription_cancellation_withdraw_exact.v1",
+        "action": "subscription.cancellation.withdraw",
+        "operation": "call.tools",
+        "connector_identity": "stripe",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "provider_environment": "test",
+        "provider_api_version": "2025-07-30.basil",
+        "preflight_observed_at": "2026-08-10T12:00:00Z",
+        "preflight_expires_at": "2026-08-10T12:05:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1,
+        "subscription_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "customer_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "subscription_status_before": "active",
+        "cancel_at_period_end_before": true,
+        "cancel_at_period_end_requested": false,
+        "current_period_end": "2026-09-10T12:00:00Z",
+        "canceled_at_before": null,
+        "ended_at_before": null,
+        "subscription_state_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "support.case.resolve.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "support.case.resolve",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.support_case_resolve.v1",
+      "expected_title": "AI Permit-to-Resolve-Support-Case",
+      "expected_fact_profile_id": "keel.facts.support_case_resolve_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.transactional_cx_exact_facts.v1",
+        "fact_profile_id": "keel.facts.support_case_resolve_exact.v1",
+        "action": "support.case.resolve",
+        "operation": "call.tools",
+        "connector_identity": "hubspot",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "provider_environment": "developer_test",
+        "provider_api_version": "2026-03",
+        "preflight_observed_at": "2026-08-10T12:00:00Z",
+        "preflight_expires_at": "2026-08-10T12:05:00Z",
+        "preflight_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotency_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "max_uses": 1,
+        "ticket_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        "pipeline_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+        },
+        "current_stage_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+        },
+        "requested_stage_reference_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        "current_stage_state": "OPEN",
+        "requested_stage_state": "CLOSED",
+        "ticket_updated_at_before": "2026-08-10T11:59:00Z",
+        "ticket_state_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "pipeline_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "resolution_summary_commitment": {
+          "method": "keel.salted_sha256_jcs.v1",
+          "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      }
+    }
+  ]
+}
