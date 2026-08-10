@@ -486,6 +486,49 @@ def test_v11_coding_workspace_profiles_resolve_from_published_vectors() -> None:
         )
 
 
+def test_v12_collections_profiles_resolve_from_published_vectors() -> None:
+    registry, raw = _registry("semantic_registry/v12.json")
+    vectors, _ = _registry("test_vectors/consequence_registry/v8.json")
+    presentation, _ = _registry("presentation_registry/v11.json")
+    profile_by_semantic = {
+        item["semantic_id"]: item for item in presentation["profiles"]
+    }
+
+    for vector in vectors["vectors"][-4:]:
+        semantic_id = vector["expected_semantic_id"]
+        candidate = vector["candidate"]
+        entry = next(
+            item for item in registry["entries"] if item["semantic_id"] == semantic_id
+        )
+        profile = profile_by_semantic[semantic_id]
+        binding = {
+            "version": "keel.permit_semantic_binding.v2",
+            "semantic_id": semantic_id,
+            "fact_profile_id": vector["expected_fact_profile_id"],
+            "trusted_source_kind": candidate["trusted_source_kind"],
+            "chain_role": candidate["chain_role"],
+            "action_name": candidate["action_name"],
+            "operation": candidate["operation"],
+            "governed_surface": candidate["governed_surface"],
+            "non_authorizing_presentation_profile_id": profile[
+                "presentation_profile_id"
+            ],
+            "selector_registry_version": registry["version"],
+            "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+            "selector_entry_digest": (
+                f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+            ),
+        }
+
+        resolved = resolve_permit_presentation(binding)
+
+        assert resolved["resolution"] == "trusted_signed_semantic"
+        assert resolved["customer_title"] == vector["expected_title"]
+        assert resolved["presentation_registry_version"] == (
+            "keel.presentation_registry.v11"
+        )
+
+
 def test_refund_v1_and_mcp_v2_remain_unambiguous() -> None:
     registry, _ = _registry("semantic_registry/v8.json")
     refund_entries = [
