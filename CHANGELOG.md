@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Vendor byte-identical identity/security consequence v5, semantic v10,
+  fact-profile v8, presentation v9, exact-facts, and v6 vector artifacts from
+  `keel-permit`.
+- Resolve exact human artifacts for MFA reset, session revocation, identity
+  disablement, group-access grant/removal, and indicator blocking without
+  accepting caller-supplied titles.
+- Reject stale identity/security preflights, cross-action profile substitution,
+  incoherent group/ruleset count transitions, last-privileged-member removal,
+  and unsafe lifecycle or provider-state substitutions.
 - Vendor byte-identical Merge-to-Production consequence v4, semantic v9,
   fact-profile v7, presentation v8, exact-facts, and v5 vector artifacts from
   `keel-permit`.

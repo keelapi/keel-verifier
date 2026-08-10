@@ -121,6 +121,14 @@ def _target(permit: Mapping[str, Any]) -> str | None:
         facts.get("repository_reference_commitment"), "repository"
     ) or _commitment_label(
         facts.get("fly_machine_reference_commitment"), "production machine"
+    ) or _commitment_label(
+        facts.get("user_reference_commitment"), "identity"
+    ) or _commitment_label(
+        facts.get("group_reference_commitment"), "identity group"
+    ) or _commitment_label(
+        facts.get("indicator_reference_commitment"), "security indicator"
+    ) or _commitment_label(
+        facts.get("zone_reference_commitment"), "security zone"
     )
     if committed_target:
         return committed_target
