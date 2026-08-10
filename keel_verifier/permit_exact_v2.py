@@ -178,14 +178,17 @@ def _parse_time(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def _verify_payment_ledger_preflight_window(
+def _verify_trusted_preflight_window(
     *,
     facts: Mapping[str, Any],
     canonical_payload: Mapping[str, Any],
 ) -> None:
     """Require a fresh gateway snapshot at the signed authorization instant."""
 
-    if facts.get("version") != "keel.payment_ledger_exact_facts.v1":
+    if facts.get("version") not in {
+        "keel.payment_ledger_exact_facts.v1",
+        "keel.transactional_cx_exact_facts.v1",
+    }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
     observed_at = _parse_time(facts.get("preflight_observed_at"))
@@ -202,6 +205,69 @@ def _verify_payment_ledger_preflight_window(
             "disproved",
             "PERMIT_PREFLIGHT_WINDOW_INVALID",
             "the gateway-signed preflight snapshot was not fresh at authorization",
+        )
+
+
+def _verify_transactional_cx_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate CX relations that JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.transactional_cx_exact_facts.v1":
+        return
+    action = facts.get("action")
+    valid = True
+    if action == "payment.refund":
+        amount = facts.get("amount_minor")
+        remaining = facts.get("refundable_amount_minor_before")
+        valid = (
+            isinstance(amount, int)
+            and not isinstance(amount, bool)
+            and isinstance(remaining, int)
+            and not isinstance(remaining, bool)
+            and amount <= remaining
+            and facts.get("refund_application_fee") is False
+            and facts.get("reverse_transfer") is False
+        )
+    elif action == "customer.credit.issue":
+        amount = facts.get("amount_minor")
+        provider_amount = facts.get("provider_amount_minor")
+        before = facts.get("customer_balance_before_minor")
+        after = facts.get("expected_customer_balance_after_minor")
+        valid = (
+            isinstance(amount, int)
+            and not isinstance(amount, bool)
+            and isinstance(provider_amount, int)
+            and not isinstance(provider_amount, bool)
+            and isinstance(before, int)
+            and not isinstance(before, bool)
+            and isinstance(after, int)
+            and not isinstance(after, bool)
+            and provider_amount == -amount
+            and after == before - amount
+        )
+    elif action == "subscription.cancellation.schedule":
+        valid = (
+            facts.get("cancel_at_period_end_before") is False
+            and facts.get("cancel_at_period_end_requested") is True
+        )
+    elif action == "subscription.cancellation.withdraw":
+        valid = (
+            facts.get("cancel_at_period_end_before") is True
+            and facts.get("cancel_at_period_end_requested") is False
+            and facts.get("canceled_at_before") is None
+            and facts.get("ended_at_before") is None
+        )
+    elif action == "support.case.resolve":
+        valid = (
+            facts.get("current_stage_state") == "OPEN"
+            and facts.get("requested_stage_state") == "CLOSED"
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_TRANSACTIONAL_CX_INVARIANT_INVALID",
+            "the signed Transactional CX facts violate an exact provider-action invariant",
         )
 
 
@@ -585,6 +651,7 @@ def _resolve_contracts(
             "semantic_registry/v5.json",
             "semantic_registry/v6.json",
             "semantic_registry/v7.json",
+            "semantic_registry/v8.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -596,6 +663,7 @@ def _resolve_contracts(
             "fact_profiles/v3.json",
             "fact_profiles/v4.json",
             "fact_profiles/v5.json",
+            "fact_profiles/v6.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -1744,10 +1812,11 @@ def adjudicate_permit_exact_v2_body(
             )
         )
     try:
-        _verify_payment_ledger_preflight_window(
+        _verify_trusted_preflight_window(
             facts=facts,
             canonical_payload=canonical_payload,
         )
+        _verify_transactional_cx_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

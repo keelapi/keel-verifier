@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.19.0
+
+- Vendor byte-identical Transactional CX consequence v3, semantic v8,
+  fact-profile v6, presentation v7, exact-facts, and v4 vector artifacts from
+  `keel-permit`.
+- Resolve five exact human artifacts offline: refund payment, issue account
+  credit, schedule subscription cancellation, withdraw a pending cancellation,
+  and resolve a support case.
+- Reject stale provider preflight windows, cross-action fact-profile
+  substitution, refunds above the observed refundable remainder, inconsistent
+  account-credit sign or balance arithmetic, and invalid lifecycle or support
+  stage transitions.
+- Preserve the historical refund v1 route and title while resolving the new
+  governed-MCP refund v2 selector only for `operation=call.tools`.
+
 ## 3.18.0
 
 - Vendor the exact Payment & Ledger contracts, fact-profile registry v5,
