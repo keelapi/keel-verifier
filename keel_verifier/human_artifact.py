@@ -111,6 +111,12 @@ def _target(permit: Mapping[str, Any]) -> str | None:
         facts.get("recipient_reference_commitment"), "recipient"
     ) or _commitment_label(
         facts.get("intended_child_reference_commitment"), "child"
+    ) or _commitment_label(
+        facts.get("subscription_reference_commitment"), "subscription"
+    ) or _commitment_label(
+        facts.get("ticket_reference_commitment"), "support case"
+    ) or _commitment_label(
+        facts.get("customer_reference_commitment"), "customer"
     )
     if committed_target:
         return committed_target
