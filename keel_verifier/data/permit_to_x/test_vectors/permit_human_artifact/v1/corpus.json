@@ -1,0 +1,173 @@
+{
+  "version": "keel.permit_human_artifact_vectors.v1",
+  "artifact_schema": "schemas/permit-human-artifact-v1.schema.json",
+  "package_schema": "schemas/permit-package-manifest-v1.schema.json",
+  "valid_artifacts": [
+    {
+      "id": "refund-provider-accepted",
+      "document": {
+        "version": "keel.permit_human_artifact.v1",
+        "artifact_kind": "permit",
+        "title": "AI Permit-to-Refund-Payment",
+        "state_label": "Provider accepted",
+        "source": {
+          "permit_exact_profile": "permit-exact.v3",
+          "permit_id": "prm_refund_001",
+          "semantic_id": "keel.action.payment_refund.v1",
+          "presentation_registry_version": "keel.presentation_registry.v3",
+          "presentation_registry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "presentation_profile_id": "permit_to_refund_payment.r1"
+        },
+        "identity": {"agent": "agent:bank-voice", "principal": "customer:test-001", "project": "project:great-bank"},
+        "authorization": {
+          "action": "refund payment",
+          "target": "payment_intent:pi_test_001",
+          "display_fields": [
+            {"label": "Maximum amount", "value": 2500},
+            {"label": "Currency", "value": "USD"}
+          ],
+          "limits": {"amount_minor_max": 2500, "max_uses": 1},
+          "policy": {"id": "refund-policy", "version": "7"},
+          "approval": null
+        },
+        "lifecycle": {
+          "issued_at": "2026-08-09T23:03:22Z",
+          "expires_at": "2026-08-09T23:18:22Z",
+          "expiry_limiting_source": "policy",
+          "dispatched_at": "2026-08-09T23:05:11Z",
+          "first_used_at": "2026-08-09T23:05:11Z",
+          "last_used_at": "2026-08-09T23:05:11Z",
+          "use_count": 1,
+          "max_uses": 1,
+          "revoked_at": null,
+          "verified_at": "2026-08-09T23:06:00Z",
+          "status": "provider_accepted"
+        },
+        "outcome": {
+          "dispatch_state": "dispatched",
+          "provider_state": "succeeded",
+          "provider_object_id": "re_test_001",
+          "readback_state": "succeeded",
+          "observed_at": "2026-08-09T23:05:45Z"
+        },
+        "evidence_boundary": {
+          "establishes": ["exact refund authorization preceded dispatch", "Stripe response was observed by the governed gateway"],
+          "does_not_establish": ["financial settlement", "provider-independent truth"]
+        },
+        "summary": {
+          "text": "Keel authorized agent:bank-voice to refund payment on payment_intent:pi_test_001. The Permit was valid from 2026-08-09T23:03:22Z until 2026-08-09T23:18:22Z. The governed boundary dispatched the action and later observed provider state succeeded for re_test_001. The artifact verification result is pass in pinned_key mode.",
+          "derivation": "verifier_from_verified_fields"
+        },
+        "verification": {
+          "integrity_verdict": "pass",
+          "trust_mode": "pinned_key",
+          "key_id": "keel-test-2026",
+          "input_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "verified_at": "2026-08-09T23:06:00Z"
+        },
+        "advanced": {
+          "available": true,
+          "representations": [
+            {
+              "kind": "signed_evidence_json",
+              "path": "evidence/permit-exact.json",
+              "media_type": "application/json",
+              "sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "size_bytes": 4096
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "denial-is-not-permit",
+      "document": {
+        "version": "keel.permit_human_artifact.v1",
+        "artifact_kind": "denial",
+        "title": "AI Action Denied",
+        "state_label": "Denied before dispatch",
+        "source": {
+          "permit_exact_profile": null,
+          "permit_id": null,
+          "semantic_id": "keel.action.payment_refund.v1",
+          "presentation_registry_version": "keel.presentation_registry.v3",
+          "presentation_registry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "presentation_profile_id": "permit_to_refund_payment.r1"
+        },
+        "identity": {"agent": "agent:bank-voice", "principal": "customer:test-001", "project": "project:great-bank"},
+        "authorization": {"action": "refund payment", "target": "payment_intent:pi_test_001", "display_fields": [], "limits": {}, "policy": {"id": "refund-policy", "version": "7"}, "approval": null},
+        "lifecycle": {"issued_at": null, "expires_at": null, "status": "denied"},
+        "outcome": {"dispatch_state": "not_dispatched", "provider_state": null, "provider_object_id": null, "readback_state": null, "observed_at": null},
+        "evidence_boundary": {"establishes": ["the request was denied"], "does_not_establish": ["provider execution"]},
+        "summary": {"text": "Keel denied refund payment on payment_intent:pi_test_001 before provider dispatch. The artifact verification result is pass in pinned_key mode.", "derivation": "verifier_from_verified_fields"},
+        "verification": {"integrity_verdict": "pass", "trust_mode": "pinned_key", "key_id": "keel-test-2026", "input_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "verified_at": "2026-08-09T23:06:00Z"},
+        "advanced": {"available": true, "representations": []}
+      }
+    },
+    {
+      "id": "review-is-not-permit",
+      "document": {
+        "version": "keel.permit_human_artifact.v1",
+        "artifact_kind": "review",
+        "title": "AI Action Awaiting Approval",
+        "state_label": "No dispatch before approval",
+        "source": {
+          "permit_exact_profile": null,
+          "permit_id": null,
+          "semantic_id": "keel.action.payment_refund.v1",
+          "presentation_registry_version": "keel.presentation_registry.v3",
+          "presentation_registry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "presentation_profile_id": "permit_to_refund_payment.r1"
+        },
+        "identity": {"agent": "agent:bank-voice", "principal": "customer:test-001", "project": "project:great-bank"},
+        "authorization": {"action": "refund payment", "target": "payment_intent:pi_test_001", "display_fields": [], "limits": {}, "policy": {"id": "refund-policy", "version": "7"}, "approval": {"state": "pending"}},
+        "lifecycle": {"issued_at": null, "expires_at": null, "status": "awaiting_approval"},
+        "outcome": {"dispatch_state": "not_dispatched", "provider_state": null, "provider_object_id": null, "readback_state": null, "observed_at": null},
+        "evidence_boundary": {"establishes": ["the request awaits approval"], "does_not_establish": ["authorization", "provider execution"]},
+        "summary": {"text": "The proposed refund payment on payment_intent:pi_test_001 is awaiting approval. No Permit or provider dispatch is represented. The artifact verification result is pass in pinned_key mode.", "derivation": "verifier_from_verified_fields"},
+        "verification": {"integrity_verdict": "pass", "trust_mode": "pinned_key", "key_id": "keel-test-2026", "input_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "verified_at": "2026-08-09T23:06:00Z"},
+        "advanced": {"available": true, "representations": []}
+      }
+    }
+  ],
+  "artifact_mutations": [
+    {"id": "denial-title-spoofed-as-permit", "base": "denial-is-not-permit", "path": ["title"], "value": "AI Permit-to-Refund-Payment"},
+    {"id": "permit-issued-at-removed", "base": "refund-provider-accepted", "path": ["lifecycle", "issued_at"], "value": null},
+    {"id": "summary-derivation-caller-controlled", "base": "refund-provider-accepted", "path": ["summary", "derivation"], "value": "caller_supplied"},
+    {"id": "advanced-path-traversal", "base": "refund-provider-accepted", "path": ["advanced", "representations", 0, "path"], "value": "../permit-exact.json"}
+  ],
+  "render_mutations": [
+    {"id": "packaged-title-conflicts-with-semantic", "base": "refund-provider-accepted", "field": "title", "path": ["title"], "value": "AI Permit-to-Deploy"},
+    {"id": "packaged-summary-text-tampered", "base": "refund-provider-accepted", "field": "summary", "path": ["summary", "text"], "value": "Keel authorized a different action."},
+    {"id": "packaged-state-label-conflicts-with-status", "base": "refund-provider-accepted", "field": "state_label", "path": ["state_label"], "value": "Provider reported completion"}
+  ],
+  "valid_package_manifests": [
+    {
+      "id": "minimal-package",
+      "document": {
+        "version": "keel.permit_package_manifest.v1",
+        "artifact_id": "pkg_refund_001",
+        "created_at": "2026-08-09T23:06:00Z",
+        "primary_view": "permit.html",
+        "signed_evidence": "evidence/permit-exact.json",
+        "trust_rule": "verify_signed_evidence_and_regenerate_human_view",
+        "entries": [
+          {"path": "permit.html", "role": "human_view", "media_type": "text/html", "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111", "size_bytes": 2048},
+          {"path": "verification-report.json", "role": "verification_report", "media_type": "application/json", "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "size_bytes": 3072},
+          {"path": "evidence/permit-exact.json", "role": "signed_evidence", "media_type": "application/json", "sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333", "size_bytes": 4096}
+        ]
+      }
+    }
+  ],
+  "package_mutations": [
+    {"id": "package-primary-view-traversal", "base": "minimal-package", "path": ["primary_view"], "value": "../permit.html"},
+    {"id": "package-trust-rule-changed", "base": "minimal-package", "path": ["trust_rule"], "value": "trust_packaged_html"},
+    {"id": "package-signed-evidence-path-traversal", "base": "minimal-package", "path": ["signed_evidence"], "value": "../evidence.json"},
+    {"id": "package-required-signed-evidence-role-removed", "base": "minimal-package", "path": ["entries", 2, "role"], "value": "digest"}
+  ],
+  "package_inventory_mutations": [
+    {"id": "package-primary-view-not-in-inventory", "base": "minimal-package", "path": ["primary_view"], "value": "other.html"},
+    {"id": "package-signed-evidence-points-at-human-view", "base": "minimal-package", "path": ["signed_evidence"], "value": "permit.html"},
+    {"id": "package-inventory-repeats-path", "base": "minimal-package", "path": ["entries", 1, "path"], "value": "permit.html"}
+  ]
+}

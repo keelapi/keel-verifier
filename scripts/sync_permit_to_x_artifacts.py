@@ -81,6 +81,20 @@ COPIES = {
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
     "presentation_registry/v2.schema.json": ("permit_to_x/presentation_registry/v2.schema.json"),
+    "presentation_registry/v3.json": "permit_to_x/presentation_registry/v3.json",
+    "presentation_registry/v3.schema.json": ("permit_to_x/presentation_registry/v3.schema.json"),
+    "schemas/permit-human-artifact-v1.schema.json": (
+        "permit_to_x/schemas/permit-human-artifact-v1.schema.json"
+    ),
+    "schemas/permit-package-manifest-v1.schema.json": (
+        "permit_to_x/schemas/permit-package-manifest-v1.schema.json"
+    ),
+    "semantics/permit/human_summary_v1.json": (
+        "semantics/permit/human_summary_v1.json"
+    ),
+    "test-vectors/permit_human_artifact/v1/corpus.json": (
+        "permit_to_x/test_vectors/permit_human_artifact/v1/corpus.json"
+    ),
     "schemas/permit-semantic-binding-v1.schema.json": (
         "permit_to_x/schemas/permit-semantic-binding-v1.schema.json"
     ),

@@ -803,6 +803,7 @@ def test_historical_and_realtime_titles_fail_safe() -> None:
             "chain_role": "session_root",
             "operation": "realtime.session",
             "governed_surface": "realtime_session",
+            "non_authorizing_presentation_profile_id": "realtime_session.r1",
         }
     )
     realtime.pop("action_name")

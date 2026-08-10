@@ -9,13 +9,49 @@ partial coverage, incomplete, and the self-attested trust mode.
 
 from __future__ import annotations
 
+import hashlib
+import json
+from importlib import resources
+
+import jsonschema
 import pytest
+import rfc8785
 
 from keel_verifier.report_render import (
+    build_human_artifact,
     build_report_lines,
     load_presentation_registry,
     render_human,
 )
+
+
+def _payment_binding() -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v4.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item
+        for item in registry["entries"]
+        if item["semantic_id"] == "keel.action.payment_execute.v1"
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": "keel.action.payment_execute.v1",
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": "payment.execute",
+        "operation": "payment.execute",
+        "governed_surface": "payment_rail",
+        "non_authorizing_presentation_profile_id": "permit_to_pay.r1",
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
 
 
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
@@ -402,8 +438,15 @@ def test_exact_payment_report_uses_permit_to_pay_title_and_signed_facts() -> Non
             "kind": "permit_exact",
             "permit": {
                 "permit_id": "permit-123",
+                "profile": "keel.permit_exact/v3",
                 "decision": "allow",
+                "agent": "voice-agent-7",
                 "authorized_action": "payment.execute",
+                "target": "stripe.payment_intent",
+                "issued_at": "2026-08-09T12:00:00Z",
+                "expires_at": "2026-08-09T12:05:00Z",
+                "semantic_id": "keel.action.payment_execute.v1",
+                "semantic_binding": _payment_binding(),
                 "amount_minor": 5000,
                 "currency": "USD",
                 "recipient": "Irene",
@@ -414,6 +457,76 @@ def test_exact_payment_report_uses_permit_to_pay_title_and_signed_facts() -> Non
         },
     )
     out = render_human(report)
-    assert out.startswith("AI PERMIT-TO-PAY — Verification Report")
+    assert out.startswith("AI Permit-to-Pay — Verification Report")
     assert "Amount: 50.00 USD" in out
     assert "Recipient: Irene" in out
+    assert "Status: Authorized, not dispatched" in out
+    assert (
+        "Keel authorized voice-agent-7 to payment.execute on "
+        "stripe.payment_intent." in out
+    )
+
+
+def test_exact_title_fails_generic_without_verified_semantic_binding() -> None:
+    report = _report(
+        [],
+        artifact={
+            "kind": "permit_exact",
+            "permit": {
+                "permit_id": "permit-unsigned-label",
+                "decision": "allow",
+                "authorized_action": "payment.execute",
+            },
+        },
+    )
+    assert render_human(report).startswith("AI Permit — Verification Report")
+
+
+def test_human_artifact_validates_and_ignores_caller_title_and_summary() -> None:
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "key manifest",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-123",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "voice-agent-7",
+                "authorized_action": "payment.execute",
+                "target": "stripe.payment_intent",
+                "issued_at": "2026-08-09T12:00:00Z",
+                "expires_at": "2026-08-09T12:05:00Z",
+                "semantic_id": "keel.action.payment_execute.v1",
+                "semantic_binding": _payment_binding(),
+                "title": "AI Permit-to-Drain-Account",
+                "summary": "Caller says this is safe.",
+                "does_not_establish": ["financial settlement"],
+            },
+        },
+    )
+    human = build_human_artifact(
+        report,
+        session={
+            "verified_at": "2026-08-09T12:01:00Z",
+            "input_digest": "sha256:" + "1" * 64,
+        },
+    )
+    assert human is not None
+    schema = json.loads(
+        resources.files("keel_verifier")
+        .joinpath(
+            "data/permit_to_x/schemas/permit-human-artifact-v1.schema.json"
+        )
+        .read_text(encoding="utf-8")
+    )
+    jsonschema.Draft202012Validator(
+        schema, format_checker=jsonschema.FormatChecker()
+    ).validate(human)
+    assert human["title"] == "AI Permit-to-Pay"
+    assert "Drain" not in human["summary"]["text"]
+    assert "Caller says" not in human["summary"]["text"]
+    assert human["source"]["presentation_registry_version"] == (
+        "keel.presentation_registry.v3"
+    )

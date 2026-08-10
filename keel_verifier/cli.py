@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 from keel_verifier import __version__
@@ -23,15 +24,20 @@ from keel_verifier.verifier import (
     VerifyResult,
     _load_json_evidence,
     _emit_legacy_artifact_ref_warning_for_path,
+    _human_report_session,
+    _key_manifest_source_for_args,
     cmd_checkpoint,
     cmd_export,
     cmd_refresh_keys,
     verify,
+    verify_export_structured,
     verify_delegation_denied_correctly,
     verify_permit_v2_signature_claim,
     verify_scope_faithfulness_claim,
 )
+from keel_verifier.permit_package import verify_package_inventory
 from keel_verifier.permit_presentation import render_work_chain_human
+from keel_verifier.report_render import build_human_artifact, render_human
 from keel_verifier.work_chain import verify_work_chain_pack
 
 LEGACY_COMMANDS = {
@@ -123,7 +129,118 @@ def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -
             "--expected-public-key/--public-key, --key-manifest, "
             "--key-manifest-url, and --self-attested are mutually exclusive"
         )
+    if str(args.export_file).lower().endswith(".keelpermit"):
+        return _cmd_permit_package(args)
     return cmd_export(args)
+
+
+def _cmd_permit_package(args: argparse.Namespace) -> int:
+    """Verify inventory, then verify signed evidence and regenerate the view."""
+
+    try:
+        package = verify_package_inventory(args.export_file)
+    except Exception as exc:
+        print(f"FAILED: Permit package inventory is invalid: {exc}", file=sys.stderr)
+        return 1
+    with tempfile.TemporaryDirectory(prefix="keel-permit-verify-") as temp_dir:
+        evidence_path = Path(temp_dir) / "signed-evidence.json"
+        evidence_path.write_bytes(package.signed_evidence)
+        nested = argparse.Namespace(**vars(args))
+        nested.export_file = str(evidence_path)
+        nested.manifest = None
+        report = verify_export_structured(nested)
+        session = _human_report_session(
+            args.export_file,
+            trust_root_source=_key_manifest_source_for_args(args),
+        )
+        payload = report.to_dict()
+        human = build_human_artifact(payload, session=session)
+
+        human_view_state = "regenerated"
+        if report.ok and human is None:
+            print(
+                "FAILED: signed evidence verified but no human Permit could be "
+                "regenerated from verified fields",
+                file=sys.stderr,
+            )
+            return 1
+        if report.ok and package.primary_view_media_type in {
+            "application/json",
+            "application/keel-permit+json",
+        }:
+            try:
+                packaged_human = json.loads(package.primary_view.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                print(
+                    f"FAILED: packaged human view is invalid JSON: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
+            if not isinstance(packaged_human, dict):
+                print(
+                    "FAILED: packaged human view must be a JSON object",
+                    file=sys.stderr,
+                )
+                return 1
+            comparisons = (
+                ("title", packaged_human.get("title"), human.get("title")),
+                (
+                    "state_label",
+                    packaged_human.get("state_label"),
+                    human.get("state_label"),
+                ),
+                (
+                    "summary.text",
+                    (packaged_human.get("summary") or {}).get("text")
+                    if isinstance(packaged_human.get("summary"), dict)
+                    else None,
+                    human.get("summary", {}).get("text"),
+                ),
+            )
+            mismatches = [
+                name for name, packaged, derived in comparisons if packaged != derived
+            ]
+            if mismatches:
+                print(
+                    "FAILED: packaged human view conflicts with the view "
+                    "regenerated from signed evidence: " + ", ".join(mismatches),
+                    file=sys.stderr,
+                )
+                return 1
+            human_view_state = "regenerated_matches_packaged"
+
+        if getattr(args, "as_json", False):
+            print(
+                json.dumps(
+                    {
+                        "package": {
+                            "artifact_id": package.manifest.get("artifact_id"),
+                            "inventory": "verified",
+                            "trust_rule": package.manifest.get("trust_rule"),
+                            "human_view": human_view_state,
+                        },
+                        "verification_report": payload,
+                        "human_artifact": human,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+            return report.exit_code
+        if getattr(args, "as_raw", False):
+            print(
+                "PERMIT-PACKAGE: INVENTORY VERIFIED; human view regenerated "
+                "from signed evidence",
+                file=sys.stderr,
+            )
+            return cmd_export(nested)
+        print(render_human(payload, session=session))
+        print()
+        print("Package")
+        print("  Inventory: verified")
+        print("  Human view: " + human_view_state.replace("_", " "))
+        print("  Trust rule: verify signed evidence and regenerate human view")
+        return report.exit_code
 
 
 def _cmd_checkpoint_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
@@ -869,6 +986,11 @@ def _looks_like_self_attesting_bundle(path: str) -> bool:
     )
 
 
+def _looks_like_permit_package(path: str) -> bool:
+    candidate = Path(path)
+    return candidate.suffix.lower() == ".keelpermit" and candidate.is_file()
+
+
 def _looks_like_work_chain(path: str) -> bool:
     try:
         candidate = Path(path)
@@ -887,6 +1009,13 @@ def _looks_like_work_chain(path: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
+    if (
+        raw
+        and raw[0] not in LEGACY_COMMANDS
+        and raw[0] not in {"-h", "--help", "--version"}
+        and _looks_like_permit_package(raw[0])
+    ):
+        raw = ["export", *raw]
     if (
         raw
         and raw[0] not in LEGACY_COMMANDS

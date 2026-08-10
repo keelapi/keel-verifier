@@ -116,6 +116,7 @@ class PermitExactV2Result:
     semantic_id: str | None
     fact_profile_id: str | None
     authorized_action: str | None
+    verifier_safe_facts: dict[str, Any] = field(default_factory=dict)
     claims: tuple[ExactClaimAssessment, ...] = field(default_factory=tuple)
 
 
@@ -175,6 +176,37 @@ def _parse_time(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def _verifier_safe_facts(
+    fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Project only fields the pinned profile marks verifier-safe."""
+
+    projected = {
+        key: facts[key]
+        for key in ("version", "fact_profile_id", "action")
+        if key in facts
+    }
+    fields = fact_profile.get("fields")
+    if not isinstance(fields, list):
+        return projected
+    for field_spec in fields:
+        if not isinstance(field_spec, Mapping):
+            continue
+        disclosure = field_spec.get("disclosure")
+        path = field_spec.get("path")
+        if (
+            not isinstance(disclosure, Mapping)
+            or disclosure.get("verifier_safe") == "omit"
+            or not isinstance(path, str)
+            or path.count("/") != 1
+        ):
+            continue
+        key = path.removeprefix("/").replace("~1", "/").replace("~0", "~")
+        if key in facts:
+            projected[key] = facts[key]
+    return projected
 
 
 def _pointer(value: Mapping[str, Any], path: str) -> Any:
@@ -1546,6 +1578,7 @@ def adjudicate_permit_exact_v2_body(
             semantic_id=None,
             fact_profile_id=None,
             authorized_action=None,
+            verifier_safe_facts={},
             claims=tuple(assessments[name] for name in declared if name in assessments),
         )
 
@@ -2231,6 +2264,7 @@ def adjudicate_permit_exact_v2_body(
         semantic_id=semantic_id,
         fact_profile_id=fact_profile_id,
         authorized_action=authorized_action,
+        verifier_safe_facts=_verifier_safe_facts(contracts.fact_profile, facts),
         claims=tuple(assessments[name] for name in declared if name in assessments),
     )
 

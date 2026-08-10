@@ -821,6 +821,17 @@ def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
         assert claims["permit.type.v1"].verdict == "supported"
         assert claims["permit.exact_target.v1"].verdict == "supported"
         assert claims["permit.material_request.v1"].verdict == "supported"
+        if profile_id == "keel.facts.refund_exact.v1":
+            assert "maximum_amount_minor" not in result.verifier_safe_facts
+            assert result.verifier_safe_facts[
+                "original_payment_reference_commitment"
+            ] == commitment
+        if profile_id == "keel.facts.delegate_exact.v1":
+            assert "delegated_resources" not in result.verifier_safe_facts
+            assert "delegated_endpoints" not in result.verifier_safe_facts
+            assert result.verifier_safe_facts["delegated_actions"] == [
+                "payment.execute"
+            ]
 
 
 def test_generate_text_specific_claim_requires_and_proves_certified_adapter() -> None:

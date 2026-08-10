@@ -10,7 +10,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from keel_verifier.cli import _looks_like_self_attesting_bundle
+from keel_verifier.cli import (
+    _looks_like_permit_package,
+    _looks_like_self_attesting_bundle,
+)
 
 
 def _write_json(path: Path, payload: dict) -> Path:
@@ -93,3 +96,15 @@ def test_rejects_json_array_at_root(tmp_path: Path) -> None:
     path = tmp_path / "array.json"
     path.write_text("[1, 2, 3]", encoding="utf-8")
     assert _looks_like_self_attesting_bundle(str(path)) is False
+
+
+def test_detects_keelpermit_by_explicit_artifact_extension(tmp_path: Path) -> None:
+    path = tmp_path / "permit.keelpermit"
+    path.write_bytes(b"PK\x03\x04")
+    assert _looks_like_permit_package(str(path)) is True
+
+
+def test_does_not_treat_an_arbitrary_zip_as_a_permit_package(tmp_path: Path) -> None:
+    path = tmp_path / "archive.zip"
+    path.write_bytes(b"PK\x03\x04")
+    assert _looks_like_permit_package(str(path)) is False

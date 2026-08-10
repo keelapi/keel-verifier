@@ -68,11 +68,34 @@ Legacy split-file exports still verify with `keel-verify export export.json
 manifest.json`, but the CLI emits a deprecation warning so operators migrate
 downloads to the single-file bundle.
 
+## Downloadable AI Permit packages
+
+An AI Permit download may be packaged as one `.keelpermit` ZIP. The default
+command is human-first and bare-path invocation is supported:
+
+```bash
+keel-verify AI-Permit-to-Pay.keelpermit \
+  --expected-public-key ed25519:<out-of-band-public-key>
+```
+
+The package manifest is inventory, not authority. The verifier rejects unsafe
+paths, duplicate or unlisted members, digest/size divergence, ambiguous roles,
+and pointer substitution. It then verifies the signed evidence through the
+normal Permit adjudicator, derives the Permit title and lifecycle state from
+the verified semantic binding, regenerates the summary, and rejects a packaged
+JSON human view whose title, status, or summary conflicts with that projection.
+
+Use `--json` for the structured verification report plus regenerated human
+artifact. Use `--raw` for the legacy technical evidence output. Raw signed
+evidence, canonical bytes, hex/Base64, signatures, digests, and contract pins
+remain advanced representations; they are not the default customer view.
+
 ## Common Commands
 
 | Task | Command |
 | --- | --- |
 | Verify a self-attesting evidence bundle | `keel-verify export evidence_bundle.json` |
+| Verify a downloadable AI Permit | `keel-verify AI-Permit-to-Pay.keelpermit --expected-public-key ed25519:<key>` |
 | Verify a signed export | `keel-verify export export.json manifest.json` |
 | Walk lifecycle chain entries | `keel-verify export export.json manifest.json --walk-events` |
 | Verify closure records | `keel-verify export export.json manifest.json --walk-events --verify-closure` |
