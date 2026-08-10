@@ -1,0 +1,634 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/collections-exact-facts-v1.schema.json",
+  "title": "Keel exact Collections Arrangement authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/collections_payment_collect"
+    },
+    {
+      "$ref": "#/$defs/collections_payment_plan_create"
+    },
+    {
+      "$ref": "#/$defs/collections_autopay_change"
+    },
+    {
+      "$ref": "#/$defs/collections_notice_send"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "collections_payment_collect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "obligation_reference_commitment",
+        "customer_reference_commitment",
+        "payment_method_reference_commitment",
+        "amount_minor",
+        "currency",
+        "obligation_status",
+        "remaining_balance_minor",
+        "amount_within_balance",
+        "payment_method_attached",
+        "payment_method_type",
+        "collection_mode",
+        "customer_consent_record_digest",
+        "payment_intent_status_before"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.collections_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.collections_payment_collect_exact.v1"
+        },
+        "action": {
+          "const": "collections.payment.collect"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "payments"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "obligation_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "customer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_method_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "obligation_status": {
+          "const": "delinquent"
+        },
+        "remaining_balance_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "amount_within_balance": {
+          "const": true
+        },
+        "payment_method_attached": {
+          "const": true
+        },
+        "payment_method_type": {
+          "enum": [
+            "card",
+            "us_bank_account"
+          ]
+        },
+        "collection_mode": {
+          "const": "off_session"
+        },
+        "customer_consent_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "payment_intent_status_before": {
+          "const": "absent"
+        }
+      }
+    },
+    "collections_payment_plan_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "obligation_reference_commitment",
+        "customer_reference_commitment",
+        "price_reference_commitment",
+        "installment_amount_minor",
+        "installment_count",
+        "total_plan_amount_minor",
+        "remaining_balance_minor",
+        "amount_matches_balance",
+        "currency",
+        "billing_interval",
+        "plan_start_at",
+        "default_payment_method_present",
+        "existing_active_plan_count",
+        "schedule_mode",
+        "collection_method",
+        "customer_consent_record_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.collections_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.collections_payment_plan_create_exact.v1"
+        },
+        "action": {
+          "const": "collections.payment_plan.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "payments"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "obligation_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "customer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "price_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "installment_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "installment_count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 24
+        },
+        "total_plan_amount_minor": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "remaining_balance_minor": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "amount_matches_balance": {
+          "const": true
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "billing_interval": {
+          "enum": [
+            "week",
+            "month"
+          ]
+        },
+        "plan_start_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "default_payment_method_present": {
+          "const": true
+        },
+        "existing_active_plan_count": {
+          "const": 0
+        },
+        "schedule_mode": {
+          "const": "finite_subscription_schedule"
+        },
+        "collection_method": {
+          "const": "charge_automatically"
+        },
+        "customer_consent_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "collections_autopay_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "plan_reference_commitment",
+        "customer_reference_commitment",
+        "subscription_status",
+        "current_collection_method",
+        "requested_collection_method",
+        "autopay_enabled_before",
+        "autopay_enabled_after",
+        "default_payment_method_present",
+        "effective_at",
+        "days_until_due",
+        "customer_consent_record_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.collections_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.collections_autopay_change_exact.v1"
+        },
+        "action": {
+          "const": "collections.autopay.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "payments"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "plan_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "customer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "subscription_status": {
+          "enum": [
+            "active",
+            "trialing",
+            "past_due"
+          ]
+        },
+        "current_collection_method": {
+          "enum": [
+            "charge_automatically",
+            "send_invoice"
+          ]
+        },
+        "requested_collection_method": {
+          "enum": [
+            "charge_automatically",
+            "send_invoice"
+          ]
+        },
+        "autopay_enabled_before": {
+          "type": "boolean"
+        },
+        "autopay_enabled_after": {
+          "type": "boolean"
+        },
+        "default_payment_method_present": {
+          "const": true
+        },
+        "effective_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "days_until_due": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "customer_consent_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "collections_notice_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "obligation_reference_commitment",
+        "recipient_reference_commitment",
+        "recipient_is_dedicated_demo",
+        "channel",
+        "template_id",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "amount_due_minor",
+        "currency",
+        "due_at",
+        "jurisdiction",
+        "notice_reason",
+        "prior_notice_count",
+        "delivery_mode"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.collections_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.collections_notice_send_exact.v1"
+        },
+        "action": {
+          "const": "collections.notice.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "notification.email"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "obligation_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        },
+        "channel": {
+          "const": "email"
+        },
+        "template_id": {
+          "const": "collections-friendly-reminder"
+        },
+        "template_version": {
+          "const": "v1"
+        },
+        "template_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_content_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "amount_due_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "due_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "jurisdiction": {
+          "const": "DEMO-NOT-A-REAL-JURISDICTION"
+        },
+        "notice_reason": {
+          "const": "delinquency_friendly_reminder"
+        },
+        "prior_notice_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "delivery_mode": {
+          "const": "provider_email"
+        }
+      }
+    }
+  }
+}

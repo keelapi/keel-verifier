@@ -191,6 +191,7 @@ def _verify_trusted_preflight_window(
         "keel.release_exact_facts.v1",
         "keel.identity_security_exact_facts.v1",
         "keel.coding_workspace_exact_facts.v1",
+        "keel.collections_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -452,6 +453,84 @@ def _verify_coding_workspace_invariants(facts: Mapping[str, Any]) -> None:
             "disproved",
             "PERMIT_CODING_WORKSPACE_INVARIANT_INVALID",
             "the signed Coding Workspace facts violate an exact provider-action invariant",
+        )
+
+
+def _verify_collections_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Collections Arrangement relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.collections_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    action = facts.get("action")
+    valid = True
+    if action == "collections.payment.collect":
+        amount = integer("amount_minor")
+        remaining = integer("remaining_balance_minor")
+        valid = (
+            facts.get("connector_identity") == "payments"
+            and amount is not None
+            and remaining is not None
+            and 0 < amount <= remaining
+            and facts.get("obligation_status") == "delinquent"
+            and facts.get("amount_within_balance") is True
+            and facts.get("payment_method_attached") is True
+            and facts.get("collection_mode") == "off_session"
+            and facts.get("payment_intent_status_before") == "absent"
+        )
+    elif action == "collections.payment_plan.create":
+        installment = integer("installment_amount_minor")
+        count = integer("installment_count")
+        total = integer("total_plan_amount_minor")
+        remaining = integer("remaining_balance_minor")
+        valid = (
+            facts.get("connector_identity") == "payments"
+            and installment is not None
+            and count is not None
+            and total is not None
+            and remaining is not None
+            and count >= 2
+            and installment * count == total == remaining
+            and facts.get("amount_matches_balance") is True
+            and facts.get("default_payment_method_present") is True
+            and facts.get("existing_active_plan_count") == 0
+            and facts.get("schedule_mode") == "finite_subscription_schedule"
+        )
+    elif action == "collections.autopay.change":
+        current = facts.get("current_collection_method")
+        requested = facts.get("requested_collection_method")
+        valid = (
+            facts.get("connector_identity") == "payments"
+            and current != requested
+            and facts.get("autopay_enabled_before")
+            is (current == "charge_automatically")
+            and facts.get("autopay_enabled_after")
+            is (requested == "charge_automatically")
+            and facts.get("default_payment_method_present") is True
+            and integer("days_until_due")
+            == (0 if requested == "charge_automatically" else 14)
+        )
+    elif action == "collections.notice.send":
+        valid = (
+            facts.get("connector_identity") == "notification.email"
+            and facts.get("recipient_is_dedicated_demo") is True
+            and facts.get("channel") == "email"
+            and facts.get("template_id") == "collections-friendly-reminder"
+            and facts.get("template_version") == "v1"
+            and facts.get("jurisdiction") == "DEMO-NOT-A-REAL-JURISDICTION"
+            and facts.get("delivery_mode") == "provider_email"
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_COLLECTIONS_INVARIANT_INVALID",
+            "the signed Collections Arrangement facts violate an exact provider-action invariant",
         )
 
 
@@ -839,6 +918,7 @@ def _resolve_contracts(
             "semantic_registry/v9.json",
             "semantic_registry/v10.json",
             "semantic_registry/v11.json",
+            "semantic_registry/v12.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -854,6 +934,7 @@ def _resolve_contracts(
             "fact_profiles/v7.json",
             "fact_profiles/v8.json",
             "fact_profiles/v9.json",
+            "fact_profiles/v10.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2010,6 +2091,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_release_invariants(facts)
         _verify_identity_security_invariants(facts)
         _verify_coding_workspace_invariants(facts)
+        _verify_collections_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

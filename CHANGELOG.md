@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Vendor byte-identical Collections Arrangement consequence v7, semantic v12,
+  fact-profile v10, presentation v11, exact-facts, and v8 vector artifacts from
+  `keel-permit`.
+- Verify payment collection, provider-backed payment-plan creation, autopay
+  change, and approved notice delivery as four separate consequences.
+- Render the four human-first Collections AI Permit-to-X titles, exact committed
+  targets, issuance, and expiry without accepting caller-supplied labels.
+- Reject stale preflights, cross-action fact-profile substitution, over-balance
+  collections, incoherent installment arithmetic, no-op autopay changes, and
+  arbitrary notice templates or recipients.
 - Vendor byte-identical Coding Workspace consequence v6, semantic v11,
   fact-profile v9, presentation v10, exact-facts, and v7 vector artifacts from
   `keel-permit`.
