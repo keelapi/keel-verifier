@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/consequence_registry/v1.schema.json",
+  "title": "Keel consequence registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["artifact_id", "version", "canonicalization_profile", "consequences"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "artifact_id": {"const": "keel.permit.consequence_registry"},
+    "version": {"const": "keel.consequence_registry.v1"},
+    "canonicalization_profile": {"const": "keel.consequence_registry.canonical_json.v1"},
+    "consequences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/consequence"}
+    }
+  },
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "leadingField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "label"],
+      "properties": {
+        "field": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1}
+      }
+    },
+    "providerMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "operation"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1}
+      }
+    },
+    "consequence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consequence_type", "semantic_id", "tool_names", "customer_title",
+        "type_definition", "required_material_fields", "trusted_fact_requirements",
+        "canonicalizer", "provider_mappings", "leading_fields", "evidence_sections",
+        "does_not_establish", "risk_tags"
+      ],
+      "properties": {
+        "consequence_type": {"type": "string", "pattern": "^[a-z0-9._-]+\\.v[0-9]+$"},
+        "semantic_id": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+        "tool_names": {"$ref": "#/$defs/stringList"},
+        "customer_title": {"type": "string", "pattern": "^AI Permit-to-[A-Za-z0-9-]+$"},
+        "type_definition": {"type": "string", "minLength": 1},
+        "required_material_fields": {"$ref": "#/$defs/stringList"},
+        "trusted_fact_requirements": {"$ref": "#/$defs/stringList"},
+        "canonicalizer": {"type": "string", "pattern": "^keel\\.[a-z0-9._-]+\\.v[0-9]+$"},
+        "provider_mappings": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/providerMapping"}},
+        "leading_fields": {"type": "array", "items": {"$ref": "#/$defs/leadingField"}},
+        "evidence_sections": {"$ref": "#/$defs/stringList"},
+        "does_not_establish": {"$ref": "#/$defs/stringList"},
+        "risk_tags": {"$ref": "#/$defs/stringList"}
+      }
+    }
+  }
+}

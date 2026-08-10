@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.16.0
+
+- Vendor the additive consequence registry, semantic selector registry v5,
+  presentation registry v4, and database-action conformance vectors from
+  `keel-permit v1.15.0`.
+- Resolve exact, signed database action semantics as
+  AI Permit-to-Insert-Database-Rows, AI Permit-to-Update-Database-Rows,
+  AI Permit-to-Delete-Database-Rows, AI Permit-to-Apply-Database-Migration,
+  and AI Permit-to-Export-Dataset while preserving every historical title.
+- Keep unknown registry versions, mismatched profile identifiers, and
+  unverified caller labels on the generic AI Permit fallback.
+
 ## 3.15.0
 
 - Vendor the human-first Permit-to-X v3 presentation registry from

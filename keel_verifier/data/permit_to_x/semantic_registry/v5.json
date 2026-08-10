@@ -1,0 +1,314 @@
+{
+  "$schema": "./v5.schema.json",
+  "artifact_id": "keel.permit.semantic_selector_registry",
+  "version": "keel.semantic_selector_registry.v5",
+  "selection_rule": "exactly_one_match_else_fallback",
+  "entries": [
+    {
+      "semantic_id": "keel.context.work.v1",
+      "semantic_kind": "context_authority",
+      "trusted_source_kinds": [
+        "work_request_server_reconciled"
+      ],
+      "match": {
+        "action_names": [
+          "work.authorize"
+        ],
+        "operations": [
+          "work.authorize"
+        ],
+        "allowed_chain_roles": [
+          "work_root"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "payment_value_events",
+          "scope_faithful_work_chain"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_execute.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "fact_profile_id": "keel.facts.payment_exact.v1",
+      "match": {
+        "action_names": [
+          "payment.execute"
+        ],
+        "operations": [
+          "payment.execute"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome",
+          "settlement_optional"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.generate_text.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "fact_profile_id": "keel.facts.generate_text_exact.v1",
+      "match": {
+        "action_names": [
+          "ai.generate"
+        ],
+        "operations": [
+          "generate.text"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_refund.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "fact_profile_id": "keel.facts.refund_exact.v1",
+      "match": {
+        "action_names": [
+          "payment.refund"
+        ],
+        "operations": [
+          "payment.refund"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.agent_delegate.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "agent_delegation_service"
+      ],
+      "fact_profile_id": "keel.facts.delegate_exact.v1",
+      "match": {
+        "action_names": [
+          "authority.grant"
+        ],
+        "operations": [
+          "agent.delegate"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "authority_chain",
+          "created_child"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.context.realtime_session.v1",
+      "semantic_kind": "qualified_context",
+      "trusted_source_kinds": [
+        "realtime_session_service"
+      ],
+      "match": {
+        "operations": [
+          "realtime.session"
+        ],
+        "allowed_chain_roles": [
+          "session_root"
+        ],
+        "required_evidence_capabilities": [
+          "authorization"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_insert.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "database.rows.insert"
+        ],
+        "operations": [
+          "call.tools"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_update.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "database.rows.update"
+        ],
+        "operations": [
+          "call.tools"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_delete.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "database.rows.delete"
+        ],
+        "operations": [
+          "call.tools"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_migration_apply.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "database.migration.apply"
+        ],
+        "operations": [
+          "call.tools"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_dataset_export.v1",
+      "semantic_kind": "exact_action",
+      "trusted_source_kinds": [
+        "action_verb_execute"
+      ],
+      "match": {
+        "action_names": [
+          "database.dataset.export"
+        ],
+        "operations": [
+          "call.tools"
+        ],
+        "allowed_chain_roles": [
+          "session_root",
+          "action_child"
+        ],
+        "required_evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "excluded_permit_products": [
+        "cost_permit"
+      ],
+      "release_state": "eligible"
+    }
+  ]
+}

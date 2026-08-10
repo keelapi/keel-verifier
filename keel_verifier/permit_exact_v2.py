@@ -552,7 +552,11 @@ def _resolve_contracts(
     selector_registry, selector_digest = _decode_pin(
         pins.get("semantic_selector_registry"),
         label="semantic selector registry",
-        bundled_path=("semantic_registry/v3.json", "semantic_registry/v4.json"),
+        bundled_path=(
+            "semantic_registry/v3.json",
+            "semantic_registry/v4.json",
+            "semantic_registry/v5.json",
+        ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
     fact_registry, fact_digest = _decode_pin(

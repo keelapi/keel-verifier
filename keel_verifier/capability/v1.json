@@ -2,15 +2,15 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.15.0",
+    "version": "3.16.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.13.0",
+    "permit_spec_version": "1.15.0",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.13.0/claim_registry/v5.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.15.0/claim_registry/v5.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [
