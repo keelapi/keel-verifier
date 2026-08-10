@@ -188,6 +188,7 @@ def _verify_trusted_preflight_window(
     if facts.get("version") not in {
         "keel.payment_ledger_exact_facts.v1",
         "keel.transactional_cx_exact_facts.v1",
+        "keel.release_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -268,6 +269,56 @@ def _verify_transactional_cx_invariants(facts: Mapping[str, Any]) -> None:
             "disproved",
             "PERMIT_TRANSACTIONAL_CX_INVARIANT_INVALID",
             "the signed Transactional CX facts violate an exact provider-action invariant",
+        )
+
+
+def _verify_release_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate release relations that JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.release_exact_facts.v1":
+        return
+    action = facts.get("action")
+    valid = True
+    if action == "repository.pull_request.merge":
+        required = facts.get("required_approving_reviews")
+        observed = facts.get("observed_approving_reviews")
+        valid = (
+            isinstance(required, int)
+            and not isinstance(required, bool)
+            and isinstance(observed, int)
+            and not isinstance(observed, bool)
+            and observed >= required
+            and facts.get("required_status_checks_count", 0) >= 1
+            and facts.get("required_status_checks_state") == "success"
+            and facts.get("pull_request_state") == "open"
+            and facts.get("draft") is False
+            and facts.get("mergeable") is True
+            and facts.get("mergeable_state") == "clean"
+        )
+    elif action == "deployment.commit.deploy":
+        valid = (
+            facts.get("artifact_revision_sha") == facts.get("source_commit_sha")
+            and facts.get("current_image_digest") != facts.get("target_image_digest")
+            and facts.get("current_config_digest") != facts.get("target_config_digest")
+            and facts.get("source_commit_signature_verified") is True
+            and facts.get("artifact_revision_matches_source_commit") is True
+        )
+    elif action == "deployment.rollback":
+        valid = (
+            facts.get("current_image_digest")
+            != facts.get("rollback_target_image_digest")
+            and facts.get("current_config_digest")
+            != facts.get("rollback_target_config_digest")
+            and facts.get("current_release_instance_id")
+            != facts.get("prior_release_instance_id")
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_RELEASE_INVARIANT_INVALID",
+            "the signed release facts violate an exact provider-action invariant",
         )
 
 
@@ -652,6 +703,7 @@ def _resolve_contracts(
             "semantic_registry/v6.json",
             "semantic_registry/v7.json",
             "semantic_registry/v8.json",
+            "semantic_registry/v9.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -664,6 +716,7 @@ def _resolve_contracts(
             "fact_profiles/v4.json",
             "fact_profiles/v5.json",
             "fact_profiles/v6.json",
+            "fact_profiles/v7.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -1817,6 +1870,7 @@ def adjudicate_permit_exact_v2_body(
             canonical_payload=canonical_payload,
         )
         _verify_transactional_cx_invariants(facts)
+        _verify_release_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

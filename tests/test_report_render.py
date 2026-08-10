@@ -54,6 +54,43 @@ def _payment_binding() -> dict:
     }
 
 
+def _release_binding(semantic_id: str) -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v9.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item for item in registry["entries"] if item["semantic_id"] == semantic_id
+    )
+    presentation = json.loads(
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/presentation_registry/v8.json")
+        .read_text(encoding="utf-8")
+    )
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": entry["match"]["action_names"][0],
+        "operation": "call.tools",
+        "governed_surface": "mcp_tool",
+        "non_authorizing_presentation_profile_id": profile[
+            "presentation_profile_id"
+        ],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
     return {"name": name, "verdict": verdict, "required": required, **extra}
 
@@ -584,3 +621,64 @@ def test_human_artifact_resolves_transactional_cx_committed_targets(
     assert human is not None
     assert human["authorization"]["target"] == expected_target
     assert expected_target in human["summary"]["text"]
+
+
+@pytest.mark.parametrize(
+    ("semantic_id", "expected_title", "facts", "expected_target"),
+    (
+        (
+            "keel.action.repository_pull_request_merge.v1",
+            "AI Permit-to-Merge-Pull-Request",
+            {"repository_reference_commitment": {"digest": "sha256:" + "5" * 64}},
+            "repository commitment sha256:" + "5" * 64,
+        ),
+        (
+            "keel.action.deployment_commit_deploy.v1",
+            "AI Permit-to-Deploy-Commit",
+            {"fly_machine_reference_commitment": {"digest": "sha256:" + "6" * 64}},
+            "production machine commitment sha256:" + "6" * 64,
+        ),
+        (
+            "keel.action.deployment_rollback.v1",
+            "AI Permit-to-Roll-Back-Deployment",
+            {"fly_machine_reference_commitment": {"digest": "sha256:" + "7" * 64}},
+            "production machine commitment sha256:" + "7" * 64,
+        ),
+    ),
+)
+def test_human_artifact_resolves_release_title_and_committed_target(
+    semantic_id: str,
+    expected_title: str,
+    facts: dict,
+    expected_target: str,
+) -> None:
+    binding = _release_binding(semantic_id)
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "key manifest",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-release",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "release-agent",
+                "authorized_action": binding["action_name"],
+                "issued_at": "2026-08-10T12:00:00Z",
+                "expires_at": "2026-08-10T12:05:00Z",
+                "semantic_id": semantic_id,
+                "semantic_binding": binding,
+                "authorization_facts": facts,
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+
+    assert human is not None
+    assert human["title"] == expected_title
+    assert human["authorization"]["target"] == expected_target
+    assert expected_target in human["summary"]["text"]
+    assert human["lifecycle"]["issued_at"] == "2026-08-10T12:00:00Z"
+    assert human["lifecycle"]["expires_at"] == "2026-08-10T12:05:00Z"

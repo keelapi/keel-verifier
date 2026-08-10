@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- Vendor byte-identical Merge-to-Production consequence v4, semantic v9,
+  fact-profile v7, presentation v8, exact-facts, and v5 vector artifacts from
+  `keel-permit`.
+- Resolve AI Permit-to-Merge-Pull-Request, AI Permit-to-Deploy-Commit, and
+  AI Permit-to-Roll-Back-Deployment from their signed exact-action profiles
+  while preserving every historical registry version and title.
+- Reject stale release preflights, cross-action fact-profile substitution,
+  insufficient observed approvals, commit-to-image revision drift, no-op image
+  or config changes, and rollback targets that match the failed release.
+
 ## 3.19.0
 
 - Vendor byte-identical Transactional CX consequence v3, semantic v8,
