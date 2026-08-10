@@ -1,0 +1,35 @@
+{
+  "artifact_id": "keel.permit.human_summary",
+  "version": "keel.permit.human_summary.v1",
+  "output": {
+    "encoding": "utf-8",
+    "shape": "single_paragraph",
+    "sentence_separator": " ",
+    "terminal_newline": false
+  },
+  "normalization": {
+    "strings": "unicode_nfc_trim_and_collapse_whitespace",
+    "timestamps": "preserve_verified_rfc3339_representation",
+    "missing_values": "omit_never_invent",
+    "markup": "plain_text_then_contextual_escape_by_renderer"
+  },
+  "templates": {
+    "permit_authorization": "Keel authorized {agent} to {action} on {target}.",
+    "permit_validity_bounded": "The Permit was valid from {issued_at} until {expires_at}.",
+    "permit_validity_unbounded": "The Permit was issued at {issued_at}; no expiry was recorded.",
+    "not_dispatched": "No provider dispatch is represented.",
+    "provider_observed_with_id": "The governed boundary dispatched the action and later observed provider state {provider_state} for {provider_object_id}.",
+    "provider_observed_without_id": "The governed boundary dispatched the action and later observed provider state {provider_state}.",
+    "outcome_unknown": "The governed boundary dispatched the action; the external outcome remains unknown.",
+    "denial": "Keel denied {action} on {target} before provider dispatch.",
+    "review": "The proposed {action} on {target} is awaiting approval. No Permit or provider dispatch is represented.",
+    "verification": "The artifact verification result is {integrity_verdict} in {trust_mode} mode."
+  },
+  "sentence_order": ["decision", "validity", "outcome", "verification"],
+  "security": {
+    "caller_supplied_title_allowed": false,
+    "caller_supplied_summary_allowed": false,
+    "summary_is_authorization_input": false,
+    "summary_is_verifier_verdict_input": false
+  }
+}

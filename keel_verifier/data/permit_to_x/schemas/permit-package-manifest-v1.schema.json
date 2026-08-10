@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-package-manifest-v1.schema.json",
+  "title": "Keel Permit package manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "artifact_id", "created_at", "primary_view", "signed_evidence", "trust_rule", "entries"],
+  "properties": {
+    "version": {"const": "keel.permit_package_manifest.v1"},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "primary_view": {"$ref": "#/$defs/safePath"},
+    "signed_evidence": {"$ref": "#/$defs/safePath"},
+    "trust_rule": {"const": "verify_signed_evidence_and_regenerate_human_view"},
+    "entries": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/entry"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "human_view"}}, "required": ["role"]}},
+        {"contains": {"properties": {"role": {"const": "signed_evidence"}}, "required": ["role"]}},
+        {"contains": {"properties": {"role": {"const": "verification_report"}}, "required": ["role"]}}
+      ]
+    }
+  },
+  "$defs": {
+    "safePath": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "media_type", "sha256", "size_bytes"],
+      "properties": {
+        "path": {"$ref": "#/$defs/safePath"},
+        "role": {"enum": ["human_view", "summary", "verification_report", "signed_evidence", "canonical_bytes", "signature", "digest", "contract"]},
+        "media_type": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

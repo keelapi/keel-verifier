@@ -46,6 +46,12 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
 # Registry used for permits carrying no version at all (pre-versioning records).
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
+_PRESENTATION_REGISTRIES = (
+    "presentation_registry/v3.json",
+    "presentation_registry/v2.json",
+    "presentation_registry/v1.json",
+)
+
 
 def _load_semantic_registry_for(
     binding: Mapping[str, Any] | None,
@@ -74,8 +80,58 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v2.json")
+    registry, _raw = _load("presentation_registry/v3.json")
     return json.loads(json.dumps(registry))
+
+
+def _presentation_registry_for(
+    semantic_binding: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], bytes]:
+    """Select the newest bundled registry that exactly names the signed profile.
+
+    Presentation registry v3 intentionally renamed the refund profile.  The
+    signed non-authorizing profile identifier therefore doubles as the stable
+    historical discriminator: old refund Permits continue to resolve through
+    v2, while newly issued refund Permits resolve through v3.  A semantic ID
+    alone is not enough to silently retitle the back catalogue.
+    """
+
+    semantic_id = (
+        semantic_binding.get("semantic_id")
+        if isinstance(semantic_binding, Mapping)
+        else None
+    )
+    profile_id = (
+        semantic_binding.get("non_authorizing_presentation_profile_id")
+        if isinstance(semantic_binding, Mapping)
+        else None
+    )
+    selector_version = (
+        semantic_binding.get("selector_registry_version")
+        if isinstance(semantic_binding, Mapping)
+        else None
+    )
+    for name in _PRESENTATION_REGISTRIES:
+        registry, raw = _load(name)
+        if selector_version == "keel.semantic_selector_registry.v4":
+            if registry.get("semantic_registry_version") != selector_version:
+                continue
+        profiles = registry.get("profiles")
+        if not isinstance(profiles, list):
+            continue
+        if any(
+            isinstance(profile, Mapping)
+            and profile.get("semantic_id") == semantic_id
+            and profile.get("presentation_profile_id") == profile_id
+            for profile in profiles
+        ):
+            return registry, raw
+    legacy_name = (
+        "presentation_registry/v2.json"
+        if selector_version == "keel.semantic_selector_registry.v4"
+        else "presentation_registry/v1.json"
+    )
+    return _load(legacy_name)
 
 
 def resolve_permit_presentation(
@@ -98,18 +154,12 @@ def resolve_permit_presentation(
     semantics, semantics_raw = _load_semantic_registry_for(semantic_binding) or _load(
         _DEFAULT_SEMANTIC_REGISTRY
     )
-    presentation_name = (
-        "presentation_registry/v2.json"
-        if isinstance(semantic_binding, Mapping)
-        and semantic_binding.get("selector_registry_version")
-        == "keel.semantic_selector_registry.v4"
-        else "presentation_registry/v1.json"
-    )
-    presentations, _presentation_raw = _load(presentation_name)
+    presentations, presentation_raw = _presentation_registry_for(semantic_binding)
     if semantic_registry is not None:
         semantics = dict(semantic_registry)
     if presentation_registry is not None:
         presentations = dict(presentation_registry)
+        presentation_raw = rfc8785.dumps(presentations)
     fallbacks = {
         str(item.get("presentation_profile_id")): dict(item)
         for item in presentations.get("fallback_profiles", [])
@@ -125,14 +175,29 @@ def resolve_permit_presentation(
         },
     )
     if permit_product == "cost_permit":
-        return {**generic, "resolution": "cost_permit_unchanged"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "cost_permit_unchanged",
+        }
     if not isinstance(semantic_binding, Mapping):
-        return {**generic, "resolution": "generic_no_signed_semantic"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "generic_no_signed_semantic",
+        }
     if semantic_binding.get("version") not in {
         "keel.permit_semantic_binding.v1",
         "keel.permit_semantic_binding.v2",
     }:
-        return {**generic, "resolution": "generic_unsupported_binding"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "generic_unsupported_binding",
+        }
     semantic_id = semantic_binding.get("semantic_id")
     entries = [
         dict(entry)
@@ -146,7 +211,12 @@ def resolve_permit_presentation(
         or semantic_binding.get("selector_entry_digest") != _digest(entries[0])
     ):
         historical = fallbacks.get("historical_specific_title_unavailable", generic)
-        return {**historical, "resolution": "historical_or_unavailable_registry"}
+        return {
+            **historical,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "historical_or_unavailable_registry",
+        }
     entry = entries[0]
     match = entry.get("match") if isinstance(entry.get("match"), Mapping) else {}
     if (
@@ -172,18 +242,41 @@ def resolve_permit_presentation(
             and semantic_binding.get("operation") not in match.get("operations", [])
         )
     ):
-        return {**generic, "resolution": "generic_semantic_fact_mismatch"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "generic_semantic_fact_mismatch",
+        }
     profiles = [
         dict(profile)
         for profile in presentations.get("profiles", [])
-        if isinstance(profile, Mapping) and profile.get("semantic_id") == semantic_id
+        if isinstance(profile, Mapping)
+        and profile.get("semantic_id") == semantic_id
+        and profile.get("presentation_profile_id")
+        == semantic_binding.get("non_authorizing_presentation_profile_id")
     ]
     if len(profiles) != 1:
-        return {**generic, "resolution": "generic_profile_missing"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "generic_profile_missing",
+        }
     profile = profiles[0]
     if profile.get("release_state") not in {"eligible", "generic_qualified"}:
-        return {**generic, "resolution": "generic_profile_not_released"}
-    return {**profile, "resolution": "trusted_signed_semantic"}
+        return {
+            **generic,
+            "presentation_registry_version": presentations.get("version"),
+            "presentation_registry_digest": _raw_digest(presentation_raw),
+            "resolution": "generic_profile_not_released",
+        }
+    return {
+        **profile,
+        "presentation_registry_version": presentations.get("version"),
+        "presentation_registry_digest": _raw_digest(presentation_raw),
+        "resolution": "trusted_signed_semantic",
+    }
 
 
 def render_work_chain_human(

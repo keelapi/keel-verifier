@@ -132,6 +132,58 @@ def test_v4_specific_titles_resolve_from_the_v2_presentation_registry() -> None:
         assert resolved["customer_title"] == title
 
 
+def test_new_refund_profile_uses_v3_without_rewriting_historical_title() -> None:
+    registry, raw = _registry("semantic_registry/v4.json")
+    semantic_id = "keel.action.payment_refund.v1"
+    entry = next(e for e in registry["entries"] if e["semantic_id"] == semantic_id)
+    common = {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "session_root",
+        "action_name": "payment.refund",
+        "operation": "payment.refund",
+        "governed_surface": "payment_rail",
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+    historical = resolve_permit_presentation(
+        {
+            **common,
+            "non_authorizing_presentation_profile_id": "permit_to_refund.r1",
+        }
+    )
+    current = resolve_permit_presentation(
+        {
+            **common,
+            "non_authorizing_presentation_profile_id": (
+                "permit_to_refund_payment.r1"
+            ),
+        }
+    )
+    assert historical["customer_title"] == "AI Permit-to-Refund"
+    assert historical["presentation_registry_version"] == (
+        "keel.presentation_registry.v2"
+    )
+    assert current["customer_title"] == "AI Permit-to-Refund-Payment"
+    assert current["presentation_registry_version"] == (
+        "keel.presentation_registry.v3"
+    )
+
+
+def test_signed_unknown_profile_cannot_borrow_a_specific_title() -> None:
+    binding = _binding_for(
+        "semantic_registry/v4.json", "keel.action.payment_execute.v1"
+    )
+    binding["non_authorizing_presentation_profile_id"] = "permit_to_drain.r1"
+    resolved = resolve_permit_presentation(binding)
+    assert resolved["resolution"] == "generic_profile_missing"
+    assert resolved["customer_title"] == "AI Permit"
+
+
 def test_unknown_registry_version_never_borrows_a_title() -> None:
     """A registry this build has never seen must not lend its titles."""
 

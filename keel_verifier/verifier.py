@@ -14198,11 +14198,109 @@ def _adjudicate_permit_exact_v2(
     return (
         claims,
         {
+            "profile": body.get("profile"),
             "permit_id": result.permit_id,
             "project_id": result.project_id,
             "semantic_id": result.semantic_id,
             "fact_profile_id": result.fact_profile_id,
             "authorized_action": result.authorized_action,
+            "semantic_binding": (
+                dict(body["semantic_binding"])
+                if isinstance(body.get("semantic_binding"), Mapping)
+                else None
+            ),
+            "authorization_facts": dict(result.verifier_safe_facts),
+            "decision": (
+                body.get("decision_state", {}).get("decision")
+                if isinstance(body.get("decision_state"), Mapping)
+                else None
+            ),
+            "status": (
+                body.get("decision_state", {}).get("status")
+                if isinstance(body.get("decision_state"), Mapping)
+                else None
+            ),
+            "issued_at": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("issued_at")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "expires_at": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("expires_at")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "subject_id": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("subject_id")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "subject_type": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("subject_type")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "account_id": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("account_id")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "key_id": (
+                body.get("permit_decision", {})
+                .get("canonical_payload", {})
+                .get("binding_key_id")
+                if isinstance(body.get("permit_decision"), Mapping)
+                and isinstance(
+                    body.get("permit_decision", {}).get("canonical_payload"),
+                    Mapping,
+                )
+                else None
+            ),
+            "bounded_use_transitions": [
+                dict(item)
+                for item in body.get("bounded_use_transitions", [])
+                if isinstance(item, Mapping)
+            ],
+            "provider_receipts": [
+                dict(item)
+                for item in body.get("provider_receipts", [])
+                if isinstance(item, Mapping)
+            ],
+            "does_not_establish": [
+                str(item)
+                for item in body.get("does_not_establish", [])
+                if isinstance(item, str)
+            ],
         },
     )
 

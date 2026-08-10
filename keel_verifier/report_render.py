@@ -21,9 +21,13 @@ from dataclasses import dataclass
 from importlib import resources
 from typing import Any
 
+from keel_verifier.human_artifact import derive_human_artifact
+from keel_verifier.permit_presentation import resolve_permit_presentation
+
 __all__ = [
     "ReportLine",
     "load_presentation_registry",
+    "build_human_artifact",
     "build_report_lines",
     "render_human",
 ]
@@ -393,6 +397,41 @@ def _artifact_identity_lines(
     return lines
 
 
+def _permit_report_title(artifact: dict[str, Any]) -> str:
+    permit = artifact.get("permit")
+    permit = permit if isinstance(permit, dict) else {}
+    decision = str(permit.get("decision") or "").lower()
+    if decision == "deny":
+        return "AI Action Denied — Verification Report"
+    if decision in {"challenge", "review"}:
+        return "AI Action Awaiting Approval — Verification Report"
+    binding = permit.get("semantic_binding")
+    profile = resolve_permit_presentation(
+        binding if isinstance(binding, dict) else None
+    )
+    customer_title = str(profile.get("customer_title") or "AI Permit")
+    return f"{customer_title} — Verification Report"
+
+
+def build_human_artifact(
+    report: dict[str, Any],
+    *,
+    presentation: dict[str, Any] | None = None,
+    session: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Return the schema-shaped human projection of a verified report."""
+
+    presentation = presentation or load_presentation_registry()
+    trust_mode = _trust_mode(report, session, presentation)
+    evidence_state, _qualifier = _evidence_state(report, presentation, trust_mode)
+    return derive_human_artifact(
+        report,
+        evidence_state=evidence_state,
+        trust_mode=trust_mode,
+        session=session,
+    )
+
+
 def _incomplete_check_lines(report: dict[str, Any]) -> list[ReportLine]:
     lines: list[ReportLine] = []
     seen: set[str] = set()
@@ -464,7 +503,7 @@ def build_report_lines(
     if is_checkpoint:
         title = "AUDIT CHECKPOINT"
     elif artifact.get("kind") == "permit_exact":
-        title = "AI PERMIT-TO-PAY — Verification Report"
+        title = _permit_report_title(artifact)
     else:
         title = "AI PERMIT — Verification Report"
 
@@ -556,6 +595,38 @@ def build_report_lines(
         lines.append(ReportLine("Next step", structural=True))
         lines.append(
             ReportLine(f"  {next_step}", provenance="DERIVED_VERIFICATION_RESULT")
+        )
+
+    human_artifact = derive_human_artifact(
+        report,
+        evidence_state=evidence_state,
+        trust_mode=trust_mode,
+        session=session,
+    )
+    if human_artifact is not None:
+        lines.append(ReportLine("", structural=True))
+        lines.append(ReportLine("Human artifact", structural=True))
+        lines.append(
+            ReportLine(
+                f"  Status: {human_artifact['state_label']}",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
+        )
+        lines.append(
+            ReportLine(
+                "  Presentation: "
+                f"{human_artifact['source']['presentation_profile_id']} "
+                f"({human_artifact['source']['presentation_registry_version']})",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
+        )
+        lines.append(ReportLine("", structural=True))
+        lines.append(ReportLine("Summary", structural=True))
+        lines.append(
+            ReportLine(
+                f"  {human_artifact['summary']['text']}",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
         )
 
     # Session / provenance footer.

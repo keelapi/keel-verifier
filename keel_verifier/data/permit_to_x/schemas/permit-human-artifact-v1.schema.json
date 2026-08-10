@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-human-artifact-v1.schema.json",
+  "title": "Keel human Permit artifact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "artifact_kind", "title", "state_label", "source", "identity", "authorization", "lifecycle", "outcome", "evidence_boundary", "summary", "verification", "advanced"],
+  "properties": {
+    "version": {"const": "keel.permit_human_artifact.v1"},
+    "artifact_kind": {"enum": ["permit", "denial", "review"]},
+    "title": {"type": "string", "minLength": 1, "maxLength": 160},
+    "state_label": {"type": "string", "minLength": 1, "maxLength": 160},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["permit_exact_profile", "permit_id", "semantic_id", "presentation_registry_version", "presentation_registry_digest", "presentation_profile_id"],
+      "properties": {
+        "permit_exact_profile": {"type": ["string", "null"]},
+        "permit_id": {"type": ["string", "null"]},
+        "semantic_id": {"type": ["string", "null"]},
+        "presentation_registry_version": {"type": "string"},
+        "presentation_registry_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "presentation_profile_id": {"type": ["string", "null"]}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "principal", "project"],
+      "properties": {
+        "agent": {"type": ["string", "null"]},
+        "principal": {"type": ["string", "null"]},
+        "project": {"type": ["string", "null"]}
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "target", "display_fields", "limits", "policy", "approval"],
+      "properties": {
+        "action": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "display_fields": {"type": "array", "items": {"$ref": "#/$defs/displayField"}},
+        "limits": {"type": "object"},
+        "policy": {"type": ["object", "null"]},
+        "approval": {"type": ["object", "null"]}
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issued_at", "expires_at", "status"],
+      "properties": {
+        "issued_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "expires_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "expiry_limiting_source": {"type": ["string", "null"]},
+        "dispatched_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "first_used_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "last_used_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "use_count": {"type": ["integer", "null"], "minimum": 0},
+        "max_uses": {"type": ["integer", "null"], "minimum": 1},
+        "revoked_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "verified_at": {"$ref": "#/$defs/nullableTimestamp"},
+        "status": {"enum": ["authorized", "dispatched", "provider_accepted", "provider_completed", "provider_rejected", "outcome_unknown", "expired_unused", "revoked", "denied", "awaiting_approval"]}
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dispatch_state", "provider_state", "provider_object_id", "readback_state", "observed_at"],
+      "properties": {
+        "dispatch_state": {"enum": ["not_dispatched", "dispatched", "unknown"]},
+        "provider_state": {"type": ["string", "null"]},
+        "provider_object_id": {"type": ["string", "null"]},
+        "readback_state": {"type": ["string", "null"]},
+        "observed_at": {"$ref": "#/$defs/nullableTimestamp"}
+      }
+    },
+    "evidence_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["establishes", "does_not_establish"],
+      "properties": {
+        "establishes": {"type": "array", "items": {"type": "string"}},
+        "does_not_establish": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "derivation"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 2400},
+        "derivation": {"const": "verifier_from_verified_fields"}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["integrity_verdict", "trust_mode", "key_id", "input_digest", "verified_at"],
+      "properties": {
+        "integrity_verdict": {"enum": ["pass", "fail", "not_run"]},
+        "trust_mode": {"type": "string"},
+        "key_id": {"type": ["string", "null"]},
+        "input_digest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+        "verified_at": {"$ref": "#/$defs/nullableTimestamp"}
+      }
+    },
+    "advanced": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "representations"],
+      "properties": {
+        "available": {"type": "boolean"},
+        "representations": {"type": "array", "items": {"$ref": "#/$defs/representation"}}
+      }
+    }
+  },
+  "$defs": {
+    "nullableTimestamp": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "displayField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "value"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1},
+        "value": {"type": ["string", "number", "integer", "boolean", "null"]}
+      }
+    },
+    "representation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path", "media_type", "sha256", "size_bytes"],
+      "properties": {
+        "kind": {"enum": ["signed_evidence_json", "canonical_signed_bytes", "canonical_signed_bytes_hex", "canonical_signed_bytes_base64", "signatures", "digests", "contract_pins"]},
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"},
+        "media_type": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"artifact_kind": {"const": "permit"}}, "required": ["artifact_kind"]},
+      "then": {
+        "properties": {
+          "title": {"pattern": "^AI Permit"},
+          "lifecycle": {"properties": {"issued_at": {"type": "string", "format": "date-time"}}}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"artifact_kind": {"const": "denial"}}, "required": ["artifact_kind"]},
+      "then": {
+        "properties": {
+          "title": {"const": "AI Action Denied"},
+          "lifecycle": {"properties": {"issued_at": {"type": "null"}, "status": {"const": "denied"}}}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"artifact_kind": {"const": "review"}}, "required": ["artifact_kind"]},
+      "then": {
+        "properties": {
+          "title": {"const": "AI Action Awaiting Approval"},
+          "lifecycle": {"properties": {"issued_at": {"type": "null"}, "status": {"const": "awaiting_approval"}}}
+        }
+      }
+    }
+  ]
+}

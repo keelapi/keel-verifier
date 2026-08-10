@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.15.0
+
+- Vendor the human-first Permit-to-X v3 presentation registry from
+  `keel-permit v1.14.0`, deterministic
+  summary semantics, human artifact schema, package manifest schema, and
+  conformance vectors from `keel-permit`.
+- Derive exact Permit report titles from the already-verified signed semantic
+  and presentation profile instead of hardcoding Permit-to-Pay. Preserve the
+  historical Refund title while resolving newly issued refund evidence as
+  AI Permit-to-Refund-Payment; unknown or mismatched profiles fail generic.
+- Add a schema-valid human Permit projection with issued/expires/status fields,
+  verifier-derived summary, evidence boundaries, trust mode, and no caller
+  authority over title or summary. Verifier JSON includes only fields marked
+  safe by the pinned fact profile.
+- Verify `.keelpermit` package inventory without extraction, reject traversal,
+  links, encryption, duplicate/unlisted files, digest or size drift, ambiguous
+  roles, and pointer substitution, then verify signed evidence and regenerate
+  the human view. Default output remains human-first; `--json` and `--raw`
+  expose advanced views.
+
 ## 3.14.0
 
 - Adjudicate `keel.permit_co_signature/v1` bodies in single-file evidence
