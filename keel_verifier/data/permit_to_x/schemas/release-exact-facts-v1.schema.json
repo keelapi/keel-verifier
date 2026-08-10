@@ -1,0 +1,765 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/release-exact-facts-v1.schema.json",
+  "title": "Keel exact Merge-to-Production authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/repositoryPullRequestMerge"
+    },
+    {
+      "$ref": "#/$defs/deploymentCommitDeploy"
+    },
+    {
+      "$ref": "#/$defs/deploymentRollback"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "repositoryPullRequestMerge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "repository_reference_commitment",
+        "pull_request_number",
+        "head_commit_sha",
+        "base_branch",
+        "base_branch_tip_sha",
+        "pull_request_state",
+        "draft",
+        "mergeable",
+        "mergeable_state",
+        "merge_method",
+        "branch_protection_source",
+        "strict_status_checks",
+        "required_status_checks_count",
+        "required_status_checks_state",
+        "required_approving_reviews",
+        "observed_approving_reviews",
+        "dismiss_stale_reviews",
+        "require_last_push_approval",
+        "required_conversation_resolution",
+        "enforce_admins",
+        "branch_protection_state_digest",
+        "pull_request_state_digest",
+        "checks_state_digest",
+        "reviews_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.release_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.repository_pull_request_merge_exact.v1"
+        },
+        "action": {
+          "const": "repository.pull_request.merge"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "github"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "repository_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "pull_request_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "head_commit_sha": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "base_branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$"
+        },
+        "base_branch_tip_sha": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "pull_request_state": {
+          "const": "open"
+        },
+        "draft": {
+          "const": false
+        },
+        "mergeable": {
+          "const": true
+        },
+        "mergeable_state": {
+          "const": "clean"
+        },
+        "merge_method": {
+          "enum": [
+            "merge",
+            "squash",
+            "rebase"
+          ]
+        },
+        "branch_protection_source": {
+          "const": "branch_protection"
+        },
+        "strict_status_checks": {
+          "const": true
+        },
+        "required_status_checks_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_status_checks_state": {
+          "const": "success"
+        },
+        "required_approving_reviews": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observed_approving_reviews": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dismiss_stale_reviews": {
+          "const": true
+        },
+        "require_last_push_approval": {
+          "const": true
+        },
+        "required_conversation_resolution": {
+          "const": true
+        },
+        "enforce_admins": {
+          "const": true
+        },
+        "branch_protection_state_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "pull_request_state_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "checks_state_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "reviews_state_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "deploymentCommitDeploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "source_repository_reference_commitment",
+        "source_commit_sha",
+        "source_commit_signature_verified",
+        "artifact_registry",
+        "artifact_repository_reference_commitment",
+        "target_image_reference_commitment",
+        "target_image_digest",
+        "artifact_revision_sha",
+        "artifact_revision_matches_source_commit",
+        "artifact_metadata_digest",
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "deployment_environment",
+        "current_instance_id",
+        "current_machine_state",
+        "current_image_digest",
+        "current_config_digest",
+        "target_config_digest",
+        "config_delta",
+        "target_image_differs",
+        "target_machine_state",
+        "expected_health_check_count",
+        "concurrency_control",
+        "machine_lease_required",
+        "release_record_digest",
+        "rollback_snapshot_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.release_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.deployment_commit_deploy_exact.v1"
+        },
+        "action": {
+          "const": "deployment.commit.deploy"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "fly"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "source_repository_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "source_commit_sha": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "source_commit_signature_verified": {
+          "const": true
+        },
+        "artifact_registry": {
+          "const": "ghcr.io"
+        },
+        "artifact_repository_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "target_image_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "target_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "artifact_revision_sha": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "artifact_revision_matches_source_commit": {
+          "const": true
+        },
+        "artifact_metadata_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fly_app_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "fly_machine_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "deployment_environment": {
+          "const": "production"
+        },
+        "current_instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "current_machine_state": {
+          "const": "started"
+        },
+        "current_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "current_config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "target_config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "config_delta": {
+          "const": "image_only"
+        },
+        "target_image_differs": {
+          "const": true
+        },
+        "target_machine_state": {
+          "const": "started"
+        },
+        "expected_health_check_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "concurrency_control": {
+          "const": "lease_and_current_version"
+        },
+        "machine_lease_required": {
+          "const": true
+        },
+        "release_record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rollback_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "deploymentRollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "deployment_environment",
+        "current_release_instance_id",
+        "current_machine_state",
+        "current_image_digest",
+        "current_config_digest",
+        "prior_release_instance_id",
+        "rollback_target_image_digest",
+        "rollback_target_config_digest",
+        "failed_release_record_digest",
+        "rollback_target_release_record_digest",
+        "rollback_reason_commitment",
+        "release_ledger_version",
+        "config_delta",
+        "target_machine_state",
+        "expected_health_check_count",
+        "concurrency_control",
+        "machine_lease_required"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.release_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.deployment_rollback_exact.v1"
+        },
+        "action": {
+          "const": "deployment.rollback"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "fly"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "fly_app_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "fly_machine_reference_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "deployment_environment": {
+          "const": "production"
+        },
+        "current_release_instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "current_machine_state": {
+          "enum": [
+            "started",
+            "stopped",
+            "suspended"
+          ]
+        },
+        "current_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "current_config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "prior_release_instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rollback_target_image_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rollback_target_config_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "failed_release_record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rollback_target_release_record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "rollback_reason_commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "digest"
+          ],
+          "properties": {
+            "method": {
+              "const": "keel.salted_sha256_jcs.v1"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "release_ledger_version": {
+          "const": "keel.release_ledger.v1"
+        },
+        "config_delta": {
+          "const": "prior_release_snapshot"
+        },
+        "target_machine_state": {
+          "const": "started"
+        },
+        "expected_health_check_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "concurrency_control": {
+          "const": "lease_and_current_version"
+        },
+        "machine_lease_required": {
+          "const": true
+        }
+      }
+    }
+  }
+}

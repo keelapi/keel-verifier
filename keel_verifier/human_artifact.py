@@ -117,6 +117,10 @@ def _target(permit: Mapping[str, Any]) -> str | None:
         facts.get("ticket_reference_commitment"), "support case"
     ) or _commitment_label(
         facts.get("customer_reference_commitment"), "customer"
+    ) or _commitment_label(
+        facts.get("repository_reference_commitment"), "repository"
+    ) or _commitment_label(
+        facts.get("fly_machine_reference_commitment"), "production machine"
     )
     if committed_target:
         return committed_target

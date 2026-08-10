@@ -687,6 +687,34 @@ def _transactional_cx_body_from_vector(vector: dict) -> dict:
     return body
 
 
+def _release_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v8.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    body = _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v9.json",
+        fact_registry_file="v7.json",
+    )
+    body["permit_decision"]["canonical_payload"]["issued_at"] = (
+        "2026-08-10T12:00:30Z"
+    )
+    return body
+
+
 def _replace_authorization_facts(body: dict, facts: dict) -> None:
     body["authorization_facts"] = copy.deepcopy(facts)
     binding = body["semantic_binding"]
@@ -1275,6 +1303,125 @@ def test_v8_transactional_cx_preflight_must_be_fresh_at_authorization(
     facts = copy.deepcopy(vector["valid_authorization_facts"])
     facts["preflight_observed_at"] = observed_at
     facts["preflight_expires_at"] = expires_at
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == "PERMIT_PREFLIGHT_WINDOW_INVALID"
+
+
+def test_v9_release_exact_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v5.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for vector in vectors:
+        result = adjudicate_permit_exact_v2_body(
+            _release_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_v9_release_cross_action_profile_substitution_is_disproved() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v5.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for index, vector in enumerate(vectors):
+        body = _release_body_from_vector(vector)
+        facts = copy.deepcopy(vector["valid_authorization_facts"])
+        facts["fact_profile_id"] = vectors[(index + 1) % len(vectors)][
+            "expected_fact_profile_id"
+        ]
+        _replace_authorization_facts(body, facts)
+
+        claims = _claim_map(
+            adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+        )
+
+        assert claims["permit.type.v1"].verdict == "disproved"
+        assert claims["permit.type.v1"].reason_code == (
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+        )
+
+
+@pytest.mark.parametrize(
+    ("vector_id", "mutations"),
+    (
+        (
+            "repository.pull_request.merge.v1",
+            {"required_approving_reviews": 2, "observed_approving_reviews": 1},
+        ),
+        (
+            "deployment.commit.deploy.v1",
+            {"artifact_revision_sha": "c" * 40},
+        ),
+        (
+            "deployment.commit.deploy.v1",
+            {"target_image_digest": "sha256:" + "f" * 64},
+        ),
+        (
+            "deployment.rollback.v1",
+            {"rollback_target_image_digest": "sha256:" + "b" * 64},
+        ),
+        (
+            "deployment.rollback.v1",
+            {"prior_release_instance_id": "01J5FAILEDVERSION"},
+        ),
+    ),
+)
+def test_v9_release_relational_invariants_fail_closed(
+    vector_id: str,
+    mutations: dict[str, object],
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v5.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == vector_id
+    )
+    body = _release_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts.update(mutations)
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_RELEASE_INVARIANT_INVALID"
+    )
+
+
+def test_v9_release_preflight_must_be_fresh_at_authorization() -> None:
+    vector = json.loads(
+        (PTX / "test_vectors/consequence_registry/v5.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-1]
+    body = _release_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["preflight_expires_at"] = "2026-08-10T12:00:30Z"
     _replace_authorization_facts(body, facts)
 
     claims = _claim_map(
