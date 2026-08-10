@@ -743,6 +743,34 @@ def _identity_security_body_from_vector(vector: dict) -> dict:
     return body
 
 
+def _coding_workspace_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v10.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    body = _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v11.json",
+        fact_registry_file="v9.json",
+    )
+    body["permit_decision"]["canonical_payload"]["issued_at"] = (
+        "2026-08-10T12:00:30Z"
+    )
+    return body
+
+
 def _replace_authorization_facts(body: dict, facts: dict) -> None:
     body["authorization_facts"] = copy.deepcopy(facts)
     binding = body["semantic_binding"]
@@ -1559,6 +1587,108 @@ def test_v10_identity_security_preflight_must_be_fresh_at_authorization() -> Non
         )
     )["vectors"][-1]
     body = _identity_security_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["preflight_expires_at"] = "2026-08-10T12:00:30Z"
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == "PERMIT_PREFLIGHT_WINDOW_INVALID"
+
+
+def test_v11_coding_workspace_exact_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v7.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for vector in vectors:
+        result = adjudicate_permit_exact_v2_body(
+            _coding_workspace_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_v11_coding_workspace_cross_action_profile_substitution_is_disproved() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v7.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-3:]
+
+    for index, vector in enumerate(vectors):
+        body = _coding_workspace_body_from_vector(vector)
+        facts = copy.deepcopy(vector["valid_authorization_facts"])
+        facts["fact_profile_id"] = vectors[(index + 1) % len(vectors)][
+            "expected_fact_profile_id"
+        ]
+        _replace_authorization_facts(body, facts)
+
+        claims = _claim_map(
+            adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+        )
+
+        assert claims["permit.type.v1"].verdict == "disproved"
+        assert claims["permit.type.v1"].reason_code == (
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+        )
+
+
+@pytest.mark.parametrize(
+    ("vector_id", "mutations"),
+    (
+        ("code.package.install.v1", {"target_dependency_version": "absent"}),
+        ("repository.branch.push.v1", {"target_branch": "main"}),
+        ("repository.pull_request.create.v1", {"head_branch": "main"}),
+    ),
+)
+def test_v11_coding_workspace_relational_invariants_fail_closed(
+    vector_id: str,
+    mutations: dict[str, object],
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v7.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == vector_id
+    )
+    body = _coding_workspace_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts.update(mutations)
+    _replace_authorization_facts(body, facts)
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_CODING_WORKSPACE_INVARIANT_INVALID"
+    )
+
+
+def test_v11_coding_workspace_preflight_must_be_fresh_at_authorization() -> None:
+    vector = json.loads(
+        (PTX / "test_vectors/consequence_registry/v7.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-1]
+    body = _coding_workspace_body_from_vector(vector)
     facts = copy.deepcopy(vector["valid_authorization_facts"])
     facts["preflight_expires_at"] = "2026-08-10T12:00:30Z"
     _replace_authorization_facts(body, facts)

@@ -190,6 +190,7 @@ def _verify_trusted_preflight_window(
         "keel.transactional_cx_exact_facts.v1",
         "keel.release_exact_facts.v1",
         "keel.identity_security_exact_facts.v1",
+        "keel.coding_workspace_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -396,6 +397,61 @@ def _verify_identity_security_invariants(facts: Mapping[str, Any]) -> None:
             "disproved",
             "PERMIT_IDENTITY_SECURITY_INVARIANT_INVALID",
             "the signed identity/security facts violate an exact provider-action invariant",
+        )
+
+
+def _verify_coding_workspace_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Coding Workspace relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.coding_workspace_exact_facts.v1":
+        return
+    action = facts.get("action")
+    valid = True
+    if action == "code.package.install":
+        valid = (
+            facts.get("connector_identity") == "npm"
+            and facts.get("workspace_is_disposable") is True
+            and facts.get("package_allowlisted") is True
+            and facts.get("registry_origin") == "https://registry.npmjs.org"
+            and facts.get("target_dependency_version")
+            != facts.get("current_dependency_version")
+            and facts.get("package_lock_present") is True
+            and facts.get("install_mode") == "save_exact"
+            and facts.get("lifecycle_scripts_disabled") is True
+        )
+    elif action == "repository.branch.push":
+        valid = (
+            facts.get("connector_identity") == "github"
+            and facts.get("base_branch_protected") is True
+            and facts.get("target_branch_exists") is False
+            and facts.get("target_branch_protected") is False
+            and facts.get("base_branch") != facts.get("target_branch")
+            and facts.get("protected_path_change_count") == 0
+            and facts.get("push_mode") == "create_ref_only"
+            and facts.get("force_push") is False
+        )
+    elif action == "repository.pull_request.create":
+        valid = (
+            facts.get("connector_identity") == "github"
+            and facts.get("head_ref_exists") is True
+            and facts.get("base_branch_protected") is True
+            and facts.get("same_repository") is True
+            and facts.get("head_branch") != facts.get("base_branch")
+            and facts.get("head_commit_sha") != facts.get("base_commit_sha")
+            and facts.get("compare_status") == "ahead"
+            and facts.get("ahead_by", 0) >= 1
+            and facts.get("changed_files_count", 0) >= 1
+            and facts.get("protected_path_change_count") == 0
+            and facts.get("existing_open_pull_request_count") == 0
+            and facts.get("merge_authorized") is False
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_CODING_WORKSPACE_INVARIANT_INVALID",
+            "the signed Coding Workspace facts violate an exact provider-action invariant",
         )
 
 
@@ -782,6 +838,7 @@ def _resolve_contracts(
             "semantic_registry/v8.json",
             "semantic_registry/v9.json",
             "semantic_registry/v10.json",
+            "semantic_registry/v11.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -796,6 +853,7 @@ def _resolve_contracts(
             "fact_profiles/v6.json",
             "fact_profiles/v7.json",
             "fact_profiles/v8.json",
+            "fact_profiles/v9.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -1951,6 +2009,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_transactional_cx_invariants(facts)
         _verify_release_invariants(facts)
         _verify_identity_security_invariants(facts)
+        _verify_coding_workspace_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

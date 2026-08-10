@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/coding-workspace-exact-facts-v1.schema.json",
+  "title": "Keel exact Coding Workspace authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/code_package_install"
+    },
+    {
+      "$ref": "#/$defs/repository_branch_push"
+    },
+    {
+      "$ref": "#/$defs/repository_pull_request_create"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "code_package_install": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "workspace_reference_commitment",
+        "workspace_is_disposable",
+        "workspace_state_digest",
+        "package_reference_commitment",
+        "package_name",
+        "package_allowlisted",
+        "package_metadata_digest",
+        "package_tarball_integrity",
+        "registry_origin",
+        "dependency_class",
+        "current_dependency_version",
+        "target_dependency_version",
+        "package_manifest_state_digest",
+        "package_lock_present",
+        "package_lock_state_digest",
+        "install_mode",
+        "lifecycle_scripts_disabled",
+        "install_command_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.coding_workspace_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.code_package_install_exact.v1"
+        },
+        "action": {
+          "const": "code.package.install"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "npm"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "workspace_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "workspace_is_disposable": {
+          "const": true
+        },
+        "workspace_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "package_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "package_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 214
+        },
+        "package_allowlisted": {
+          "const": true
+        },
+        "package_metadata_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "package_tarball_integrity": {
+          "type": "string",
+          "pattern": "^sha512-[A-Za-z0-9+/]+={0,2}$"
+        },
+        "registry_origin": {
+          "const": "https://registry.npmjs.org"
+        },
+        "dependency_class": {
+          "enum": [
+            "runtime",
+            "development"
+          ]
+        },
+        "current_dependency_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "target_dependency_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "package_manifest_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "package_lock_present": {
+          "type": "boolean"
+        },
+        "package_lock_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "install_mode": {
+          "const": "save_exact"
+        },
+        "lifecycle_scripts_disabled": {
+          "const": true
+        },
+        "install_command_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "repository_branch_push": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "repository_reference_commitment",
+        "workspace_reference_commitment",
+        "workspace_state_digest",
+        "base_branch",
+        "base_commit_sha",
+        "base_tree_sha",
+        "base_branch_protected",
+        "target_branch",
+        "target_branch_exists",
+        "target_branch_protected",
+        "target_tree_digest",
+        "changed_paths_digest",
+        "workspace_file_count",
+        "workspace_total_bytes",
+        "protected_path_change_count",
+        "commit_message_commitment",
+        "push_mode",
+        "force_push"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.coding_workspace_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.repository_branch_push_exact.v1"
+        },
+        "action": {
+          "const": "repository.branch.push"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "github"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "repository_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "workspace_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "workspace_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "base_branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,255}$"
+        },
+        "base_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "base_tree_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "base_branch_protected": {
+          "const": true
+        },
+        "target_branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,255}$"
+        },
+        "target_branch_exists": {
+          "const": false
+        },
+        "target_branch_protected": {
+          "const": false
+        },
+        "target_tree_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "changed_paths_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "workspace_file_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "workspace_total_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "protected_path_change_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "commit_message_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "push_mode": {
+          "const": "create_ref_only"
+        },
+        "force_push": {
+          "const": false
+        }
+      }
+    },
+    "repository_pull_request_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "repository_reference_commitment",
+        "head_branch",
+        "head_commit_sha",
+        "head_ref_exists",
+        "base_branch",
+        "base_commit_sha",
+        "base_branch_protected",
+        "same_repository",
+        "compare_state_digest",
+        "compare_status",
+        "ahead_by",
+        "behind_by",
+        "changed_files_count",
+        "additions_count",
+        "deletions_count",
+        "changed_paths_digest",
+        "protected_path_change_count",
+        "existing_open_pull_request_count",
+        "pull_request_title_commitment",
+        "pull_request_body_commitment",
+        "draft",
+        "merge_authorized"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.coding_workspace_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.repository_pull_request_create_exact.v1"
+        },
+        "action": {
+          "const": "repository.pull_request.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "github"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "repository_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "head_branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,255}$"
+        },
+        "head_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "head_ref_exists": {
+          "const": true
+        },
+        "base_branch": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/-]{1,255}$"
+        },
+        "base_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "base_branch_protected": {
+          "const": true
+        },
+        "same_repository": {
+          "const": true
+        },
+        "compare_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "compare_status": {
+          "const": "ahead"
+        },
+        "ahead_by": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "behind_by": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "changed_files_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "additions_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "deletions_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "changed_paths_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_path_change_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "existing_open_pull_request_count": {
+          "const": 0
+        },
+        "pull_request_title_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "pull_request_body_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "draft": {
+          "type": "boolean"
+        },
+        "merge_authorized": {
+          "const": false
+        }
+      }
+    }
+  }
+}
