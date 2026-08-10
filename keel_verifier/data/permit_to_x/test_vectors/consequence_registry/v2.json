@@ -1,0 +1,200 @@
+{
+  "version": "keel.consequence_registry.test_vectors.v2",
+  "consequence_registry_version": "keel.consequence_registry.v1",
+  "semantic_registry_version": "keel.semantic_selector_registry.v6",
+  "presentation_registry_version": "keel.presentation_registry.v5",
+  "vectors": [
+    {
+      "id": "database.rows.insert.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.insert",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_insert.v1",
+      "expected_title": "AI Permit-to-Insert-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_insert_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_insert_exact.v1",
+        "action": "database.rows.insert",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "rows_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "row_count": 1,
+        "schema_version": "2026-08-10.1",
+        "table_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    },
+    {
+      "id": "database.rows.update.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.update",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_update.v1",
+      "expected_title": "AI Permit-to-Update-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_update_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_update_exact.v1",
+        "action": "database.rows.update",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "changes_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "row_limit": 1,
+        "expected_current_version": "7",
+        "table_allowlist_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "id": "database.rows.delete.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.delete",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_delete.v1",
+      "expected_title": "AI Permit-to-Delete-Database-Rows",
+      "expected_fact_profile_id": "keel.facts.database_rows_delete_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_rows_delete_exact.v1",
+        "action": "database.rows.delete",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "row_limit": 1,
+        "expected_current_version": "7",
+        "table_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      }
+    },
+    {
+      "id": "database.migration.apply.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.migration.apply",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_migration_apply.v1",
+      "expected_title": "AI Permit-to-Apply-Database-Migration",
+      "expected_fact_profile_id": "keel.facts.database_migration_apply_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_migration_apply_exact.v1",
+        "action": "database.migration.apply",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "migration_id": "add_customer_risk_tier",
+        "migration_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "from_schema_version": "2026-08-10.1",
+        "to_schema_version": "2026-08-10.2",
+        "migration_allowlist_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "current_schema_version": "2026-08-10.1"
+      }
+    },
+    {
+      "id": "database.dataset.export.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.dataset.export",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_dataset_export.v1",
+      "expected_title": "AI Permit-to-Export-Dataset",
+      "expected_fact_profile_id": "keel.facts.database_dataset_export_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.database_exact_facts.v1",
+        "fact_profile_id": "keel.facts.database_dataset_export_exact.v1",
+        "action": "database.dataset.export",
+        "operation": "call.tools",
+        "connector_identity": "database.readwrite",
+        "connector_contract_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tool_schema_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "decision_trace_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "tool_arguments_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "enforcement_mode": "enforced_in_path",
+        "table": "customer_accounts",
+        "predicate_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "predicate_present": true,
+        "fields_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "row_limit": 100,
+        "table_allowlist_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "restricted_field_classification": "none",
+        "field_classifier_version": "keel.database.fields.v1"
+      }
+    }
+  ]
+}

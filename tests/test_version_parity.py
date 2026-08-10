@@ -321,7 +321,7 @@ def test_verifier_version_matches_package() -> None:
 def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.15.0"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.16.0"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:

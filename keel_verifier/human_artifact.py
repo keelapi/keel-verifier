@@ -271,7 +271,7 @@ def derive_human_artifact(
     contract = registry.get("human_artifact_contract")
     if not isinstance(contract, Mapping):
         current_registry = resources.files("keel_verifier").joinpath(
-            "data/permit_to_x/presentation_registry/v4.json"
+            "data/permit_to_x/presentation_registry/v5.json"
         )
         current = json.loads(current_registry.read_text(encoding="utf-8"))
         contract = current.get("human_artifact_contract", {})
