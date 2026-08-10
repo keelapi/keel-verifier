@@ -189,6 +189,7 @@ def _verify_trusted_preflight_window(
         "keel.payment_ledger_exact_facts.v1",
         "keel.transactional_cx_exact_facts.v1",
         "keel.release_exact_facts.v1",
+        "keel.identity_security_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -319,6 +320,82 @@ def _verify_release_invariants(facts: Mapping[str, Any]) -> None:
             "disproved",
             "PERMIT_RELEASE_INVARIANT_INVALID",
             "the signed release facts violate an exact provider-action invariant",
+        )
+
+
+def _verify_identity_security_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate identity/security relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.identity_security_exact_facts.v1":
+        return
+    action = facts.get("action")
+    valid = True
+    if action == "identity.mfa.reset":
+        valid = (
+            isinstance(facts.get("enrolled_factor_count"), int)
+            and not isinstance(facts.get("enrolled_factor_count"), bool)
+            and facts.get("enrolled_factor_count", 0) >= 1
+            and facts.get("reset_scope") == "all_enrolled_factors"
+        )
+    elif action == "identity.sessions.revoke":
+        valid = (
+            facts.get("revoke_oauth_tokens") is True
+            and facts.get("active_sessions_enumerable") is False
+        )
+    elif action == "identity.disable":
+        valid = (
+            facts.get("current_user_status") == "ACTIVE"
+            and facts.get("target_user_status") == "DEPROVISIONED"
+            and facts.get("destructive_deprovisioning_acknowledged") is True
+        )
+    elif action in {
+        "identity.group_access.grant",
+        "identity.group_access.remove",
+    }:
+        current_count = facts.get("current_group_member_count")
+        projected_count = facts.get("projected_group_member_count")
+        counts_are_ints = (
+            isinstance(current_count, int)
+            and not isinstance(current_count, bool)
+            and isinstance(projected_count, int)
+            and not isinstance(projected_count, bool)
+        )
+        if action == "identity.group_access.grant":
+            valid = (
+                counts_are_ints
+                and facts.get("current_membership") is False
+                and facts.get("target_membership") is True
+                and projected_count == current_count + 1
+            )
+        else:
+            valid = (
+                counts_are_ints
+                and facts.get("current_membership") is True
+                and facts.get("target_membership") is False
+                and facts.get("target_is_last_privileged_member") is False
+                and projected_count == current_count - 1
+            )
+    elif action == "security.indicator.block":
+        current_count = facts.get("current_rules_count")
+        projected_count = facts.get("projected_rules_count")
+        valid = (
+            isinstance(current_count, int)
+            and not isinstance(current_count, bool)
+            and isinstance(projected_count, int)
+            and not isinstance(projected_count, bool)
+            and facts.get("zone_status") == "active"
+            and facts.get("current_matching_rule_count") == 0
+            and facts.get("target_action") == "block"
+            and facts.get("rule_enabled") is True
+            and projected_count == current_count + 1
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_IDENTITY_SECURITY_INVARIANT_INVALID",
+            "the signed identity/security facts violate an exact provider-action invariant",
         )
 
 
@@ -704,6 +781,7 @@ def _resolve_contracts(
             "semantic_registry/v7.json",
             "semantic_registry/v8.json",
             "semantic_registry/v9.json",
+            "semantic_registry/v10.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -717,6 +795,7 @@ def _resolve_contracts(
             "fact_profiles/v5.json",
             "fact_profiles/v6.json",
             "fact_profiles/v7.json",
+            "fact_profiles/v8.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -1871,6 +1950,7 @@ def adjudicate_permit_exact_v2_body(
         )
         _verify_transactional_cx_invariants(facts)
         _verify_release_invariants(facts)
+        _verify_identity_security_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

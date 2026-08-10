@@ -1,0 +1,1614 @@
+{
+  "$schema": "./v5.schema.json",
+  "artifact_id": "keel.permit.consequence_registry",
+  "version": "keel.consequence_registry.v5",
+  "canonicalization_profile": "keel.consequence_registry.canonical_json.v1",
+  "consequences": [
+    {
+      "consequence_type": "database.rows.insert.v1",
+      "semantic_id": "keel.action.database_rows_insert.v1",
+      "tool_names": [
+        "database.rows.insert"
+      ],
+      "customer_title": "AI Permit-to-Insert-Database-Rows",
+      "type_definition": "Exact authorization to insert bounded rows into one database table",
+      "required_material_fields": [
+        "table",
+        "rows_digest",
+        "row_count",
+        "schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "schema_version"
+      ],
+      "canonicalizer": "keel.database.rows.insert.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table"
+        },
+        {
+          "field": "request_digest",
+          "label": "Rows"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_table",
+        "business_validity_of_inserted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "record_creation"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.update.v1",
+      "semantic_id": "keel.action.database_rows_update.v1",
+      "tool_names": [
+        "database.rows.update"
+      ],
+      "customer_title": "AI Permit-to-Update-Database-Rows",
+      "type_definition": "Exact authorization to update bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "changes_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.update.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Changes"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "business_validity_of_updated_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "concurrency_sensitive"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.delete.v1",
+      "semantic_id": "keel.action.database_rows_delete.v1",
+      "tool_names": [
+        "database.rows.delete"
+      ],
+      "customer_title": "AI Permit-to-Delete-Database-Rows",
+      "type_definition": "Exact authorization to delete bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.delete.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "delete"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Delete request"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "recoverability_of_deleted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "destructive"
+      ]
+    },
+    {
+      "consequence_type": "database.migration.apply.v1",
+      "semantic_id": "keel.action.database_migration_apply.v1",
+      "tool_names": [
+        "database.migration.apply"
+      ],
+      "customer_title": "AI Permit-to-Apply-Database-Migration",
+      "type_definition": "Exact authorization to apply one allowlisted migration from a bound schema version",
+      "required_material_fields": [
+        "migration_id",
+        "migration_digest",
+        "from_schema_version",
+        "to_schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "migration_allowlist",
+        "current_schema_version"
+      ],
+      "canonicalizer": "keel.database.migration.apply.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "rpc.apply_allowlisted_migration"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Migration"
+        },
+        {
+          "field": "request_digest",
+          "label": "Migration definition"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "migration_success_without_provider_receipt",
+        "application_compatibility",
+        "automatic_rollback_safety"
+      ],
+      "risk_tags": [
+        "schema_mutation",
+        "administrative"
+      ]
+    },
+    {
+      "consequence_type": "database.dataset.export.v1",
+      "semantic_id": "keel.action.database_dataset_export.v1",
+      "tool_names": [
+        "database.dataset.export"
+      ],
+      "customer_title": "AI Permit-to-Export-Dataset",
+      "type_definition": "Exact authorization to export bounded fields and rows from one database table",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "fields_digest",
+        "row_limit"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "restricted_field_classification",
+        "row_limit"
+      ],
+      "canonicalizer": "keel.database.dataset.export.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "select"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dataset"
+        },
+        {
+          "field": "request_digest",
+          "label": "Fields and predicate"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "downstream_use_after_export",
+        "absence_of_unrequested_external_copies",
+        "business_need_for_exported_data"
+      ],
+      "risk_tags": [
+        "data_export",
+        "confidentiality"
+      ]
+    },
+    {
+      "consequence_type": "payment.invoice.pay.v1",
+      "semantic_id": "keel.action.invoice_payment_execute.v1",
+      "tool_names": [
+        "payment.invoice.pay"
+      ],
+      "customer_title": "AI Permit-to-Pay-Invoice",
+      "type_definition": "Exact authorization to pay one provider-verified open invoice",
+      "required_material_fields": [
+        "invoice_reference_commitment",
+        "amount_minor",
+        "currency",
+        "invoice_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_invoice_preflight",
+        "invoice_status_before",
+        "amount_minor",
+        "currency",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.invoice.pay.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "invoice.pay"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "financial_settlement",
+        "delivery_of_invoiced_goods_or_services"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "invoice_payment"
+      ]
+    },
+    {
+      "consequence_type": "ledger.entry.record.v1",
+      "semantic_id": "keel.action.ledger_entry_record.v1",
+      "tool_names": [
+        "ledger.entry.record"
+      ],
+      "customer_title": "AI Permit-to-Record-Ledger-Entry",
+      "type_definition": "Exact authorization to post one version-checked double-entry record",
+      "required_material_fields": [
+        "ledger_reference_commitment",
+        "entry_reference_commitment",
+        "debit_account_commitment",
+        "credit_account_commitment",
+        "amount_minor",
+        "currency",
+        "entry_effective_at",
+        "expected_ledger_version",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "ledger_schema_version",
+        "expected_ledger_version",
+        "value_conserved",
+        "accounts_distinct",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ledger.entry.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "ledger_entry.insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Ledger and accounts"
+        },
+        {
+          "field": "amount",
+          "label": "Balanced amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "request_digest",
+          "label": "Entry"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "correct_accounting_classification",
+        "financial_settlement"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "data_mutation",
+        "value_conservation"
+      ]
+    },
+    {
+      "consequence_type": "payment.reconciliation.record.v1",
+      "semantic_id": "keel.action.payment_reconciliation_record.v1",
+      "tool_names": [
+        "payment.reconciliation.record"
+      ],
+      "customer_title": "AI Permit-to-Reconcile-Payment",
+      "type_definition": "Exact authorization to mark one payment and ledger entry reconciled",
+      "required_material_fields": [
+        "payment_reference_commitment",
+        "ledger_entry_reference_commitment",
+        "provider_observation_digest",
+        "ledger_observation_digest",
+        "amount_minor",
+        "currency",
+        "expected_current_status",
+        "requested_status",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_outcome_state",
+        "ledger_entry_state",
+        "amounts_match",
+        "currencies_match",
+        "reconciliation_basis_version",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.reconciliation.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "reconciliation.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment and ledger entry"
+        },
+        {
+          "field": "amount",
+          "label": "Matched amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "linked_to",
+          "label": "Workflow"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "financial_settlement_beyond_the_bound_provider_observation",
+        "correctness_of_unbound_ledger_entries",
+        "absence_of_later_chargeback_or_reversal"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "reconciliation",
+        "data_mutation"
+      ]
+    },
+    {
+      "consequence_type": "payment.refund.execute.v2",
+      "semantic_id": "keel.action.payment_refund.v2",
+      "tool_names": [
+        "payment.refund"
+      ],
+      "customer_title": "AI Permit-to-Refund-Payment",
+      "type_definition": "Exact authorization to refund one provider-verified payment amount",
+      "required_material_fields": [
+        "original_payment_reference_commitment",
+        "amount_minor",
+        "currency",
+        "refund_reason",
+        "payment_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_payment_preflight",
+        "refundable_amount_minor_before",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.refund.canonical.v2",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "refunds.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Original payment"
+        },
+        {
+          "field": "amount",
+          "label": "Refund amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Payer"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "funds_returned_to_the_payer",
+        "financial_settlement_or_absence_of_later_reversal"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "refund",
+        "customer_account"
+      ]
+    },
+    {
+      "consequence_type": "customer.credit.issue.v1",
+      "semantic_id": "keel.action.customer_credit_issue.v1",
+      "tool_names": [
+        "customer.credit.issue"
+      ],
+      "customer_title": "AI Permit-to-Issue-Account-Credit",
+      "type_definition": "Exact authorization to create one immutable customer credit-balance adjustment",
+      "required_material_fields": [
+        "customer_reference_commitment",
+        "amount_minor",
+        "provider_amount_minor",
+        "currency",
+        "customer_balance_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_customer_preflight",
+        "credit_sign_invariant",
+        "expected_balance_invariant",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.customer.credit.issue.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "customer_balance_transactions.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Customer account"
+        },
+        {
+          "field": "amount",
+          "label": "Credit amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "application_of_the_credit_to_a_future_invoice",
+        "cash_payment_or_cash_refund"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "account_credit",
+        "customer_account"
+      ]
+    },
+    {
+      "consequence_type": "subscription.cancellation.schedule.v1",
+      "semantic_id": "keel.action.subscription_cancellation_schedule.v1",
+      "tool_names": [
+        "subscription.cancellation.schedule"
+      ],
+      "customer_title": "AI Permit-to-Schedule-Subscription-Cancellation",
+      "type_definition": "Exact authorization to schedule one active subscription to cancel at period end",
+      "required_material_fields": [
+        "subscription_reference_commitment",
+        "cancel_at_period_end_before",
+        "cancel_at_period_end_requested",
+        "current_period_end",
+        "subscription_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_subscription_preflight",
+        "not_already_scheduled",
+        "not_ended",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.subscription.cancellation.schedule.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscriptions.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "subscription_termination_before_period_end",
+        "refund_or_credit_for_unused_service"
+      ],
+      "risk_tags": [
+        "subscription_change",
+        "customer_account",
+        "future_effect"
+      ]
+    },
+    {
+      "consequence_type": "subscription.cancellation.withdraw.v1",
+      "semantic_id": "keel.action.subscription_cancellation_withdraw.v1",
+      "tool_names": [
+        "subscription.cancellation.withdraw"
+      ],
+      "customer_title": "AI Permit-to-Withdraw-Subscription-Cancellation",
+      "type_definition": "Exact authorization to withdraw a pending period-end cancellation",
+      "required_material_fields": [
+        "subscription_reference_commitment",
+        "cancel_at_period_end_before",
+        "cancel_at_period_end_requested",
+        "current_period_end",
+        "canceled_at_before",
+        "ended_at_before",
+        "subscription_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_subscription_preflight",
+        "cancellation_is_pending",
+        "not_canceled_or_ended",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.subscription.cancellation.withdraw.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscriptions.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Former cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "reinstatement_of_an_already_canceled_subscription",
+        "future_successful_renewal_or_payment"
+      ],
+      "risk_tags": [
+        "subscription_change",
+        "customer_account",
+        "future_billing"
+      ]
+    },
+    {
+      "consequence_type": "support.case.resolve.v1",
+      "semantic_id": "keel.action.support_case_resolve.v1",
+      "tool_names": [
+        "support.case.resolve"
+      ],
+      "customer_title": "AI Permit-to-Resolve-Support-Case",
+      "type_definition": "Exact authorization to move one support ticket from an open stage to a provider-declared closed stage",
+      "required_material_fields": [
+        "ticket_reference_commitment",
+        "pipeline_reference_commitment",
+        "current_stage_reference_commitment",
+        "requested_stage_reference_commitment",
+        "current_stage_state",
+        "requested_stage_state",
+        "ticket_state_digest",
+        "pipeline_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_ticket_preflight",
+        "provider_pipeline_preflight",
+        "closed_stage_metadata",
+        "durable_gateway_idempotency",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.support.case.resolve.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hubspot",
+          "operation": "tickets.update_stage"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Support case"
+        },
+        {
+          "field": "request_digest",
+          "label": "Resolution"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Support provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "customer_satisfaction_or_actual_problem_resolution",
+        "absence_of_a_concurrent_provider_update"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "customer_communication",
+        "case_closure"
+      ]
+    },
+    {
+      "consequence_type": "repository.pull_request.merge.v1",
+      "semantic_id": "keel.action.repository_pull_request_merge.v1",
+      "tool_names": [
+        "repository.pull_request.merge"
+      ],
+      "customer_title": "AI Permit-to-Merge-Pull-Request",
+      "type_definition": "Exact authorization to merge one provider-verified pull-request head into one protected base branch",
+      "required_material_fields": [
+        "repository_reference_commitment",
+        "pull_request_number",
+        "head_commit_sha",
+        "base_branch",
+        "base_branch_tip_sha",
+        "merge_method",
+        "branch_protection_state_digest",
+        "pull_request_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_pull_request_preflight",
+        "provider_branch_protection_preflight",
+        "provider_checks_and_reviews_preflight",
+        "expected_head_sha",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.repository.pull_request.merge.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "github",
+          "operation": "pulls.merge"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository and pull request"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact merge request"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_successful_merge_without_provider_receipt",
+        "resulting_branch_tip_or_merge_commit_after_authorization",
+        "deployment_or_runtime_behavior"
+      ],
+      "risk_tags": [
+        "source_change",
+        "protected_branch",
+        "production_release"
+      ]
+    },
+    {
+      "consequence_type": "deployment.commit.deploy.v1",
+      "semantic_id": "keel.action.deployment_commit_deploy.v1",
+      "tool_names": [
+        "deployment.commit.deploy"
+      ],
+      "customer_title": "AI Permit-to-Deploy-Commit",
+      "type_definition": "Exact authorization to replace one production Fly Machine image with one immutable OCI image whose revision metadata names the source commit",
+      "required_material_fields": [
+        "source_repository_reference_commitment",
+        "source_commit_sha",
+        "target_image_digest",
+        "artifact_revision_sha",
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "current_instance_id",
+        "current_config_digest",
+        "target_config_digest",
+        "release_record_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_source_commit_preflight",
+        "immutable_artifact_digest",
+        "oci_revision_to_source_commit_binding",
+        "provider_machine_preflight",
+        "machine_lease_and_current_version",
+        "durable_prior_config_snapshot",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.deployment.commit.deploy.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "fly",
+          "operation": "machines.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Commit and image"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "started_healthy_or_traffic_serving_application_without_provider_readback",
+        "independent_build_provenance_beyond_the_bound_registry_metadata"
+      ],
+      "risk_tags": [
+        "production_deployment",
+        "infrastructure",
+        "runtime_change"
+      ]
+    },
+    {
+      "consequence_type": "deployment.rollback.v1",
+      "semantic_id": "keel.action.deployment_rollback.v1",
+      "tool_names": [
+        "deployment.rollback"
+      ],
+      "customer_title": "AI Permit-to-Roll-Back-Deployment",
+      "type_definition": "Exact authorization to replace one production Fly Machine configuration with one gateway-recorded prior release configuration",
+      "required_material_fields": [
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "current_release_instance_id",
+        "current_image_digest",
+        "current_config_digest",
+        "prior_release_instance_id",
+        "rollback_target_image_digest",
+        "rollback_target_config_digest",
+        "failed_release_record_digest",
+        "rollback_target_release_record_digest",
+        "rollback_reason_commitment",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_machine_preflight",
+        "durable_prior_release_ledger",
+        "provider_state_matches_failed_release",
+        "machine_lease_and_current_version",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.deployment.rollback.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "fly",
+          "operation": "machines.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Prior release"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "reason",
+          "label": "Rollback reason"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "restored_application_health_traffic_or_data",
+        "reversal_of_external_effects_caused_by_the_failed_release"
+      ],
+      "risk_tags": [
+        "production_rollback",
+        "infrastructure",
+        "runtime_change"
+      ]
+    },
+    {
+      "consequence_type": "identity.mfa.reset.v1",
+      "semantic_id": "keel.action.identity_mfa_reset.v1",
+      "tool_names": [
+        "identity.mfa.reset"
+      ],
+      "customer_title": "AI Permit-to-Reset-MFA",
+      "type_definition": "Exact authorization to reset every enrolled MFA factor for one provider-verified identity",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "enrolled_factor_count",
+        "factor_enrollment_state_digest",
+        "reset_scope",
+        "target_user_status"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_factor_enrollment_preflight",
+        "provider_admin_role_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.mfa.reset.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.lifecycle.reset_factors"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_factor_reset_without_provider_receipt",
+        "future_successful_mfa_reenrollment",
+        "revocation_of_sessions_or_oauth_tokens"
+      ],
+      "risk_tags": [
+        "identity",
+        "credential_reset",
+        "account_takeover_risk"
+      ]
+    },
+    {
+      "consequence_type": "identity.sessions.revoke.v1",
+      "semantic_id": "keel.action.identity_sessions_revoke.v1",
+      "tool_names": [
+        "identity.sessions.revoke"
+      ],
+      "customer_title": "AI Permit-to-Revoke-Sessions",
+      "type_definition": "Exact authorization to clear every Okta session and revoke OAuth tokens for one provider-verified identity",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "session_revocation_scope",
+        "revoke_oauth_tokens",
+        "active_sessions_enumerable"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_admin_role_preflight",
+        "provider_session_capability_contract",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.sessions.revoke.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.sessions.clear"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_session_revocation_without_provider_receipt",
+        "logout_from_applications_that_do_not_honor_okta_token_revocation",
+        "absence_of_non_okta_sessions"
+      ],
+      "risk_tags": [
+        "identity",
+        "session_revocation",
+        "security_response"
+      ]
+    },
+    {
+      "consequence_type": "identity.disable.v1",
+      "semantic_id": "keel.action.identity_disable.v1",
+      "tool_names": [
+        "identity.disable"
+      ],
+      "customer_title": "AI Permit-to-Disable-Identity",
+      "type_definition": "Exact authorization to deprovision one active Okta identity after provider verification of its current assignments and privilege",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "target_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "destructive_deprovisioning_acknowledged",
+        "app_assignment_state_digest",
+        "group_membership_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_admin_role_preflight",
+        "provider_assignment_preflight",
+        "explicit_destructive_action_acknowledgement",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.disable.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.lifecycle.deactivate"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_terminal_deprovisioned_status_without_provider_readback",
+        "preservation_or_removal_of_data_in_assigned_applications",
+        "revocation_of_credentials_issued_outside_okta"
+      ],
+      "risk_tags": [
+        "identity",
+        "deprovisioning",
+        "destructive",
+        "access_removal"
+      ]
+    },
+    {
+      "consequence_type": "identity.group_access.grant.v1",
+      "semantic_id": "keel.action.identity_group_access_grant.v1",
+      "tool_names": [
+        "identity.group_access.grant"
+      ],
+      "customer_title": "AI Permit-to-Grant-Group-Access",
+      "type_definition": "Exact authorization to add one provider-verified identity to one provider-verified Okta group",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "group_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_group_preflight",
+        "provider_membership_preflight",
+        "keel_managed_group_privilege_classification",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.group_access.grant.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "groups.users.add"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "specific_downstream_application_entitlements_derived_from_the_group",
+        "absence_of_other_access_paths"
+      ],
+      "risk_tags": [
+        "identity",
+        "access_grant",
+        "privilege_change"
+      ]
+    },
+    {
+      "consequence_type": "identity.group_access.remove.v1",
+      "semantic_id": "keel.action.identity_group_access_remove.v1",
+      "tool_names": [
+        "identity.group_access.remove"
+      ],
+      "customer_title": "AI Permit-to-Remove-Group-Access",
+      "type_definition": "Exact authorization to remove one provider-verified identity from one provider-verified Okta group",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "group_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count",
+        "target_is_last_privileged_member"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_group_preflight",
+        "provider_membership_preflight",
+        "keel_managed_group_privilege_classification",
+        "provider_last_privileged_member_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.group_access.remove.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "groups.users.remove"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "revocation_of_sessions_or_entitlements_cached_by_downstream_applications",
+        "absence_of_other_group_or_direct_access"
+      ],
+      "risk_tags": [
+        "identity",
+        "access_removal",
+        "privilege_change"
+      ]
+    },
+    {
+      "consequence_type": "security.indicator.block.v1",
+      "semantic_id": "keel.action.security_indicator_block.v1",
+      "tool_names": [
+        "security.indicator.block"
+      ],
+      "customer_title": "AI Permit-to-Block-Indicator",
+      "type_definition": "Exact authorization to add one enabled block rule for one indicator to one provider-verified Cloudflare zone ruleset",
+      "required_material_fields": [
+        "zone_reference_commitment",
+        "ruleset_reference_commitment",
+        "indicator_reference_commitment",
+        "zone_status",
+        "ruleset_phase",
+        "ruleset_version",
+        "ruleset_state_digest",
+        "indicator_type",
+        "indicator_scope",
+        "source_alert_reference_commitment",
+        "rule_expression_digest",
+        "rule_reference_commitment",
+        "current_matching_rule_count",
+        "current_rules_count",
+        "projected_rules_count",
+        "target_action",
+        "rule_enabled"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_zone_preflight",
+        "provider_ruleset_preflight",
+        "provider_existing_rule_preflight",
+        "deterministic_indicator_expression_derivation",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.security.indicator.block.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "cloudflare",
+          "operation": "rulesets.rules.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "cloudflare_acceptance_or_active_rule_without_provider_readback",
+        "maliciousness_of_the_indicator",
+        "blocking_outside_the_named_zone_and_ruleset"
+      ],
+      "risk_tags": [
+        "security_response",
+        "network_block",
+        "traffic_control"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,975 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/identity-security-exact-facts-v1.schema.json",
+  "title": "Keel exact identity and security authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/identity_mfa_reset"
+    },
+    {
+      "$ref": "#/$defs/identity_sessions_revoke"
+    },
+    {
+      "$ref": "#/$defs/identity_disable"
+    },
+    {
+      "$ref": "#/$defs/identity_group_access_grant"
+    },
+    {
+      "$ref": "#/$defs/identity_group_access_remove"
+    },
+    {
+      "$ref": "#/$defs/security_indicator_block"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "identity_mfa_reset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "provider_identity_type",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "enrolled_factor_count",
+        "factor_enrollment_state_digest",
+        "reset_scope",
+        "target_user_status"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.identity_mfa_reset_exact.v1"
+        },
+        "action": {
+          "const": "identity.mfa.reset"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "okta"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "tenant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "user_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_identity_type": {
+          "const": "user"
+        },
+        "current_user_status": {
+          "enum": [
+            "ACTIVE",
+            "PASSWORD_EXPIRED",
+            "LOCKED_OUT",
+            "RECOVERY",
+            "SUSPENDED"
+          ]
+        },
+        "user_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_is_privileged_admin": {
+          "type": "boolean"
+        },
+        "admin_role_assignments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enrolled_factor_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "factor_enrollment_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reset_scope": {
+          "const": "all_enrolled_factors"
+        },
+        "target_user_status": {
+          "const": "ACTIVE"
+        }
+      }
+    },
+    "identity_sessions_revoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "provider_identity_type",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "session_revocation_scope",
+        "revoke_oauth_tokens",
+        "active_sessions_enumerable"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.identity_sessions_revoke_exact.v1"
+        },
+        "action": {
+          "const": "identity.sessions.revoke"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "okta"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "tenant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "user_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_identity_type": {
+          "const": "user"
+        },
+        "current_user_status": {
+          "enum": [
+            "ACTIVE",
+            "PASSWORD_EXPIRED",
+            "LOCKED_OUT",
+            "RECOVERY",
+            "SUSPENDED"
+          ]
+        },
+        "user_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_is_privileged_admin": {
+          "type": "boolean"
+        },
+        "admin_role_assignments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "session_revocation_scope": {
+          "const": "all_okta_sessions_and_oauth_tokens"
+        },
+        "revoke_oauth_tokens": {
+          "const": true
+        },
+        "active_sessions_enumerable": {
+          "const": false
+        }
+      }
+    },
+    "identity_disable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "provider_identity_type",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "target_user_status",
+        "destructive_deprovisioning_acknowledged",
+        "app_assignment_state_digest",
+        "group_membership_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.identity_disable_exact.v1"
+        },
+        "action": {
+          "const": "identity.disable"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "okta"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "tenant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "user_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_identity_type": {
+          "const": "user"
+        },
+        "current_user_status": {
+          "const": "ACTIVE"
+        },
+        "user_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_is_privileged_admin": {
+          "type": "boolean"
+        },
+        "admin_role_assignments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_user_status": {
+          "const": "DEPROVISIONED"
+        },
+        "destructive_deprovisioning_acknowledged": {
+          "const": true
+        },
+        "app_assignment_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_membership_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "identity_group_access_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "provider_identity_type",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_reference_commitment",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.identity_group_access_grant_exact.v1"
+        },
+        "action": {
+          "const": "identity.group_access.grant"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "okta"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "tenant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "user_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_identity_type": {
+          "const": "user"
+        },
+        "current_user_status": {
+          "const": "ACTIVE"
+        },
+        "user_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_is_privileged_admin": {
+          "type": "boolean"
+        },
+        "admin_role_assignments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "group_type": {
+          "const": "OKTA_GROUP"
+        },
+        "group_privilege_class": {
+          "enum": [
+            "standard",
+            "privileged",
+            "administrative"
+          ]
+        },
+        "group_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_membership_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "current_membership": {
+          "const": false
+        },
+        "target_membership": {
+          "const": true
+        },
+        "current_group_member_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projected_group_member_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "identity_group_access_remove": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "provider_identity_type",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_reference_commitment",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count",
+        "target_is_last_privileged_member"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.identity_group_access_remove_exact.v1"
+        },
+        "action": {
+          "const": "identity.group_access.remove"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "okta"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "tenant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "user_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_identity_type": {
+          "const": "user"
+        },
+        "current_user_status": {
+          "const": "ACTIVE"
+        },
+        "user_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_is_privileged_admin": {
+          "type": "boolean"
+        },
+        "admin_role_assignments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "group_type": {
+          "const": "OKTA_GROUP"
+        },
+        "group_privilege_class": {
+          "enum": [
+            "standard",
+            "privileged",
+            "administrative"
+          ]
+        },
+        "group_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "group_membership_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "current_membership": {
+          "const": true
+        },
+        "target_membership": {
+          "const": false
+        },
+        "current_group_member_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projected_group_member_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target_is_last_privileged_member": {
+          "const": false
+        }
+      }
+    },
+    "security_indicator_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "zone_reference_commitment",
+        "zone_status",
+        "ruleset_reference_commitment",
+        "ruleset_phase",
+        "ruleset_version",
+        "ruleset_state_digest",
+        "indicator_reference_commitment",
+        "indicator_type",
+        "indicator_scope",
+        "source_alert_reference_commitment",
+        "rule_expression_digest",
+        "rule_reference_commitment",
+        "current_matching_rule_count",
+        "current_rules_count",
+        "projected_rules_count",
+        "target_action",
+        "rule_enabled"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.identity_security_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.security_indicator_block_exact.v1"
+        },
+        "action": {
+          "const": "security.indicator.block"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "cloudflare"
+        },
+        "connector_contract_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_schema_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "decision_trace_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_arguments_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+        },
+        "preflight_snapshot_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "idempotency_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "zone_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "zone_status": {
+          "const": "active"
+        },
+        "ruleset_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "ruleset_phase": {
+          "const": "http_request_firewall_custom"
+        },
+        "ruleset_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "ruleset_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "indicator_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "indicator_type": {
+          "enum": [
+            "ipv4",
+            "ipv6",
+            "cidr"
+          ]
+        },
+        "indicator_scope": {
+          "const": "public_internet"
+        },
+        "source_alert_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "rule_expression_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rule_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_matching_rule_count": {
+          "const": 0
+        },
+        "current_rules_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projected_rules_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_action": {
+          "const": "block"
+        },
+        "rule_enabled": {
+          "const": true
+        }
+      }
+    }
+  }
+}
