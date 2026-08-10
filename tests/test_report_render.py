@@ -530,3 +530,57 @@ def test_human_artifact_validates_and_ignores_caller_title_and_summary() -> None
     assert human["source"]["presentation_registry_version"] == (
         "keel.presentation_registry.v3"
     )
+
+
+@pytest.mark.parametrize(
+    ("authorization_facts", "expected_target"),
+    (
+        (
+            {"customer_reference_commitment": {"digest": "sha256:" + "1" * 64}},
+            "customer commitment sha256:" + "1" * 64,
+        ),
+        (
+            {
+                "subscription_reference_commitment": {
+                    "digest": "sha256:" + "2" * 64
+                },
+                "customer_reference_commitment": {
+                    "digest": "sha256:" + "3" * 64
+                },
+            },
+            "subscription commitment sha256:" + "2" * 64,
+        ),
+        (
+            {"ticket_reference_commitment": {"digest": "sha256:" + "4" * 64}},
+            "support case commitment sha256:" + "4" * 64,
+        ),
+    ),
+)
+def test_human_artifact_resolves_transactional_cx_committed_targets(
+    authorization_facts: dict,
+    expected_target: str,
+) -> None:
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "key manifest",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-cx",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "customer-resolution-agent",
+                "authorized_action": "transactional.cx.action",
+                "issued_at": "2026-08-10T12:00:00Z",
+                "expires_at": "2026-08-10T12:05:00Z",
+                "authorization_facts": authorization_facts,
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+
+    assert human is not None
+    assert human["authorization"]["target"] == expected_target
+    assert expected_target in human["summary"]["text"]
