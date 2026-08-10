@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/database-exact-facts-v1.schema.json",
+  "title": "Keel exact database authorization facts v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "action",
+    "operation",
+    "connector_identity",
+    "connector_contract_hash",
+    "tool_schema_hash",
+    "decision_trace_hash",
+    "tool_arguments_hash",
+    "request_digest",
+    "enforcement_mode"
+  ],
+  "properties": {
+    "version": {"const": "keel.database_exact_facts.v1"},
+    "fact_profile_id": {
+      "enum": [
+        "keel.facts.database_rows_insert_exact.v1",
+        "keel.facts.database_rows_update_exact.v1",
+        "keel.facts.database_rows_delete_exact.v1",
+        "keel.facts.database_migration_apply_exact.v1",
+        "keel.facts.database_dataset_export_exact.v1"
+      ]
+    },
+    "action": {
+      "enum": [
+        "database.rows.insert",
+        "database.rows.update",
+        "database.rows.delete",
+        "database.migration.apply",
+        "database.dataset.export"
+      ]
+    },
+    "operation": {"const": "call.tools"},
+    "connector_identity": {
+      "enum": [
+        "database.readonly",
+        "database.readwrite",
+        "postgres.readonly",
+        "postgres.readwrite"
+      ]
+    },
+    "connector_contract_hash": {"$ref": "#/$defs/rawDigest"},
+    "tool_schema_hash": {"$ref": "#/$defs/rawDigest"},
+    "decision_trace_hash": {"$ref": "#/$defs/rawDigest"},
+    "tool_arguments_hash": {"$ref": "#/$defs/rawDigest"},
+    "request_digest": {"$ref": "#/$defs/digest"},
+    "enforcement_mode": {"const": "enforced_in_path"},
+    "table": {"$ref": "#/$defs/identifier"},
+    "rows_digest": {"$ref": "#/$defs/digest"},
+    "row_count": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "schema_version": {"$ref": "#/$defs/versionText"},
+    "table_allowlist_digest": {"$ref": "#/$defs/digest"},
+    "predicate_digest": {"$ref": "#/$defs/digest"},
+    "predicate_present": {"const": true},
+    "changes_digest": {"$ref": "#/$defs/digest"},
+    "row_limit": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "expected_current_version": {"$ref": "#/$defs/versionText"},
+    "migration_id": {"$ref": "#/$defs/identifier"},
+    "migration_digest": {"$ref": "#/$defs/digest"},
+    "from_schema_version": {"$ref": "#/$defs/versionText"},
+    "to_schema_version": {"$ref": "#/$defs/versionText"},
+    "migration_allowlist_digest": {"$ref": "#/$defs/digest"},
+    "current_schema_version": {"$ref": "#/$defs/versionText"},
+    "fields_digest": {"$ref": "#/$defs/digest"},
+    "restricted_field_classification": {
+      "enum": ["none", "restricted", "mixed"]
+    },
+    "field_classifier_version": {"$ref": "#/$defs/versionText"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"action": {"const": "database.rows.insert"}}},
+      "then": {
+        "required": [
+          "table",
+          "rows_digest",
+          "row_count",
+          "schema_version",
+          "table_allowlist_digest"
+        ],
+        "properties": {
+          "fact_profile_id": {"const": "keel.facts.database_rows_insert_exact.v1"},
+          "connector_identity": {"enum": ["database.readwrite", "postgres.readwrite"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"action": {"const": "database.rows.update"}}},
+      "then": {
+        "required": [
+          "table",
+          "predicate_digest",
+          "predicate_present",
+          "changes_digest",
+          "row_limit",
+          "expected_current_version",
+          "table_allowlist_digest"
+        ],
+        "properties": {
+          "fact_profile_id": {"const": "keel.facts.database_rows_update_exact.v1"},
+          "connector_identity": {"enum": ["database.readwrite", "postgres.readwrite"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"action": {"const": "database.rows.delete"}}},
+      "then": {
+        "required": [
+          "table",
+          "predicate_digest",
+          "predicate_present",
+          "row_limit",
+          "expected_current_version",
+          "table_allowlist_digest"
+        ],
+        "properties": {
+          "fact_profile_id": {"const": "keel.facts.database_rows_delete_exact.v1"},
+          "connector_identity": {"enum": ["database.readwrite", "postgres.readwrite"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"action": {"const": "database.migration.apply"}}},
+      "then": {
+        "required": [
+          "migration_id",
+          "migration_digest",
+          "from_schema_version",
+          "to_schema_version",
+          "migration_allowlist_digest",
+          "current_schema_version"
+        ],
+        "properties": {
+          "fact_profile_id": {"const": "keel.facts.database_migration_apply_exact.v1"},
+          "connector_identity": {"enum": ["database.readwrite", "postgres.readwrite"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"action": {"const": "database.dataset.export"}}},
+      "then": {
+        "required": [
+          "table",
+          "predicate_digest",
+          "predicate_present",
+          "fields_digest",
+          "row_limit",
+          "table_allowlist_digest",
+          "restricted_field_classification",
+          "field_classifier_version"
+        ],
+        "properties": {
+          "fact_profile_id": {"const": "keel.facts.database_dataset_export_exact.v1"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "rawDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.-]{0,127}$"
+    },
+    "versionText": {"type": "string", "minLength": 1, "maxLength": 128}
+  }
+}

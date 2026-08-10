@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.17.0
+
+- Vendor the immutable database exact-facts contract, fact-profile registry v4,
+  semantic selector registry v6, presentation registry v5, and conformance
+  vectors from `keel-permit v1.16.0`.
+- Admit exact database contract pins during offline verification while retaining
+  byte-identical support for every previously released registry version.
+- Validate action-specific database facts and reject cross-action fact-profile
+  substitution before a database Permit can receive a specific human title.
+
 ## 3.16.0
 
 - Vendor the additive consequence registry, semantic selector registry v5,

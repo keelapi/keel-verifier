@@ -75,8 +75,22 @@ _PARITY_MAP = {
     # correct resolution for those records.
     "permit_to_x/semantic_registry/v2.json": "semantic_registry/v2.json",
     "permit_to_x/semantic_registry/v2.schema.json": "semantic_registry/v2.schema.json",
+    "permit_to_x/semantic_registry/v6.json": "semantic_registry/v6.json",
+    "permit_to_x/semantic_registry/v6.schema.json": "semantic_registry/v6.schema.json",
     "permit_to_x/fact_profiles/v2.json": "fact_profiles/v2.json",
     "permit_to_x/fact_profiles/v2.schema.json": "fact_profiles/v2.schema.json",
+    "permit_to_x/fact_profiles/v4.json": "fact_profiles/v4.json",
+    "permit_to_x/fact_profiles/v4.schema.json": "fact_profiles/v4.schema.json",
+    "permit_to_x/presentation_registry/v5.json": "presentation_registry/v5.json",
+    "permit_to_x/presentation_registry/v5.schema.json": (
+        "presentation_registry/v5.schema.json"
+    ),
+    "permit_to_x/test_vectors/consequence_registry/v2.json": (
+        "consequence_registry/test-vectors/v2.json"
+    ),
+    "permit_to_x/schemas/database-exact-facts-v1.schema.json": (
+        "schemas/database-exact-facts-v1.schema.json"
+    ),
     "permit_to_x/schemas/permit-semantic-binding-v2.schema.json": "schemas/permit-semantic-binding-v2.schema.json",
     "permit_to_x/schemas/permit-exact-pack-v2.schema.json": "schemas/permit-exact-pack-v2.schema.json",
     "permit_to_x/schemas/adapter-certification-v1.schema.json": "schemas/adapter-certification-v1.schema.json",

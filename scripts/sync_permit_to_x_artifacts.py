@@ -79,6 +79,8 @@ COPIES = {
     "semantic_registry/v4.schema.json": ("permit_to_x/semantic_registry/v4.schema.json"),
     "semantic_registry/v5.json": "permit_to_x/semantic_registry/v5.json",
     "semantic_registry/v5.schema.json": ("permit_to_x/semantic_registry/v5.schema.json"),
+    "semantic_registry/v6.json": "permit_to_x/semantic_registry/v6.json",
+    "semantic_registry/v6.schema.json": ("permit_to_x/semantic_registry/v6.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -87,10 +89,15 @@ COPIES = {
     "presentation_registry/v3.schema.json": ("permit_to_x/presentation_registry/v3.schema.json"),
     "presentation_registry/v4.json": "permit_to_x/presentation_registry/v4.json",
     "presentation_registry/v4.schema.json": ("permit_to_x/presentation_registry/v4.schema.json"),
+    "presentation_registry/v5.json": "permit_to_x/presentation_registry/v5.json",
+    "presentation_registry/v5.schema.json": ("permit_to_x/presentation_registry/v5.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
     "consequence_registry/v1.schema.json": ("permit_to_x/consequence_registry/v1.schema.json"),
     "consequence_registry/test-vectors/v1.json": (
         "permit_to_x/test_vectors/consequence_registry/v1.json"
+    ),
+    "consequence_registry/test-vectors/v2.json": (
+        "permit_to_x/test_vectors/consequence_registry/v2.json"
     ),
     "schemas/permit-human-artifact-v1.schema.json": (
         "permit_to_x/schemas/permit-human-artifact-v1.schema.json"
@@ -116,6 +123,8 @@ COPIES = {
     "fact_profiles/v2.schema.json": "permit_to_x/fact_profiles/v2.schema.json",
     "fact_profiles/v3.json": "permit_to_x/fact_profiles/v3.json",
     "fact_profiles/v3.schema.json": "permit_to_x/fact_profiles/v3.schema.json",
+    "fact_profiles/v4.json": "permit_to_x/fact_profiles/v4.json",
+    "fact_profiles/v4.schema.json": "permit_to_x/fact_profiles/v4.schema.json",
     "schemas/payment-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/payment-exact-facts-v1.schema.json"
     ),
@@ -130,6 +139,9 @@ COPIES = {
     ),
     "schemas/delegate-child-linkage-v1.schema.json": (
         "permit_to_x/schemas/delegate-child-linkage-v1.schema.json"
+    ),
+    "schemas/database-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/database-exact-facts-v1.schema.json"
     ),
     "schemas/permit-exact-pack-v2.schema.json": (
         "permit_to_x/schemas/permit-exact-pack-v2.schema.json"

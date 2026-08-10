@@ -359,18 +359,20 @@ def _v4_body(
     governed_surface: str,
     source_kind: str = "action_verb_execute",
     presentation_profile_id: str,
+    selector_registry_file: str = "v4.json",
+    fact_registry_file: str = "v3.json",
 ) -> dict:
-    """Rebind the canonical pack fixture to one registry-v4 exact profile."""
+    """Rebind the canonical pack fixture to one released exact profile."""
 
     body = _body()
-    selector_path = PTX / "semantic_registry/v4.json"
+    selector_path = PTX / "semantic_registry" / selector_registry_file
     selector_registry = json.loads(selector_path.read_text(encoding="utf-8"))
     selector_entry = next(
         entry
         for entry in selector_registry["entries"]
         if entry["semantic_id"] == semantic_id
     )
-    fact_path = PTX / "fact_profiles/v3.json"
+    fact_path = PTX / "fact_profiles" / fact_registry_file
     fact_registry = json.loads(fact_path.read_text(encoding="utf-8"))
     fact_profile = next(
         profile
@@ -609,6 +611,47 @@ def _refund_claim_body() -> dict:
     return body
 
 
+def _database_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v5.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    return _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v6.json",
+        fact_registry_file="v4.json",
+    )
+
+
+def _replace_authorization_facts(body: dict, facts: dict) -> None:
+    body["authorization_facts"] = copy.deepcopy(facts)
+    binding = body["semantic_binding"]
+    binding["authorization_facts_digest"] = _digest_object(facts)
+    for projection in (
+        body["permit_decision"]["resource_attributes_json"],
+        body["permit_receipt"]["action"]["resource_attributes_json"],
+    ):
+        projection["permit_semantic_binding_v2"] = copy.deepcopy(binding)
+        projection["permit_authorization_facts_v1"] = copy.deepcopy(facts)
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(
+        body["permit_decision"]["resource_attributes_json"]
+    )
+
+
 def _delegate_body_with_linkage() -> dict:
     commitment = {
         "method": "keel.salted_sha256_jcs.v1",
@@ -832,6 +875,56 @@ def test_v4_exact_profiles_are_fact_driven_not_payment_hardcoded() -> None:
             assert result.verifier_safe_facts["delegated_actions"] == [
                 "payment.execute"
             ]
+
+
+def test_v6_database_exact_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v2.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    for vector in vectors["vectors"]:
+        result = adjudicate_permit_exact_v2_body(
+            _database_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_v6_database_cross_action_fact_profile_substitution_is_disproved() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v2.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"]
+
+    for index, vector in enumerate(vectors):
+        body = _database_body_from_vector(vector)
+        facts = copy.deepcopy(vector["valid_authorization_facts"])
+        facts["fact_profile_id"] = vectors[(index + 1) % len(vectors)][
+            "expected_fact_profile_id"
+        ]
+        _replace_authorization_facts(body, facts)
+
+        claims = _claim_map(
+            adjudicate_permit_exact_v2_body(
+                body,
+                decision_verdict="supported",
+            )
+        )
+
+        assert claims["permit.type.v1"].verdict == "disproved"
+        assert claims["permit.type.v1"].reason_code == (
+            "PERMIT_AUTHORIZATION_FACTS_SCHEMA_INVALID"
+        )
 
 
 def test_generate_text_specific_claim_requires_and_proves_certified_adapter() -> None:

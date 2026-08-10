@@ -556,13 +556,18 @@ def _resolve_contracts(
             "semantic_registry/v3.json",
             "semantic_registry/v4.json",
             "semantic_registry/v5.json",
+            "semantic_registry/v6.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
     fact_registry, fact_digest = _decode_pin(
         pins.get("fact_profile_registry"),
         label="fact profile registry",
-        bundled_path=("fact_profiles/v2.json", "fact_profiles/v3.json"),
+        bundled_path=(
+            "fact_profiles/v2.json",
+            "fact_profiles/v3.json",
+            "fact_profiles/v4.json",
+        ),
         artifact_id="keel.permit.fact_profile_registry",
     )
     universal_semantics, universal_digest = _decode_pin(
