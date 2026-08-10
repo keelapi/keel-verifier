@@ -41,12 +41,14 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v2": "semantic_registry/v2.json",
     "keel.semantic_selector_registry.v3": "semantic_registry/v3.json",
     "keel.semantic_selector_registry.v4": "semantic_registry/v4.json",
+    "keel.semantic_selector_registry.v5": "semantic_registry/v5.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v4.json",
     "presentation_registry/v3.json",
     "presentation_registry/v2.json",
     "presentation_registry/v1.json",
@@ -80,7 +82,7 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v3.json")
+    registry, _raw = _load("presentation_registry/v4.json")
     return json.loads(json.dumps(registry))
 
 
@@ -113,7 +115,10 @@ def _presentation_registry_for(
     )
     for name in _PRESENTATION_REGISTRIES:
         registry, raw = _load(name)
-        if selector_version == "keel.semantic_selector_registry.v4":
+        if selector_version in {
+            "keel.semantic_selector_registry.v4",
+            "keel.semantic_selector_registry.v5",
+        }:
             if registry.get("semantic_registry_version") != selector_version:
                 continue
         profiles = registry.get("profiles")
@@ -127,7 +132,9 @@ def _presentation_registry_for(
         ):
             return registry, raw
     legacy_name = (
-        "presentation_registry/v2.json"
+        "presentation_registry/v3.json"
+        if selector_version == "keel.semantic_selector_registry.v5"
+        else "presentation_registry/v2.json"
         if selector_version == "keel.semantic_selector_registry.v4"
         else "presentation_registry/v1.json"
     )

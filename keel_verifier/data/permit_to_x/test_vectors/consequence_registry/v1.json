@@ -1,0 +1,98 @@
+{
+  "version": "keel.consequence_registry.test_vectors.v1",
+  "consequence_registry_version": "keel.consequence_registry.v1",
+  "semantic_registry_version": "keel.semantic_selector_registry.v5",
+  "presentation_registry_version": "keel.presentation_registry.v4",
+  "vectors": [
+    {
+      "id": "database.rows.insert.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.insert",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_insert.v1",
+      "expected_title": "AI Permit-to-Insert-Database-Rows"
+    },
+    {
+      "id": "database.rows.update.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.update",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_update.v1",
+      "expected_title": "AI Permit-to-Update-Database-Rows"
+    },
+    {
+      "id": "database.rows.delete.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.rows.delete",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_rows_delete.v1",
+      "expected_title": "AI Permit-to-Delete-Database-Rows"
+    },
+    {
+      "id": "database.migration.apply.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.migration.apply",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_migration_apply.v1",
+      "expected_title": "AI Permit-to-Apply-Database-Migration"
+    },
+    {
+      "id": "database.dataset.export.v1",
+      "candidate": {
+        "trusted_source_kind": "action_verb_execute",
+        "permit_product": "permit",
+        "action_name": "database.dataset.export",
+        "operation": "call.tools",
+        "chain_role": "action_child",
+        "governed_surface": "mcp_tool",
+        "evidence_capabilities": [
+          "authorization",
+          "dispatch",
+          "provider_outcome"
+        ]
+      },
+      "expected_semantic_id": "keel.action.database_dataset_export.v1",
+      "expected_title": "AI Permit-to-Export-Dataset"
+    }
+  ]
+}
