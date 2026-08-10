@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 import hashlib
 from importlib import resources
@@ -176,6 +176,33 @@ def _parse_time(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def _verify_payment_ledger_preflight_window(
+    *,
+    facts: Mapping[str, Any],
+    canonical_payload: Mapping[str, Any],
+) -> None:
+    """Require a fresh gateway snapshot at the signed authorization instant."""
+
+    if facts.get("version") != "keel.payment_ledger_exact_facts.v1":
+        return
+    issued_at = _parse_time(canonical_payload.get("issued_at"))
+    observed_at = _parse_time(facts.get("preflight_observed_at"))
+    expires_at = _parse_time(facts.get("preflight_expires_at"))
+    if (
+        issued_at is None
+        or observed_at is None
+        or expires_at is None
+        or observed_at > issued_at
+        or issued_at >= expires_at
+        or expires_at - observed_at > timedelta(minutes=5)
+    ):
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_PREFLIGHT_WINDOW_INVALID",
+            "the gateway-signed preflight snapshot was not fresh at authorization",
+        )
 
 
 def _verifier_safe_facts(
@@ -557,6 +584,7 @@ def _resolve_contracts(
             "semantic_registry/v4.json",
             "semantic_registry/v5.json",
             "semantic_registry/v6.json",
+            "semantic_registry/v7.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -567,6 +595,7 @@ def _resolve_contracts(
             "fact_profiles/v2.json",
             "fact_profiles/v3.json",
             "fact_profiles/v4.json",
+            "fact_profiles/v5.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -1714,6 +1743,13 @@ def adjudicate_permit_exact_v2_body(
                 "semantic binding or authorization facts are not present in signed attributes",
             )
         )
+    try:
+        _verify_payment_ledger_preflight_window(
+            facts=facts,
+            canonical_payload=canonical_payload,
+        )
+    except _AdjudicationError as exc:
+        return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")
     work_governed = bool(
         (

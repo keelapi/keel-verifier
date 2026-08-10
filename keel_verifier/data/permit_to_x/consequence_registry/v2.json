@@ -1,0 +1,541 @@
+{
+  "$schema": "./v2.schema.json",
+  "artifact_id": "keel.permit.consequence_registry",
+  "version": "keel.consequence_registry.v2",
+  "canonicalization_profile": "keel.consequence_registry.canonical_json.v1",
+  "consequences": [
+    {
+      "consequence_type": "database.rows.insert.v1",
+      "semantic_id": "keel.action.database_rows_insert.v1",
+      "tool_names": [
+        "database.rows.insert"
+      ],
+      "customer_title": "AI Permit-to-Insert-Database-Rows",
+      "type_definition": "Exact authorization to insert bounded rows into one database table",
+      "required_material_fields": [
+        "table",
+        "rows_digest",
+        "row_count",
+        "schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "schema_version"
+      ],
+      "canonicalizer": "keel.database.rows.insert.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table"
+        },
+        {
+          "field": "request_digest",
+          "label": "Rows"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_table",
+        "business_validity_of_inserted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "record_creation"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.update.v1",
+      "semantic_id": "keel.action.database_rows_update.v1",
+      "tool_names": [
+        "database.rows.update"
+      ],
+      "customer_title": "AI Permit-to-Update-Database-Rows",
+      "type_definition": "Exact authorization to update bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "changes_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.update.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Changes"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "business_validity_of_updated_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "concurrency_sensitive"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.delete.v1",
+      "semantic_id": "keel.action.database_rows_delete.v1",
+      "tool_names": [
+        "database.rows.delete"
+      ],
+      "customer_title": "AI Permit-to-Delete-Database-Rows",
+      "type_definition": "Exact authorization to delete bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.delete.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "delete"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Delete request"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "recoverability_of_deleted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "destructive"
+      ]
+    },
+    {
+      "consequence_type": "database.migration.apply.v1",
+      "semantic_id": "keel.action.database_migration_apply.v1",
+      "tool_names": [
+        "database.migration.apply"
+      ],
+      "customer_title": "AI Permit-to-Apply-Database-Migration",
+      "type_definition": "Exact authorization to apply one allowlisted migration from a bound schema version",
+      "required_material_fields": [
+        "migration_id",
+        "migration_digest",
+        "from_schema_version",
+        "to_schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "migration_allowlist",
+        "current_schema_version"
+      ],
+      "canonicalizer": "keel.database.migration.apply.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "rpc.apply_allowlisted_migration"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Migration"
+        },
+        {
+          "field": "request_digest",
+          "label": "Migration definition"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "migration_success_without_provider_receipt",
+        "application_compatibility",
+        "automatic_rollback_safety"
+      ],
+      "risk_tags": [
+        "schema_mutation",
+        "administrative"
+      ]
+    },
+    {
+      "consequence_type": "database.dataset.export.v1",
+      "semantic_id": "keel.action.database_dataset_export.v1",
+      "tool_names": [
+        "database.dataset.export"
+      ],
+      "customer_title": "AI Permit-to-Export-Dataset",
+      "type_definition": "Exact authorization to export bounded fields and rows from one database table",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "fields_digest",
+        "row_limit"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "restricted_field_classification",
+        "row_limit"
+      ],
+      "canonicalizer": "keel.database.dataset.export.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "select"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dataset"
+        },
+        {
+          "field": "request_digest",
+          "label": "Fields and predicate"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "downstream_use_after_export",
+        "absence_of_unrequested_external_copies",
+        "business_need_for_exported_data"
+      ],
+      "risk_tags": [
+        "data_export",
+        "confidentiality"
+      ]
+    },
+    {
+      "consequence_type": "payment.invoice.pay.v1",
+      "semantic_id": "keel.action.invoice_payment_execute.v1",
+      "tool_names": [
+        "payment.invoice.pay"
+      ],
+      "customer_title": "AI Permit-to-Pay-Invoice",
+      "type_definition": "Exact authorization to pay one provider-verified open invoice",
+      "required_material_fields": [
+        "invoice_reference_commitment",
+        "amount_minor",
+        "currency",
+        "invoice_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_invoice_preflight",
+        "invoice_status_before",
+        "amount_minor",
+        "currency",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.invoice.pay.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "invoice.pay"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "financial_settlement",
+        "delivery_of_invoiced_goods_or_services"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "invoice_payment"
+      ]
+    },
+    {
+      "consequence_type": "ledger.entry.record.v1",
+      "semantic_id": "keel.action.ledger_entry_record.v1",
+      "tool_names": [
+        "ledger.entry.record"
+      ],
+      "customer_title": "AI Permit-to-Record-Ledger-Entry",
+      "type_definition": "Exact authorization to post one version-checked double-entry record",
+      "required_material_fields": [
+        "ledger_reference_commitment",
+        "entry_reference_commitment",
+        "debit_account_commitment",
+        "credit_account_commitment",
+        "amount_minor",
+        "currency",
+        "entry_effective_at",
+        "expected_ledger_version",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "ledger_schema_version",
+        "expected_ledger_version",
+        "value_conserved",
+        "accounts_distinct",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ledger.entry.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "ledger_entry.insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Ledger and accounts"
+        },
+        {
+          "field": "amount",
+          "label": "Balanced amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "request_digest",
+          "label": "Entry"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "correct_accounting_classification",
+        "financial_settlement"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "data_mutation",
+        "value_conservation"
+      ]
+    },
+    {
+      "consequence_type": "payment.reconciliation.record.v1",
+      "semantic_id": "keel.action.payment_reconciliation_record.v1",
+      "tool_names": [
+        "payment.reconciliation.record"
+      ],
+      "customer_title": "AI Permit-to-Reconcile-Payment",
+      "type_definition": "Exact authorization to mark one payment and ledger entry reconciled",
+      "required_material_fields": [
+        "payment_reference_commitment",
+        "ledger_entry_reference_commitment",
+        "provider_observation_digest",
+        "ledger_observation_digest",
+        "amount_minor",
+        "currency",
+        "expected_current_status",
+        "requested_status",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_outcome_state",
+        "ledger_entry_state",
+        "amounts_match",
+        "currencies_match",
+        "reconciliation_basis_version",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.reconciliation.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "reconciliation.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment and ledger entry"
+        },
+        {
+          "field": "amount",
+          "label": "Matched amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "linked_to",
+          "label": "Workflow"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "financial_settlement_beyond_the_bound_provider_observation",
+        "correctness_of_unbound_ledger_entries",
+        "absence_of_later_chargeback_or_reversal"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "reconciliation",
+        "data_mutation"
+      ]
+    }
+  ]
+}
