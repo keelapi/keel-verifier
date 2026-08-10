@@ -923,8 +923,35 @@ def test_v6_database_cross_action_fact_profile_substitution_is_disproved() -> No
 
         assert claims["permit.type.v1"].verdict == "disproved"
         assert claims["permit.type.v1"].reason_code == (
-            "PERMIT_AUTHORIZATION_FACTS_SCHEMA_INVALID"
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
         )
+
+
+def test_v6_coherent_insert_facts_cannot_ride_inside_delete_binding() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v2.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"]
+    insert = next(vector for vector in vectors if vector["id"] == "database.rows.insert.v1")
+    delete = next(vector for vector in vectors if vector["id"] == "database.rows.delete.v1")
+    body = _database_body_from_vector(delete)
+    _replace_authorization_facts(
+        body,
+        copy.deepcopy(insert["valid_authorization_facts"]),
+    )
+
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(
+            body,
+            decision_verdict="supported",
+        )
+    )
+
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+    )
 
 
 def test_generate_text_specific_claim_requires_and_proves_certified_adapter() -> None:

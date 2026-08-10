@@ -194,7 +194,7 @@
     "keel_verifier/monitor.py": "29c14ce3eb444a0517221743e908bdc65c130941bf734a55be9a971d00552354",
     "keel_verifier/permit_co_signature.py": "d059336d8965110812a33b93932df9387c46b641093a0e7a309ea46ff4c4cbf0",
     "keel_verifier/permit_exact.py": "38335f7e806bf3b300cb1d4308064b7ee0a4bb5c01d8528f0debf979a8fb1357",
-    "keel_verifier/permit_exact_v2.py": "3ca5aa280d086dff198f63c0e2f9d1e04b1d422ab2390a1d5ecaa2e47c0996c7",
+    "keel_verifier/permit_exact_v2.py": "5b5c862454baeb2f479eb6a7c4907e9537a79f5dcce79a0a044ed045a160523b",
     "keel_verifier/permit_package.py": "439615141af6a8e110c5a52d9709b2b959048bf91ffe100ee302d62c0dee3185",
     "keel_verifier/permit_presentation.py": "562bc2dc45578d489ef538327c0fd01623a797385010a85cad43212d6429c712",
     "keel_verifier/report_render.py": "1b719110e442fd8c2f3ed21698c68a30c00e37d7ffa487d7c2bbe7e6f63061c2",

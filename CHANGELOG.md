@@ -8,7 +8,8 @@
 - Admit exact database contract pins during offline verification while retaining
   byte-identical support for every previously released registry version.
 - Validate action-specific database facts and reject cross-action fact-profile
-  substitution before a database Permit can receive a specific human title.
+  substitution, including a coherent facts object riding inside a different
+  signed semantic binding, before a database Permit can receive a specific title.
 
 ## 3.16.0
 

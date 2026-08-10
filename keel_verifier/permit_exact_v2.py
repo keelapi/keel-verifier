@@ -658,6 +658,15 @@ def _resolve_contracts(
             "PERMIT_TYPE_FACT_PROFILE_MISMATCH",
             "fact profile is not admitted for the signed semantic",
         )
+    if (
+        facts.get("fact_profile_id") != fact_profile_id
+        or facts.get("action") != fact_profile.get("authorized_action")
+    ):
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH",
+            "authorization facts do not match the signed fact profile and action",
+        )
     schema_path = str(fact_profile.get("facts_schema") or "")
     if not schema_path.startswith("schemas/"):
         raise _AdjudicationError(
