@@ -313,6 +313,43 @@ def _procurement_ap_binding(semantic_id: str) -> dict:
     }
 
 
+def _commerce_regulated_binding(semantic_id: str) -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v16.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item for item in registry["entries"] if item["semantic_id"] == semantic_id
+    )
+    presentation = json.loads(
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/presentation_registry/v15.json")
+        .read_text(encoding="utf-8")
+    )
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": entry["match"]["action_names"][0],
+        "operation": "call.tools",
+        "governed_surface": "mcp_tool",
+        "non_authorizing_presentation_profile_id": profile[
+            "presentation_profile_id"
+        ],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
     return {"name": name, "verdict": verdict, "required": required, **extra}
 
@@ -1360,3 +1397,62 @@ def test_human_artifact_resolves_procurement_ap_title_target_and_lifecycle(
     assert expected_target in human["summary"]["text"]
     assert human["lifecycle"]["issued_at"] == "2026-08-11T03:00:00Z"
     assert human["lifecycle"]["expires_at"] == "2026-08-11T03:05:00Z"
+
+
+@pytest.mark.parametrize(
+    ("semantic_id", "expected_title", "fact_key", "target_noun"),
+    (
+        ("keel.action.commerce_order_place.v1", "AI Permit-to-Place-Order", "cart_reference_commitment", "synthetic cart"),
+        ("keel.action.commerce_merchant_pay.v1", "AI Permit-to-Pay-Merchant", "order_reference_commitment", "synthetic order"),
+        ("keel.action.commerce_inventory_reserve.v1", "AI Permit-to-Reserve-Inventory", "order_reference_commitment", "synthetic order"),
+        ("keel.action.benefits_case_grant.v1", "AI Permit-to-Grant-Benefit", "case_reference_commitment", "synthetic benefits case"),
+        ("keel.action.benefits_case_deny.v1", "AI Permit-to-Deny-Benefit", "case_reference_commitment", "synthetic benefits case"),
+        ("keel.action.benefits_eligibility_change.v1", "AI Permit-to-Change-Benefit-Eligibility", "case_reference_commitment", "synthetic benefits case"),
+        ("keel.action.benefits_payment_issue.v1", "AI Permit-to-Issue-Benefit-Payment", "case_reference_commitment", "synthetic benefits case"),
+        ("keel.action.benefits_determination_notice_send.v1", "AI Permit-to-Send-Benefit-Determination-Notice", "case_reference_commitment", "synthetic benefits case"),
+        ("keel.action.healthcare_prior_authorization_submit.v1", "AI Permit-to-Submit-Prior-Authorization", "patient_reference_commitment", "synthetic patient record"),
+        ("keel.action.healthcare_prior_authorization_clinical_information_request.v1", "AI Permit-to-Request-Clinical-Information", "prior_authorization_reference_commitment", "synthetic prior authorization"),
+        ("keel.action.healthcare_prior_authorization_approve.v1", "AI Permit-to-Approve-Prior-Authorization", "prior_authorization_reference_commitment", "synthetic prior authorization"),
+        ("keel.action.healthcare_prior_authorization_deny.v1", "AI Permit-to-Deny-Prior-Authorization", "prior_authorization_reference_commitment", "synthetic prior authorization"),
+        ("keel.action.healthcare_appointment_schedule.v1", "AI Permit-to-Schedule-Appointment", "slot_reference_commitment", "synthetic appointment slot"),
+        ("keel.action.healthcare_claim_submit.v1", "AI Permit-to-Submit-Healthcare-Claim", "patient_reference_commitment", "synthetic patient record"),
+        ("keel.action.healthcare_patient_administrative_record_update.v1", "AI Permit-to-Update-Patient-Administrative-Record", "patient_reference_commitment", "synthetic patient record"),
+    ),
+)
+def test_human_artifact_resolves_commerce_regulated_title_target_and_lifecycle(
+    semantic_id: str,
+    expected_title: str,
+    fact_key: str,
+    target_noun: str,
+) -> None:
+    binding = _commerce_regulated_binding(semantic_id)
+    digest = "sha256:" + "a" * 64
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "pinned expected public key",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-commerce-regulated",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "regulated-workflow-agent",
+                "authorized_action": binding["action_name"],
+                "issued_at": "2026-08-11T04:00:00Z",
+                "expires_at": "2026-08-11T04:05:00Z",
+                "semantic_id": semantic_id,
+                "semantic_binding": binding,
+                "authorization_facts": {fact_key: {"digest": digest}},
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+    expected_target = f"{target_noun} commitment {digest}"
+    assert human is not None
+    assert human["title"] == expected_title
+    assert human["authorization"]["target"] == expected_target
+    assert expected_target in human["summary"]["text"]
+    assert human["lifecycle"]["issued_at"] == "2026-08-11T04:00:00Z"
+    assert human["lifecycle"]["expires_at"] == "2026-08-11T04:05:00Z"

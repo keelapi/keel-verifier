@@ -52,12 +52,14 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v13": "semantic_registry/v13.json",
     "keel.semantic_selector_registry.v14": "semantic_registry/v14.json",
     "keel.semantic_selector_registry.v15": "semantic_registry/v15.json",
+    "keel.semantic_selector_registry.v16": "semantic_registry/v16.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v15.json",
     "presentation_registry/v14.json",
     "presentation_registry/v13.json",
     "presentation_registry/v12.json",
@@ -102,7 +104,7 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v14.json")
+    registry, _raw = _load("presentation_registry/v15.json")
     return json.loads(json.dumps(registry))
 
 

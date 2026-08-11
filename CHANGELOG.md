@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Vendor byte-identical commerce/regulated consequence v11, semantic v16,
+  fact-profile v14, presentation v15, exact-facts, and v12 vector artifacts
+  from `keel-permit`.
+- Verify 15 exact synthetic or provider-sandbox actions across test-storefront
+  commerce, benefits determinations/payments/notices, FHIR prior authorization,
+  appointment scheduling, healthcare claims, and patient administrative data.
+- Render every new human-first AI Permit-to-X title with exact committed target,
+  issued/expires lifecycle, and explicit limits without caller-supplied labels.
+- Reject stale preflights, cross-action substitution, wrong environments,
+  non-synthetic records, incoherent inventory/version/time relations, live or
+  duplicate payments, and unsafe regulated-workflow state transitions.
 - Vendor byte-identical Procurement/AP consequence v10, semantic v15,
   fact-profile v13, presentation v14, exact-facts, and v11 vector artifacts
   from `keel-permit`.

@@ -883,6 +883,34 @@ def _procurement_ap_body_from_vector(vector: dict) -> dict:
     return body
 
 
+def _commerce_regulated_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v15.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    body = _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v16.json",
+        fact_registry_file="v14.json",
+    )
+    body["permit_decision"]["canonical_payload"]["issued_at"] = (
+        "2026-08-11T04:00:30Z"
+    )
+    return body
+
+
 def _replace_authorization_facts(body: dict, facts: dict) -> None:
     body["authorization_facts"] = copy.deepcopy(facts)
     binding = body["semantic_binding"]
@@ -2346,6 +2374,122 @@ def test_v15_procurement_ap_preflight_must_be_fresh_at_authorization() -> None:
     facts["preflight_expires_at"] = "2026-08-11T03:00:30Z"
     _replace_authorization_facts(body, facts)
 
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == "PERMIT_PREFLIGHT_WINDOW_INVALID"
+
+
+def test_v16_commerce_regulated_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v12.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-15:]
+
+    for vector in vectors:
+        result = adjudicate_permit_exact_v2_body(
+            _commerce_regulated_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+def test_v16_commerce_regulated_cross_action_profile_substitution_is_disproved() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v12.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-15:]
+
+    for index, vector in enumerate(vectors):
+        body = _commerce_regulated_body_from_vector(vector)
+        facts = copy.deepcopy(vector["valid_authorization_facts"])
+        facts["fact_profile_id"] = vectors[(index + 1) % len(vectors)][
+            "expected_fact_profile_id"
+        ]
+        _replace_authorization_facts(body, facts)
+        claims = _claim_map(
+            adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+        )
+        assert claims["permit.type.v1"].verdict == "disproved"
+        assert claims["permit.type.v1"].reason_code == (
+            "PERMIT_TYPE_FACT_PROFILE_MISMATCH"
+        )
+
+
+@pytest.mark.parametrize(
+    ("consequence_id", "field", "value"),
+    (
+        ("commerce.inventory.reserve.v1", "available_unit_count", 2),
+        ("benefits.eligibility.change.v1", "requested_eligibility_status", "ineligible"),
+        ("healthcare.appointment.schedule.v1", "appointment_end_at", "2026-08-20T16:00:00Z"),
+        ("healthcare.patient_administrative_record.update.v1", "requested_record_version", 3),
+    ),
+)
+def test_v16_commerce_regulated_relational_invariants_fail_closed(
+    consequence_id: str,
+    field: str,
+    value: object,
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v12.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == consequence_id
+    )
+    body = _commerce_regulated_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts[field] = value
+    _replace_authorization_facts(body, facts)
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_COMMERCE_REGULATED_INVARIANT_INVALID"
+    )
+
+
+def test_v16_commerce_regulated_rejects_wrong_provider_environment() -> None:
+    vector = json.loads(
+        (PTX / "test_vectors/consequence_registry/v12.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-15]
+    body = _commerce_regulated_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["provider_environment"] = "provider_sandbox"
+    _replace_authorization_facts(body, facts)
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_AUTHORIZATION_FACTS_SCHEMA_INVALID"
+    )
+
+
+def test_v16_commerce_regulated_preflight_must_be_fresh_at_authorization() -> None:
+    vector = json.loads(
+        (PTX / "test_vectors/consequence_registry/v12.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-1]
+    body = _commerce_regulated_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["preflight_expires_at"] = "2026-08-11T04:00:30Z"
+    _replace_authorization_facts(body, facts)
     claims = _claim_map(
         adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
     )
