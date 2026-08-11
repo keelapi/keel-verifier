@@ -194,6 +194,7 @@ def _verify_trusted_preflight_window(
         "keel.collections_exact_facts.v1",
         "keel.insurance_claims_exact_facts.v1",
         "keel.erp_crm_exact_facts.v1",
+        "keel.procurement_ap_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -698,6 +699,105 @@ def _verify_erp_crm_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+def _verify_procurement_ap_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Procurement/AP relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.procurement_ap_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    action = facts.get("action")
+    expected_environment = (
+        "self_hosted_plus_provider_sandbox"
+        if action == "ap.invoice.payment.release"
+        else "self_hosted_synthetic"
+    )
+    valid = (
+        facts.get("connector_identity") == "odoo"
+        and facts.get("provider_environment") == expected_environment
+        and facts.get("record_is_synthetic") is True
+        and integer("max_uses") == 1
+    )
+    if valid and action == "procurement.vendor.create":
+        valid = (
+            integer("supplier_rank_requested") == 1
+            and integer("duplicate_vendor_count") == 0
+            and facts.get("required_fields_complete") is True
+            and facts.get("bank_account_created") is False
+        )
+    elif valid and action == "procurement.purchase_order.issue":
+        total = integer("total_amount_minor")
+        valid = (
+            total is not None
+            and total > 0
+            and facts.get("purchase_order_status_before") == "absent"
+            and facts.get("requested_purchase_order_status") == "draft"
+            and facts.get("spend_committed") is False
+            and facts.get("supplier_notification_sent") is False
+            and facts.get("total_matches_provider_pricing") is True
+        )
+    elif valid and action == "procurement.spend.commit":
+        total = integer("total_amount_minor")
+        available = integer("available_budget_minor")
+        valid = (
+            total is not None
+            and available is not None
+            and 0 < total <= available
+            and facts.get("amount_within_budget") is True
+            and facts.get("current_purchase_order_status") == "draft"
+            and facts.get("requested_purchase_order_status") == "purchase"
+            and facts.get("spend_committed_before") is False
+            and facts.get("spend_committed_after") is True
+            and facts.get("payment_released") is False
+        )
+    elif valid and action == "ap.invoice.approve":
+        valid = (
+            facts.get("current_invoice_status") == "draft"
+            and facts.get("requested_invoice_status") == "posted"
+            and facts.get("payment_status") == "not_paid"
+            and integer("duplicate_candidate_count") == 0
+            and facts.get("three_way_match_complete") is True
+            and facts.get("invoice_total_matches_purchase_order") is True
+            and facts.get("receipt_quantity_covers_invoice") is True
+            and facts.get("accounting_period_open") is True
+        )
+    elif valid and action == "ap.invoice.duplicate.reject":
+        valid = (
+            facts.get("current_invoice_status") == "draft"
+            and facts.get("requested_invoice_status") == "cancel"
+            and facts.get("payment_status") == "not_paid"
+            and facts.get("payment_released") is False
+            and facts.get("duplicate_match_method")
+            == "provider_vendor_number_and_total_exact.v1"
+            and facts.get("vendor_reference_matches") is True
+            and facts.get("invoice_number_matches") is True
+            and facts.get("total_amount_matches") is True
+        )
+    elif valid and action == "ap.invoice.payment.release":
+        valid = (
+            facts.get("invoice_status") == "posted"
+            and facts.get("payment_status") == "not_paid"
+            and facts.get("three_way_match_complete") is True
+            and facts.get("stripe_livemode") is False
+            and facts.get("stripe_transfer_status_before") == "absent"
+            and integer("existing_transfer_count") == 0
+            and integer("workflow_step_count") == 2
+            and facts.get("odoo_payment_registration_required") is True
+            and facts.get("value_conservation_valid") is True
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_PROCUREMENT_AP_INVARIANT_INVALID",
+            "the signed Procurement/AP facts violate an exact provider-action invariant",
+        )
+
+
 def _verifier_safe_facts(
     fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -1085,6 +1185,7 @@ def _resolve_contracts(
             "semantic_registry/v12.json",
             "semantic_registry/v13.json",
             "semantic_registry/v14.json",
+            "semantic_registry/v15.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -1103,6 +1204,7 @@ def _resolve_contracts(
             "fact_profiles/v10.json",
             "fact_profiles/v11.json",
             "fact_profiles/v12.json",
+            "fact_profiles/v13.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2262,6 +2364,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_collections_invariants(facts)
         _verify_insurance_claims_invariants(facts)
         _verify_erp_crm_invariants(facts)
+        _verify_procurement_ap_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

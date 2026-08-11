@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Vendor byte-identical Procurement/AP consequence v10, semantic v15,
+  fact-profile v13, presentation v14, exact-facts, and v11 vector artifacts
+  from `keel-permit`.
+- Verify Odoo synthetic vendor creation, draft purchase-order issuance, bounded
+  spend commitment, invoice approval, exact duplicate rejection, and the
+  two-step Odoo plus Stripe-test payment-release saga as separate consequences.
+- Render all six human-first Procurement/AP AI Permit-to-X titles with exact
+  committed vendor, purchase-order, or invoice targets and issued/expires
+  lifecycle without caller-supplied labels.
+- Reject stale preflights, cross-action fact-profile substitution, non-synthetic
+  or wrong-environment records, over-budget commitments, non-draft/unmatched
+  invoices, and live or duplicate Stripe transfer state.
 - Vendor byte-identical ERP/CRM consequence v9, semantic v14, fact-profile v12,
   presentation v13, exact-facts, and v10 vector artifacts from `keel-permit`.
 - Verify HubSpot developer-test deal-stage changes, single-property synthetic

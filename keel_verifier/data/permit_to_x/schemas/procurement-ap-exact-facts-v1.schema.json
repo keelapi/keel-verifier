@@ -1,0 +1,965 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/procurement-ap-exact-facts-v1.schema.json",
+  "title": "Keel exact Procurement and Accounts Payable facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/procurement_vendor_create"
+    },
+    {
+      "$ref": "#/$defs/procurement_purchase_order_issue"
+    },
+    {
+      "$ref": "#/$defs/procurement_spend_commit"
+    },
+    {
+      "$ref": "#/$defs/ap_invoice_approve"
+    },
+    {
+      "$ref": "#/$defs/ap_invoice_duplicate_reject"
+    },
+    {
+      "$ref": "#/$defs/ap_invoice_payment_release"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "procurement_vendor_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "vendor_name_commitment",
+        "vendor_tax_reference_commitment",
+        "vendor_email_commitment",
+        "supplier_rank_requested",
+        "duplicate_vendor_count",
+        "required_fields_complete",
+        "bank_account_created",
+        "vendor_schema_digest",
+        "vendor_search_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.procurement_vendor_create_exact.v1"
+        },
+        "action": {
+          "const": "procurement.vendor.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "vendor_name_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_tax_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_email_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "supplier_rank_requested": {
+          "const": 1
+        },
+        "duplicate_vendor_count": {
+          "const": 0
+        },
+        "required_fields_complete": {
+          "const": true
+        },
+        "bank_account_created": {
+          "const": false
+        },
+        "vendor_schema_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "vendor_search_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "procurement_purchase_order_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "vendor_reference_commitment",
+        "purchase_order_external_reference_commitment",
+        "line_item_set_commitment",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "vendor_active",
+        "vendor_supplier_rank_positive",
+        "product_set_allowlisted",
+        "total_matches_provider_pricing",
+        "purchase_order_status_before",
+        "requested_purchase_order_status",
+        "spend_committed",
+        "supplier_notification_sent",
+        "pricing_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.procurement_purchase_order_issue_exact.v1"
+        },
+        "action": {
+          "const": "procurement.purchase_order.issue"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "vendor_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "purchase_order_external_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "vendor_active": {
+          "const": true
+        },
+        "vendor_supplier_rank_positive": {
+          "const": true
+        },
+        "product_set_allowlisted": {
+          "const": true
+        },
+        "total_matches_provider_pricing": {
+          "const": true
+        },
+        "purchase_order_status_before": {
+          "const": "absent"
+        },
+        "requested_purchase_order_status": {
+          "const": "draft"
+        },
+        "spend_committed": {
+          "const": false
+        },
+        "supplier_notification_sent": {
+          "const": false
+        },
+        "pricing_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "procurement_spend_commit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "line_item_set_commitment",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "available_budget_minor",
+        "amount_within_budget",
+        "current_purchase_order_status",
+        "requested_purchase_order_status",
+        "spend_committed_before",
+        "spend_committed_after",
+        "supplier_notification_sent",
+        "payment_released",
+        "purchase_order_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.procurement_spend_commit_exact.v1"
+        },
+        "action": {
+          "const": "procurement.spend.commit"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "purchase_order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "available_budget_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "amount_within_budget": {
+          "const": true
+        },
+        "current_purchase_order_status": {
+          "const": "draft"
+        },
+        "requested_purchase_order_status": {
+          "const": "purchase"
+        },
+        "spend_committed_before": {
+          "const": false
+        },
+        "spend_committed_after": {
+          "const": true
+        },
+        "supplier_notification_sent": {
+          "const": false
+        },
+        "payment_released": {
+          "const": false
+        },
+        "purchase_order_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "ap_invoice_approve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "invoice_reference_commitment",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "total_amount_minor",
+        "currency",
+        "current_invoice_status",
+        "requested_invoice_status",
+        "payment_status",
+        "duplicate_candidate_count",
+        "three_way_match_complete",
+        "invoice_total_matches_purchase_order",
+        "receipt_quantity_covers_invoice",
+        "accounting_period_open",
+        "invoice_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.ap_invoice_approve_exact.v1"
+        },
+        "action": {
+          "const": "ap.invoice.approve"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "invoice_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "purchase_order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "current_invoice_status": {
+          "const": "draft"
+        },
+        "requested_invoice_status": {
+          "const": "posted"
+        },
+        "payment_status": {
+          "const": "not_paid"
+        },
+        "duplicate_candidate_count": {
+          "const": 0
+        },
+        "three_way_match_complete": {
+          "const": true
+        },
+        "invoice_total_matches_purchase_order": {
+          "const": true
+        },
+        "receipt_quantity_covers_invoice": {
+          "const": true
+        },
+        "accounting_period_open": {
+          "const": true
+        },
+        "invoice_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "ap_invoice_duplicate_reject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "invoice_reference_commitment",
+        "duplicate_invoice_reference_commitment",
+        "vendor_reference_commitment",
+        "current_invoice_status",
+        "requested_invoice_status",
+        "payment_status",
+        "payment_released",
+        "duplicate_match_method",
+        "vendor_reference_matches",
+        "invoice_number_matches",
+        "total_amount_matches",
+        "duplicate_match_digest",
+        "invoice_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.ap_invoice_duplicate_reject_exact.v1"
+        },
+        "action": {
+          "const": "ap.invoice.duplicate.reject"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "invoice_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "duplicate_invoice_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_invoice_status": {
+          "const": "draft"
+        },
+        "requested_invoice_status": {
+          "const": "cancel"
+        },
+        "payment_status": {
+          "const": "not_paid"
+        },
+        "payment_released": {
+          "const": false
+        },
+        "duplicate_match_method": {
+          "const": "provider_vendor_number_and_total_exact.v1"
+        },
+        "vendor_reference_matches": {
+          "const": true
+        },
+        "invoice_number_matches": {
+          "const": true
+        },
+        "total_amount_matches": {
+          "const": true
+        },
+        "duplicate_match_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "invoice_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "ap_invoice_payment_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "record_is_synthetic",
+        "invoice_reference_commitment",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "payment_destination_reference_commitment",
+        "total_amount_minor",
+        "currency",
+        "invoice_status",
+        "payment_status",
+        "three_way_match_complete",
+        "stripe_livemode",
+        "stripe_transfer_status_before",
+        "existing_transfer_count",
+        "workflow_step_count",
+        "odoo_payment_registration_required",
+        "value_conservation_valid",
+        "invoice_state_digest",
+        "payment_destination_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.procurement_ap_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.ap_invoice_payment_release_exact.v1"
+        },
+        "action": {
+          "const": "ap.invoice.payment.release"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_plus_provider_sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_database_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "company_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "invoice_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "purchase_order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "vendor_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_destination_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "invoice_status": {
+          "const": "posted"
+        },
+        "payment_status": {
+          "const": "not_paid"
+        },
+        "three_way_match_complete": {
+          "const": true
+        },
+        "stripe_livemode": {
+          "const": false
+        },
+        "stripe_transfer_status_before": {
+          "const": "absent"
+        },
+        "existing_transfer_count": {
+          "const": 0
+        },
+        "workflow_step_count": {
+          "const": 2
+        },
+        "odoo_payment_registration_required": {
+          "const": true
+        },
+        "value_conservation_valid": {
+          "const": true
+        },
+        "invoice_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "payment_destination_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}
