@@ -1,0 +1,4451 @@
+{
+  "$schema": "./v11.schema.json",
+  "artifact_id": "keel.permit.consequence_registry",
+  "version": "keel.consequence_registry.v11",
+  "canonicalization_profile": "keel.consequence_registry.canonical_json.v1",
+  "consequences": [
+    {
+      "consequence_type": "database.rows.insert.v1",
+      "semantic_id": "keel.action.database_rows_insert.v1",
+      "tool_names": [
+        "database.rows.insert"
+      ],
+      "customer_title": "AI Permit-to-Insert-Database-Rows",
+      "type_definition": "Exact authorization to insert bounded rows into one database table",
+      "required_material_fields": [
+        "table",
+        "rows_digest",
+        "row_count",
+        "schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "schema_version"
+      ],
+      "canonicalizer": "keel.database.rows.insert.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table"
+        },
+        {
+          "field": "request_digest",
+          "label": "Rows"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_table",
+        "business_validity_of_inserted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "record_creation"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.update.v1",
+      "semantic_id": "keel.action.database_rows_update.v1",
+      "tool_names": [
+        "database.rows.update"
+      ],
+      "customer_title": "AI Permit-to-Update-Database-Rows",
+      "type_definition": "Exact authorization to update bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "changes_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.update.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Changes"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "business_validity_of_updated_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "concurrency_sensitive"
+      ]
+    },
+    {
+      "consequence_type": "database.rows.delete.v1",
+      "semantic_id": "keel.action.database_rows_delete.v1",
+      "tool_names": [
+        "database.rows.delete"
+      ],
+      "customer_title": "AI Permit-to-Delete-Database-Rows",
+      "type_definition": "Exact authorization to delete bounded rows matching one mandatory predicate",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "row_limit",
+        "expected_current_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "predicate_present",
+        "expected_current_version"
+      ],
+      "canonicalizer": "keel.database.rows.delete.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "delete"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Delete request"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "recoverability_of_deleted_data"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "destructive"
+      ]
+    },
+    {
+      "consequence_type": "database.migration.apply.v1",
+      "semantic_id": "keel.action.database_migration_apply.v1",
+      "tool_names": [
+        "database.migration.apply"
+      ],
+      "customer_title": "AI Permit-to-Apply-Database-Migration",
+      "type_definition": "Exact authorization to apply one allowlisted migration from a bound schema version",
+      "required_material_fields": [
+        "migration_id",
+        "migration_digest",
+        "from_schema_version",
+        "to_schema_version"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "migration_allowlist",
+        "current_schema_version"
+      ],
+      "canonicalizer": "keel.database.migration.apply.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "rpc.apply_allowlisted_migration"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Migration"
+        },
+        {
+          "field": "request_digest",
+          "label": "Migration definition"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "migration_success_without_provider_receipt",
+        "application_compatibility",
+        "automatic_rollback_safety"
+      ],
+      "risk_tags": [
+        "schema_mutation",
+        "administrative"
+      ]
+    },
+    {
+      "consequence_type": "database.dataset.export.v1",
+      "semantic_id": "keel.action.database_dataset_export.v1",
+      "tool_names": [
+        "database.dataset.export"
+      ],
+      "customer_title": "AI Permit-to-Export-Dataset",
+      "type_definition": "Exact authorization to export bounded fields and rows from one database table",
+      "required_material_fields": [
+        "table",
+        "predicate_digest",
+        "fields_digest",
+        "row_limit"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "table_allowlist",
+        "restricted_field_classification",
+        "row_limit"
+      ],
+      "canonicalizer": "keel.database.dataset.export.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgrest",
+          "operation": "select"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dataset"
+        },
+        {
+          "field": "request_digest",
+          "label": "Fields and predicate"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "downstream_use_after_export",
+        "absence_of_unrequested_external_copies",
+        "business_need_for_exported_data"
+      ],
+      "risk_tags": [
+        "data_export",
+        "confidentiality"
+      ]
+    },
+    {
+      "consequence_type": "payment.invoice.pay.v1",
+      "semantic_id": "keel.action.invoice_payment_execute.v1",
+      "tool_names": [
+        "payment.invoice.pay"
+      ],
+      "customer_title": "AI Permit-to-Pay-Invoice",
+      "type_definition": "Exact authorization to pay one provider-verified open invoice",
+      "required_material_fields": [
+        "invoice_reference_commitment",
+        "amount_minor",
+        "currency",
+        "invoice_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_invoice_preflight",
+        "invoice_status_before",
+        "amount_minor",
+        "currency",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.invoice.pay.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "invoice.pay"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "financial_settlement",
+        "delivery_of_invoiced_goods_or_services"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "invoice_payment"
+      ]
+    },
+    {
+      "consequence_type": "ledger.entry.record.v1",
+      "semantic_id": "keel.action.ledger_entry_record.v1",
+      "tool_names": [
+        "ledger.entry.record"
+      ],
+      "customer_title": "AI Permit-to-Record-Ledger-Entry",
+      "type_definition": "Exact authorization to post one version-checked double-entry record",
+      "required_material_fields": [
+        "ledger_reference_commitment",
+        "entry_reference_commitment",
+        "debit_account_commitment",
+        "credit_account_commitment",
+        "amount_minor",
+        "currency",
+        "entry_effective_at",
+        "expected_ledger_version",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "ledger_schema_version",
+        "expected_ledger_version",
+        "value_conserved",
+        "accounts_distinct",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ledger.entry.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "ledger_entry.insert"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Ledger and accounts"
+        },
+        {
+          "field": "amount",
+          "label": "Balanced amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "request_digest",
+          "label": "Entry"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "correct_accounting_classification",
+        "financial_settlement"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "data_mutation",
+        "value_conservation"
+      ]
+    },
+    {
+      "consequence_type": "payment.reconciliation.record.v1",
+      "semantic_id": "keel.action.payment_reconciliation_record.v1",
+      "tool_names": [
+        "payment.reconciliation.record"
+      ],
+      "customer_title": "AI Permit-to-Reconcile-Payment",
+      "type_definition": "Exact authorization to mark one payment and ledger entry reconciled",
+      "required_material_fields": [
+        "payment_reference_commitment",
+        "ledger_entry_reference_commitment",
+        "provider_observation_digest",
+        "ledger_observation_digest",
+        "amount_minor",
+        "currency",
+        "expected_current_status",
+        "requested_status",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_outcome_state",
+        "ledger_entry_state",
+        "amounts_match",
+        "currencies_match",
+        "reconciliation_basis_version",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.reconciliation.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgres",
+          "operation": "reconciliation.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment and ledger entry"
+        },
+        {
+          "field": "amount",
+          "label": "Matched amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "linked_to",
+          "label": "Workflow"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "financial_settlement_beyond_the_bound_provider_observation",
+        "correctness_of_unbound_ledger_entries",
+        "absence_of_later_chargeback_or_reversal"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "reconciliation",
+        "data_mutation"
+      ]
+    },
+    {
+      "consequence_type": "payment.refund.execute.v2",
+      "semantic_id": "keel.action.payment_refund.v2",
+      "tool_names": [
+        "payment.refund"
+      ],
+      "customer_title": "AI Permit-to-Refund-Payment",
+      "type_definition": "Exact authorization to refund one provider-verified payment amount",
+      "required_material_fields": [
+        "original_payment_reference_commitment",
+        "amount_minor",
+        "currency",
+        "refund_reason",
+        "payment_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_payment_preflight",
+        "refundable_amount_minor_before",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.payment.refund.canonical.v2",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "refunds.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Original payment"
+        },
+        {
+          "field": "amount",
+          "label": "Refund amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Payer"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "funds_returned_to_the_payer",
+        "financial_settlement_or_absence_of_later_reversal"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "refund",
+        "customer_account"
+      ]
+    },
+    {
+      "consequence_type": "customer.credit.issue.v1",
+      "semantic_id": "keel.action.customer_credit_issue.v1",
+      "tool_names": [
+        "customer.credit.issue"
+      ],
+      "customer_title": "AI Permit-to-Issue-Account-Credit",
+      "type_definition": "Exact authorization to create one immutable customer credit-balance adjustment",
+      "required_material_fields": [
+        "customer_reference_commitment",
+        "amount_minor",
+        "provider_amount_minor",
+        "currency",
+        "customer_balance_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_customer_preflight",
+        "credit_sign_invariant",
+        "expected_balance_invariant",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.customer.credit.issue.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "customer_balance_transactions.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Customer account"
+        },
+        {
+          "field": "amount",
+          "label": "Credit amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "application_of_the_credit_to_a_future_invoice",
+        "cash_payment_or_cash_refund"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "account_credit",
+        "customer_account"
+      ]
+    },
+    {
+      "consequence_type": "subscription.cancellation.schedule.v1",
+      "semantic_id": "keel.action.subscription_cancellation_schedule.v1",
+      "tool_names": [
+        "subscription.cancellation.schedule"
+      ],
+      "customer_title": "AI Permit-to-Schedule-Subscription-Cancellation",
+      "type_definition": "Exact authorization to schedule one active subscription to cancel at period end",
+      "required_material_fields": [
+        "subscription_reference_commitment",
+        "cancel_at_period_end_before",
+        "cancel_at_period_end_requested",
+        "current_period_end",
+        "subscription_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_subscription_preflight",
+        "not_already_scheduled",
+        "not_ended",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.subscription.cancellation.schedule.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscriptions.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "subscription_termination_before_period_end",
+        "refund_or_credit_for_unused_service"
+      ],
+      "risk_tags": [
+        "subscription_change",
+        "customer_account",
+        "future_effect"
+      ]
+    },
+    {
+      "consequence_type": "subscription.cancellation.withdraw.v1",
+      "semantic_id": "keel.action.subscription_cancellation_withdraw.v1",
+      "tool_names": [
+        "subscription.cancellation.withdraw"
+      ],
+      "customer_title": "AI Permit-to-Withdraw-Subscription-Cancellation",
+      "type_definition": "Exact authorization to withdraw a pending period-end cancellation",
+      "required_material_fields": [
+        "subscription_reference_commitment",
+        "cancel_at_period_end_before",
+        "cancel_at_period_end_requested",
+        "current_period_end",
+        "canceled_at_before",
+        "ended_at_before",
+        "subscription_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_subscription_preflight",
+        "cancellation_is_pending",
+        "not_canceled_or_ended",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.subscription.cancellation.withdraw.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscriptions.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Former cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "reinstatement_of_an_already_canceled_subscription",
+        "future_successful_renewal_or_payment"
+      ],
+      "risk_tags": [
+        "subscription_change",
+        "customer_account",
+        "future_billing"
+      ]
+    },
+    {
+      "consequence_type": "support.case.resolve.v1",
+      "semantic_id": "keel.action.support_case_resolve.v1",
+      "tool_names": [
+        "support.case.resolve"
+      ],
+      "customer_title": "AI Permit-to-Resolve-Support-Case",
+      "type_definition": "Exact authorization to move one support ticket from an open stage to a provider-declared closed stage",
+      "required_material_fields": [
+        "ticket_reference_commitment",
+        "pipeline_reference_commitment",
+        "current_stage_reference_commitment",
+        "requested_stage_reference_commitment",
+        "current_stage_state",
+        "requested_stage_state",
+        "ticket_state_digest",
+        "pipeline_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_ticket_preflight",
+        "provider_pipeline_preflight",
+        "closed_stage_metadata",
+        "durable_gateway_idempotency",
+        "provider_environment",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.support.case.resolve.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hubspot",
+          "operation": "tickets.update_stage"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Support case"
+        },
+        {
+          "field": "request_digest",
+          "label": "Resolution"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Support provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "customer_satisfaction_or_actual_problem_resolution",
+        "absence_of_a_concurrent_provider_update"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "customer_communication",
+        "case_closure"
+      ]
+    },
+    {
+      "consequence_type": "repository.pull_request.merge.v1",
+      "semantic_id": "keel.action.repository_pull_request_merge.v1",
+      "tool_names": [
+        "repository.pull_request.merge"
+      ],
+      "customer_title": "AI Permit-to-Merge-Pull-Request",
+      "type_definition": "Exact authorization to merge one provider-verified pull-request head into one protected base branch",
+      "required_material_fields": [
+        "repository_reference_commitment",
+        "pull_request_number",
+        "head_commit_sha",
+        "base_branch",
+        "base_branch_tip_sha",
+        "merge_method",
+        "branch_protection_state_digest",
+        "pull_request_state_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_pull_request_preflight",
+        "provider_branch_protection_preflight",
+        "provider_checks_and_reviews_preflight",
+        "expected_head_sha",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.repository.pull_request.merge.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "github",
+          "operation": "pulls.merge"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository and pull request"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact merge request"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_successful_merge_without_provider_receipt",
+        "resulting_branch_tip_or_merge_commit_after_authorization",
+        "deployment_or_runtime_behavior"
+      ],
+      "risk_tags": [
+        "source_change",
+        "protected_branch",
+        "production_release"
+      ]
+    },
+    {
+      "consequence_type": "deployment.commit.deploy.v1",
+      "semantic_id": "keel.action.deployment_commit_deploy.v1",
+      "tool_names": [
+        "deployment.commit.deploy"
+      ],
+      "customer_title": "AI Permit-to-Deploy-Commit",
+      "type_definition": "Exact authorization to replace one production Fly Machine image with one immutable OCI image whose revision metadata names the source commit",
+      "required_material_fields": [
+        "source_repository_reference_commitment",
+        "source_commit_sha",
+        "target_image_digest",
+        "artifact_revision_sha",
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "current_instance_id",
+        "current_config_digest",
+        "target_config_digest",
+        "release_record_digest",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_source_commit_preflight",
+        "immutable_artifact_digest",
+        "oci_revision_to_source_commit_binding",
+        "provider_machine_preflight",
+        "machine_lease_and_current_version",
+        "durable_prior_config_snapshot",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.deployment.commit.deploy.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "fly",
+          "operation": "machines.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Commit and image"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "started_healthy_or_traffic_serving_application_without_provider_readback",
+        "independent_build_provenance_beyond_the_bound_registry_metadata"
+      ],
+      "risk_tags": [
+        "production_deployment",
+        "infrastructure",
+        "runtime_change"
+      ]
+    },
+    {
+      "consequence_type": "deployment.rollback.v1",
+      "semantic_id": "keel.action.deployment_rollback.v1",
+      "tool_names": [
+        "deployment.rollback"
+      ],
+      "customer_title": "AI Permit-to-Roll-Back-Deployment",
+      "type_definition": "Exact authorization to replace one production Fly Machine configuration with one gateway-recorded prior release configuration",
+      "required_material_fields": [
+        "fly_app_reference_commitment",
+        "fly_machine_reference_commitment",
+        "current_release_instance_id",
+        "current_image_digest",
+        "current_config_digest",
+        "prior_release_instance_id",
+        "rollback_target_image_digest",
+        "rollback_target_config_digest",
+        "failed_release_record_digest",
+        "rollback_target_release_record_digest",
+        "rollback_reason_commitment",
+        "idempotency_digest",
+        "preflight_snapshot_digest",
+        "preflight_expires_at"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_machine_preflight",
+        "durable_prior_release_ledger",
+        "provider_state_matches_failed_release",
+        "machine_lease_and_current_version",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.deployment.rollback.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "fly",
+          "operation": "machines.update"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Prior release"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "reason",
+          "label": "Rollback reason"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "restored_application_health_traffic_or_data",
+        "reversal_of_external_effects_caused_by_the_failed_release"
+      ],
+      "risk_tags": [
+        "production_rollback",
+        "infrastructure",
+        "runtime_change"
+      ]
+    },
+    {
+      "consequence_type": "identity.mfa.reset.v1",
+      "semantic_id": "keel.action.identity_mfa_reset.v1",
+      "tool_names": [
+        "identity.mfa.reset"
+      ],
+      "customer_title": "AI Permit-to-Reset-MFA",
+      "type_definition": "Exact authorization to reset every enrolled MFA factor for one provider-verified identity",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "enrolled_factor_count",
+        "factor_enrollment_state_digest",
+        "reset_scope",
+        "target_user_status"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_factor_enrollment_preflight",
+        "provider_admin_role_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.mfa.reset.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.lifecycle.reset_factors"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_factor_reset_without_provider_receipt",
+        "future_successful_mfa_reenrollment",
+        "revocation_of_sessions_or_oauth_tokens"
+      ],
+      "risk_tags": [
+        "identity",
+        "credential_reset",
+        "account_takeover_risk"
+      ]
+    },
+    {
+      "consequence_type": "identity.sessions.revoke.v1",
+      "semantic_id": "keel.action.identity_sessions_revoke.v1",
+      "tool_names": [
+        "identity.sessions.revoke"
+      ],
+      "customer_title": "AI Permit-to-Revoke-Sessions",
+      "type_definition": "Exact authorization to clear every Okta session and revoke OAuth tokens for one provider-verified identity",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "session_revocation_scope",
+        "revoke_oauth_tokens",
+        "active_sessions_enumerable"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_admin_role_preflight",
+        "provider_session_capability_contract",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.sessions.revoke.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.sessions.clear"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_session_revocation_without_provider_receipt",
+        "logout_from_applications_that_do_not_honor_okta_token_revocation",
+        "absence_of_non_okta_sessions"
+      ],
+      "risk_tags": [
+        "identity",
+        "session_revocation",
+        "security_response"
+      ]
+    },
+    {
+      "consequence_type": "identity.disable.v1",
+      "semantic_id": "keel.action.identity_disable.v1",
+      "tool_names": [
+        "identity.disable"
+      ],
+      "customer_title": "AI Permit-to-Disable-Identity",
+      "type_definition": "Exact authorization to deprovision one active Okta identity after provider verification of its current assignments and privilege",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "current_user_status",
+        "target_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "destructive_deprovisioning_acknowledged",
+        "app_assignment_state_digest",
+        "group_membership_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_admin_role_preflight",
+        "provider_assignment_preflight",
+        "explicit_destructive_action_acknowledgement",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.disable.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "users.lifecycle.deactivate"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_terminal_deprovisioned_status_without_provider_readback",
+        "preservation_or_removal_of_data_in_assigned_applications",
+        "revocation_of_credentials_issued_outside_okta"
+      ],
+      "risk_tags": [
+        "identity",
+        "deprovisioning",
+        "destructive",
+        "access_removal"
+      ]
+    },
+    {
+      "consequence_type": "identity.group_access.grant.v1",
+      "semantic_id": "keel.action.identity_group_access_grant.v1",
+      "tool_names": [
+        "identity.group_access.grant"
+      ],
+      "customer_title": "AI Permit-to-Grant-Group-Access",
+      "type_definition": "Exact authorization to add one provider-verified identity to one provider-verified Okta group",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "group_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_group_preflight",
+        "provider_membership_preflight",
+        "keel_managed_group_privilege_classification",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.group_access.grant.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "groups.users.add"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "specific_downstream_application_entitlements_derived_from_the_group",
+        "absence_of_other_access_paths"
+      ],
+      "risk_tags": [
+        "identity",
+        "access_grant",
+        "privilege_change"
+      ]
+    },
+    {
+      "consequence_type": "identity.group_access.remove.v1",
+      "semantic_id": "keel.action.identity_group_access_remove.v1",
+      "tool_names": [
+        "identity.group_access.remove"
+      ],
+      "customer_title": "AI Permit-to-Remove-Group-Access",
+      "type_definition": "Exact authorization to remove one provider-verified identity from one provider-verified Okta group",
+      "required_material_fields": [
+        "tenant_reference_commitment",
+        "user_reference_commitment",
+        "group_reference_commitment",
+        "current_user_status",
+        "user_state_digest",
+        "target_is_privileged_admin",
+        "admin_role_assignments_digest",
+        "group_type",
+        "group_privilege_class",
+        "group_state_digest",
+        "group_membership_state_digest",
+        "current_membership",
+        "target_membership",
+        "current_group_member_count",
+        "projected_group_member_count",
+        "target_is_last_privileged_member"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_user_preflight",
+        "provider_group_preflight",
+        "provider_membership_preflight",
+        "keel_managed_group_privilege_classification",
+        "provider_last_privileged_member_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.identity.group_access.remove.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "okta",
+          "operation": "groups.users.remove"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "revocation_of_sessions_or_entitlements_cached_by_downstream_applications",
+        "absence_of_other_group_or_direct_access"
+      ],
+      "risk_tags": [
+        "identity",
+        "access_removal",
+        "privilege_change"
+      ]
+    },
+    {
+      "consequence_type": "security.indicator.block.v1",
+      "semantic_id": "keel.action.security_indicator_block.v1",
+      "tool_names": [
+        "security.indicator.block"
+      ],
+      "customer_title": "AI Permit-to-Block-Indicator",
+      "type_definition": "Exact authorization to add one enabled block rule for one indicator to one provider-verified Cloudflare zone ruleset",
+      "required_material_fields": [
+        "zone_reference_commitment",
+        "ruleset_reference_commitment",
+        "indicator_reference_commitment",
+        "zone_status",
+        "ruleset_phase",
+        "ruleset_version",
+        "ruleset_state_digest",
+        "indicator_type",
+        "indicator_scope",
+        "source_alert_reference_commitment",
+        "rule_expression_digest",
+        "rule_reference_commitment",
+        "current_matching_rule_count",
+        "current_rules_count",
+        "projected_rules_count",
+        "target_action",
+        "rule_enabled"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "provider_zone_preflight",
+        "provider_ruleset_preflight",
+        "provider_existing_rule_preflight",
+        "deterministic_indicator_expression_derivation",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.security.indicator.block.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "cloudflare",
+          "operation": "rulesets.rules.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "cloudflare_acceptance_or_active_rule_without_provider_readback",
+        "maliciousness_of_the_indicator",
+        "blocking_outside_the_named_zone_and_ruleset"
+      ],
+      "risk_tags": [
+        "security_response",
+        "network_block",
+        "traffic_control"
+      ]
+    },
+    {
+      "consequence_type": "code.package.install.v1",
+      "semantic_id": "keel.action.code_package_install.v1",
+      "tool_names": [
+        "code.package.install"
+      ],
+      "customer_title": "AI Permit-to-Install-Package",
+      "type_definition": "Exact authorization to install one allowlisted public package at one exact version with lifecycle scripts disabled in one disposable workspace",
+      "required_material_fields": [
+        "workspace_reference_commitment",
+        "package_reference_commitment",
+        "workspace_is_disposable",
+        "workspace_state_digest",
+        "package_name",
+        "package_allowlisted",
+        "package_metadata_digest",
+        "package_tarball_integrity",
+        "registry_origin",
+        "dependency_class",
+        "current_dependency_version",
+        "target_dependency_version",
+        "package_manifest_state_digest",
+        "package_lock_present",
+        "package_lock_state_digest",
+        "install_mode",
+        "lifecycle_scripts_disabled",
+        "install_command_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_workspace_allowlist",
+        "gateway_package_version_allowlist",
+        "provider_package_metadata_preflight",
+        "provider_tarball_integrity_preflight",
+        "gateway_workspace_state_preflight",
+        "lifecycle_script_suppression",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.code.package.install.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "npm",
+          "operation": "packages.install.exact_without_scripts"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Disposable workspace"
+        },
+        {
+          "field": "target_digest",
+          "label": "Exact package and version"
+        },
+        {
+          "field": "provider",
+          "label": "Package registry"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "package_safety_maintainer_identity_or_absence_of_malicious_content",
+        "successful_application_build_tests_or_runtime_behavior",
+        "changes_outside_the_named_disposable_workspace"
+      ],
+      "risk_tags": [
+        "source_change",
+        "software_supply_chain",
+        "local_execution"
+      ]
+    },
+    {
+      "consequence_type": "repository.branch.push.v1",
+      "semantic_id": "keel.action.repository_branch_push.v1",
+      "tool_names": [
+        "repository.branch.push"
+      ],
+      "customer_title": "AI Permit-to-Push-Branch",
+      "type_definition": "Exact authorization to publish one bounded gateway-derived workspace tree as one new commit on one absent non-protected GitHub branch",
+      "required_material_fields": [
+        "repository_reference_commitment",
+        "target_branch",
+        "target_tree_digest",
+        "workspace_reference_commitment",
+        "workspace_state_digest",
+        "base_branch",
+        "base_commit_sha",
+        "base_tree_sha",
+        "base_branch_protected",
+        "target_branch_exists",
+        "target_branch_protected",
+        "changed_paths_digest",
+        "workspace_file_count",
+        "workspace_total_bytes",
+        "protected_path_change_count",
+        "commit_message_commitment",
+        "push_mode",
+        "force_push"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_repository_allowlist",
+        "gateway_workspace_state_preflight",
+        "provider_base_ref_preflight",
+        "provider_target_ref_absence_preflight",
+        "provider_branch_protection_preflight",
+        "deterministic_workspace_tree_derivation",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.repository.branch.push.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "github",
+          "operation": "git.refs.create_with_exact_commit"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository and target branch"
+        },
+        {
+          "field": "target_digest",
+          "label": "Exact workspace tree"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_visible_branch_without_provider_readback",
+        "code_correctness_review_approval_or_passing_checks",
+        "pull_request_merge_deployment_or_runtime_behavior"
+      ],
+      "risk_tags": [
+        "source_change",
+        "remote_branch",
+        "software_supply_chain"
+      ]
+    },
+    {
+      "consequence_type": "repository.pull_request.create.v1",
+      "semantic_id": "keel.action.repository_pull_request_create.v1",
+      "tool_names": [
+        "repository.pull_request.create"
+      ],
+      "customer_title": "AI Permit-to-Create-Pull-Request",
+      "type_definition": "Exact authorization to open one pull request from one provider-observed head commit into one provider-observed protected base branch",
+      "required_material_fields": [
+        "repository_reference_commitment",
+        "head_commit_sha",
+        "base_commit_sha",
+        "head_branch",
+        "head_ref_exists",
+        "base_branch",
+        "base_branch_protected",
+        "same_repository",
+        "compare_state_digest",
+        "compare_status",
+        "ahead_by",
+        "behind_by",
+        "changed_files_count",
+        "additions_count",
+        "deletions_count",
+        "changed_paths_digest",
+        "protected_path_change_count",
+        "existing_open_pull_request_count",
+        "pull_request_title_commitment",
+        "pull_request_body_commitment",
+        "draft",
+        "merge_authorized"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_repository_allowlist",
+        "provider_head_and_base_ref_preflight",
+        "provider_base_branch_protection_preflight",
+        "provider_compare_preflight",
+        "provider_existing_pull_request_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.repository.pull_request.create.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "github",
+          "operation": "pulls.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository, head, and base"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact pull request"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_open_pull_request_without_provider_readback",
+        "review_approval_passing_checks_or_mergeability",
+        "merge_deployment_code_correctness_or_runtime_behavior"
+      ],
+      "risk_tags": [
+        "source_change",
+        "pull_request",
+        "external_communication"
+      ]
+    },
+    {
+      "consequence_type": "collections.payment.collect.v1",
+      "semantic_id": "keel.action.collections_payment_collect.v1",
+      "tool_names": [
+        "collections.payment.collect"
+      ],
+      "customer_title": "AI Permit-to-Collect-Payment",
+      "type_definition": "Exact authorization to create and confirm one Stripe test-mode PaymentIntent for one delinquent obligation using one already attached test payment method",
+      "required_material_fields": [
+        "obligation_reference_commitment",
+        "customer_reference_commitment",
+        "payment_method_reference_commitment",
+        "amount_minor",
+        "currency",
+        "obligation_status",
+        "remaining_balance_minor",
+        "amount_within_balance",
+        "payment_method_attached",
+        "payment_method_type",
+        "collection_mode",
+        "customer_consent_record_digest",
+        "payment_intent_status_before"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_obligation_allowlist",
+        "provider_customer_and_payment_method_preflight",
+        "provider_payment_intent_absence_preflight",
+        "gateway_remaining_balance_preflight",
+        "gateway_consent_record_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.collections.payment.collect.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "payment_intents.create_and_confirm"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Delinquent obligation"
+        },
+        {
+          "field": "amount",
+          "label": "Collection amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Payment provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "stripe_acceptance_or_success_without_provider_readback",
+        "financial_settlement_or_chargeback_immunity",
+        "legal_validity_collectability_or_customer_identity"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "collections",
+        "off_session_payment"
+      ]
+    },
+    {
+      "consequence_type": "collections.payment_plan.create.v1",
+      "semantic_id": "keel.action.collections_payment_plan_create.v1",
+      "tool_names": [
+        "collections.payment_plan.create"
+      ],
+      "customer_title": "AI Permit-to-Create-Payment-Plan",
+      "type_definition": "Exact authorization to create one finite Stripe test-mode subscription schedule for one provider-verified delinquent obligation",
+      "required_material_fields": [
+        "obligation_reference_commitment",
+        "customer_reference_commitment",
+        "price_reference_commitment",
+        "installment_amount_minor",
+        "installment_count",
+        "total_plan_amount_minor",
+        "remaining_balance_minor",
+        "amount_matches_balance",
+        "currency",
+        "billing_interval",
+        "plan_start_at",
+        "default_payment_method_present",
+        "existing_active_plan_count",
+        "schedule_mode",
+        "collection_method",
+        "customer_consent_record_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_obligation_and_price_allowlist",
+        "provider_customer_and_price_preflight",
+        "provider_active_schedule_preflight",
+        "gateway_remaining_balance_preflight",
+        "gateway_consent_record_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.collections.payment_plan.create.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscription_schedules.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Delinquent obligation"
+        },
+        {
+          "field": "amount",
+          "label": "Installment amount"
+        },
+        {
+          "field": "constraints",
+          "label": "Installments and interval"
+        },
+        {
+          "field": "provider",
+          "label": "Schedule provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "future_installment_payment_success_or_financial_settlement",
+        "legal_sufficiency_of_customer_consent_or_disclosures",
+        "absence_of_future_provider_or_customer_changes"
+      ],
+      "risk_tags": [
+        "collections",
+        "recurring_payment",
+        "future_value_movement"
+      ]
+    },
+    {
+      "consequence_type": "collections.autopay.change.v1",
+      "semantic_id": "keel.action.collections_autopay_change.v1",
+      "tool_names": [
+        "collections.autopay.change"
+      ],
+      "customer_title": "AI Permit-to-Change-Autopay",
+      "type_definition": "Exact authorization to change one provider-observed Stripe test-mode subscription between automatic charging and invoice collection",
+      "required_material_fields": [
+        "plan_reference_commitment",
+        "customer_reference_commitment",
+        "subscription_status",
+        "current_collection_method",
+        "requested_collection_method",
+        "autopay_enabled_before",
+        "autopay_enabled_after",
+        "default_payment_method_present",
+        "effective_at",
+        "days_until_due",
+        "customer_consent_record_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_plan_allowlist",
+        "provider_subscription_preflight",
+        "provider_default_payment_method_preflight",
+        "gateway_consent_record_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.collections.autopay.change.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "subscriptions.update_collection_method"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment plan"
+        },
+        {
+          "field": "constraints",
+          "label": "Autopay change"
+        },
+        {
+          "field": "effective_at",
+          "label": "Effective at"
+        },
+        {
+          "field": "provider",
+          "label": "Schedule provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "future_charge_or_invoice_payment_success",
+        "legal_sufficiency_of_customer_consent_or_notice",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "collections",
+        "recurring_payment",
+        "account_change"
+      ]
+    },
+    {
+      "consequence_type": "collections.notice.send.v1",
+      "semantic_id": "keel.action.collections_notice_send.v1",
+      "tool_names": [
+        "collections.notice.send"
+      ],
+      "customer_title": "AI Permit-to-Send-Collections-Notice",
+      "type_definition": "Exact authorization to send one operator-approved, versioned collections notice to one dedicated demo recipient",
+      "required_material_fields": [
+        "obligation_reference_commitment",
+        "recipient_reference_commitment",
+        "template_id",
+        "recipient_is_dedicated_demo",
+        "channel",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "amount_due_minor",
+        "currency",
+        "due_at",
+        "jurisdiction",
+        "notice_reason",
+        "prior_notice_count",
+        "delivery_mode"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_recipient_allowlist",
+        "gateway_template_allowlist",
+        "gateway_obligation_preflight",
+        "gateway_rendered_message_derivation",
+        "provider_sender_identity_configuration",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.collections.notice.send.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "resend",
+          "operation": "emails.send"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "resource",
+          "label": "Notice template"
+        },
+        {
+          "field": "amount",
+          "label": "Amount due"
+        },
+        {
+          "field": "effective_at",
+          "label": "Due at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "email_delivery_receipt_or_recipient_read_confirmation",
+        "legal_sufficiency_or_regulatory_compliance_of_the_notice",
+        "identity_of_a_real_debtor_or_validity_of_a_real_debt"
+      ],
+      "risk_tags": [
+        "external_communication",
+        "collections",
+        "regulated_notice"
+      ]
+    },
+    {
+      "consequence_type": "insurance.claim.decision.record.v1",
+      "semantic_id": "keel.action.insurance_claim_decision_record.v1",
+      "tool_names": [
+        "insurance.claim.decision.record"
+      ],
+      "customer_title": "AI Permit-to-Decide-Claim",
+      "type_definition": "Exact authorization to append one human-co-signed approve-or-deny determination to one synthetic insurance claim",
+      "required_material_fields": [
+        "claim_reference_commitment",
+        "policy_reference_commitment",
+        "claimant_reference_commitment",
+        "claim_status_before",
+        "requested_outcome",
+        "decision_reason_code",
+        "coverage_evaluation_digest",
+        "evidence_bundle_digest",
+        "criteria_pack_id",
+        "criteria_pack_version",
+        "criteria_pack_digest",
+        "decision_record_count_before",
+        "human_review_required",
+        "required_approver_role",
+        "separation_of_duties_required",
+        "co_signature_requirement_digest",
+        "appeal_path_included",
+        "jurisdiction"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_claim_policy_allowlist",
+        "claims_system_current_state_preflight",
+        "gateway_criteria_pack_allowlist",
+        "keel_signed_co_signature_requirement",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.insurance.claim.decision.record.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "keel-synthetic-claims",
+          "operation": "claim_decisions.append"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Insurance claim"
+        },
+        {
+          "field": "linked_to",
+          "label": "Determination and reason"
+        },
+        {
+          "field": "recipient",
+          "label": "Human adjuster approver"
+        },
+        {
+          "field": "provider",
+          "label": "Claims system"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "human_approval_without_separately_verified_co_signature_evidence",
+        "legal_correctness_or_regulatory_compliance_of_the_determination",
+        "real_claimant_identity_adjuster_licensure_or_real_policy_coverage"
+      ],
+      "risk_tags": [
+        "regulated_decision",
+        "insurance_claim",
+        "human_co_signature"
+      ]
+    },
+    {
+      "consequence_type": "insurance.claim.settlement.set.v1",
+      "semantic_id": "keel.action.insurance_claim_settlement_set.v1",
+      "tool_names": [
+        "insurance.claim.settlement.set"
+      ],
+      "customer_title": "AI Permit-to-Settle-Claim",
+      "type_definition": "Exact authorization to create one bounded settlement record for one approved synthetic insurance claim",
+      "required_material_fields": [
+        "claim_reference_commitment",
+        "decision_reference_commitment",
+        "policy_reference_commitment",
+        "claim_status_before",
+        "decision_outcome",
+        "decision_record_digest",
+        "settlement_record_count_before",
+        "claimed_amount_minor",
+        "covered_amount_minor",
+        "policy_limit_minor",
+        "settlement_amount_minor",
+        "currency",
+        "amount_within_covered_amount",
+        "amount_within_policy_limit",
+        "terms_template_id",
+        "terms_template_version",
+        "terms_template_digest",
+        "co_signature_requirement_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_claim_policy_allowlist",
+        "claims_system_approved_decision_preflight",
+        "claims_system_settlement_absence_preflight",
+        "gateway_terms_template_allowlist",
+        "keel_signed_co_signature_requirement",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.insurance.claim.settlement.set.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "keel-synthetic-claims",
+          "operation": "claim_settlements.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Approved insurance claim"
+        },
+        {
+          "field": "amount",
+          "label": "Settlement amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Human adjuster approver"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "claim_payment_dispatch_or_financial_settlement",
+        "claimant_acceptance_or_release_of_claim",
+        "legal_sufficiency_of_the_settlement_terms"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "insurance_claim",
+        "settlement"
+      ]
+    },
+    {
+      "consequence_type": "insurance.claim.payment.send.v1",
+      "semantic_id": "keel.action.insurance_claim_payment_send.v1",
+      "tool_names": [
+        "insurance.claim.payment.send"
+      ],
+      "customer_title": "AI Permit-to-Pay-Claim",
+      "type_definition": "Exact authorization to create one Stripe test-mode Connect transfer for the unpaid amount of one approved synthetic claim settlement",
+      "required_material_fields": [
+        "claim_reference_commitment",
+        "settlement_reference_commitment",
+        "claimant_reference_commitment",
+        "destination_account_reference_commitment",
+        "claim_status_before",
+        "settlement_status_before",
+        "settlement_record_digest",
+        "settlement_amount_minor",
+        "paid_amount_minor_before",
+        "remaining_payable_minor",
+        "payment_amount_minor",
+        "currency",
+        "amount_matches_remaining_payable",
+        "destination_allowlisted",
+        "transfer_status_before",
+        "transfer_group"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_claim_and_destination_allowlist",
+        "claims_system_approved_settlement_preflight",
+        "claims_system_remaining_payable_preflight",
+        "provider_destination_preflight",
+        "provider_transfer_absence_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.insurance.claim.payment.send.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "transfers.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Claim settlement"
+        },
+        {
+          "field": "amount",
+          "label": "Claim payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Demo claimant destination"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "stripe_acceptance_or_transfer_creation_without_provider_readback",
+        "bank_settlement_recipient_receipt_or_payment_finality",
+        "validity_of_a_real_claim_or_entitlement_to_real_funds"
+      ],
+      "risk_tags": [
+        "value_movement",
+        "insurance_claim",
+        "claim_payment"
+      ]
+    },
+    {
+      "consequence_type": "insurance.claim.notice.send.v1",
+      "semantic_id": "keel.action.insurance_claim_notice_send.v1",
+      "tool_names": [
+        "insurance.claim.notice.send"
+      ],
+      "customer_title": "AI Permit-to-Send-Claim-Determination-Notice",
+      "type_definition": "Exact authorization to send one operator-approved claim determination notice to one dedicated demo recipient",
+      "required_material_fields": [
+        "claim_reference_commitment",
+        "decision_reference_commitment",
+        "recipient_reference_commitment",
+        "template_id",
+        "recipient_is_dedicated_demo",
+        "recorded_decision_outcome",
+        "decision_record_digest",
+        "channel",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "settlement_amount_minor",
+        "currency",
+        "appeal_instructions_included",
+        "jurisdiction",
+        "notice_record_count_before",
+        "delivery_mode"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_recipient_allowlist",
+        "gateway_template_allowlist",
+        "claims_system_recorded_decision_preflight",
+        "gateway_rendered_message_derivation",
+        "provider_sender_identity_configuration",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.insurance.claim.notice.send.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "resend",
+          "operation": "emails.send"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "resource",
+          "label": "Insurance claim"
+        },
+        {
+          "field": "linked_to",
+          "label": "Determination and template"
+        },
+        {
+          "field": "provider",
+          "label": "Notification provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "email_delivery_receipt_or_recipient_read_confirmation",
+        "legal_sufficiency_or_regulatory_compliance_of_the_notice",
+        "identity_of_a_real_claimant_or_validity_of_a_real_claim"
+      ],
+      "risk_tags": [
+        "external_communication",
+        "insurance_claim",
+        "regulated_notice"
+      ]
+    },
+    {
+      "consequence_type": "crm.deal.stage.change.v1",
+      "semantic_id": "keel.action.crm_deal_stage_change.v1",
+      "tool_names": [
+        "crm.deal.stage.change"
+      ],
+      "customer_title": "AI Permit-to-Change-Deal-Stage",
+      "type_definition": "Exact authorization to move one synthetic HubSpot developer-test deal from one provider-observed stage to one allowlisted stage",
+      "required_material_fields": [
+        "provider_portal_reference_commitment",
+        "deal_reference_commitment",
+        "pipeline_reference_commitment",
+        "provider_account_type",
+        "record_is_synthetic",
+        "current_stage_id",
+        "current_stage_label",
+        "requested_stage_id",
+        "requested_stage_label",
+        "transition_allowlisted",
+        "deal_updated_at_before",
+        "pipeline_configuration_digest",
+        "deal_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_developer_test_portal",
+        "provider_account_information_preflight",
+        "provider_deal_and_pipeline_preflight",
+        "gateway_stage_transition_allowlist",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.crm.deal.stage.change.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hubspot",
+          "operation": "crm.deals.update_stage"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic deal"
+        },
+        {
+          "field": "linked_to",
+          "label": "Stage transition"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "commercial_validity_or_accuracy_of_the_deal",
+        "correctness_under_the_operators_sales_process",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "external_state_change",
+        "crm",
+        "deal_stage"
+      ]
+    },
+    {
+      "consequence_type": "crm.customer.record.update.v1",
+      "semantic_id": "keel.action.crm_customer_record_update.v1",
+      "tool_names": [
+        "crm.customer.record.update"
+      ],
+      "customer_title": "AI Permit-to-Update-Customer-Record",
+      "type_definition": "Exact authorization to update one allowlisted property on one synthetic HubSpot developer-test contact",
+      "required_material_fields": [
+        "provider_portal_reference_commitment",
+        "customer_record_reference_commitment",
+        "property_name",
+        "provider_account_type",
+        "record_is_synthetic",
+        "property_label",
+        "property_allowlisted",
+        "property_read_only",
+        "value_before_commitment",
+        "value_after_commitment",
+        "contact_updated_at_before",
+        "property_definition_digest",
+        "customer_record_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_developer_test_portal",
+        "provider_account_information_preflight",
+        "provider_contact_preflight",
+        "provider_property_definition_preflight",
+        "gateway_customer_property_allowlist",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.crm.customer.record.update.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hubspot",
+          "operation": "crm.contacts.update_property"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic customer record"
+        },
+        {
+          "field": "linked_to",
+          "label": "One property update"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "truth_or_accuracy_of_the_customer_data",
+        "consent_for_downstream_use_of_the_updated_data",
+        "absence_of_later_writes_by_other_users_or_integrations"
+      ],
+      "risk_tags": [
+        "data_mutation",
+        "crm",
+        "customer_record"
+      ]
+    },
+    {
+      "consequence_type": "crm.quote.create.v1",
+      "semantic_id": "keel.action.crm_quote_create.v1",
+      "tool_names": [
+        "crm.quote.create"
+      ],
+      "customer_title": "AI Permit-to-Create-Quote",
+      "type_definition": "Exact authorization to create one unpublished draft quote from one bounded provider-observed deal and line-item set in HubSpot developer test",
+      "required_material_fields": [
+        "provider_portal_reference_commitment",
+        "deal_reference_commitment",
+        "line_item_set_commitment",
+        "quote_title_commitment",
+        "provider_account_type",
+        "record_is_synthetic",
+        "quote_expiration_date",
+        "quote_status",
+        "line_item_count",
+        "subtotal_amount_minor",
+        "discount_amount_minor",
+        "tax_amount_minor",
+        "total_amount_minor",
+        "currency",
+        "total_matches_provider_pricing",
+        "payment_enabled",
+        "e_signature_enabled",
+        "publication_status",
+        "existing_quote_count_for_idempotency_key",
+        "association_types_digest",
+        "pricing_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_developer_test_portal",
+        "provider_account_information_preflight",
+        "provider_deal_and_line_item_preflight",
+        "provider_association_label_preflight",
+        "gateway_quote_draft_only_constraint",
+        "gateway_quote_idempotency_ledger",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.crm.quote.create.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hubspot",
+          "operation": "crm.quotes.create_draft"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft quote"
+        },
+        {
+          "field": "amount",
+          "label": "Quote total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "quote_publication_delivery_signature_or_acceptance",
+        "payment_order_creation_or_legally_binding_contract",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "crm",
+        "quote_creation"
+      ]
+    },
+    {
+      "consequence_type": "procurement.vendor.create.v1",
+      "semantic_id": "keel.action.procurement_vendor_create.v1",
+      "tool_names": [
+        "procurement.vendor.create"
+      ],
+      "customer_title": "AI Permit-to-Create-Vendor",
+      "type_definition": "Exact authorization to create one synthetic supplier record in one pinned self-hosted Odoo database",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "vendor_name_commitment",
+        "vendor_tax_reference_commitment",
+        "vendor_email_commitment",
+        "record_is_synthetic",
+        "supplier_rank_requested",
+        "duplicate_vendor_count",
+        "required_fields_complete",
+        "bank_account_created",
+        "vendor_schema_digest",
+        "vendor_search_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_company_preflight",
+        "provider_duplicate_vendor_search",
+        "provider_vendor_schema_preflight",
+        "gateway_synthetic_vendor_constraint",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.procurement.vendor.create.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo",
+          "operation": "res.partner.create_supplier"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic vendor"
+        },
+        {
+          "field": "linked_to",
+          "label": "Pinned Odoo company"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "vendor_identity_tax_status_or_bank_account_ownership",
+        "commercial_approval_or_authority_to_place_orders",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "external_state_change",
+        "procurement",
+        "vendor_master"
+      ]
+    },
+    {
+      "consequence_type": "procurement.purchase_order.issue.v1",
+      "semantic_id": "keel.action.procurement_purchase_order_issue.v1",
+      "tool_names": [
+        "procurement.purchase_order.issue"
+      ],
+      "customer_title": "AI Permit-to-Issue-Purchase-Order",
+      "type_definition": "Exact authorization to create one bounded draft purchase order for one synthetic supplier in one pinned self-hosted Odoo database",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "vendor_reference_commitment",
+        "purchase_order_external_reference_commitment",
+        "line_item_set_commitment",
+        "record_is_synthetic",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "vendor_active",
+        "vendor_supplier_rank_positive",
+        "product_set_allowlisted",
+        "total_matches_provider_pricing",
+        "purchase_order_status_before",
+        "requested_purchase_order_status",
+        "spend_committed",
+        "supplier_notification_sent",
+        "pricing_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_vendor_and_product_preflight",
+        "provider_pricing_preflight",
+        "provider_external_reference_absence_preflight",
+        "gateway_product_allowlist",
+        "gateway_draft_only_constraint",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.procurement.purchase_order.issue.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo",
+          "operation": "purchase.order.create_draft"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft purchase order"
+        },
+        {
+          "field": "amount",
+          "label": "Order total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "supplier_delivery_or_acceptance_of_the_order",
+        "spend_commitment_invoice_approval_or_payment_release",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "financial_record",
+        "procurement",
+        "purchase_order"
+      ]
+    },
+    {
+      "consequence_type": "procurement.spend.commit.v1",
+      "semantic_id": "keel.action.procurement_spend_commit.v1",
+      "tool_names": [
+        "procurement.spend.commit"
+      ],
+      "customer_title": "AI Permit-to-Commit-Procurement-Spend",
+      "type_definition": "Exact authorization to confirm one provider-observed draft purchase order and commit its bounded synthetic procurement spend",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "line_item_set_commitment",
+        "record_is_synthetic",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "available_budget_minor",
+        "amount_within_budget",
+        "current_purchase_order_status",
+        "requested_purchase_order_status",
+        "spend_committed_before",
+        "spend_committed_after",
+        "supplier_notification_sent",
+        "payment_released",
+        "purchase_order_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_purchase_order_preflight",
+        "provider_budget_preflight",
+        "gateway_spend_limit_derivation",
+        "gateway_transition_allowlist",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.procurement.spend.commit.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo",
+          "operation": "purchase.order.button_confirm"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft purchase order"
+        },
+        {
+          "field": "amount",
+          "label": "Spend commitment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "supplier_acceptance_delivery_invoice_or_payment",
+        "legal_enforceability_of_the_purchase_commitment",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "financial_commitment",
+        "procurement",
+        "purchase_order"
+      ]
+    },
+    {
+      "consequence_type": "ap.invoice.approve.v1",
+      "semantic_id": "keel.action.ap_invoice_approve.v1",
+      "tool_names": [
+        "ap.invoice.approve"
+      ],
+      "customer_title": "AI Permit-to-Approve-Invoice",
+      "type_definition": "Exact authorization to post one provider-observed synthetic vendor bill after a complete three-way match",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "invoice_reference_commitment",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "record_is_synthetic",
+        "total_amount_minor",
+        "currency",
+        "current_invoice_status",
+        "requested_invoice_status",
+        "payment_status",
+        "duplicate_candidate_count",
+        "three_way_match_complete",
+        "invoice_total_matches_purchase_order",
+        "receipt_quantity_covers_invoice",
+        "accounting_period_open",
+        "invoice_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_vendor_bill_preflight",
+        "provider_purchase_order_and_receipt_preflight",
+        "provider_duplicate_invoice_search",
+        "gateway_three_way_match_derivation",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ap.invoice.approve.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo",
+          "operation": "account.move.action_post_vendor_bill"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Vendor invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Invoice total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "authenticity_or_legal_validity_of_the_vendor_invoice",
+        "payment_dispatch_settlement_or_supplier_receipt",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "accounts_payable",
+        "invoice_approval",
+        "financial_record"
+      ]
+    },
+    {
+      "consequence_type": "ap.invoice.duplicate.reject.v1",
+      "semantic_id": "keel.action.ap_invoice_duplicate_reject.v1",
+      "tool_names": [
+        "ap.invoice.duplicate.reject"
+      ],
+      "customer_title": "AI Permit-to-Reject-Duplicate-Invoice",
+      "type_definition": "Exact authorization to cancel one unpaid synthetic draft vendor bill after a deterministic exact duplicate match",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "invoice_reference_commitment",
+        "duplicate_invoice_reference_commitment",
+        "vendor_reference_commitment",
+        "record_is_synthetic",
+        "current_invoice_status",
+        "requested_invoice_status",
+        "payment_status",
+        "payment_released",
+        "duplicate_match_method",
+        "vendor_reference_matches",
+        "invoice_number_matches",
+        "total_amount_matches",
+        "duplicate_match_digest",
+        "invoice_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_vendor_bill_preflight",
+        "provider_exact_duplicate_search",
+        "gateway_duplicate_derivation_v1",
+        "gateway_unpaid_state_preflight",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ap.invoice.duplicate.reject.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo",
+          "operation": "account.move.button_cancel_duplicate_vendor_bill"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Duplicate vendor invoice"
+        },
+        {
+          "field": "linked_to",
+          "label": "Existing provider invoice"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fraud_intent_or_wrongdoing_by_the_vendor",
+        "legal_right_to_reject_or_dispute_the_invoice",
+        "absence_of_later_recreation_or_other_provider_changes"
+      ],
+      "risk_tags": [
+        "accounts_payable",
+        "invoice_rejection",
+        "data_mutation"
+      ]
+    },
+    {
+      "consequence_type": "ap.invoice.payment.release.v1",
+      "semantic_id": "keel.action.ap_invoice_payment_release.v1",
+      "tool_names": [
+        "ap.invoice.payment.release"
+      ],
+      "customer_title": "AI Permit-to-Release-Invoice-Payment",
+      "type_definition": "Exact authorization for one two-step demo saga that creates a Stripe test-mode supplier transfer and registers the matching Odoo payment",
+      "required_material_fields": [
+        "provider_database_reference_commitment",
+        "company_reference_commitment",
+        "invoice_reference_commitment",
+        "purchase_order_reference_commitment",
+        "vendor_reference_commitment",
+        "payment_destination_reference_commitment",
+        "record_is_synthetic",
+        "total_amount_minor",
+        "currency",
+        "invoice_status",
+        "payment_status",
+        "three_way_match_complete",
+        "stripe_livemode",
+        "stripe_transfer_status_before",
+        "existing_transfer_count",
+        "workflow_step_count",
+        "odoo_payment_registration_required",
+        "value_conservation_valid",
+        "invoice_state_digest",
+        "payment_destination_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_pinned_self_hosted_database",
+        "provider_posted_unpaid_invoice_preflight",
+        "provider_three_way_match_preflight",
+        "provider_stripe_test_destination_preflight",
+        "provider_transfer_absence_preflight",
+        "gateway_value_conservation_derivation",
+        "gateway_workflow_saga_ledger",
+        "gateway_preflight_hmac"
+      ],
+      "canonicalizer": "keel.ap.invoice.payment.release.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "odoo+stripe",
+          "operation": "transfers.create+account.payment.register"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Approved vendor invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Invoice payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic supplier destination"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_supplier_receipt_or_payment_finality",
+        "successful_completion_of_both_steps_without_provider_readback",
+        "validity_of_a_real_invoice_supplier_or_payment_obligation"
+      ],
+      "risk_tags": [
+        "accounts_payable",
+        "value_movement",
+        "workflow_saga"
+      ]
+    },
+    {
+      "consequence_type": "commerce.order.place.v1",
+      "semantic_id": "keel.action.commerce_order_place.v1",
+      "tool_names": [
+        "commerce.order.place"
+      ],
+      "customer_title": "AI Permit-to-Place-Order",
+      "type_definition": "Exact authorization to place one bounded synthetic order in one pinned test storefront",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "cart_reference_commitment",
+        "customer_reference_commitment",
+        "merchant_reference_commitment",
+        "line_item_set_commitment",
+        "record_is_synthetic",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "inventory_checked",
+        "order_status_before",
+        "requested_order_status",
+        "payment_collected",
+        "order_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "storefront_cart_and_inventory_preflight",
+        "storefront_order_absence_preflight"
+      ],
+      "canonicalizer": "keel.commerce.order.place.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "keel-test-storefront",
+          "operation": "orders.place"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "amount",
+          "label": "Order total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Test storefront"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "merchant_payment_inventory_reservation_or_fulfillment",
+        "a_real_purchase_or_commercial_obligation",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "risk_tags": [
+        "commerce",
+        "external_state_change",
+        "order"
+      ]
+    },
+    {
+      "consequence_type": "commerce.merchant.pay.v1",
+      "semantic_id": "keel.action.commerce_merchant_pay.v1",
+      "tool_names": [
+        "commerce.merchant.pay"
+      ],
+      "customer_title": "AI Permit-to-Pay-Merchant",
+      "type_definition": "Exact authorization to create one Stripe test-mode merchant payment for one placed synthetic order",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "order_reference_commitment",
+        "merchant_destination_reference_commitment",
+        "payment_method_reference_commitment",
+        "record_is_synthetic",
+        "total_amount_minor",
+        "currency",
+        "order_status",
+        "inventory_reservation_status",
+        "payment_status_before",
+        "stripe_livemode",
+        "existing_payment_count",
+        "value_conservation_valid",
+        "payment_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "stripe_test_mode_preflight",
+        "storefront_order_and_reservation_preflight",
+        "stripe_payment_absence_preflight"
+      ],
+      "canonicalizer": "keel.commerce.merchant.pay.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "payment_intents.create_and_confirm"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "amount",
+          "label": "Merchant payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Test merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_merchant_receipt_or_payment_finality",
+        "delivery_or_acceptance_of_goods",
+        "a_real_purchase_or_commercial_obligation"
+      ],
+      "risk_tags": [
+        "commerce",
+        "payment",
+        "value_movement"
+      ]
+    },
+    {
+      "consequence_type": "commerce.inventory.reserve.v1",
+      "semantic_id": "keel.action.commerce_inventory_reserve.v1",
+      "tool_names": [
+        "commerce.inventory.reserve"
+      ],
+      "customer_title": "AI Permit-to-Reserve-Inventory",
+      "type_definition": "Exact authorization to reserve one bounded synthetic inventory set for one order",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "order_reference_commitment",
+        "warehouse_reference_commitment",
+        "inventory_item_set_commitment",
+        "record_is_synthetic",
+        "line_item_count",
+        "requested_unit_count",
+        "available_unit_count",
+        "inventory_sufficient",
+        "reservation_status_before",
+        "requested_reservation_status",
+        "reservation_ttl_seconds",
+        "inventory_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "inventory_provider_quantity_preflight",
+        "inventory_reservation_absence_preflight"
+      ],
+      "canonicalizer": "keel.commerce.inventory.reserve.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgresql",
+          "operation": "inventory.reserve"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Inventory reservation"
+        },
+        {
+          "field": "linked_to",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "provider",
+          "label": "Inventory database"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "order_placement_payment_or_fulfillment",
+        "inventory_availability_after_the_bound_snapshot",
+        "a_real_sale_or_inventory_commitment"
+      ],
+      "risk_tags": [
+        "commerce",
+        "database_write",
+        "inventory"
+      ]
+    },
+    {
+      "consequence_type": "benefits.case.grant.v1",
+      "semantic_id": "keel.action.benefits_case_grant.v1",
+      "tool_names": [
+        "benefits.case.grant"
+      ],
+      "customer_title": "AI Permit-to-Grant-Benefit",
+      "type_definition": "Exact authorization to grant one synthetic benefits case after a complete provider-observed review record",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "record_is_synthetic",
+        "current_determination_status",
+        "requested_determination_status",
+        "eligibility_evidence_complete",
+        "decision_reason_code",
+        "case_version_precondition_matches",
+        "case_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "benefits_case_state_preflight",
+        "benefits_evidence_completeness_preflight"
+      ],
+      "canonicalizer": "keel.benefits.case.grant.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgresql",
+          "operation": "benefits.case.granted"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic benefits case"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "benefit_payment_or_delivery_of_a_determination_notice"
+      ],
+      "risk_tags": [
+        "benefits",
+        "regulated_decision",
+        "eligibility"
+      ]
+    },
+    {
+      "consequence_type": "benefits.case.deny.v1",
+      "semantic_id": "keel.action.benefits_case_deny.v1",
+      "tool_names": [
+        "benefits.case.deny"
+      ],
+      "customer_title": "AI Permit-to-Deny-Benefit",
+      "type_definition": "Exact authorization to deny one synthetic benefits case after a complete provider-observed review record",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "record_is_synthetic",
+        "current_determination_status",
+        "requested_determination_status",
+        "eligibility_evidence_complete",
+        "decision_reason_code",
+        "case_version_precondition_matches",
+        "case_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "benefits_case_state_preflight",
+        "benefits_evidence_completeness_preflight"
+      ],
+      "canonicalizer": "keel.benefits.case.deny.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgresql",
+          "operation": "benefits.case.denied"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic benefits case"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "benefit_payment_or_delivery_of_a_determination_notice"
+      ],
+      "risk_tags": [
+        "benefits",
+        "regulated_decision",
+        "eligibility"
+      ]
+    },
+    {
+      "consequence_type": "benefits.eligibility.change.v1",
+      "semantic_id": "keel.action.benefits_eligibility_change.v1",
+      "tool_names": [
+        "benefits.eligibility.change"
+      ],
+      "customer_title": "AI Permit-to-Change-Benefit-Eligibility",
+      "type_definition": "Exact authorization to change one synthetic applicant eligibility record with an exact effective date and reason",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "record_is_synthetic",
+        "current_eligibility_status",
+        "requested_eligibility_status",
+        "eligibility_change_reason_code",
+        "effective_at",
+        "eligibility_evidence_complete",
+        "case_version_precondition_matches",
+        "eligibility_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "benefits_eligibility_state_preflight",
+        "benefits_evidence_completeness_preflight"
+      ],
+      "canonicalizer": "keel.benefits.eligibility.change.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "postgresql",
+          "operation": "benefits.eligibility.change"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Eligibility record"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound change"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "a_benefit_determination_payment_or_notice"
+      ],
+      "risk_tags": [
+        "benefits",
+        "regulated_decision",
+        "eligibility"
+      ]
+    },
+    {
+      "consequence_type": "benefits.payment.issue.v1",
+      "semantic_id": "keel.action.benefits_payment_issue.v1",
+      "tool_names": [
+        "benefits.payment.issue"
+      ],
+      "customer_title": "AI Permit-to-Issue-Benefit-Payment",
+      "type_definition": "Exact authorization to issue one Stripe test-mode payment for one granted synthetic benefits case",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "case_reference_commitment",
+        "recipient_reference_commitment",
+        "payment_destination_reference_commitment",
+        "record_is_synthetic",
+        "amount_minor",
+        "currency",
+        "determination_status",
+        "eligibility_status",
+        "stripe_livemode",
+        "existing_payment_count",
+        "value_conservation_valid",
+        "payment_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "benefits_grant_and_eligibility_preflight",
+        "stripe_test_destination_preflight",
+        "stripe_payment_absence_preflight"
+      ],
+      "canonicalizer": "keel.benefits.payment.issue.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "stripe",
+          "operation": "transfers.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Granted benefits case"
+        },
+        {
+          "field": "amount",
+          "label": "Benefit payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic recipient"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_recipient_receipt_or_payment_finality",
+        "legal_entitlement_or_identity_of_a_real_person",
+        "delivery_of_a_determination_notice"
+      ],
+      "risk_tags": [
+        "benefits",
+        "payment",
+        "value_movement"
+      ]
+    },
+    {
+      "consequence_type": "benefits.determination.notice.send.v1",
+      "semantic_id": "keel.action.benefits_determination_notice_send.v1",
+      "tool_names": [
+        "benefits.determination.notice.send"
+      ],
+      "customer_title": "AI Permit-to-Send-Benefit-Determination-Notice",
+      "type_definition": "Exact authorization to send one templated determination notice to one dedicated synthetic recipient",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "case_reference_commitment",
+        "recipient_reference_commitment",
+        "record_is_synthetic",
+        "recipient_is_dedicated_demo",
+        "determination_status",
+        "channel",
+        "template_id",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "delivery_mode",
+        "prior_notice_count"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "benefits_determination_state_preflight",
+        "gateway_pinned_demo_recipient",
+        "gateway_template_digest"
+      ],
+      "canonicalizer": "keel.benefits.determination.notice.send.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "mailpit",
+          "operation": "email.send"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Determination notice"
+        },
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted mail sink"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound notice"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_sufficiency_service_or_proof_of_receipt",
+        "identity_or_notice_to_a_real_person",
+        "correctness_or_finality_of_the_benefit_determination"
+      ],
+      "risk_tags": [
+        "benefits",
+        "external_communication",
+        "regulated_notice"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.prior_authorization.submit.v1",
+      "semantic_id": "keel.action.healthcare_prior_authorization_submit.v1",
+      "tool_names": [
+        "healthcare.prior_authorization.submit"
+      ],
+      "customer_title": "AI Permit-to-Submit-Prior-Authorization",
+      "type_definition": "Exact authorization to submit one complete synthetic FHIR prior-authorization request",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "payer_reference_commitment",
+        "service_request_reference_commitment",
+        "coverage_reference_commitment",
+        "record_is_synthetic",
+        "clinical_bundle_digest",
+        "required_fields_complete",
+        "authorization_status_before",
+        "requested_authorization_status",
+        "duplicate_authorization_count",
+        "coverage_active",
+        "clinical_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_patient_practitioner_coverage_preflight",
+        "fhir_duplicate_authorization_preflight",
+        "fhir_clinical_bundle_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.prior_authorization.submit.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "Claim.create_prior_authorization"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Prior-authorization request"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound submission"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "payer_receipt_adjudication_or_coverage",
+        "medical_necessity_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "external_submission",
+        "prior_authorization"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.prior_authorization.clinical_information.request.v1",
+      "semantic_id": "keel.action.healthcare_prior_authorization_clinical_information_request.v1",
+      "tool_names": [
+        "healthcare.prior_authorization.clinical_information.request"
+      ],
+      "customer_title": "AI Permit-to-Request-Clinical-Information",
+      "type_definition": "Exact authorization to create one synthetic FHIR Task requesting a bounded clinical-information set",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "requested_information_set_commitment",
+        "record_is_synthetic",
+        "current_authorization_status",
+        "request_reason_code",
+        "delivery_channel",
+        "existing_open_request_count",
+        "information_request_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_prior_authorization_state_preflight",
+        "fhir_open_information_request_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.prior_authorization.clinical_information.request.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "Task.create_information_request"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Clinical-information request"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic practitioner"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "delivery_receipt_or_response_from_a_real_clinician",
+        "medical_necessity_or_clinical_correctness",
+        "identity_or_care_of_a_real_patient"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "external_request",
+        "clinical_information"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.prior_authorization.approve.v1",
+      "semantic_id": "keel.action.healthcare_prior_authorization_approve.v1",
+      "tool_names": [
+        "healthcare.prior_authorization.approve"
+      ],
+      "customer_title": "AI Permit-to-Approve-Prior-Authorization",
+      "type_definition": "Exact authorization to approve one synthetic FHIR prior-authorization request after a complete review snapshot",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "payer_reference_commitment",
+        "record_is_synthetic",
+        "current_authorization_status",
+        "requested_authorization_status",
+        "clinical_review_complete",
+        "decision_reason_code",
+        "version_precondition_matches",
+        "authorization_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_prior_authorization_state_preflight",
+        "fhir_clinical_review_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.prior_authorization.approve.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "ClaimResponse.approve"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic prior authorization"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "medical_necessity_legal_compliance_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient",
+        "payment_claim_adjudication_or_provider_notification"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "regulated_decision",
+        "prior_authorization"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.prior_authorization.deny.v1",
+      "semantic_id": "keel.action.healthcare_prior_authorization_deny.v1",
+      "tool_names": [
+        "healthcare.prior_authorization.deny"
+      ],
+      "customer_title": "AI Permit-to-Deny-Prior-Authorization",
+      "type_definition": "Exact authorization to deny one synthetic FHIR prior-authorization request after a complete review snapshot",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "payer_reference_commitment",
+        "record_is_synthetic",
+        "current_authorization_status",
+        "requested_authorization_status",
+        "clinical_review_complete",
+        "decision_reason_code",
+        "version_precondition_matches",
+        "authorization_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_prior_authorization_state_preflight",
+        "fhir_clinical_review_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.prior_authorization.deny.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "ClaimResponse.deny"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic prior authorization"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "medical_necessity_legal_compliance_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient",
+        "payment_claim_adjudication_or_provider_notification"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "regulated_decision",
+        "prior_authorization"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.appointment.schedule.v1",
+      "semantic_id": "keel.action.healthcare_appointment_schedule.v1",
+      "tool_names": [
+        "healthcare.appointment.schedule"
+      ],
+      "customer_title": "AI Permit-to-Schedule-Appointment",
+      "type_definition": "Exact authorization to book one available synthetic FHIR appointment slot",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "location_reference_commitment",
+        "slot_reference_commitment",
+        "record_is_synthetic",
+        "appointment_start_at",
+        "appointment_end_at",
+        "slot_status",
+        "requested_appointment_status",
+        "schedule_conflict_count",
+        "appointment_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_slot_availability_preflight",
+        "fhir_schedule_conflict_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.appointment.schedule.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "Appointment.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic appointment"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound booking"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "attendance_clinical_care_or_provider_acceptance",
+        "identity_or_scheduling_of_a_real_patient",
+        "availability_after_the_bound_snapshot"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "scheduling",
+        "external_state_change"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.claim.submit.v1",
+      "semantic_id": "keel.action.healthcare_claim_submit.v1",
+      "tool_names": [
+        "healthcare.claim.submit"
+      ],
+      "customer_title": "AI Permit-to-Submit-Healthcare-Claim",
+      "type_definition": "Exact authorization to submit one bounded synthetic FHIR claim with provider-observed coverage and coding checks",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "patient_reference_commitment",
+        "coverage_reference_commitment",
+        "service_reference_commitment",
+        "record_is_synthetic",
+        "claim_bundle_digest",
+        "total_amount_minor",
+        "currency",
+        "coverage_active",
+        "coding_validated",
+        "claim_status_before",
+        "requested_claim_status",
+        "duplicate_claim_count",
+        "claim_state_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_coverage_and_service_preflight",
+        "fhir_claim_coding_preflight",
+        "fhir_duplicate_claim_preflight"
+      ],
+      "canonicalizer": "keel.healthcare.claim.submit.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "Claim.create"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic healthcare claim"
+        },
+        {
+          "field": "amount",
+          "label": "Claim total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "payer_receipt_adjudication_payment_or_reimbursement",
+        "medical_coding_or_legal_correctness",
+        "identity_coverage_or_care_of_a_real_patient"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "claim",
+        "external_submission"
+      ]
+    },
+    {
+      "consequence_type": "healthcare.patient_administrative_record.update.v1",
+      "semantic_id": "keel.action.healthcare_patient_administrative_record_update.v1",
+      "tool_names": [
+        "healthcare.patient_administrative_record.update"
+      ],
+      "customer_title": "AI Permit-to-Update-Patient-Administrative-Record",
+      "type_definition": "Exact authorization to update one allowlisted administrative field set on one synthetic FHIR patient record",
+      "required_material_fields": [
+        "provider_instance_reference_commitment",
+        "patient_reference_commitment",
+        "administrative_field_set_commitment",
+        "record_is_synthetic",
+        "record_version_before",
+        "requested_record_version",
+        "version_precondition_matches",
+        "administrative_fields_allowlisted",
+        "clinical_field_mutation_requested",
+        "record_before_digest",
+        "record_after_digest"
+      ],
+      "trusted_fact_requirements": [
+        "connector_identity",
+        "tool_contract",
+        "gateway_exact_provider_preflight",
+        "gateway_argument_and_state_binding",
+        "gateway_synthetic_record_constraint",
+        "gateway_preflight_hmac",
+        "fhir_patient_version_preflight",
+        "gateway_administrative_field_allowlist",
+        "gateway_clinical_field_exclusion"
+      ],
+      "canonicalizer": "keel.healthcare.patient_administrative_record.update.canonical.v1",
+      "provider_mappings": [
+        {
+          "provider": "hapi-fhir",
+          "operation": "Patient.update_administrative_fields"
+        }
+      ],
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic patient record"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound update"
+        },
+        {
+          "field": "linked_to",
+          "label": "Administrative field set"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "clinical_record_change_diagnosis_treatment_or_care",
+        "identity_or_record_of_a_real_patient",
+        "correctness_of_contact_insurance_or_demographic_information"
+      ],
+      "risk_tags": [
+        "healthcare",
+        "administrative_record",
+        "database_write"
+      ]
+    }
+  ]
+}

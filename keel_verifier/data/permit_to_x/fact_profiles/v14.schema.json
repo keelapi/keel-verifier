@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/fact_profiles/v14.schema.json",
+  "title": "Keel Permit fact profile registry v14",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "version",
+    "canonicalization_profile",
+    "disclosure_contract",
+    "profiles"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "artifact_id": {
+      "const": "keel.permit.fact_profile_registry"
+    },
+    "version": {
+      "const": "keel.fact_profile_registry.v14"
+    },
+    "canonicalization_profile": {
+      "const": "rfc8785"
+    },
+    "disclosure_contract": {
+      "$ref": "#/$defs/disclosure_contract"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "disposition": {
+      "enum": [
+        "omit",
+        "cleartext",
+        "commitment",
+        "commitment_with_optional_opening"
+      ]
+    },
+    "disclosure_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "audiences",
+        "default_audience",
+        "opening_requires_audit_reason",
+        "plain_hash_for_low_entropy_forbidden"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.fact_disclosure.v1"
+        },
+        "audiences": {
+          "const": [
+            "verifier_safe",
+            "authorized",
+            "private"
+          ]
+        },
+        "default_audience": {
+          "const": "verifier_safe"
+        },
+        "opening_requires_audit_reason": {
+          "const": true
+        },
+        "plain_hash_for_low_entropy_forbidden": {
+          "const": true
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_profile_id",
+        "semantic_ids",
+        "authorized_action",
+        "facts_schema",
+        "facts_schema_digest",
+        "target_fact_paths",
+        "material_request_fact_paths",
+        "fields",
+        "release_state"
+      ],
+      "properties": {
+        "fact_profile_id": {
+          "type": "string",
+          "pattern": "^keel\\.facts\\.[a-z0-9._-]+\\.v[0-9]+$"
+        },
+        "semantic_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "authorized_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facts_schema": {
+          "type": "string",
+          "pattern": "^schemas/[a-z0-9._-]+\\.schema\\.json$"
+        },
+        "facts_schema_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "classification_evidence_path": {
+          "type": "string",
+          "pattern": "^/[a-z0-9_/-]+$"
+        },
+        "classification_semantics_id": {
+          "type": "string"
+        },
+        "target_fact_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/[a-z0-9_/-]+$"
+          }
+        },
+        "material_request_fact_paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/[a-z0-9_/-]+$"
+          }
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "release_state": {
+          "enum": [
+            "eligible",
+            "reserved",
+            "internal_only"
+          ]
+        }
+      },
+      "dependentRequired": {
+        "classification_evidence_path": [
+          "classification_semantics_id"
+        ],
+        "classification_semantics_id": [
+          "classification_evidence_path"
+        ]
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "value_type",
+        "required_for_authorization",
+        "classification",
+        "low_entropy_possible",
+        "disclosure",
+        "retention",
+        "commitment_method"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/[a-z0-9_/-]+$"
+        },
+        "value_type": {
+          "enum": [
+            "integer",
+            "number",
+            "boolean",
+            "string",
+            "digest",
+            "commitment",
+            "object",
+            "array",
+            "timestamp",
+            "null"
+          ]
+        },
+        "required_for_authorization": {
+          "type": "boolean"
+        },
+        "classification": {
+          "enum": [
+            "operational",
+            "financial",
+            "personal_data",
+            "sensitive_data",
+            "secret",
+            "free_text"
+          ]
+        },
+        "low_entropy_possible": {
+          "type": "boolean"
+        },
+        "disclosure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verifier_safe",
+            "authorized",
+            "private"
+          ],
+          "properties": {
+            "verifier_safe": {
+              "$ref": "#/$defs/disposition"
+            },
+            "authorized": {
+              "$ref": "#/$defs/disposition"
+            },
+            "private": {
+              "$ref": "#/$defs/disposition"
+            }
+          }
+        },
+        "retention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "class",
+            "max_days",
+            "erasable",
+            "erasure_action"
+          ],
+          "properties": {
+            "class": {
+              "enum": [
+                "permit_evidence",
+                "deletable_identity",
+                "transient"
+              ]
+            },
+            "max_days": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "erasable": {
+              "type": "boolean"
+            },
+            "erasure_action": {
+              "enum": [
+                "retain_signed_value",
+                "erase_opening",
+                "signed_tombstone"
+              ]
+            }
+          }
+        },
+        "commitment_method": {
+          "enum": [
+            "signed_cleartext",
+            "keel.salted_sha256_jcs.v1",
+            "keel.randomized_sha256_jcs.v1",
+            "keel.hmac_sha256_jcs.v1",
+            "keel.opaque_reference.v1",
+            "none"
+          ]
+        },
+        "opaque_reference_entropy_bits": {
+          "type": "integer",
+          "minimum": 128
+        }
+      }
+    }
+  }
+}

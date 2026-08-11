@@ -122,6 +122,19 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     committed_target = _commitment_label(
         facts.get("original_payment_reference_commitment"), "payment"
     ) or _commitment_label(
+        facts.get("prior_authorization_reference_commitment"),
+        "synthetic prior authorization",
+    ) or _commitment_label(
+        facts.get("case_reference_commitment"), "synthetic benefits case"
+    ) or _commitment_label(
+        facts.get("order_reference_commitment"), "synthetic order"
+    ) or _commitment_label(
+        facts.get("cart_reference_commitment"), "synthetic cart"
+    ) or _commitment_label(
+        facts.get("slot_reference_commitment"), "synthetic appointment slot"
+    ) or _commitment_label(
+        facts.get("patient_reference_commitment"), "synthetic patient record"
+    ) or _commitment_label(
         facts.get("invoice_reference_commitment"), "synthetic invoice"
     ) or _commitment_label(
         facts.get("purchase_order_external_reference_commitment"),

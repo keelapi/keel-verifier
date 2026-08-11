@@ -195,6 +195,7 @@ def _verify_trusted_preflight_window(
         "keel.insurance_claims_exact_facts.v1",
         "keel.erp_crm_exact_facts.v1",
         "keel.procurement_ap_exact_facts.v1",
+        "keel.commerce_regulated_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -798,6 +799,163 @@ def _verify_procurement_ap_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+def _verify_commerce_regulated_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate commerce/regulated relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.commerce_regulated_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    action = str(facts.get("action") or "")
+    connector_and_environment = {
+        "commerce.order.place": ("test-storefront", "self_hosted_synthetic"),
+        "commerce.merchant.pay": ("stripe", "provider_sandbox"),
+        "commerce.inventory.reserve": ("inventory-postgres", "self_hosted_synthetic"),
+        "benefits.case.grant": ("benefits-postgres", "self_hosted_synthetic"),
+        "benefits.case.deny": ("benefits-postgres", "self_hosted_synthetic"),
+        "benefits.eligibility.change": ("benefits-postgres", "self_hosted_synthetic"),
+        "benefits.payment.issue": ("stripe", "provider_sandbox"),
+        "benefits.determination.notice.send": ("notification.email", "self_hosted_synthetic"),
+        "healthcare.prior_authorization.submit": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.prior_authorization.clinical_information.request": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.prior_authorization.approve": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.prior_authorization.deny": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.appointment.schedule": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.claim.submit": ("hapi-fhir", "self_hosted_synthetic"),
+        "healthcare.patient_administrative_record.update": ("hapi-fhir", "self_hosted_synthetic"),
+    }
+    expected = connector_and_environment.get(action)
+    valid = bool(
+        expected
+        and facts.get("connector_identity") == expected[0]
+        and facts.get("provider_environment") == expected[1]
+        and facts.get("record_is_synthetic") is True
+        and integer("max_uses") == 1
+    )
+    if valid and action == "commerce.order.place":
+        valid = (
+            integer("line_item_count") is not None
+            and integer("total_amount_minor") is not None
+            and facts.get("inventory_checked") is True
+            and facts.get("order_status_before") == "absent"
+            and facts.get("requested_order_status") == "placed"
+            and facts.get("payment_collected") is False
+        )
+    elif valid and action == "commerce.merchant.pay":
+        valid = (
+            facts.get("order_status") == "placed"
+            and facts.get("inventory_reservation_status") == "active"
+            and facts.get("payment_status_before") == "unpaid"
+            and facts.get("stripe_livemode") is False
+            and integer("existing_payment_count") == 0
+            and facts.get("value_conservation_valid") is True
+        )
+    elif valid and action == "commerce.inventory.reserve":
+        requested = integer("requested_unit_count")
+        available = integer("available_unit_count")
+        valid = (
+            requested is not None and available is not None
+            and 0 < requested <= available
+            and facts.get("inventory_sufficient") is True
+            and facts.get("reservation_status_before") == "absent"
+            and facts.get("requested_reservation_status") == "active"
+        )
+    elif valid and action in {"benefits.case.grant", "benefits.case.deny"}:
+        requested = "granted" if action.endswith("grant") else "denied"
+        valid = (
+            facts.get("current_determination_status") == "pending"
+            and facts.get("requested_determination_status") == requested
+            and facts.get("eligibility_evidence_complete") is True
+            and facts.get("case_version_precondition_matches") is True
+        )
+    elif valid and action == "benefits.eligibility.change":
+        valid = (
+            facts.get("current_eligibility_status")
+            != facts.get("requested_eligibility_status")
+            and facts.get("eligibility_evidence_complete") is True
+            and facts.get("case_version_precondition_matches") is True
+        )
+    elif valid and action == "benefits.payment.issue":
+        valid = (
+            facts.get("determination_status") == "granted"
+            and facts.get("eligibility_status") == "eligible"
+            and facts.get("stripe_livemode") is False
+            and integer("existing_payment_count") == 0
+            and facts.get("value_conservation_valid") is True
+        )
+    elif valid and action == "benefits.determination.notice.send":
+        valid = (
+            facts.get("recipient_is_dedicated_demo") is True
+            and facts.get("channel") == "email"
+            and facts.get("delivery_mode") == "self_hosted_mail_sink"
+            and integer("prior_notice_count") == 0
+        )
+    elif valid and action == "healthcare.prior_authorization.submit":
+        valid = (
+            facts.get("required_fields_complete") is True
+            and facts.get("authorization_status_before") == "absent"
+            and facts.get("requested_authorization_status") == "active"
+            and integer("duplicate_authorization_count") == 0
+            and facts.get("coverage_active") is True
+        )
+    elif valid and action == "healthcare.prior_authorization.clinical_information.request":
+        valid = (
+            facts.get("current_authorization_status") == "active"
+            and facts.get("delivery_channel") == "fhir_task"
+            and integer("existing_open_request_count") == 0
+        )
+    elif valid and action in {
+        "healthcare.prior_authorization.approve",
+        "healthcare.prior_authorization.deny",
+    }:
+        requested = "approved" if action.endswith("approve") else "denied"
+        valid = (
+            facts.get("current_authorization_status") == "active"
+            and facts.get("requested_authorization_status") == requested
+            and facts.get("clinical_review_complete") is True
+            and facts.get("version_precondition_matches") is True
+        )
+    elif valid and action == "healthcare.appointment.schedule":
+        start = _parse_time(facts.get("appointment_start_at"))
+        end = _parse_time(facts.get("appointment_end_at"))
+        valid = (
+            start is not None and end is not None and start < end
+            and facts.get("slot_status") == "free"
+            and facts.get("requested_appointment_status") == "booked"
+            and integer("schedule_conflict_count") == 0
+        )
+    elif valid and action == "healthcare.claim.submit":
+        valid = (
+            integer("total_amount_minor") is not None
+            and facts.get("coverage_active") is True
+            and facts.get("coding_validated") is True
+            and facts.get("claim_status_before") == "absent"
+            and facts.get("requested_claim_status") == "active"
+            and integer("duplicate_claim_count") == 0
+        )
+    elif valid and action == "healthcare.patient_administrative_record.update":
+        before = integer("record_version_before")
+        requested = integer("requested_record_version")
+        valid = (
+            before is not None and requested == before + 1
+            and facts.get("version_precondition_matches") is True
+            and facts.get("administrative_fields_allowlisted") is True
+            and facts.get("clinical_field_mutation_requested") is False
+        )
+    else:
+        valid = False
+
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_COMMERCE_REGULATED_INVARIANT_INVALID",
+            "the signed commerce/regulated facts violate an exact provider-action invariant",
+        )
+
+
 def _verifier_safe_facts(
     fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -1186,6 +1344,7 @@ def _resolve_contracts(
             "semantic_registry/v13.json",
             "semantic_registry/v14.json",
             "semantic_registry/v15.json",
+            "semantic_registry/v16.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -1205,6 +1364,7 @@ def _resolve_contracts(
             "fact_profiles/v11.json",
             "fact_profiles/v12.json",
             "fact_profiles/v13.json",
+            "fact_profiles/v14.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2365,6 +2525,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_insurance_claims_invariants(facts)
         _verify_erp_crm_invariants(facts)
         _verify_procurement_ap_invariants(facts)
+        _verify_commerce_regulated_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

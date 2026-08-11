@@ -99,6 +99,8 @@ COPIES = {
     "semantic_registry/v14.schema.json": ("permit_to_x/semantic_registry/v14.schema.json"),
     "semantic_registry/v15.json": "permit_to_x/semantic_registry/v15.json",
     "semantic_registry/v15.schema.json": ("permit_to_x/semantic_registry/v15.schema.json"),
+    "semantic_registry/v16.json": "permit_to_x/semantic_registry/v16.json",
+    "semantic_registry/v16.schema.json": ("permit_to_x/semantic_registry/v16.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -127,6 +129,8 @@ COPIES = {
     "presentation_registry/v13.schema.json": ("permit_to_x/presentation_registry/v13.schema.json"),
     "presentation_registry/v14.json": "permit_to_x/presentation_registry/v14.json",
     "presentation_registry/v14.schema.json": ("permit_to_x/presentation_registry/v14.schema.json"),
+    "presentation_registry/v15.json": "permit_to_x/presentation_registry/v15.json",
+    "presentation_registry/v15.schema.json": ("permit_to_x/presentation_registry/v15.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
     "consequence_registry/v1.schema.json": ("permit_to_x/consequence_registry/v1.schema.json"),
     "consequence_registry/v2.json": "permit_to_x/consequence_registry/v2.json",
@@ -147,6 +151,8 @@ COPIES = {
     "consequence_registry/v9.schema.json": ("permit_to_x/consequence_registry/v9.schema.json"),
     "consequence_registry/v10.json": "permit_to_x/consequence_registry/v10.json",
     "consequence_registry/v10.schema.json": ("permit_to_x/consequence_registry/v10.schema.json"),
+    "consequence_registry/v11.json": "permit_to_x/consequence_registry/v11.json",
+    "consequence_registry/v11.schema.json": ("permit_to_x/consequence_registry/v11.schema.json"),
     "consequence_registry/test-vectors/v1.json": (
         "permit_to_x/test_vectors/consequence_registry/v1.json"
     ),
@@ -179,6 +185,9 @@ COPIES = {
     ),
     "consequence_registry/test-vectors/v11.json": (
         "permit_to_x/test_vectors/consequence_registry/v11.json"
+    ),
+    "consequence_registry/test-vectors/v12.json": (
+        "permit_to_x/test_vectors/consequence_registry/v12.json"
     ),
     "schemas/permit-human-artifact-v1.schema.json": (
         "permit_to_x/schemas/permit-human-artifact-v1.schema.json"
@@ -224,6 +233,8 @@ COPIES = {
     "fact_profiles/v12.schema.json": "permit_to_x/fact_profiles/v12.schema.json",
     "fact_profiles/v13.json": "permit_to_x/fact_profiles/v13.json",
     "fact_profiles/v13.schema.json": "permit_to_x/fact_profiles/v13.schema.json",
+    "fact_profiles/v14.json": "permit_to_x/fact_profiles/v14.json",
+    "fact_profiles/v14.schema.json": "permit_to_x/fact_profiles/v14.schema.json",
     "schemas/payment-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/payment-exact-facts-v1.schema.json"
     ),
@@ -268,6 +279,9 @@ COPIES = {
     ),
     "schemas/procurement-ap-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/procurement-ap-exact-facts-v1.schema.json"
+    ),
+    "schemas/commerce-regulated-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/commerce-regulated-exact-facts-v1.schema.json"
     ),
     "schemas/permit-exact-pack-v2.schema.json": (
         "permit_to_x/schemas/permit-exact-pack-v2.schema.json"

@@ -1,0 +1,2097 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/commerce-regulated-exact-facts-v1.schema.json",
+  "title": "Keel exact commerce and regulated-workflow facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/commerce_order_place"
+    },
+    {
+      "$ref": "#/$defs/commerce_merchant_pay"
+    },
+    {
+      "$ref": "#/$defs/commerce_inventory_reserve"
+    },
+    {
+      "$ref": "#/$defs/benefits_case_grant"
+    },
+    {
+      "$ref": "#/$defs/benefits_case_deny"
+    },
+    {
+      "$ref": "#/$defs/benefits_eligibility_change"
+    },
+    {
+      "$ref": "#/$defs/benefits_payment_issue"
+    },
+    {
+      "$ref": "#/$defs/benefits_determination_notice_send"
+    },
+    {
+      "$ref": "#/$defs/healthcare_prior_authorization_submit"
+    },
+    {
+      "$ref": "#/$defs/healthcare_prior_authorization_clinical_information_request"
+    },
+    {
+      "$ref": "#/$defs/healthcare_prior_authorization_approve"
+    },
+    {
+      "$ref": "#/$defs/healthcare_prior_authorization_deny"
+    },
+    {
+      "$ref": "#/$defs/healthcare_appointment_schedule"
+    },
+    {
+      "$ref": "#/$defs/healthcare_claim_submit"
+    },
+    {
+      "$ref": "#/$defs/healthcare_patient_administrative_record_update"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "commerce_order_place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "cart_reference_commitment",
+        "customer_reference_commitment",
+        "merchant_reference_commitment",
+        "line_item_set_commitment",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "inventory_checked",
+        "order_status_before",
+        "requested_order_status",
+        "payment_collected",
+        "order_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.commerce_order_place_exact.v1"
+        },
+        "action": {
+          "const": "commerce.order.place"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "test-storefront"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "cart_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "customer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "merchant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "inventory_checked": {
+          "const": true
+        },
+        "order_status_before": {
+          "const": "absent"
+        },
+        "requested_order_status": {
+          "const": "placed"
+        },
+        "payment_collected": {
+          "const": false
+        },
+        "order_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "commerce_merchant_pay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "order_reference_commitment",
+        "merchant_destination_reference_commitment",
+        "payment_method_reference_commitment",
+        "total_amount_minor",
+        "currency",
+        "order_status",
+        "inventory_reservation_status",
+        "payment_status_before",
+        "stripe_livemode",
+        "existing_payment_count",
+        "value_conservation_valid",
+        "payment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.commerce_merchant_pay_exact.v1"
+        },
+        "action": {
+          "const": "commerce.merchant.pay"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "stripe"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "merchant_destination_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_method_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "order_status": {
+          "const": "placed"
+        },
+        "inventory_reservation_status": {
+          "const": "active"
+        },
+        "payment_status_before": {
+          "const": "unpaid"
+        },
+        "stripe_livemode": {
+          "const": false
+        },
+        "existing_payment_count": {
+          "const": 0
+        },
+        "value_conservation_valid": {
+          "const": true
+        },
+        "payment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "commerce_inventory_reserve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "order_reference_commitment",
+        "warehouse_reference_commitment",
+        "inventory_item_set_commitment",
+        "line_item_count",
+        "requested_unit_count",
+        "available_unit_count",
+        "inventory_sufficient",
+        "reservation_status_before",
+        "requested_reservation_status",
+        "reservation_ttl_seconds",
+        "inventory_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.commerce_inventory_reserve_exact.v1"
+        },
+        "action": {
+          "const": "commerce.inventory.reserve"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "inventory-postgres"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "warehouse_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "inventory_item_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "requested_unit_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 250
+        },
+        "available_unit_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "inventory_sufficient": {
+          "const": true
+        },
+        "reservation_status_before": {
+          "const": "absent"
+        },
+        "requested_reservation_status": {
+          "const": "active"
+        },
+        "reservation_ttl_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "inventory_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "benefits_case_grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "current_determination_status",
+        "requested_determination_status",
+        "eligibility_evidence_complete",
+        "decision_reason_code",
+        "case_version_precondition_matches",
+        "case_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.benefits_case_grant_exact.v1"
+        },
+        "action": {
+          "const": "benefits.case.grant"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "benefits-postgres"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "case_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "applicant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "benefit_program_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_determination_status": {
+          "const": "pending"
+        },
+        "requested_determination_status": {
+          "const": "granted"
+        },
+        "eligibility_evidence_complete": {
+          "const": true
+        },
+        "decision_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "case_version_precondition_matches": {
+          "const": true
+        },
+        "case_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "benefits_case_deny": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "current_determination_status",
+        "requested_determination_status",
+        "eligibility_evidence_complete",
+        "decision_reason_code",
+        "case_version_precondition_matches",
+        "case_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.benefits_case_deny_exact.v1"
+        },
+        "action": {
+          "const": "benefits.case.deny"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "benefits-postgres"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "case_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "applicant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "benefit_program_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_determination_status": {
+          "const": "pending"
+        },
+        "requested_determination_status": {
+          "const": "denied"
+        },
+        "eligibility_evidence_complete": {
+          "const": true
+        },
+        "decision_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "case_version_precondition_matches": {
+          "const": true
+        },
+        "case_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "benefits_eligibility_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "case_reference_commitment",
+        "applicant_reference_commitment",
+        "benefit_program_reference_commitment",
+        "current_eligibility_status",
+        "requested_eligibility_status",
+        "eligibility_change_reason_code",
+        "effective_at",
+        "eligibility_evidence_complete",
+        "case_version_precondition_matches",
+        "eligibility_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.benefits_eligibility_change_exact.v1"
+        },
+        "action": {
+          "const": "benefits.eligibility.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "benefits-postgres"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "case_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "applicant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "benefit_program_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_eligibility_status": {
+          "enum": [
+            "eligible",
+            "ineligible"
+          ]
+        },
+        "requested_eligibility_status": {
+          "enum": [
+            "eligible",
+            "ineligible"
+          ]
+        },
+        "eligibility_change_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "effective_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "eligibility_evidence_complete": {
+          "const": true
+        },
+        "case_version_precondition_matches": {
+          "const": true
+        },
+        "eligibility_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "benefits_payment_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "case_reference_commitment",
+        "recipient_reference_commitment",
+        "payment_destination_reference_commitment",
+        "amount_minor",
+        "currency",
+        "determination_status",
+        "eligibility_status",
+        "stripe_livemode",
+        "existing_payment_count",
+        "value_conservation_valid",
+        "payment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.benefits_payment_issue_exact.v1"
+        },
+        "action": {
+          "const": "benefits.payment.issue"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "stripe"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "case_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_destination_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "determination_status": {
+          "const": "granted"
+        },
+        "eligibility_status": {
+          "const": "eligible"
+        },
+        "stripe_livemode": {
+          "const": false
+        },
+        "existing_payment_count": {
+          "const": 0
+        },
+        "value_conservation_valid": {
+          "const": true
+        },
+        "payment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "benefits_determination_notice_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "case_reference_commitment",
+        "recipient_reference_commitment",
+        "recipient_is_dedicated_demo",
+        "determination_status",
+        "channel",
+        "template_id",
+        "template_version",
+        "template_digest",
+        "rendered_subject_digest",
+        "rendered_content_digest",
+        "delivery_mode",
+        "prior_notice_count"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.benefits_determination_notice_send_exact.v1"
+        },
+        "action": {
+          "const": "benefits.determination.notice.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "notification.email"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "case_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        },
+        "determination_status": {
+          "enum": [
+            "granted",
+            "denied"
+          ]
+        },
+        "channel": {
+          "const": "email"
+        },
+        "template_id": {
+          "const": "benefits-determination-demo"
+        },
+        "template_version": {
+          "const": "v1"
+        },
+        "template_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rendered_content_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "delivery_mode": {
+          "const": "self_hosted_mail_sink"
+        },
+        "prior_notice_count": {
+          "const": 0
+        }
+      }
+    },
+    "healthcare_prior_authorization_submit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "payer_reference_commitment",
+        "service_request_reference_commitment",
+        "coverage_reference_commitment",
+        "clinical_bundle_digest",
+        "required_fields_complete",
+        "authorization_status_before",
+        "requested_authorization_status",
+        "duplicate_authorization_count",
+        "coverage_active",
+        "clinical_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_prior_authorization_submit_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.prior_authorization.submit"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "practitioner_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "service_request_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "coverage_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "clinical_bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "required_fields_complete": {
+          "const": true
+        },
+        "authorization_status_before": {
+          "const": "absent"
+        },
+        "requested_authorization_status": {
+          "const": "active"
+        },
+        "duplicate_authorization_count": {
+          "const": 0
+        },
+        "coverage_active": {
+          "const": true
+        },
+        "clinical_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_prior_authorization_clinical_information_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "requested_information_set_commitment",
+        "current_authorization_status",
+        "request_reason_code",
+        "delivery_channel",
+        "existing_open_request_count",
+        "information_request_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_prior_authorization_clinical_information_request_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.prior_authorization.clinical_information.request"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "prior_authorization_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "practitioner_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "requested_information_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_authorization_status": {
+          "const": "active"
+        },
+        "request_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "delivery_channel": {
+          "const": "fhir_task"
+        },
+        "existing_open_request_count": {
+          "const": 0
+        },
+        "information_request_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_prior_authorization_approve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "payer_reference_commitment",
+        "current_authorization_status",
+        "requested_authorization_status",
+        "clinical_review_complete",
+        "decision_reason_code",
+        "version_precondition_matches",
+        "authorization_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_prior_authorization_approve_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.prior_authorization.approve"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "prior_authorization_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_authorization_status": {
+          "const": "active"
+        },
+        "requested_authorization_status": {
+          "const": "approved"
+        },
+        "clinical_review_complete": {
+          "const": true
+        },
+        "decision_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version_precondition_matches": {
+          "const": true
+        },
+        "authorization_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_prior_authorization_deny": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "prior_authorization_reference_commitment",
+        "patient_reference_commitment",
+        "payer_reference_commitment",
+        "current_authorization_status",
+        "requested_authorization_status",
+        "clinical_review_complete",
+        "decision_reason_code",
+        "version_precondition_matches",
+        "authorization_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_prior_authorization_deny_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.prior_authorization.deny"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "prior_authorization_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_authorization_status": {
+          "const": "active"
+        },
+        "requested_authorization_status": {
+          "const": "denied"
+        },
+        "clinical_review_complete": {
+          "const": true
+        },
+        "decision_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version_precondition_matches": {
+          "const": true
+        },
+        "authorization_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_appointment_schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "patient_reference_commitment",
+        "practitioner_reference_commitment",
+        "location_reference_commitment",
+        "slot_reference_commitment",
+        "appointment_start_at",
+        "appointment_end_at",
+        "slot_status",
+        "requested_appointment_status",
+        "schedule_conflict_count",
+        "appointment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_appointment_schedule_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.appointment.schedule"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "practitioner_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "location_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "slot_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "appointment_start_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "appointment_end_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "slot_status": {
+          "const": "free"
+        },
+        "requested_appointment_status": {
+          "const": "booked"
+        },
+        "schedule_conflict_count": {
+          "const": 0
+        },
+        "appointment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_claim_submit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "patient_reference_commitment",
+        "coverage_reference_commitment",
+        "service_reference_commitment",
+        "claim_bundle_digest",
+        "total_amount_minor",
+        "currency",
+        "coverage_active",
+        "coding_validated",
+        "claim_status_before",
+        "requested_claim_status",
+        "duplicate_claim_count",
+        "claim_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_claim_submit_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.claim.submit"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "coverage_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "service_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "claim_bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "coverage_active": {
+          "const": true
+        },
+        "coding_validated": {
+          "const": true
+        },
+        "claim_status_before": {
+          "const": "absent"
+        },
+        "requested_claim_status": {
+          "const": "active"
+        },
+        "duplicate_claim_count": {
+          "const": 0
+        },
+        "claim_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_patient_administrative_record_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "record_is_synthetic",
+        "patient_reference_commitment",
+        "administrative_field_set_commitment",
+        "record_version_before",
+        "requested_record_version",
+        "version_precondition_matches",
+        "administrative_fields_allowlisted",
+        "clinical_field_mutation_requested",
+        "record_before_digest",
+        "record_after_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_patient_administrative_record_update_exact.v1"
+        },
+        "action": {
+          "const": "healthcare.patient_administrative_record.update"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hapi-fhir"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "administrative_field_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_version_before": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_record_version": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "version_precondition_matches": {
+          "const": true
+        },
+        "administrative_fields_allowlisted": {
+          "const": true
+        },
+        "clinical_field_mutation_requested": {
+          "const": false
+        },
+        "record_before_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "record_after_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}
