@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Vendor byte-identical Wave 5 consequence v12, semantic v17, fact-profile
+  v15, presentation v16, exact-facts, and v13 vector artifacts from
+  `keel-permit`.
+- Verify 33 new exact actions across trust and safety, recruiting, contract
+  dispatch, paper trading, supply chain, browser-driven legacy records, sales,
+  executive-assistant, marketing, education, research, metered services, and
+  safety-gated physical-demo habitats.
+- Render every new AI Permit-to-X with an exact committed demo target,
+  Issued/Expires lifecycle, registry-defined limits, and an advanced raw view;
+  reject wrong environments, stale preflights, cross-action substitution,
+  incoherent limits, and missing physical safety facts offline.
 - Vendor byte-identical commerce/regulated consequence v11, semantic v16,
   fact-profile v14, presentation v15, exact-facts, and v12 vector artifacts
   from `keel-permit`.

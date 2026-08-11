@@ -103,6 +103,47 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     facts = permit.get("authorization_facts")
     if not isinstance(facts, Mapping):
         return None
+    action = _normalize(permit.get("authorized_action") or permit.get("action"))
+    wave5_targets = {
+        "trust_safety.content.remove": ("message_reference_commitment", "community message"),
+        "trust_safety.member.suspend": ("member_reference_commitment", "community member"),
+        "trust_safety.member.restore": ("member_reference_commitment", "community member"),
+        "recruiting.candidate.advance": ("candidate_reference_commitment", "synthetic candidate"),
+        "recruiting.candidate.reject": ("candidate_reference_commitment", "synthetic candidate"),
+        "recruiting.offer.send": ("candidate_reference_commitment", "synthetic candidate"),
+        "legal.agreement.send": ("agreement_reference_commitment", "developer-account agreement"),
+        "legal.agreement.void": ("agreement_reference_commitment", "developer-account agreement"),
+        "trading.paper.order.place": ("paper_account_reference_commitment", "paper-trading account"),
+        "trading.paper.order.cancel": ("order_reference_commitment", "paper-trading order"),
+        "supply.replenishment_order.issue": ("warehouse_reference_commitment", "synthetic warehouse"),
+        "supply.shipment.create": ("order_reference_commitment", "synthetic order"),
+        "supply.shipping_label.purchase": ("shipment_reference_commitment", "test shipment"),
+        "supply.shipment.route.change": ("shipment_reference_commitment", "synthetic shipment"),
+        "legacy.customer.address.change": ("customer_reference_commitment", "synthetic customer"),
+        "sales.email.send": ("contact_reference_commitment", "synthetic sales contact"),
+        "sales.discount.offer": ("deal_reference_commitment", "synthetic deal"),
+        "calendar.event.create": ("calendar_reference_commitment", "demo calendar"),
+        "email.message.send": ("mailbox_reference_commitment", "demo mailbox"),
+        "commerce.item.purchase": ("item_reference_commitment", "allowlisted test item"),
+        "marketing.content.publish": ("content_reference_commitment", "synthetic content"),
+        "marketing.campaign.launch": ("campaign_reference_commitment", "synthetic campaign"),
+        "marketing.campaign.budget.change": ("campaign_reference_commitment", "synthetic campaign"),
+        "education.student.enroll": ("student_reference_commitment", "synthetic student"),
+        "education.enrollment.drop": ("enrollment_reference_commitment", "synthetic enrollment"),
+        "education.transcript.release": ("transcript_reference_commitment", "synthetic transcript"),
+        "research.dataset.purchase": ("dataset_reference_commitment", "synthetic dataset"),
+        "research.artifact.publish": ("artifact_reference_commitment", "research artifact"),
+        "metered.api.usage.purchase": ("endpoint_reference_commitment", "test API endpoint"),
+        "metered.compute.units.purchase": ("compute_service_reference_commitment", "test compute service"),
+        "physical.access.unlock": ("lock_reference_commitment", "approved demo lock"),
+        "physical.relay.actuate": ("relay_reference_commitment", "approved demo relay"),
+        "physical.arm.move": ("arm_reference_commitment", "approved demo arm"),
+    }
+    wave5_target = wave5_targets.get(action or "")
+    if wave5_target:
+        committed = _commitment_label(facts.get(wave5_target[0]), wave5_target[1])
+        if committed:
+            return committed
     package_name = _normalize(facts.get("package_name"))
     package_version = _normalize(facts.get("target_dependency_version"))
     if package_name and package_version:
@@ -372,9 +413,12 @@ def derive_human_artifact(
     ]
     does_not_establish = [
         str(value)
-        for value in permit.get("does_not_establish", [])
+        for value in presentation.get("does_not_establish", [])
         if isinstance(value, str)
     ]
+    for value in permit.get("does_not_establish", []):
+        if isinstance(value, str) and value not in does_not_establish:
+            does_not_establish.append(value)
     for claim in claims:
         if not isinstance(claim, Mapping):
             continue
