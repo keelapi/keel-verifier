@@ -1,0 +1,4194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/wave5-breadth-exact-facts-v1.schema.json",
+  "title": "Keel exact Wave 5 breadth-habitat facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/trust_safety_content_remove"
+    },
+    {
+      "$ref": "#/$defs/trust_safety_member_suspend"
+    },
+    {
+      "$ref": "#/$defs/trust_safety_member_restore"
+    },
+    {
+      "$ref": "#/$defs/recruiting_candidate_advance"
+    },
+    {
+      "$ref": "#/$defs/recruiting_candidate_reject"
+    },
+    {
+      "$ref": "#/$defs/recruiting_offer_send"
+    },
+    {
+      "$ref": "#/$defs/legal_agreement_send"
+    },
+    {
+      "$ref": "#/$defs/legal_agreement_void"
+    },
+    {
+      "$ref": "#/$defs/trading_paper_order_place"
+    },
+    {
+      "$ref": "#/$defs/trading_paper_order_cancel"
+    },
+    {
+      "$ref": "#/$defs/supply_replenishment_order_issue"
+    },
+    {
+      "$ref": "#/$defs/supply_shipment_create"
+    },
+    {
+      "$ref": "#/$defs/supply_shipping_label_purchase"
+    },
+    {
+      "$ref": "#/$defs/supply_shipment_route_change"
+    },
+    {
+      "$ref": "#/$defs/legacy_customer_address_change"
+    },
+    {
+      "$ref": "#/$defs/sales_email_send"
+    },
+    {
+      "$ref": "#/$defs/sales_discount_offer"
+    },
+    {
+      "$ref": "#/$defs/calendar_event_create"
+    },
+    {
+      "$ref": "#/$defs/email_message_send"
+    },
+    {
+      "$ref": "#/$defs/commerce_item_purchase"
+    },
+    {
+      "$ref": "#/$defs/marketing_content_publish"
+    },
+    {
+      "$ref": "#/$defs/marketing_campaign_launch"
+    },
+    {
+      "$ref": "#/$defs/marketing_campaign_budget_change"
+    },
+    {
+      "$ref": "#/$defs/education_student_enroll"
+    },
+    {
+      "$ref": "#/$defs/education_enrollment_drop"
+    },
+    {
+      "$ref": "#/$defs/education_transcript_release"
+    },
+    {
+      "$ref": "#/$defs/research_dataset_purchase"
+    },
+    {
+      "$ref": "#/$defs/research_artifact_publish"
+    },
+    {
+      "$ref": "#/$defs/metered_api_usage_purchase"
+    },
+    {
+      "$ref": "#/$defs/metered_compute_units_purchase"
+    },
+    {
+      "$ref": "#/$defs/physical_access_unlock"
+    },
+    {
+      "$ref": "#/$defs/physical_relay_actuate"
+    },
+    {
+      "$ref": "#/$defs/physical_arm_move"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "trust_safety_content_remove": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "community_reference_commitment",
+        "channel_reference_commitment",
+        "message_reference_commitment",
+        "author_reference_commitment",
+        "content_present_before",
+        "moderation_reason_code",
+        "message_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.trust_safety_content_remove_exact.v1"
+        },
+        "action": {
+          "const": "trust_safety.content.remove"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "discord"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo_community"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "community_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "channel_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "message_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "author_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "content_present_before": {
+          "const": true
+        },
+        "moderation_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "trust_safety_member_suspend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "community_reference_commitment",
+        "member_reference_commitment",
+        "membership_state_before",
+        "requested_membership_state",
+        "moderation_reason_code",
+        "member_is_operator",
+        "membership_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.trust_safety_member_suspend_exact.v1"
+        },
+        "action": {
+          "const": "trust_safety.member.suspend"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "discord"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo_community"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "community_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "member_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "membership_state_before": {
+          "const": "active"
+        },
+        "requested_membership_state": {
+          "const": "suspended"
+        },
+        "moderation_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "member_is_operator": {
+          "const": false
+        },
+        "membership_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "trust_safety_member_restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "community_reference_commitment",
+        "member_reference_commitment",
+        "membership_state_before",
+        "requested_membership_state",
+        "restoration_reason_code",
+        "membership_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.trust_safety_member_restore_exact.v1"
+        },
+        "action": {
+          "const": "trust_safety.member.restore"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "discord"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo_community"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "community_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "member_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "membership_state_before": {
+          "const": "suspended"
+        },
+        "requested_membership_state": {
+          "const": "restored"
+        },
+        "restoration_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "membership_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "recruiting_candidate_advance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "candidate_reference_commitment",
+        "job_reference_commitment",
+        "stage_before",
+        "requested_stage",
+        "stage_transition_allowlisted",
+        "required_review_complete",
+        "candidate_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.recruiting_candidate_advance_exact.v1"
+        },
+        "action": {
+          "const": "recruiting.candidate.advance"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo-hr"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "candidate_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "job_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "stage_before": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requested_stage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stage_transition_allowlisted": {
+          "const": true
+        },
+        "required_review_complete": {
+          "const": true
+        },
+        "candidate_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "recruiting_candidate_reject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "candidate_reference_commitment",
+        "job_reference_commitment",
+        "stage_before",
+        "requested_stage",
+        "disposition_reason_code",
+        "required_review_complete",
+        "candidate_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.recruiting_candidate_reject_exact.v1"
+        },
+        "action": {
+          "const": "recruiting.candidate.reject"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo-hr"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "candidate_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "job_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "stage_before": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requested_stage": {
+          "const": "rejected"
+        },
+        "disposition_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "required_review_complete": {
+          "const": true
+        },
+        "candidate_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "recruiting_offer_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "candidate_reference_commitment",
+        "job_reference_commitment",
+        "recipient_reference_commitment",
+        "approved_offer_document_digest",
+        "offer_approved",
+        "recipient_is_dedicated_demo",
+        "prior_offer_count"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.recruiting_offer_send_exact.v1"
+        },
+        "action": {
+          "const": "recruiting.offer.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "notification.email"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "candidate_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "job_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_offer_document_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "offer_approved": {
+          "const": true
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        },
+        "prior_offer_count": {
+          "const": 0
+        }
+      }
+    },
+    "legal_agreement_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "agreement_reference_commitment",
+        "envelope_reference_commitment",
+        "recipient_set_commitment",
+        "approved_document_digest",
+        "legal_approval_present",
+        "agent_is_signatory",
+        "recipient_set_is_dedicated_demo",
+        "envelope_status_before"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.legal_agreement_send_exact.v1"
+        },
+        "action": {
+          "const": "legal.agreement.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "docusign"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_developer_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "agreement_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "envelope_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_document_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "legal_approval_present": {
+          "const": true
+        },
+        "agent_is_signatory": {
+          "const": false
+        },
+        "recipient_set_is_dedicated_demo": {
+          "const": true
+        },
+        "envelope_status_before": {
+          "const": "draft"
+        }
+      }
+    },
+    "legal_agreement_void": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "agreement_reference_commitment",
+        "envelope_reference_commitment",
+        "envelope_status_before",
+        "requested_envelope_status",
+        "void_reason",
+        "legal_approval_present",
+        "envelope_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.legal_agreement_void_exact.v1"
+        },
+        "action": {
+          "const": "legal.agreement.void"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "docusign"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_developer_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "agreement_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "envelope_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "envelope_status_before": {
+          "enum": [
+            "sent",
+            "delivered"
+          ]
+        },
+        "requested_envelope_status": {
+          "const": "voided"
+        },
+        "void_reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "legal_approval_present": {
+          "const": true
+        },
+        "envelope_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "trading_paper_order_place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "paper_account_reference_commitment",
+        "asset_reference_commitment",
+        "side",
+        "order_type",
+        "time_in_force",
+        "quantity_microunits",
+        "limit_price_minor",
+        "paper_trading",
+        "market_clock_observed",
+        "account_and_asset_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.trading_paper_order_place_exact.v1"
+        },
+        "action": {
+          "const": "trading.paper.order.place"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "alpaca-paper"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_paper_trading"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "paper_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "asset_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "side": {
+          "enum": [
+            "buy",
+            "sell"
+          ]
+        },
+        "order_type": {
+          "enum": [
+            "market",
+            "limit"
+          ]
+        },
+        "time_in_force": {
+          "enum": [
+            "day",
+            "gtc"
+          ]
+        },
+        "quantity_microunits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "limit_price_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "paper_trading": {
+          "const": true
+        },
+        "market_clock_observed": {
+          "const": true
+        },
+        "account_and_asset_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "trading_paper_order_cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "paper_account_reference_commitment",
+        "order_reference_commitment",
+        "order_status_before",
+        "requested_order_status",
+        "paper_trading",
+        "order_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.trading_paper_order_cancel_exact.v1"
+        },
+        "action": {
+          "const": "trading.paper.order.cancel"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "alpaca-paper"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_paper_trading"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "paper_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "order_status_before": {
+          "enum": [
+            "new",
+            "accepted",
+            "partially_filled"
+          ]
+        },
+        "requested_order_status": {
+          "const": "canceled"
+        },
+        "paper_trading": {
+          "const": true
+        },
+        "order_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "supply_replenishment_order_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "warehouse_reference_commitment",
+        "supplier_reference_commitment",
+        "product_set_commitment",
+        "line_item_count",
+        "total_amount_minor",
+        "currency",
+        "reorder_rule_triggered",
+        "amount_within_budget",
+        "inventory_and_budget_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.supply_replenishment_order_issue_exact.v1"
+        },
+        "action": {
+          "const": "supply.replenishment_order.issue"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo-inventory"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "warehouse_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "supplier_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "product_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "reorder_rule_triggered": {
+          "const": true
+        },
+        "amount_within_budget": {
+          "const": true
+        },
+        "inventory_and_budget_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "supply_shipment_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "order_reference_commitment",
+        "origin_address_commitment",
+        "destination_address_commitment",
+        "parcel_set_commitment",
+        "address_set_is_synthetic",
+        "parcel_count",
+        "shipment_status_before",
+        "shipment_request_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.supply_shipment_create_exact.v1"
+        },
+        "action": {
+          "const": "supply.shipment.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "shippo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_test_account"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "order_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "origin_address_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "destination_address_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "parcel_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "address_set_is_synthetic": {
+          "const": true
+        },
+        "parcel_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "shipment_status_before": {
+          "const": "absent"
+        },
+        "shipment_request_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "supply_shipping_label_purchase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "shipment_reference_commitment",
+        "rate_reference_commitment",
+        "label_amount_minor",
+        "currency",
+        "shippo_test_token",
+        "rate_status",
+        "existing_label_count",
+        "rate_and_shipment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.supply_shipping_label_purchase_exact.v1"
+        },
+        "action": {
+          "const": "supply.shipping_label.purchase"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "shippo"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_test_account"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "shipment_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "rate_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "label_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "shippo_test_token": {
+          "const": true
+        },
+        "rate_status": {
+          "const": "valid"
+        },
+        "existing_label_count": {
+          "const": 0
+        },
+        "rate_and_shipment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "supply_shipment_route_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "shipment_reference_commitment",
+        "route_before_reference_commitment",
+        "route_after_reference_commitment",
+        "shipment_status_before",
+        "route_transition_allowlisted",
+        "carrier_dispatch_count",
+        "shipment_route_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.supply_shipment_route_change_exact.v1"
+        },
+        "action": {
+          "const": "supply.shipment.route.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "odoo-inventory"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "shipment_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "route_before_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "route_after_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "shipment_status_before": {
+          "const": "ready"
+        },
+        "route_transition_allowlisted": {
+          "const": true
+        },
+        "carrier_dispatch_count": {
+          "const": 0
+        },
+        "shipment_route_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "legacy_customer_address_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "customer_reference_commitment",
+        "browser_session_reference_commitment",
+        "address_before_digest",
+        "address_after_digest",
+        "field_set_allowlisted",
+        "record_version_precondition_matches",
+        "browser_origin_pinned"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.legacy_customer_address_change_exact.v1"
+        },
+        "action": {
+          "const": "legacy.customer.address.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "legacy-browser"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "customer_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "browser_session_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "address_before_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "address_after_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "field_set_allowlisted": {
+          "const": true
+        },
+        "record_version_precondition_matches": {
+          "const": true
+        },
+        "browser_origin_pinned": {
+          "const": true
+        }
+      }
+    },
+    "sales_email_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "contact_reference_commitment",
+        "recipient_reference_commitment",
+        "approved_message_digest",
+        "recipient_is_dedicated_demo",
+        "contact_opt_out",
+        "daily_send_count_before",
+        "daily_send_limit"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.sales_email_send_exact.v1"
+        },
+        "action": {
+          "const": "sales.email.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "notification.email"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "contact_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_message_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        },
+        "contact_opt_out": {
+          "const": false
+        },
+        "daily_send_count_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "daily_send_limit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "sales_discount_offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "deal_reference_commitment",
+        "contact_reference_commitment",
+        "discount_basis_points",
+        "discount_ceiling_basis_points",
+        "discount_within_ceiling",
+        "offer_expires_at",
+        "deal_pricing_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.sales_discount_offer_exact.v1"
+        },
+        "action": {
+          "const": "sales.discount.offer"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hubspot"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_developer_test"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "deal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "contact_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "discount_basis_points": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "discount_ceiling_basis_points": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "discount_within_ceiling": {
+          "const": true
+        },
+        "offer_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "deal_pricing_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "calendar_event_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "calendar_reference_commitment",
+        "attendee_set_commitment",
+        "event_payload_digest",
+        "event_start_at",
+        "event_end_at",
+        "attendee_set_allowlisted",
+        "calendar_conflict_count"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.calendar_event_create_exact.v1"
+        },
+        "action": {
+          "const": "calendar.event.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "google-calendar"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo_account"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "calendar_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "attendee_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "event_payload_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "event_start_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "event_end_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "attendee_set_allowlisted": {
+          "const": true
+        },
+        "calendar_conflict_count": {
+          "const": 0
+        }
+      }
+    },
+    "email_message_send": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "mailbox_reference_commitment",
+        "recipient_set_commitment",
+        "message_payload_digest",
+        "recipient_set_allowlisted",
+        "attachment_count",
+        "daily_send_count_before",
+        "daily_send_limit"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.email_message_send_exact.v1"
+        },
+        "action": {
+          "const": "email.message.send"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "google-gmail"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo_account"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "mailbox_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "message_payload_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "recipient_set_allowlisted": {
+          "const": true
+        },
+        "attachment_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "daily_send_count_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "daily_send_limit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "commerce_item_purchase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "item_reference_commitment",
+        "merchant_reference_commitment",
+        "payment_method_reference_commitment",
+        "amount_minor",
+        "currency",
+        "item_allowlisted",
+        "stripe_livemode",
+        "existing_payment_count",
+        "item_and_payment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.commerce_item_purchase_exact.v1"
+        },
+        "action": {
+          "const": "commerce.item.purchase"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "stripe"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "item_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "merchant_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_method_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "item_allowlisted": {
+          "const": true
+        },
+        "stripe_livemode": {
+          "const": false
+        },
+        "existing_payment_count": {
+          "const": 0
+        },
+        "item_and_payment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "marketing_content_publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "site_reference_commitment",
+        "content_reference_commitment",
+        "approved_revision_digest",
+        "publication_status_before",
+        "requested_publication_status",
+        "editorial_approval_present",
+        "version_precondition_matches"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.marketing_content_publish_exact.v1"
+        },
+        "action": {
+          "const": "marketing.content.publish"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-cms"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "site_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "content_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "publication_status_before": {
+          "const": "draft"
+        },
+        "requested_publication_status": {
+          "const": "published"
+        },
+        "editorial_approval_present": {
+          "const": true
+        },
+        "version_precondition_matches": {
+          "const": true
+        }
+      }
+    },
+    "marketing_campaign_launch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "advertising_account_reference_commitment",
+        "campaign_reference_commitment",
+        "approved_creative_set_digest",
+        "campaign_status_before",
+        "requested_campaign_status",
+        "daily_budget_minor",
+        "currency",
+        "budget_within_ceiling"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.marketing_campaign_launch_exact.v1"
+        },
+        "action": {
+          "const": "marketing.campaign.launch"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-ads"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "advertising_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "campaign_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_creative_set_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "campaign_status_before": {
+          "const": "draft"
+        },
+        "requested_campaign_status": {
+          "const": "active"
+        },
+        "daily_budget_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "budget_within_ceiling": {
+          "const": true
+        }
+      }
+    },
+    "marketing_campaign_budget_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "advertising_account_reference_commitment",
+        "campaign_reference_commitment",
+        "daily_budget_before_minor",
+        "requested_daily_budget_minor",
+        "daily_budget_ceiling_minor",
+        "currency",
+        "budget_within_ceiling",
+        "campaign_budget_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.marketing_campaign_budget_change_exact.v1"
+        },
+        "action": {
+          "const": "marketing.campaign.budget.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-ads"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "advertising_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "campaign_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "daily_budget_before_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_daily_budget_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "daily_budget_ceiling_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "budget_within_ceiling": {
+          "const": true
+        },
+        "campaign_budget_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "education_student_enroll": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "student_reference_commitment",
+        "course_reference_commitment",
+        "enrollment_status_before",
+        "requested_enrollment_status",
+        "course_enrollment_open",
+        "available_seat_count",
+        "student_and_course_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.education_student_enroll_exact.v1"
+        },
+        "action": {
+          "const": "education.student.enroll"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-lms"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "student_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "course_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "enrollment_status_before": {
+          "const": "absent"
+        },
+        "requested_enrollment_status": {
+          "const": "active"
+        },
+        "course_enrollment_open": {
+          "const": true
+        },
+        "available_seat_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "student_and_course_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "education_enrollment_drop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "student_reference_commitment",
+        "course_reference_commitment",
+        "enrollment_reference_commitment",
+        "enrollment_status_before",
+        "requested_enrollment_status",
+        "drop_window_open",
+        "enrollment_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.education_enrollment_drop_exact.v1"
+        },
+        "action": {
+          "const": "education.enrollment.drop"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-lms"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "student_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "course_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "enrollment_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "enrollment_status_before": {
+          "const": "active"
+        },
+        "requested_enrollment_status": {
+          "const": "dropped"
+        },
+        "drop_window_open": {
+          "const": true
+        },
+        "enrollment_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "education_transcript_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "student_reference_commitment",
+        "transcript_reference_commitment",
+        "recipient_reference_commitment",
+        "transcript_document_digest",
+        "release_consent_present",
+        "financial_hold_present",
+        "recipient_is_dedicated_demo"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.education_transcript_release_exact.v1"
+        },
+        "action": {
+          "const": "education.transcript.release"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-lms"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "student_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "transcript_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "transcript_document_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "release_consent_present": {
+          "const": true
+        },
+        "financial_hold_present": {
+          "const": false
+        },
+        "recipient_is_dedicated_demo": {
+          "const": true
+        }
+      }
+    },
+    "research_dataset_purchase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "dataset_reference_commitment",
+        "license_reference_commitment",
+        "price_minor",
+        "currency",
+        "license_allowlisted",
+        "price_within_budget",
+        "existing_purchase_count",
+        "dataset_and_license_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.research_dataset_purchase_exact.v1"
+        },
+        "action": {
+          "const": "research.dataset.purchase"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-data-market"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "dataset_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "license_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "price_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "license_allowlisted": {
+          "const": true
+        },
+        "price_within_budget": {
+          "const": true
+        },
+        "existing_purchase_count": {
+          "const": 0
+        },
+        "dataset_and_license_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "research_artifact_publish": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "repository_reference_commitment",
+        "artifact_reference_commitment",
+        "approved_artifact_digest",
+        "publication_status_before",
+        "requested_publication_status",
+        "review_approval_present",
+        "license_allowlisted"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.research_artifact_publish_exact.v1"
+        },
+        "action": {
+          "const": "research.artifact.publish"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "demo-repository"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "self_hosted_synthetic"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "repository_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "artifact_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "approved_artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "publication_status_before": {
+          "const": "draft"
+        },
+        "requested_publication_status": {
+          "const": "published"
+        },
+        "review_approval_present": {
+          "const": true
+        },
+        "license_allowlisted": {
+          "const": true
+        }
+      }
+    },
+    "metered_api_usage_purchase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "endpoint_reference_commitment",
+        "payment_destination_reference_commitment",
+        "unit_count",
+        "total_amount_minor",
+        "currency",
+        "endpoint_allowlisted",
+        "amount_within_budget",
+        "existing_payment_count",
+        "payment_requirement_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.metered_api_usage_purchase_exact.v1"
+        },
+        "action": {
+          "const": "metered.api.usage.purchase"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "x402-test"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "controlled_test_mode"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "endpoint_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_destination_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "unit_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{3,12}$"
+        },
+        "endpoint_allowlisted": {
+          "const": true
+        },
+        "amount_within_budget": {
+          "const": true
+        },
+        "existing_payment_count": {
+          "const": 0
+        },
+        "payment_requirement_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "metered_compute_units_purchase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "compute_service_reference_commitment",
+        "payment_destination_reference_commitment",
+        "compute_unit_count",
+        "total_amount_minor",
+        "currency",
+        "service_allowlisted",
+        "amount_within_budget",
+        "existing_payment_count",
+        "compute_offer_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.metered_compute_units_purchase_exact.v1"
+        },
+        "action": {
+          "const": "metered.compute.units.purchase"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "mpp-test"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "controlled_test_mode"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "compute_service_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "payment_destination_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "compute_unit_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z0-9]{3,12}$"
+        },
+        "service_allowlisted": {
+          "const": true
+        },
+        "amount_within_budget": {
+          "const": true
+        },
+        "existing_payment_count": {
+          "const": 0
+        },
+        "compute_offer_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "physical_access_unlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "lock_reference_commitment",
+        "safety_zone_reference_commitment",
+        "unlock_duration_seconds",
+        "physical_safety_interlock_armed",
+        "human_safety_signoff_present",
+        "emergency_stop_verified",
+        "occupancy_clear",
+        "lock_and_safety_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.physical_access_unlock_exact.v1"
+        },
+        "action": {
+          "const": "physical.access.unlock"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "approved-demo-hardware"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "approved_isolated_demo_hardware"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "lock_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "safety_zone_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "unlock_duration_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "physical_safety_interlock_armed": {
+          "const": true
+        },
+        "human_safety_signoff_present": {
+          "const": true
+        },
+        "emergency_stop_verified": {
+          "const": true
+        },
+        "occupancy_clear": {
+          "const": true
+        },
+        "lock_and_safety_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "physical_relay_actuate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "relay_reference_commitment",
+        "safety_zone_reference_commitment",
+        "relay_state_before",
+        "requested_relay_state",
+        "actuation_duration_milliseconds",
+        "physical_safety_interlock_armed",
+        "human_safety_signoff_present",
+        "emergency_stop_verified",
+        "relay_and_safety_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.physical_relay_actuate_exact.v1"
+        },
+        "action": {
+          "const": "physical.relay.actuate"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "approved-demo-hardware"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "approved_isolated_demo_hardware"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "relay_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "safety_zone_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "relay_state_before": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "requested_relay_state": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        },
+        "actuation_duration_milliseconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
+        "physical_safety_interlock_armed": {
+          "const": true
+        },
+        "human_safety_signoff_present": {
+          "const": true
+        },
+        "emergency_stop_verified": {
+          "const": true
+        },
+        "relay_and_safety_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "physical_arm_move": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "arm_reference_commitment",
+        "safety_zone_reference_commitment",
+        "trajectory_digest",
+        "maximum_velocity_millimeters_per_second",
+        "physical_safety_interlock_armed",
+        "human_safety_signoff_present",
+        "emergency_stop_verified",
+        "workspace_clear",
+        "arm_and_safety_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.wave5_breadth_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.physical_arm_move_exact.v1"
+        },
+        "action": {
+          "const": "physical.arm.move"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "approved-demo-hardware"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "approved_isolated_demo_hardware"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "arm_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "safety_zone_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "trajectory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "maximum_velocity_millimeters_per_second": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "physical_safety_interlock_armed": {
+          "const": true
+        },
+        "human_safety_signoff_present": {
+          "const": true
+        },
+        "emergency_stop_verified": {
+          "const": true
+        },
+        "workspace_clear": {
+          "const": true
+        },
+        "arm_and_safety_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

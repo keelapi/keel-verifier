@@ -196,6 +196,7 @@ def _verify_trusted_preflight_window(
         "keel.erp_crm_exact_facts.v1",
         "keel.procurement_ap_exact_facts.v1",
         "keel.commerce_regulated_exact_facts.v1",
+        "keel.wave5_breadth_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -956,6 +957,106 @@ def _verify_commerce_regulated_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+def _verify_wave5_breadth_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Wave 5 relations that JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.wave5_breadth_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    action = str(facts.get("action") or "")
+    connector_and_environment = {
+        "trust_safety.content.remove": ("discord", "dedicated_demo_community"),
+        "trust_safety.member.suspend": ("discord", "dedicated_demo_community"),
+        "trust_safety.member.restore": ("discord", "dedicated_demo_community"),
+        "recruiting.candidate.advance": ("odoo-hr", "self_hosted_synthetic"),
+        "recruiting.candidate.reject": ("odoo-hr", "self_hosted_synthetic"),
+        "recruiting.offer.send": ("notification.email", "self_hosted_synthetic"),
+        "legal.agreement.send": ("docusign", "provider_developer_demo"),
+        "legal.agreement.void": ("docusign", "provider_developer_demo"),
+        "trading.paper.order.place": ("alpaca-paper", "provider_paper_trading"),
+        "trading.paper.order.cancel": ("alpaca-paper", "provider_paper_trading"),
+        "supply.replenishment_order.issue": ("odoo-inventory", "self_hosted_synthetic"),
+        "supply.shipment.create": ("shippo", "provider_test_account"),
+        "supply.shipping_label.purchase": ("shippo", "provider_test_account"),
+        "supply.shipment.route.change": ("odoo-inventory", "self_hosted_synthetic"),
+        "legacy.customer.address.change": ("legacy-browser", "self_hosted_synthetic"),
+        "sales.email.send": ("notification.email", "self_hosted_synthetic"),
+        "sales.discount.offer": ("hubspot", "provider_developer_test"),
+        "calendar.event.create": ("google-calendar", "dedicated_demo_account"),
+        "email.message.send": ("google-gmail", "dedicated_demo_account"),
+        "commerce.item.purchase": ("stripe", "provider_sandbox"),
+        "marketing.content.publish": ("demo-cms", "self_hosted_synthetic"),
+        "marketing.campaign.launch": ("demo-ads", "self_hosted_synthetic"),
+        "marketing.campaign.budget.change": ("demo-ads", "self_hosted_synthetic"),
+        "education.student.enroll": ("demo-lms", "self_hosted_synthetic"),
+        "education.enrollment.drop": ("demo-lms", "self_hosted_synthetic"),
+        "education.transcript.release": ("demo-lms", "self_hosted_synthetic"),
+        "research.dataset.purchase": ("demo-data-market", "self_hosted_synthetic"),
+        "research.artifact.publish": ("demo-repository", "self_hosted_synthetic"),
+        "metered.api.usage.purchase": ("x402-test", "controlled_test_mode"),
+        "metered.compute.units.purchase": ("mpp-test", "controlled_test_mode"),
+        "physical.access.unlock": (
+            "approved-demo-hardware",
+            "approved_isolated_demo_hardware",
+        ),
+        "physical.relay.actuate": (
+            "approved-demo-hardware",
+            "approved_isolated_demo_hardware",
+        ),
+        "physical.arm.move": (
+            "approved-demo-hardware",
+            "approved_isolated_demo_hardware",
+        ),
+    }
+    expected = connector_and_environment.get(action)
+    valid = bool(
+        expected
+        and facts.get("connector_identity") == expected[0]
+        and facts.get("provider_environment") == expected[1]
+        and facts.get("target_is_dedicated_demo") is True
+        and integer("max_uses") == 1
+    )
+    if valid and action == "sales.discount.offer":
+        discount = integer("discount_basis_points")
+        ceiling = integer("discount_ceiling_basis_points")
+        valid = discount is not None and ceiling is not None and discount <= ceiling
+    elif valid and action == "marketing.campaign.budget.change":
+        requested = integer("requested_daily_budget_minor")
+        ceiling = integer("daily_budget_ceiling_minor")
+        valid = requested is not None and ceiling is not None and requested <= ceiling
+    elif valid and action == "calendar.event.create":
+        start = _parse_time(facts.get("event_start_at"))
+        end = _parse_time(facts.get("event_end_at"))
+        valid = start is not None and end is not None and start < end
+    elif valid and action in {"sales.email.send", "email.message.send"}:
+        count = integer("daily_send_count_before")
+        limit = integer("daily_send_limit")
+        valid = count is not None and limit is not None and count < limit
+    elif valid and action == "physical.relay.actuate":
+        valid = facts.get("relay_state_before") != facts.get("requested_relay_state")
+
+    if valid and action.startswith("physical."):
+        valid = all(
+            facts.get(field) is True
+            for field in (
+                "physical_safety_interlock_armed",
+                "human_safety_signoff_present",
+                "emergency_stop_verified",
+            )
+        )
+
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_WAVE5_BREADTH_INVARIANT_INVALID",
+            "the signed Wave 5 facts violate an exact provider-action invariant",
+        )
+
+
 def _verifier_safe_facts(
     fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -1345,6 +1446,7 @@ def _resolve_contracts(
             "semantic_registry/v14.json",
             "semantic_registry/v15.json",
             "semantic_registry/v16.json",
+            "semantic_registry/v17.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -1365,6 +1467,7 @@ def _resolve_contracts(
             "fact_profiles/v12.json",
             "fact_profiles/v13.json",
             "fact_profiles/v14.json",
+            "fact_profiles/v15.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2526,6 +2629,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_erp_crm_invariants(facts)
         _verify_procurement_ap_invariants(facts)
         _verify_commerce_regulated_invariants(facts)
+        _verify_wave5_breadth_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")
