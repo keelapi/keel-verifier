@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Vendor byte-identical ERP/CRM consequence v9, semantic v14, fact-profile v12,
+  presentation v13, exact-facts, and v10 vector artifacts from `keel-permit`.
+- Verify HubSpot developer-test deal-stage changes, single-property synthetic
+  customer record updates, and unpublished draft quote creation as three exact
+  consequences with short-lived single-use preflight binding.
+- Render AI Permit-to-Change-Deal-Stage, AI Permit-to-Update-Customer-Record,
+  and AI Permit-to-Create-Quote with exact committed targets, issued/expires
+  lifecycle, and explicit draft-only quote limits.
+- Reject standard/production portals, non-synthetic records, stale preflights,
+  cross-action fact-profile substitution, unallowlisted transitions or fields,
+  incoherent quote arithmetic, and quote publication/payment/e-sign enablement.
 - Vendor byte-identical Insurance Claims consequence v8, semantic v13,
   fact-profile v11, presentation v12, exact-facts, and v9 vector artifacts from
   `keel-permit`.

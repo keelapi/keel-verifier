@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/erp-crm-exact-facts-v1.schema.json",
+  "title": "Keel exact ERP/CRM authorization facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/crm_deal_stage_change"
+    },
+    {
+      "$ref": "#/$defs/crm_customer_record_update"
+    },
+    {
+      "$ref": "#/$defs/crm_quote_create"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "crm_deal_stage_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_portal_reference_commitment",
+        "provider_account_type",
+        "record_is_synthetic",
+        "deal_reference_commitment",
+        "pipeline_reference_commitment",
+        "current_stage_id",
+        "current_stage_label",
+        "requested_stage_id",
+        "requested_stage_label",
+        "transition_allowlisted",
+        "deal_updated_at_before",
+        "pipeline_configuration_digest",
+        "deal_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.erp_crm_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.crm_deal_stage_change_exact.v1"
+        },
+        "action": {
+          "const": "crm.deal.stage.change"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hubspot"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "developer_test"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_portal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_account_type": {
+          "const": "DEVELOPER_TEST"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "deal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "pipeline_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "current_stage_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "current_stage_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "requested_stage_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:-]{1,128}$"
+        },
+        "requested_stage_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "transition_allowlisted": {
+          "const": true
+        },
+        "deal_updated_at_before": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "pipeline_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "deal_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "crm_customer_record_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_portal_reference_commitment",
+        "provider_account_type",
+        "record_is_synthetic",
+        "customer_record_reference_commitment",
+        "property_name",
+        "property_label",
+        "property_allowlisted",
+        "property_read_only",
+        "value_before_commitment",
+        "value_after_commitment",
+        "contact_updated_at_before",
+        "property_definition_digest",
+        "customer_record_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.erp_crm_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.crm_customer_record_update_exact.v1"
+        },
+        "action": {
+          "const": "crm.customer.record.update"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hubspot"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "developer_test"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_portal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_account_type": {
+          "const": "DEVELOPER_TEST"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "customer_record_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "property_name": {
+          "enum": [
+            "jobtitle",
+            "lifecyclestage",
+            "phone"
+          ]
+        },
+        "property_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "property_allowlisted": {
+          "const": true
+        },
+        "property_read_only": {
+          "const": false
+        },
+        "value_before_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "value_after_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "contact_updated_at_before": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "property_definition_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "customer_record_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "crm_quote_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_portal_reference_commitment",
+        "provider_account_type",
+        "record_is_synthetic",
+        "deal_reference_commitment",
+        "line_item_set_commitment",
+        "quote_title_commitment",
+        "quote_expiration_date",
+        "quote_status",
+        "line_item_count",
+        "subtotal_amount_minor",
+        "discount_amount_minor",
+        "tax_amount_minor",
+        "total_amount_minor",
+        "currency",
+        "total_matches_provider_pricing",
+        "payment_enabled",
+        "e_signature_enabled",
+        "publication_status",
+        "existing_quote_count_for_idempotency_key",
+        "association_types_digest",
+        "pricing_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.erp_crm_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.crm_quote_create_exact.v1"
+        },
+        "action": {
+          "const": "crm.quote.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "hubspot"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "developer_test"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_portal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_account_type": {
+          "const": "DEVELOPER_TEST"
+        },
+        "record_is_synthetic": {
+          "const": true
+        },
+        "deal_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "line_item_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "quote_title_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "quote_expiration_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "quote_status": {
+          "const": "DRAFT"
+        },
+        "line_item_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "subtotal_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "discount_amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tax_amount_minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_amount_minor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "total_matches_provider_pricing": {
+          "const": true
+        },
+        "payment_enabled": {
+          "const": false
+        },
+        "e_signature_enabled": {
+          "const": false
+        },
+        "publication_status": {
+          "const": "not_published"
+        },
+        "existing_quote_count_for_idempotency_key": {
+          "const": 0
+        },
+        "association_types_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "pricing_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}
