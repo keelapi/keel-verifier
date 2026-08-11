@@ -193,6 +193,7 @@ def _verify_trusted_preflight_window(
         "keel.coding_workspace_exact_facts.v1",
         "keel.collections_exact_facts.v1",
         "keel.insurance_claims_exact_facts.v1",
+        "keel.erp_crm_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -635,6 +636,68 @@ def _verify_insurance_claims_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+def _verify_erp_crm_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate ERP/CRM relations JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.erp_crm_exact_facts.v1":
+        return
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    valid = (
+        facts.get("connector_identity") == "hubspot"
+        and facts.get("provider_environment") == "developer_test"
+        and facts.get("provider_account_type") == "DEVELOPER_TEST"
+        and facts.get("record_is_synthetic") is True
+        and integer("max_uses") == 1
+    )
+    action = facts.get("action")
+    if valid and action == "crm.deal.stage.change":
+        valid = (
+            facts.get("current_stage_id") != facts.get("requested_stage_id")
+            and facts.get("transition_allowlisted") is True
+        )
+    elif valid and action == "crm.customer.record.update":
+        valid = (
+            facts.get("property_name") in {"jobtitle", "lifecyclestage", "phone"}
+            and facts.get("property_allowlisted") is True
+            and facts.get("property_read_only") is False
+            and facts.get("value_before_commitment")
+            != facts.get("value_after_commitment")
+        )
+    elif valid and action == "crm.quote.create":
+        subtotal = integer("subtotal_amount_minor")
+        discount = integer("discount_amount_minor")
+        tax = integer("tax_amount_minor")
+        total = integer("total_amount_minor")
+        valid = (
+            subtotal is not None
+            and discount is not None
+            and tax is not None
+            and total is not None
+            and subtotal > 0
+            and discount >= 0
+            and tax >= 0
+            and subtotal - discount + tax == total
+            and facts.get("total_matches_provider_pricing") is True
+            and facts.get("quote_status") == "DRAFT"
+            and facts.get("payment_enabled") is False
+            and facts.get("e_signature_enabled") is False
+            and facts.get("publication_status") == "not_published"
+            and integer("existing_quote_count_for_idempotency_key") == 0
+        )
+    else:
+        valid = False
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_ERP_CRM_INVARIANT_INVALID",
+            "the signed ERP/CRM facts violate an exact provider-action invariant",
+        )
+
+
 def _verifier_safe_facts(
     fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -1021,6 +1084,7 @@ def _resolve_contracts(
             "semantic_registry/v11.json",
             "semantic_registry/v12.json",
             "semantic_registry/v13.json",
+            "semantic_registry/v14.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -1038,6 +1102,7 @@ def _resolve_contracts(
             "fact_profiles/v9.json",
             "fact_profiles/v10.json",
             "fact_profiles/v11.json",
+            "fact_profiles/v12.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2196,6 +2261,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_coding_workspace_invariants(facts)
         _verify_collections_invariants(facts)
         _verify_insurance_claims_invariants(facts)
+        _verify_erp_crm_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

@@ -239,6 +239,43 @@ def _insurance_claims_binding(semantic_id: str) -> dict:
     }
 
 
+def _erp_crm_binding(semantic_id: str) -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v14.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item for item in registry["entries"] if item["semantic_id"] == semantic_id
+    )
+    presentation = json.loads(
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/presentation_registry/v13.json")
+        .read_text(encoding="utf-8")
+    )
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": entry["match"]["action_names"][0],
+        "operation": "call.tools",
+        "governed_surface": "mcp_tool",
+        "non_authorizing_presentation_profile_id": profile[
+            "presentation_profile_id"
+        ],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
     return {"name": name, "verdict": verdict, "required": required, **extra}
 
@@ -1117,3 +1154,68 @@ def test_human_artifact_resolves_insurance_claims_title_target_and_lifecycle(
     assert human["authorization"]["target"] in human["summary"]["text"]
     assert human["lifecycle"]["issued_at"] == "2026-08-10T12:00:00Z"
     assert human["lifecycle"]["expires_at"] == "2026-08-10T12:05:00Z"
+
+
+@pytest.mark.parametrize(
+    ("semantic_id", "expected_title", "facts", "expected_target"),
+    (
+        (
+            "keel.action.crm_deal_stage_change.v1",
+            "AI Permit-to-Change-Deal-Stage",
+            {"deal_reference_commitment": {"digest": "sha256:" + "d" * 64}},
+            "synthetic deal commitment sha256:" + "d" * 64,
+        ),
+        (
+            "keel.action.crm_customer_record_update.v1",
+            "AI Permit-to-Update-Customer-Record",
+            {
+                "customer_record_reference_commitment": {
+                    "digest": "sha256:" + "e" * 64
+                }
+            },
+            "synthetic customer record commitment sha256:" + "e" * 64,
+        ),
+        (
+            "keel.action.crm_quote_create.v1",
+            "AI Permit-to-Create-Quote",
+            {"quote_title_commitment": {"digest": "sha256:" + "f" * 64}},
+            "draft quote commitment sha256:" + "f" * 64,
+        ),
+    ),
+)
+def test_human_artifact_resolves_erp_crm_title_target_and_lifecycle(
+    semantic_id: str,
+    expected_title: str,
+    facts: dict,
+    expected_target: str,
+) -> None:
+    binding = _erp_crm_binding(semantic_id)
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "pinned expected public key",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-erp-crm",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "erp-crm-operations-agent",
+                "authorized_action": binding["action_name"],
+                "issued_at": "2026-08-11T01:00:00Z",
+                "expires_at": "2026-08-11T01:05:00Z",
+                "semantic_id": semantic_id,
+                "semantic_binding": binding,
+                "authorization_facts": facts,
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+
+    assert human is not None
+    assert human["title"] == expected_title
+    assert human["authorization"]["target"] == expected_target
+    assert expected_target in human["summary"]["text"]
+    assert human["lifecycle"]["issued_at"] == "2026-08-11T01:00:00Z"
+    assert human["lifecycle"]["expires_at"] == "2026-08-11T01:05:00Z"
