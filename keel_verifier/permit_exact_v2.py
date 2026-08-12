@@ -197,6 +197,7 @@ def _verify_trusted_preflight_window(
         "keel.procurement_ap_exact_facts.v1",
         "keel.commerce_regulated_exact_facts.v1",
         "keel.wave5_breadth_exact_facts.v1",
+        "keel.goal3a_portfolio_exact_facts.v1",
     }:
         return
     issued_at = _parse_time(canonical_payload.get("issued_at"))
@@ -1057,6 +1058,44 @@ def _verify_wave5_breadth_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+def _verify_goal3a_portfolio_invariants(facts: Mapping[str, Any]) -> None:
+    """Adjudicate Goal 3A relations that JSON Schema cannot express."""
+
+    if facts.get("version") != "keel.goal3a_portfolio_exact_facts.v1":
+        return
+
+    action = str(facts.get("action") or "")
+    valid = facts.get("target_is_dedicated_demo") is True and facts.get("max_uses") == 1
+    if action in {"cloud.machine.restart", "cloud.machine.stop"}:
+        valid = valid and facts.get("connector_identity") == "fly"
+        valid = valid and facts.get("provider_environment") == "dedicated_demo"
+        valid = valid and facts.get("environment") == "dedicated_demo"
+        valid = valid and facts.get("machine_state") == "started"
+    elif action == "cloud.service.scale":
+        desired = facts.get("desired_machine_count")
+        current = facts.get("current_machine_count")
+        valid = valid and facts.get("connector_identity") == "fly"
+        valid = valid and facts.get("provider_environment") == "dedicated_demo"
+        valid = valid and facts.get("environment") == "dedicated_demo"
+        valid = valid and isinstance(desired, int) and not isinstance(desired, bool)
+        valid = valid and isinstance(current, int) and not isinstance(current, bool)
+        valid = valid and desired != current
+    elif action == "stripe.transfer.create":
+        valid = valid and facts.get("connector_identity") == "stripe"
+        valid = valid and facts.get("provider_environment") == "provider_sandbox"
+        valid = valid and facts.get("destination_charges_enabled") is True
+        valid = valid and facts.get("destination_payouts_enabled") is True
+    else:
+        valid = False
+
+    if not valid:
+        raise _AdjudicationError(
+            "disproved",
+            "PERMIT_GOAL3A_PORTFOLIO_INVARIANT_INVALID",
+            "the signed Goal 3A portfolio facts violate an exact provider-action invariant",
+        )
+
+
 def _verifier_safe_facts(
     fact_profile: Mapping[str, Any], facts: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -1447,6 +1486,7 @@ def _resolve_contracts(
             "semantic_registry/v15.json",
             "semantic_registry/v16.json",
             "semantic_registry/v17.json",
+            "semantic_registry/v18.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
     )
@@ -1468,6 +1508,7 @@ def _resolve_contracts(
             "fact_profiles/v13.json",
             "fact_profiles/v14.json",
             "fact_profiles/v15.json",
+            "fact_profiles/v16.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
     )
@@ -2630,6 +2671,7 @@ def adjudicate_permit_exact_v2_body(
         _verify_procurement_ap_invariants(facts)
         _verify_commerce_regulated_invariants(facts)
         _verify_wave5_breadth_invariants(facts)
+        _verify_goal3a_portfolio_invariants(facts)
     except _AdjudicationError as exc:
         return fail_all(exc)
     work_enforcement_state = decision_attrs.get("permit_enforcement_state_v1")

@@ -939,6 +939,34 @@ def _wave5_breadth_body_from_vector(vector: dict) -> dict:
     return body
 
 
+def _goal3a_portfolio_body_from_vector(vector: dict) -> dict:
+    presentation = json.loads(
+        (PTX / "presentation_registry/v17.json").read_text(encoding="utf-8")
+    )
+    presentation_profile_id = next(
+        profile["presentation_profile_id"]
+        for profile in presentation["profiles"]
+        if profile["semantic_id"] == vector["expected_semantic_id"]
+    )
+    candidate = vector["candidate"]
+    body = _v4_body(
+        semantic_id=vector["expected_semantic_id"],
+        fact_profile_id=vector["expected_fact_profile_id"],
+        facts=copy.deepcopy(vector["valid_authorization_facts"]),
+        action_name=candidate["action_name"],
+        operation=candidate["operation"],
+        governed_surface=candidate["governed_surface"],
+        source_kind=candidate["trusted_source_kind"],
+        presentation_profile_id=presentation_profile_id,
+        selector_registry_file="v18.json",
+        fact_registry_file="v16.json",
+    )
+    body["permit_decision"]["canonical_payload"]["issued_at"] = (
+        "2026-08-12T12:00:30Z"
+    )
+    return body
+
+
 def _replace_authorization_facts(body: dict, facts: dict) -> None:
     body["authorization_facts"] = copy.deepcopy(facts)
     binding = body["semantic_binding"]
@@ -2666,6 +2694,81 @@ def test_v17_wave5_preflight_must_be_fresh_at_authorization() -> None:
     body = _wave5_breadth_body_from_vector(vector)
     facts = copy.deepcopy(vector["valid_authorization_facts"])
     facts["preflight_expires_at"] = "2026-08-11T05:00:30Z"
+    _replace_authorization_facts(body, facts)
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == "PERMIT_PREFLIGHT_WINDOW_INVALID"
+
+
+def test_v18_goal3a_portfolio_profiles_verify_from_published_vectors() -> None:
+    vectors = json.loads(
+        (PTX / "test_vectors/consequence_registry/v14.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-4:]
+
+    for vector in vectors:
+        result = adjudicate_permit_exact_v2_body(
+            _goal3a_portfolio_body_from_vector(vector),
+            decision_verdict="supported",
+        )
+        claims = _claim_map(result)
+        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.fact_profile_id == vector["expected_fact_profile_id"]
+        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert claims["permit.type.v1"].verdict == "supported"
+        assert claims["permit.exact_target.v1"].verdict == "supported"
+        assert claims["permit.material_request.v1"].verdict == "supported"
+
+
+@pytest.mark.parametrize(
+    ("vector_id", "field", "value"),
+    (
+        ("stripe.connect.transfer.send.v1", "destination_charges_enabled", False),
+        ("stripe.connect.transfer.send.v1", "destination_payouts_enabled", False),
+        ("cloud.service.scale.v1", "desired_machine_count", 1),
+    ),
+)
+def test_v18_goal3a_relational_invariants_fail_closed(
+    vector_id: str,
+    field: str,
+    value: object,
+) -> None:
+    vector = next(
+        item
+        for item in json.loads(
+            (PTX / "test_vectors/consequence_registry/v14.json").read_text(
+                encoding="utf-8"
+            )
+        )["vectors"]
+        if item["id"] == vector_id
+    )
+    body = _goal3a_portfolio_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    if vector_id == "cloud.service.scale.v1":
+        value = facts["current_machine_count"]
+    facts[field] = value
+    _replace_authorization_facts(body, facts)
+    claims = _claim_map(
+        adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    )
+    assert claims["permit.type.v1"].verdict == "disproved"
+    assert claims["permit.type.v1"].reason_code == (
+        "PERMIT_GOAL3A_PORTFOLIO_INVARIANT_INVALID"
+    )
+
+
+def test_v18_goal3a_preflight_must_be_fresh_at_authorization() -> None:
+    vector = json.loads(
+        (PTX / "test_vectors/consequence_registry/v14.json").read_text(
+            encoding="utf-8"
+        )
+    )["vectors"][-1]
+    body = _goal3a_portfolio_body_from_vector(vector)
+    facts = copy.deepcopy(vector["valid_authorization_facts"])
+    facts["preflight_expires_at"] = "2026-08-12T12:00:29Z"
     _replace_authorization_facts(body, facts)
     claims = _claim_map(
         adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
