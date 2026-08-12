@@ -104,6 +104,37 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     if not isinstance(facts, Mapping):
         return None
     action = _normalize(permit.get("authorized_action") or permit.get("action"))
+    goal3a_targets = {
+        "cloud.machine.restart": (
+            "machine_reference_commitment",
+            "dedicated demo machine",
+        ),
+        "cloud.machine.stop": (
+            "machine_reference_commitment",
+            "dedicated demo machine",
+        ),
+        "cloud.service.scale": (
+            "app_reference_commitment",
+            "dedicated demo service",
+        ),
+        "stripe.payment_intent.create": (
+            "payment_method_reference_commitment",
+            "Stripe test payment method",
+        ),
+        "stripe.refund.create": (
+            "payment_intent_reference_commitment",
+            "Stripe test payment",
+        ),
+        "stripe.transfer.create": (
+            "destination_account_reference_commitment",
+            "Stripe Connect test destination",
+        ),
+    }
+    goal3a_target = goal3a_targets.get(action or "")
+    if goal3a_target:
+        committed = _commitment_label(facts.get(goal3a_target[0]), goal3a_target[1])
+        if committed:
+            return committed
     wave5_targets = {
         "trust_safety.content.remove": ("message_reference_commitment", "community message"),
         "trust_safety.member.suspend": ("member_reference_commitment", "community member"),
