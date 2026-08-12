@@ -1586,6 +1586,13 @@ def test_human_artifact_resolves_commerce_regulated_title_target_and_lifecycle(
             "destination_account_reference_commitment",
             "Stripe Connect test destination",
         ),
+        (
+            "ledger.entry.record",
+            "keel.action.ledger_entry_record.v1",
+            "AI Permit-to-Record-Ledger-Entry",
+            "ledger_reference_commitment",
+            "synthetic ledger",
+        ),
     ),
 )
 def test_human_artifact_resolves_goal3a_title_target_and_lifecycle(

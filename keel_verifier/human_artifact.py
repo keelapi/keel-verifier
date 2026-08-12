@@ -194,6 +194,8 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     committed_target = _commitment_label(
         facts.get("original_payment_reference_commitment"), "payment"
     ) or _commitment_label(
+        facts.get("ledger_reference_commitment"), "synthetic ledger"
+    ) or _commitment_label(
         facts.get("prior_authorization_reference_commitment"),
         "synthetic prior authorization",
     ) or _commitment_label(
