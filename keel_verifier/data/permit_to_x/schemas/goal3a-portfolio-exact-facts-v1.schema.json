@@ -1,0 +1,521 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/goal3a-portfolio-exact-facts-v1.schema.json",
+  "title": "Keel exact Goal 3A portfolio facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/cloud_machine_restart"
+    },
+    {
+      "$ref": "#/$defs/cloud_machine_stop"
+    },
+    {
+      "$ref": "#/$defs/cloud_service_scale"
+    },
+    {
+      "$ref": "#/$defs/stripe_transfer_create"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "cloud_machine_restart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "app_reference_commitment",
+        "machine_reference_commitment",
+        "environment",
+        "machine_state",
+        "machine_region",
+        "machine_config_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.goal3a_portfolio_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.cloud_machine_restart_exact.v1"
+        },
+        "action": {
+          "const": "cloud.machine.restart"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "fly"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "app_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "machine_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "environment": {
+          "const": "dedicated_demo"
+        },
+        "machine_state": {
+          "const": "started"
+        },
+        "machine_region": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "machine_config_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "cloud_machine_stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "app_reference_commitment",
+        "machine_reference_commitment",
+        "environment",
+        "machine_state",
+        "machine_region",
+        "machine_config_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.goal3a_portfolio_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.cloud_machine_stop_exact.v1"
+        },
+        "action": {
+          "const": "cloud.machine.stop"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "fly"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "app_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "machine_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "environment": {
+          "const": "dedicated_demo"
+        },
+        "machine_state": {
+          "const": "started"
+        },
+        "machine_region": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "machine_config_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "cloud_service_scale": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "app_reference_commitment",
+        "environment",
+        "desired_machine_count",
+        "current_machine_count",
+        "machine_config_digest",
+        "scale_group_state_digest"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.goal3a_portfolio_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.cloud_service_scale_exact.v1"
+        },
+        "action": {
+          "const": "cloud.service.scale"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "fly"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "dedicated_demo"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "app_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "environment": {
+          "const": "dedicated_demo"
+        },
+        "desired_machine_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "current_machine_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "machine_config_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "scale_group_state_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "stripe_transfer_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "fact_profile_id",
+        "action",
+        "operation",
+        "connector_identity",
+        "connector_contract_hash",
+        "tool_schema_hash",
+        "decision_trace_hash",
+        "tool_arguments_hash",
+        "request_digest",
+        "enforcement_mode",
+        "provider_environment",
+        "provider_api_version",
+        "preflight_observed_at",
+        "preflight_expires_at",
+        "preflight_snapshot_digest",
+        "idempotency_digest",
+        "max_uses",
+        "provider_instance_reference_commitment",
+        "target_is_dedicated_demo",
+        "platform_account_digest",
+        "amount_minor",
+        "currency",
+        "destination_account_reference_commitment",
+        "destination_account_state_digest",
+        "destination_charges_enabled",
+        "destination_payouts_enabled"
+      ],
+      "properties": {
+        "version": {
+          "const": "keel.goal3a_portfolio_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.stripe_transfer_create_exact.v1"
+        },
+        "action": {
+          "const": "stripe.transfer.create"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "connector_identity": {
+          "const": "stripe"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "provider_api_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "max_uses": {
+          "const": 1
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "target_is_dedicated_demo": {
+          "const": true
+        },
+        "platform_account_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "amount_minor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999999
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "destination_account_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "destination_account_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "destination_charges_enabled": {
+          "type": "boolean"
+        },
+        "destination_payouts_enabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

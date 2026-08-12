@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/presentation_registry/v17.schema.json",
+  "title": "Keel Permit presentation registry v17",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "version",
+    "semantic_registry_version",
+    "allowed_leading_fields",
+    "allowed_evidence_sections",
+    "human_artifact_contract",
+    "profiles",
+    "fallback_profiles"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "artifact_id": {
+      "const": "keel.permit.presentation_registry"
+    },
+    "version": {
+      "const": "keel.presentation_registry.v17"
+    },
+    "semantic_registry_version": {
+      "const": "keel.semantic_selector_registry.v18"
+    },
+    "allowed_leading_fields": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_evidence_sections": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "human_artifact_contract": {
+      "$ref": "#/$defs/humanArtifactContract"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "fallback_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fallback"
+      }
+    }
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "label"
+      ],
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "humanArtifactContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_schema",
+        "package_manifest_schema",
+        "default_view",
+        "title_source",
+        "state_titles",
+        "status_labels",
+        "summary",
+        "lifecycle_fields",
+        "advanced_representations",
+        "package_trust_rule"
+      ],
+      "properties": {
+        "artifact_schema": {
+          "const": "schemas/permit-human-artifact-v1.schema.json"
+        },
+        "package_manifest_schema": {
+          "const": "schemas/permit-package-manifest-v1.schema.json"
+        },
+        "default_view": {
+          "const": "human"
+        },
+        "title_source": {
+          "const": "verified_semantic_profile"
+        },
+        "state_titles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "denial",
+            "review"
+          ],
+          "properties": {
+            "denial": {
+              "const": "AI Action Denied"
+            },
+            "review": {
+              "const": "AI Action Awaiting Approval"
+            }
+          }
+        },
+        "status_labels": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "authorized",
+            "dispatched",
+            "provider_accepted",
+            "provider_completed",
+            "provider_rejected",
+            "outcome_unknown",
+            "expired_unused",
+            "revoked",
+            "denied",
+            "awaiting_approval"
+          ],
+          "properties": {
+            "authorized": {
+              "const": "Authorized, not dispatched"
+            },
+            "dispatched": {
+              "const": "Dispatched, provider outcome pending"
+            },
+            "provider_accepted": {
+              "const": "Provider accepted"
+            },
+            "provider_completed": {
+              "const": "Provider reported completion"
+            },
+            "provider_rejected": {
+              "const": "Provider rejected"
+            },
+            "outcome_unknown": {
+              "const": "External outcome unknown"
+            },
+            "expired_unused": {
+              "const": "Expired unused"
+            },
+            "revoked": {
+              "const": "Revoked"
+            },
+            "denied": {
+              "const": "Denied before dispatch"
+            },
+            "awaiting_approval": {
+              "const": "No dispatch before approval"
+            }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "position",
+            "derivation",
+            "template",
+            "required_inputs",
+            "missing_value_rule"
+          ],
+          "properties": {
+            "position": {
+              "const": "end"
+            },
+            "derivation": {
+              "const": "verifier_from_verified_fields"
+            },
+            "template": {
+              "const": "semantics/permit/human_summary_v1.json"
+            },
+            "required_inputs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "missing_value_rule": {
+              "const": "omit_never_invent"
+            }
+          }
+        },
+        "lifecycle_fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "optional"
+          ],
+          "properties": {
+            "required": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "optional": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "advanced_representations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "package_trust_rule": {
+          "const": "verify_signed_evidence_and_regenerate_human_view"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_id",
+        "presentation_profile_id",
+        "customer_title",
+        "type_definition",
+        "leading_fields",
+        "evidence_sections",
+        "does_not_establish",
+        "fallback_profile",
+        "release_state"
+      ],
+      "properties": {
+        "semantic_id": {
+          "type": "string"
+        },
+        "presentation_profile_id": {
+          "type": "string"
+        },
+        "customer_title": {
+          "type": "string"
+        },
+        "type_definition": {
+          "type": "string"
+        },
+        "leading_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "evidence_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "does_not_establish": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fallback_profile": {
+          "type": "string"
+        },
+        "release_state": {
+          "enum": [
+            "eligible",
+            "generic_qualified",
+            "reserved",
+            "internal_only"
+          ]
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "presentation_profile_id",
+        "customer_title",
+        "type_definition",
+        "evidence_sections"
+      ],
+      "properties": {
+        "presentation_profile_id": {
+          "type": "string"
+        },
+        "customer_title": {
+          "type": "string"
+        },
+        "type_definition": {
+          "type": "string"
+        },
+        "evidence_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
