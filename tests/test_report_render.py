@@ -387,6 +387,46 @@ def _wave5_breadth_binding(semantic_id: str) -> dict:
     }
 
 
+def _goal3a_binding(semantic_id: str, action_name: str) -> dict:
+    raw = (
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/semantic_registry/v18.json")
+        .read_bytes()
+    )
+    registry = json.loads(raw)
+    entry = next(
+        item
+        for item in registry["entries"]
+        if item["semantic_id"] == semantic_id
+        and action_name in item["match"]["action_names"]
+    )
+    presentation = json.loads(
+        resources.files("keel_verifier")
+        .joinpath("data/permit_to_x/presentation_registry/v17.json")
+        .read_text(encoding="utf-8")
+    )
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": "action_verb_execute",
+        "chain_role": "action_child",
+        "action_name": action_name,
+        "operation": "call.tools",
+        "governed_surface": "mcp_tool",
+        "non_authorizing_presentation_profile_id": profile[
+            "presentation_profile_id"
+        ],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
 def _claim(name: str, verdict: str, *, required: bool = True, **extra: object) -> dict:
     return {"name": name, "verdict": verdict, "required": required, **extra}
 
@@ -1493,6 +1533,99 @@ def test_human_artifact_resolves_commerce_regulated_title_target_and_lifecycle(
     assert expected_target in human["summary"]["text"]
     assert human["lifecycle"]["issued_at"] == "2026-08-11T04:00:00Z"
     assert human["lifecycle"]["expires_at"] == "2026-08-11T04:05:00Z"
+
+
+@pytest.mark.parametrize(
+    (
+        "action_name",
+        "semantic_id",
+        "expected_title",
+        "fact_key",
+        "target_noun",
+    ),
+    (
+        (
+            "cloud.machine.restart",
+            "keel.action.cloud_machine_restart.v1",
+            "AI Permit-to-Restart-Machine",
+            "machine_reference_commitment",
+            "dedicated demo machine",
+        ),
+        (
+            "cloud.machine.stop",
+            "keel.action.cloud_machine_stop.v1",
+            "AI Permit-to-Stop-Machine",
+            "machine_reference_commitment",
+            "dedicated demo machine",
+        ),
+        (
+            "cloud.service.scale",
+            "keel.action.cloud_service_scale.v1",
+            "AI Permit-to-Scale-Service",
+            "app_reference_commitment",
+            "dedicated demo service",
+        ),
+        (
+            "stripe.payment_intent.create",
+            "keel.action.payment_execute.v1",
+            "AI Permit-to-Pay",
+            "payment_method_reference_commitment",
+            "Stripe test payment method",
+        ),
+        (
+            "stripe.refund.create",
+            "keel.action.payment_refund.v2",
+            "AI Permit-to-Refund-Payment",
+            "payment_intent_reference_commitment",
+            "Stripe test payment",
+        ),
+        (
+            "stripe.transfer.create",
+            "keel.action.stripe_connect_transfer_send.v1",
+            "AI Permit-to-Send-Stripe-Connect-Transfer",
+            "destination_account_reference_commitment",
+            "Stripe Connect test destination",
+        ),
+    ),
+)
+def test_human_artifact_resolves_goal3a_title_target_and_lifecycle(
+    action_name: str,
+    semantic_id: str,
+    expected_title: str,
+    fact_key: str,
+    target_noun: str,
+) -> None:
+    binding = _goal3a_binding(semantic_id, action_name)
+    digest = "sha256:" + "b" * 64
+    report = _report(
+        [_claim("permit.decision.v1", "supported")],
+        artifact={
+            "kind": "permit_exact",
+            "trust_source": "pinned expected public key",
+            "permit": {
+                "profile": "keel.permit_exact/v3",
+                "permit_id": "permit-goal3a",
+                "project_id": "project-1",
+                "decision": "allow",
+                "agent": "goal3a-demo-agent",
+                "authorized_action": action_name,
+                "issued_at": "2026-08-12T04:00:00Z",
+                "expires_at": "2026-08-12T04:05:00Z",
+                "semantic_id": semantic_id,
+                "semantic_binding": binding,
+                "authorization_facts": {fact_key: {"digest": digest}},
+            },
+        },
+    )
+
+    human = build_human_artifact(report)
+    expected_target = f"{target_noun} commitment {digest}"
+    assert human is not None
+    assert human["title"] == expected_title
+    assert human["authorization"]["target"] == expected_target
+    assert expected_target in human["summary"]["text"]
+    assert human["lifecycle"]["issued_at"] == "2026-08-12T04:00:00Z"
+    assert human["lifecycle"]["expires_at"] == "2026-08-12T04:05:00Z"
 
 
 def test_human_artifact_renders_all_wave5_titles_targets_lifecycle_and_limits() -> None:
