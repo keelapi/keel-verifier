@@ -33,9 +33,12 @@ PROFILE = "keel.permit_exact/v2"
 PROFILE_VERSION = 2
 PROFILE_V3 = "keel.permit_exact/v3"
 PROFILE_V3_VERSION = 3
+PROFILE_V4 = "keel.permit_exact/v4"
+PROFILE_V4_VERSION = 4
 SUPPORTED_PROFILES = {
     PROFILE: PROFILE_VERSION,
     PROFILE_V3: PROFILE_V3_VERSION,
+    PROFILE_V4: PROFILE_V4_VERSION,
 }
 _DATA_ROOT = "data/permit_to_x"
 _CLAIM_REGISTRY_IDS = {
@@ -1210,6 +1213,7 @@ def _schema_registry(profile: str) -> tuple[dict[str, Any], Registry]:
     pack_schema = {
         PROFILE: "schemas/permit-exact-pack-v2.schema.json",
         PROFILE_V3: "schemas/permit-exact-pack-v3.schema.json",
+        PROFILE_V4: "schemas/permit-exact-pack-v4.schema.json",
     }.get(profile)
     if pack_schema is None:
         raise ValueError(f"unsupported exact-pack profile: {profile}")
@@ -1279,6 +1283,7 @@ def _decode_pin(
     label: str,
     bundled_path: str | tuple[str, ...],
     artifact_id: str | None,
+    allow_compact: bool = False,
 ) -> tuple[dict[str, Any], str]:
     if not isinstance(pin, Mapping):
         raise _AdjudicationError(
@@ -1292,21 +1297,37 @@ def _decode_pin(
             "PERMIT_CONTRACT_PIN_ID_MISMATCH",
             f"{label} artifact identity does not match the released contract",
         )
+    paths = (bundled_path,) if isinstance(bundled_path, str) else bundled_path
     content = pin.get("content_base64")
-    if not isinstance(content, str):
+    if isinstance(content, str):
+        try:
+            raw = base64.b64decode(content, validate=True)
+        except Exception as exc:
+            raise _AdjudicationError(
+                "disproved",
+                "PERMIT_CONTRACT_PIN_INVALID",
+                f"{label} contract bytes are invalid base64: {exc}",
+            ) from exc
+    elif allow_compact:
+        declared_digest = pin.get("sha256")
+        matches: list[bytes] = []
+        for path in paths:
+            bundled = _bytes(path)
+            if _sha256(bundled) == declared_digest:
+                matches.append(bundled)
+        if len(matches) != 1:
+            raise _AdjudicationError(
+                "unverifiable_scope",
+                "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+                f"{label} compact pin is not allowlisted by this verifier release",
+            )
+        raw = matches[0]
+    else:
         raise _AdjudicationError(
             "insufficient_evidence",
             "PERMIT_CONTRACT_PIN_MISSING",
             f"{label} contract bytes are missing",
         )
-    try:
-        raw = base64.b64decode(content, validate=True)
-    except Exception as exc:
-        raise _AdjudicationError(
-            "disproved",
-            "PERMIT_CONTRACT_PIN_INVALID",
-            f"{label} contract bytes are invalid base64: {exc}",
-        ) from exc
     actual_digest = _sha256(raw)
     if pin.get("sha256") != actual_digest:
         raise _AdjudicationError(
@@ -1314,7 +1335,6 @@ def _decode_pin(
             "PERMIT_CONTRACT_PIN_DIGEST_MISMATCH",
             f"{label} contract digest does not match embedded bytes",
         )
-    paths = (bundled_path,) if isinstance(bundled_path, str) else bundled_path
     if not any(raw == _bytes(path) for path in paths):
         raise _AdjudicationError(
             "unverifiable_scope",
@@ -1456,6 +1476,7 @@ def _resolve_contracts(
             "PERMIT_CONTRACT_PIN_MISSING",
             "contract_pins are missing",
         )
+    allow_compact = body.get("profile") == PROFILE_V4
     claim_registry, claim_digest = _decode_pin(
         pins.get("claim_registry"),
         label="claim registry",
@@ -1466,6 +1487,7 @@ def _resolve_contracts(
             "../claim_registry/v5.json",
         ),
         artifact_id=None,
+        allow_compact=allow_compact,
     )
     selector_registry, selector_digest = _decode_pin(
         pins.get("semantic_selector_registry"),
@@ -1489,6 +1511,7 @@ def _resolve_contracts(
             "semantic_registry/v18.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
+        allow_compact=allow_compact,
     )
     fact_registry, fact_digest = _decode_pin(
         pins.get("fact_profile_registry"),
@@ -1511,6 +1534,7 @@ def _resolve_contracts(
             "fact_profiles/v16.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
+        allow_compact=allow_compact,
     )
     universal_semantics, universal_digest = _decode_pin(
         pins.get("universal_semantics"),
@@ -1522,6 +1546,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v4.json",
         ),
         artifact_id=None,
+        allow_compact=allow_compact,
     )
     claim_version = str(claim_registry.get("version") or "")
     expected_claim_id = _CLAIM_REGISTRY_IDS.get(claim_version)
@@ -1621,6 +1646,7 @@ def _resolve_contracts(
         label="authorization facts schema",
         bundled_path=schema_path,
         artifact_id=None,
+        allow_compact=allow_compact,
     )
     provider_semantics = None
     provider_pin = pins.get("provider_receipt_semantics")
@@ -1630,6 +1656,7 @@ def _resolve_contracts(
             label="provider receipt semantics",
             bundled_path="../semantics/permit/provider_receipt_state_v1.json",
             artifact_id=_PROVIDER_RECEIPT_SEMANTICS_ID,
+            allow_compact=allow_compact,
         )
 
     expected_pairs = (

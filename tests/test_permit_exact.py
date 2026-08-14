@@ -405,7 +405,7 @@ def test_signed_future_exact_profile_fails_loudly(tmp_path: Path) -> None:
     export_path, trust_root = _signed_exact_bundle_case(
         tmp_path,
         divergent_receipt=False,
-        profile="keel.permit_exact/v4",
+        profile="keel.permit_exact/v5",
     )
 
     report = verifier.verify_export_structured(
@@ -415,10 +415,10 @@ def test_signed_future_exact_profile_fails_loudly(tmp_path: Path) -> None:
     assert report.ok is False
     assert report.exit_code == 1
     assert report.artifact["unsupported_profile"] is True
-    assert report.artifact["profile"] == "keel.permit_exact/v4"
+    assert report.artifact["profile"] == "keel.permit_exact/v5"
     assert report.error == (
         "PERMIT_EXACT_PROFILE_UNSUPPORTED: "
-        "this verifier does not adjudicate keel.permit_exact/v4"
+        "this verifier does not adjudicate keel.permit_exact/v5"
     )
 
 

@@ -350,6 +350,16 @@ def _v3_work_body(*, runtime_version: int | None = 2) -> dict:
     return body
 
 
+def _compact_exact_v4_body() -> dict:
+    body = _v3_work_body()
+    body["profile"] = "keel.permit_exact/v4"
+    body["profile_version"] = 4
+    for pin in body["contract_pins"].values():
+        if isinstance(pin, dict):
+            pin.pop("content_base64", None)
+    return body
+
+
 def _v4_body(
     *,
     semantic_id: str,
@@ -3130,6 +3140,62 @@ def test_v2_contract_pin_digest_mismatch_never_silently_drops_claims() -> None:
         for claim in result.claims
     )
     assert all(claim.does_not_establish for claim in result.claims)
+
+
+def test_v4_compact_contract_pins_resolve_from_allowlisted_bundled_history() -> None:
+    body = _compact_exact_v4_body()
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+    )
+
+    assert result.claims
+    assert all(
+        claim.reason_code != "PERMIT_CONTRACT_PIN_MISSING"
+        for claim in result.claims
+    )
+    assert all(
+        "content_base64" not in pin
+        for pin in body["contract_pins"].values()
+        if isinstance(pin, dict)
+    )
+
+
+def test_v4_compact_contract_pin_digest_mismatch_fails_closed() -> None:
+    body = _compact_exact_v4_body()
+    body["contract_pins"]["fact_profile_registry"]["sha256"] = (
+        "sha256:" + "0" * 64
+    )
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+    )
+
+    assert result.claims
+    assert all(claim.verdict == "unverifiable_scope" for claim in result.claims)
+    assert all(
+        claim.reason_code == "PERMIT_CONTRACT_PIN_UNSUPPORTED"
+        for claim in result.claims
+    )
+
+
+def test_v3_still_requires_embedded_contract_bytes() -> None:
+    body = _v3_work_body()
+    body["contract_pins"]["fact_profile_registry"].pop("content_base64")
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+    )
+
+    assert result.claims
+    assert all(claim.verdict == "disproved" for claim in result.claims)
+    assert all(
+        claim.reason_code == "PERMIT_EXACT_PACK_SCHEMA_INVALID"
+        for claim in result.claims
+    )
 
 
 def test_v2_supports_validity_certified_boundary_bounded_use_and_provider_state() -> None:

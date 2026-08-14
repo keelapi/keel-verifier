@@ -98,7 +98,7 @@
       "artifacts": [
         {
           "path": "tests/test_permit_exact.py",
-          "sha256": "53b817f721a15531579a0277edf9c083797aa0f7a06a4d9be6efcc7192d1744e"
+          "sha256": "53c8a3318f9bca44c84b94cf85d539d8c0fabeda6098129116e69fd8cc316872"
         }
       ],
       "pytest_nodeids": [

@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 3.21.0
+
+- Verify compact `keel.permit_exact/v4` JSON artifacts whose contract pins
+  resolve by version and SHA-256 digest against the verifier's allowlisted
+  bundled historical contracts.
+- Preserve verification support for legacy `.keelpermit` ZIP packages and
+  exact-pack v1-v3 JSON evidence.
 
 ## 3.20.0
 
