@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Verify compact `keel.permit_exact/v4` JSON artifacts whose contract pins
+  resolve by version and SHA-256 digest against the verifier's allowlisted
+  bundled historical contracts.
+- Preserve verification support for legacy `.keelpermit` ZIP packages and
+  exact-pack v1-v3 JSON evidence.
+
 ## 3.20.0
 
 - Publish the complete 96-action Portfolio Artifact Closure corpus, including

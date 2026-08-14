@@ -14376,6 +14376,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             "keel.permit_exact/v1",
             "keel.permit_exact/v2",
             "keel.permit_exact/v3",
+            "keel.permit_exact/v4",
         }
         if (
             ok
@@ -14407,7 +14408,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             )
             claims.append(decision_claim)
             profile = str(body.get("profile"))
-            if profile in {"keel.permit_exact/v2", "keel.permit_exact/v3"}:
+            if profile in {
+                "keel.permit_exact/v2",
+                "keel.permit_exact/v3",
+                "keel.permit_exact/v4",
+            }:
                 exact_claims, exact_summary = _adjudicate_permit_exact_v2(
                     body=body,
                     decision_claim=decision_claim,

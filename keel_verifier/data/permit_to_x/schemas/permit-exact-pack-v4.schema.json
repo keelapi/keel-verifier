@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/permit-exact-pack-v4.schema.json",
+  "title": "Keel compact universal exact Permit evidence-pack body v4",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "profile_version",
+    "generated_at",
+    "permit_id",
+    "project_id",
+    "declared_claims",
+    "semantic_binding",
+    "authorization_facts",
+    "contract_pins",
+    "permit_decision",
+    "permit_receipt",
+    "decision_state",
+    "review_transition",
+    "bounded_use_transitions",
+    "provider_receipts",
+    "selective_disclosures",
+    "scope_evidence",
+    "does_not_establish"
+  ],
+  "properties": {
+    "profile": {
+      "const": "keel.permit_exact/v4"
+    },
+    "profile_version": {
+      "const": 4
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "permit_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "declared_claims": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_.-]+\\.v[0-9]+$"
+      }
+    },
+    "semantic_binding": {
+      "$ref": "permit-semantic-binding-v2.schema.json"
+    },
+    "authorization_facts": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "contract_pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_registry",
+        "semantic_selector_registry",
+        "fact_profile_registry",
+        "authorization_facts_schema",
+        "universal_semantics"
+      ],
+      "properties": {
+        "claim_registry": {
+          "$ref": "#/$defs/artifact_pin"
+        },
+        "semantic_selector_registry": {
+          "$ref": "#/$defs/artifact_pin"
+        },
+        "semantic_selector_entry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "fact_profile_registry": {
+          "$ref": "#/$defs/artifact_pin"
+        },
+        "fact_profile_entry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "authorization_facts_schema": {
+          "$ref": "#/$defs/artifact_pin"
+        },
+        "universal_semantics": {
+          "$ref": "#/$defs/artifact_pin"
+        },
+        "provider_receipt_semantics": {
+          "$ref": "#/$defs/artifact_pin"
+        }
+      },
+      "dependentRequired": {
+        "semantic_selector_registry": [
+          "semantic_selector_entry_digest"
+        ],
+        "fact_profile_registry": [
+          "fact_profile_entry_digest"
+        ]
+      }
+    },
+    "permit_decision": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "permit_receipt": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "decision_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "status"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "allow",
+            "deny",
+            "challenge",
+            "review",
+            "throttle"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "review_transition": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "enforcement_evidence": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "adapter_certification",
+        "deployment_assurance",
+        "runtime_enforcement_proof"
+      ],
+      "properties": {
+        "adapter_certification": {
+          "$ref": "adapter-certification-v1.schema.json"
+        },
+        "deployment_assurance": {
+          "$ref": "deployment-assurance-v1.schema.json"
+        },
+        "runtime_enforcement_proof": {
+          "oneOf": [
+            {
+              "$ref": "runtime-enforcement-proof-v1.schema.json"
+            },
+            {
+              "$ref": "runtime-enforcement-proof-v2.schema.json"
+            }
+          ]
+        }
+      }
+    },
+    "bounded_use_transitions": {
+      "type": "array",
+      "items": {
+        "$ref": "permit-bounded-use-v1.schema.json"
+      }
+    },
+    "provider_receipts": {
+      "type": "array",
+      "items": {
+        "$ref": "provider-receipt-v1.schema.json"
+      }
+    },
+    "selective_disclosures": {
+      "type": "array",
+      "items": {
+        "$ref": "permit-selective-disclosure-v1.schema.json"
+      }
+    },
+    "scope_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "minProperties": 1
+      }
+    },
+    "does_not_establish": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "artifact_ref": {
+      "type": "object",
+      "minProperties": 1
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "artifact_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "version",
+        "sha256",
+        "media_type"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "media_type": {
+          "const": "application/json"
+        },
+        "content_base64": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    }
+  },
+  "description": "Exact evidence pack v4. It preserves the v3 evidence contract while making embedded contract bytes optional. Compact pins retain artifact identity, version, digest, and media type; an offline verifier must resolve them only from its allowlisted bundled historical contracts and reject any digest mismatch."
+}

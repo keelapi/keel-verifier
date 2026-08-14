@@ -68,22 +68,26 @@ Legacy split-file exports still verify with `keel-verify export export.json
 manifest.json`, but the CLI emits a deprecation warning so operators migrate
 downloads to the single-file bundle.
 
-## Downloadable AI Permit packages
+## Downloadable AI Permits
 
-An AI Permit download may be packaged as one `.keelpermit` ZIP. The default
-command is human-first and bare-path invocation is supported:
+The default AI Permit-to-X download is one compact, signed, human-readable JSON
+file. Bare-path invocation is supported:
 
 ```bash
-keel-verify AI-Permit-to-Pay.keelpermit \
+keel-verify AI-Permit-to-Pay.json \
   --expected-public-key ed25519:<out-of-band-public-key>
 ```
 
-The package manifest is inventory, not authority. The verifier rejects unsafe
-paths, duplicate or unlisted members, digest/size divergence, ambiguous roles,
-and pointer substitution. It then verifies the signed evidence through the
-normal Permit adjudicator, derives the Permit title and lifecycle state from
-the verified semantic binding, regenerates the summary, and rejects a packaged
-JSON human view whose title, status, or summary conflicts with that projection.
+Compact contract pins contain identity, version, and SHA-256 rather than copies
+of every registry. The verifier resolves each pin only against its bundled,
+append-only allowlist and fails closed when a pin is unknown or mismatched. It
+then derives the Permit title, lifecycle state, and summary from verified signed
+evidence. Editing any signed field therefore produces a TAMPERED verdict.
+
+Legacy `.keelpermit` ZIP packages remain supported. Their manifest is inventory,
+not authority: the verifier rejects unsafe paths, duplicate or unlisted members,
+digest/size divergence, ambiguous roles, and pointer substitution before it
+adjudicates the signed evidence.
 
 Use `--json` for the structured verification report plus regenerated human
 artifact. Use `--raw` for the legacy technical evidence output. Raw signed
@@ -95,7 +99,7 @@ remain advanced representations; they are not the default customer view.
 | Task | Command |
 | --- | --- |
 | Verify a self-attesting evidence bundle | `keel-verify export evidence_bundle.json` |
-| Verify a downloadable AI Permit | `keel-verify AI-Permit-to-Pay.keelpermit --expected-public-key ed25519:<key>` |
+| Verify a downloadable AI Permit | `keel-verify AI-Permit-to-Pay.json --expected-public-key ed25519:<key>` |
 | Verify a signed export | `keel-verify export export.json manifest.json` |
 | Walk lifecycle chain entries | `keel-verify export export.json manifest.json --walk-events` |
 | Verify closure records | `keel-verify export export.json manifest.json --walk-events --verify-closure` |

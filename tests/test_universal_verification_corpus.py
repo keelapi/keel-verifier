@@ -202,12 +202,15 @@ def test_ambiguous_semantic_selector_is_not_resolved(
 ) -> None:
     original = exact_v2._decode_pin
 
-    def duplicate_selector(pin, *, label, bundled_path, artifact_id):
+    def duplicate_selector(
+        pin, *, label, bundled_path, artifact_id, allow_compact=False
+    ):
         payload, digest = original(
             pin,
             label=label,
             bundled_path=bundled_path,
             artifact_id=artifact_id,
+            allow_compact=allow_compact,
         )
         if label == "semantic selector registry":
             payload = copy.deepcopy(payload)
