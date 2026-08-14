@@ -207,6 +207,9 @@ COPIES = {
     "consequence_registry/test-vectors/v14.json": (
         "permit_to_x/test_vectors/consequence_registry/v14.json"
     ),
+    "consequence_registry/test-vectors/v15.json": (
+        "permit_to_x/test_vectors/consequence_registry/v15.json"
+    ),
     "schemas/permit-human-artifact-v1.schema.json": (
         "permit_to_x/schemas/permit-human-artifact-v1.schema.json"
     ),
