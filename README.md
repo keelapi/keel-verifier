@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/keel-verifier.svg)](https://pypi.org/project/keel-verifier/)
 [![Python](https://img.shields.io/pypi/pyversions/keel-verifier.svg)](https://pypi.org/project/keel-verifier/)
 [![CI](https://github.com/keelapi/keel-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/keelapi/keel-verifier/actions/workflows/ci.yml)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14074/baseline)](https://www.bestpractices.dev/projects/14074)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Independent verifier for Permit-spec governance evidence and Keel audit exports.
