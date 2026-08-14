@@ -744,13 +744,14 @@ def test_v17_wave5_breadth_profiles_resolve_from_published_vectors() -> None:
 
 def test_v18_goal3a_portfolio_profiles_resolve_from_published_vectors() -> None:
     registry, raw = _registry("semantic_registry/v18.json")
-    vectors, _ = _registry("test_vectors/consequence_registry/v14.json")
+    vectors, _ = _registry("test_vectors/consequence_registry/v15.json")
     presentation, _ = _registry("presentation_registry/v17.json")
     profile_by_semantic = {
         item["semantic_id"]: item for item in presentation["profiles"]
     }
 
-    for vector in vectors["vectors"][-4:]:
+    assert len(vectors["vectors"]) == 96
+    for vector in vectors["vectors"]:
         semantic_id = vector["expected_semantic_id"]
         candidate = vector["candidate"]
         entry = next(

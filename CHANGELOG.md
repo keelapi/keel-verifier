@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 3.20.0
+
+- Publish the complete 96-action Portfolio Artifact Closure corpus, including
+  Great Bank's provider-shaped payment and refund aliases, and independently
+  adjudicate every action's exact semantic, fact profile, and AI Permit-to-X.
+- Ship the v15 portfolio vectors in the wheel and pin the release workflow to
+  `keel-permit v1.18.0` so PyPI installs contain the same released contract
+  bytes used by the issuer.
 - Vendor byte-identical Wave 5 consequence v12, semantic v17, fact-profile
   v15, presentation v16, exact-facts, and v13 vector artifacts from
   `keel-permit`.

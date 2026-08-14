@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -961,9 +962,46 @@ def _goal3a_portfolio_body_from_vector(vector: dict) -> dict:
         selector_registry_file="v18.json",
         fact_registry_file="v16.json",
     )
-    body["permit_decision"]["canonical_payload"]["issued_at"] = (
-        "2026-08-12T12:00:30Z"
+    if vector["expected_semantic_id"] == "keel.action.payment_execute.v1":
+        classification_corpus = json.loads(
+            (
+                PTX
+                / "test_vectors/action_classification_derivation/v1/corpus.json"
+            ).read_text(encoding="utf-8")
+        )
+        classification = copy.deepcopy(
+            next(
+                item["facts"]
+                for item in classification_corpus["vectors"]
+                if item["id"] == "positive-stripe-value-movement"
+            )
+        )
+        for attributes in (
+            body["permit_decision"]["resource_attributes_json"],
+            body["permit_receipt"]["action"]["resource_attributes_json"],
+        ):
+            attributes["payment_classification_v1"] = copy.deepcopy(
+                classification
+            )
+        body["permit_decision"]["canonical_payload"][
+            "resource_attributes_canonical_hash"
+        ] = canonical_resource_attributes_payload(
+            body["permit_decision"]["resource_attributes_json"]
+        )
+    observed_at = vector["valid_authorization_facts"].get(
+        "preflight_observed_at"
     )
+    if isinstance(observed_at, str) and observed_at.endswith("Z"):
+        issued_at = datetime.fromisoformat(
+            observed_at[:-1] + "+00:00"
+        ).astimezone(timezone.utc) + timedelta(seconds=30)
+        body["permit_decision"]["canonical_payload"]["issued_at"] = (
+            issued_at.isoformat().replace("+00:00", "Z")
+        )
+    else:
+        body["permit_decision"]["canonical_payload"]["issued_at"] = (
+            "2026-08-12T12:00:30Z"
+        )
     return body
 
 
@@ -2704,10 +2742,12 @@ def test_v17_wave5_preflight_must_be_fresh_at_authorization() -> None:
 
 def test_v18_goal3a_portfolio_profiles_verify_from_published_vectors() -> None:
     vectors = json.loads(
-        (PTX / "test_vectors/consequence_registry/v14.json").read_text(
+        (PTX / "test_vectors/consequence_registry/v15.json").read_text(
             encoding="utf-8"
         )
-    )["vectors"][-4:]
+    )["vectors"]
+
+    assert len(vectors) == 96
 
     for vector in vectors:
         result = adjudicate_permit_exact_v2_body(
@@ -2715,9 +2755,17 @@ def test_v18_goal3a_portfolio_profiles_verify_from_published_vectors() -> None:
             decision_verdict="supported",
         )
         claims = _claim_map(result)
-        assert result.semantic_id == vector["expected_semantic_id"]
+        assert result.semantic_id == vector["expected_semantic_id"], (
+            vector["id"],
+            {
+                name: (claim.verdict, claim.reason_code)
+                for name, claim in claims.items()
+            },
+        )
         assert result.fact_profile_id == vector["expected_fact_profile_id"]
-        assert result.authorized_action == vector["candidate"]["action_name"]
+        assert result.authorized_action == vector["valid_authorization_facts"][
+            "action"
+        ]
         assert claims["permit.type.v1"].verdict == "supported"
         assert claims["permit.exact_target.v1"].verdict == "supported"
         assert claims["permit.material_request.v1"].verdict == "supported"
