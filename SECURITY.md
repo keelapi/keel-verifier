@@ -9,8 +9,7 @@ current `main` branch.
 
 Please do not open a public issue for a suspected vulnerability.
 
-Use GitHub private vulnerability reporting for this repository, or email
-`security@keelapi.com` with:
+Email `security@keelapi.com` with:
 
 - the affected version or commit
 - a minimal reproduction or artifact, if available

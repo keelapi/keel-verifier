@@ -32,6 +32,9 @@ In practical terms:
 
 ## Quick Start
 
+`keel-verifier` requires Python 3.10 or newer. Install the released package and inspect
+the command you intend to use:
+
 ```bash
 python -m pip install keel-verifier
 keel-verify export --help
@@ -108,6 +111,29 @@ remain advanced representations; they are not the default customer view.
 | Verify a registered claim | `keel-verify claim delegation_denied_correctly --evidence-file evidence.json` |
 | Refresh cached trust roots | `keel-verify refresh-keys` |
 | Verify the installed wheel | `keel-verify self-check` |
+| Diagnose the local installation | `keel-verify doctor` |
+| Monitor checkpoint consistency once | `keel-verify monitor` |
+| Render structured verifier output | `keel-verify render verifier-output.json --format tree` |
+
+### Operational Commands
+
+`keel-verify doctor` checks the installed package, Python runtime, local trust material,
+and required tools without verification or network access. Add `--check-network` to opt
+in to endpoint reachability checks, and use `--json` for automation.
+
+`keel-verify monitor` fetches the public checkpoint-consistency surface once by default
+and records state in `~/.keel-verifier/checkpoint-monitor-state.json`. Use `--pin-file`
+to compare against a customer-pinned checkpoint root, `--require-rekor` to require Rekor
+material, or `--cycles` and `--interval` for repeated checks. This command uses the
+network; normal artifact verification does not.
+
+`keel-verify render` accepts a `verifier_output.v3.0` JSON document and renders `json`,
+`tree`, `graph`, or `html`. Rendering does not re-verify the evidence; verify first and
+render the resulting structured output.
+
+Every command provides command-specific usage with `--help`. Exit code `0` means the
+requested verification or diagnostic completed successfully, `1` means verification or
+a requested fail-closed diagnostic failed, and `2` means invalid CLI usage.
 
 ## What It Verifies
 
@@ -474,11 +500,20 @@ if claim["status"] != "supported":
 v2.0.0 introduces pack-pinned semantics and structured claim verdicts.
 The documented CLI invocation patterns still work, including `python -m keel_verifier <artifact>`.
 
-## Related Projects
+## Repository Scope and Related Projects
 
-- Permit Specification: https://github.com/keelapi/keel-permit
-- Reference API: https://github.com/keelapi/keel-api
-- Documentation: https://docs.keelapi.com
+This repository is the complete source code used to build the `keel-verifier` wheel and
+source distribution. No other source repository is compiled into those release assets.
+
+Related, independently released projects are:
+
+- [keel-permit](https://github.com/keelapi/keel-permit): the Permit specification and
+  golden conformance corpus. CI checks that corpus, but it is not compiled into the
+  `keel-verifier` release.
+- [keel-api](https://github.com/keelapi/keel-api): the reference issuer/API. It is not a
+  component of the verifier package.
+- [Keel documentation](https://docs.keelapi.com): user-facing documentation published
+  separately from this package.
 
 ## Maintainer
 

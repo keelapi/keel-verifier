@@ -19,6 +19,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate release tag metadata
+        run: >-
+          python -c
+          'import os, re, sys;
+          tag = os.environ["GITHUB_REF_NAME"];
+          sys.exit(0 if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) else
+          print(f"invalid release tag: {tag!r}", file=sys.stderr) or 1)'
+
       - name: Checkout released Permit contract
         uses: actions/checkout@v6
         with:
