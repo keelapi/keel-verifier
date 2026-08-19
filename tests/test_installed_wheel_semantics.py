@@ -30,7 +30,7 @@ from keel_verifier.semantics import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PERMIT_DECISION_GOLDEN_VECTOR_PATH = (
-    REPO_ROOT / "tests" / "fixtures" / "permit_decision_binding_golden_vectors_v1_v6.json"
+    REPO_ROOT / "tests" / "fixtures" / "permit_decision_binding_golden_vectors_v1_v7.json"
 )
 
 

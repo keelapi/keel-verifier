@@ -6,7 +6,7 @@
       "category": "issued_permits",
       "artifacts": [
         {
-          "path": "tests/fixtures/permit_decision_binding_golden_vectors_v1_v6.json",
+          "path": "tests/fixtures/permit_decision_binding_golden_vectors_v1_v7.json",
           "sha256": "dbe8e13fed12dc57135546d020fb1939c6a3663f31f727688cef1295385b6e34"
         }
       ],
