@@ -107,7 +107,7 @@
         "value_binding": "none"
       },
       "provider_wire_body_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-      "exact_request_review_hash": null
+      "exact_request_commitment": null
     },
     {
       "version": "keel.work_binding.v2",
@@ -129,7 +129,7 @@
         "currency": "USD"
       },
       "provider_wire_body_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "exact_request_review_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "exact_request_commitment": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     }
   ],
   "value_events": [
@@ -203,11 +203,12 @@
     "final_status": "denied",
     "final_reason_code": "work.root_value_limit_exhausted",
     "frozen_request_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
-    "exact_request_review_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "exact_request_commitment": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "review_evidence_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "provider_wire_body_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "decided_at": "2026-08-20T20:20:00Z",
     "binding_key_id": "permit-binding-key-2026",
-    "canonical_hash": "sha256:b47c1c247e052ddb280af35719331d4536b8257972411939afffdd17f1bd6010",
+    "canonical_hash": "sha256:4f3a47b96d4209deaac922de90c61434a3f915c3f1ca5d0ad4db35df7c6eb365",
     "signature": "ed25519:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
   },
   "provider_value_fact": {

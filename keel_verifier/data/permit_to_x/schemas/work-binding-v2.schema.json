@@ -13,7 +13,7 @@
     "exercised_by",
     "value_request",
     "provider_wire_body_digest",
-    "exact_request_review_hash"
+    "exact_request_commitment"
   ],
   "properties": {
     "version": {"const": "keel.work_binding.v2"},
@@ -29,7 +29,7 @@
         {"type": "null"}
       ]
     },
-    "exact_request_review_hash": {
+    "exact_request_commitment": {
       "oneOf": [
         {"$ref": "#/$defs/digest"},
         {"type": "null"}

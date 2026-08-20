@@ -472,7 +472,7 @@ def _build_pack(
             },
             "value_request": value_request,
             "provider_wire_body_digest": "sha256:" + body_hex * 64,
-            "exact_request_review_hash": (
+            "exact_request_commitment": (
                 "sha256:" + review_hex * 64 if review_hex is not None else None
             ),
         }
@@ -696,7 +696,14 @@ def _build_pack(
             "final_status": "denied",
             "final_reason_code": "work.root_value_limit_exhausted",
             "frozen_request_digest": "sha256:" + review_request,
-            "exact_request_review_hash": reviewed_binding["exact_request_review_hash"],
+            "exact_request_commitment": reviewed_binding["exact_request_commitment"],
+            "review_evidence_hash": _digest(
+                {
+                    "version": "keel.exact_request_review.v1",
+                    "permit_id": REVIEW_CHILD,
+                    "request_digest": "sha256:" + review_request,
+                }
+            ),
             "provider_wire_body_digest": reviewed_binding["provider_wire_body_digest"],
             "decided_at": "2026-08-20T20:10:00Z",
             "binding_key_id": binding_key_id,

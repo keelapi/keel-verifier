@@ -1337,8 +1337,8 @@ def _exact_review_v2(
                 or transition["root_permit_id"] != document["root_permit_id"]
                 or transition["authority_id"] != child["work_authority_id"]
                 or transition["frozen_request_digest"] != child["request_digest"]
-                or transition["exact_request_review_hash"]
-                != binding["exact_request_review_hash"]
+                or transition["exact_request_commitment"]
+                != binding["exact_request_commitment"]
                 or transition.get("provider_wire_body_digest")
                 != binding["provider_wire_body_digest"]
                 or transition["final_decision"] != child["decision"]
