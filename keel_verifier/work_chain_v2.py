@@ -598,15 +598,27 @@ def _authority_manifest_v2(
                     f"Work request and package disagree on {field}",
                     ("root.work_request", "root.work_package"),
                 )
-        if (
-            request.get("customer_value_pool") != package.get("customer_value_pool")
-            or request.get("not_before") != package.get("not_before")
-            or request.get("expires_at") != package.get("expires_at")
+        requested_pool = request.get("customer_value_pool")
+        issued_pool = package.get("customer_value_pool")
+        pool_conflicts = (requested_pool is None) != (issued_pool is None)
+        if isinstance(requested_pool, Mapping) and isinstance(issued_pool, Mapping):
+            pool_conflicts = pool_conflicts or (
+                issued_pool.get("value_domain") != requested_pool.get("value_domain")
+                or issued_pool.get("currency") != requested_pool.get("currency")
+                or int(issued_pool.get("value_max_minor", 0))
+                > int(requested_pool.get("value_max_minor", 0))
+            )
+        request_start = _parse_time(request["not_before"], field="request.not_before")
+        request_end = _parse_time(request["expires_at"], field="request.expires_at")
+        package_start = _parse_time(package["not_before"], field="package.not_before")
+        package_end = _parse_time(package["expires_at"], field="package.expires_at")
+        if pool_conflicts or not (
+            request_start <= package_start < package_end <= request_end
         ):
             raise _Failure(
                 "disproved",
                 "WORK_AUTHORITY_SCOPE_MISMATCH",
-                "Work request and package value pool or time window differ",
+                "issued Work value pool or time window exceeds the signed request",
                 ("root.work_request", "root.work_package"),
             )
 
@@ -641,10 +653,10 @@ def _authority_manifest_v2(
                 or authority["project_id"] != document["project_id"]
                 or authority["root_permit_id"] != root_id
                 or authority["trusted_action"] != lane["requested_action"]
-                or authority["max_uses"] != lane["max_uses"]
+                or authority["max_uses"] > lane["max_uses"]
                 or authority["value_binding"] != lane["requested_value_binding"]
                 or authority["automatic_review_threshold_minor"]
-                != lane["automatic_review_threshold_minor"]
+                > lane["automatic_review_threshold_minor"]
                 or authority["trusted_source_reference"]["source_id"]
                 != authority["trusted_action"]
             ):
@@ -654,7 +666,7 @@ def _authority_manifest_v2(
                     f"issued authority {authority_id} differs from its signed request",
                     (f"authorities[{index}]", "root.work_request"),
                 )
-            for field in ("value_max_minor", "currency", "recipient_digest", "purpose_digest"):
+            for field in ("currency", "recipient_digest", "purpose_digest"):
                 if lane.get(field) != authority.get(field):
                     raise _Failure(
                         "disproved",
@@ -662,6 +674,19 @@ def _authority_manifest_v2(
                         f"issued authority {authority_id} changes requested {field}",
                         (f"authorities[{index}]", "root.work_request"),
                     )
+            if (
+                lane.get("value_max_minor") is None
+            ) != (authority.get("value_max_minor") is None) or (
+                lane.get("value_max_minor") is not None
+                and int(authority["value_max_minor"])
+                > int(lane["value_max_minor"])
+            ):
+                raise _Failure(
+                    "disproved",
+                    "WORK_AUTHORITY_SCOPE_MISMATCH",
+                    f"issued authority {authority_id} exceeds requested value_max_minor",
+                    (f"authorities[{index}]", "root.work_request"),
+                )
             package_start = _parse_time(package["not_before"], field="package.not_before")
             package_end = _parse_time(package["expires_at"], field="package.expires_at")
             lane_start = _parse_time(authority["not_before"], field="authority.not_before")

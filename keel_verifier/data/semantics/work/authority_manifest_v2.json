@@ -13,7 +13,7 @@
       "recompute requested_authority_set_hash from the exported request and require every requested lane to be issued or explicitly excluded",
       "recompute every authority_canonical_hash with that field omitted",
       "recompute the sorted issued authority set and root package hashes",
-      "require exact project, root, resource, Policy and time correspondence",
+      "require exact project, root and resource correspondence, one pinned Policy snapshot, and issued limits and time windows no broader than the signed request",
       "require each authority delegation to reference one issued lane and one verified principal",
       "require every monetary lane to use the finite customer value pool currency",
       "require non-monetary roots to omit a customer value pool"
