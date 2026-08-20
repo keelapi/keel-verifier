@@ -1,0 +1,23 @@
+{
+  "id": "keel.permit_chain.execution_authorized_at_boundary.v2",
+  "version": "v2",
+  "kind": "work_execution_boundary_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit_chain.execution_authorized_at_boundary.v2",
+    "preconditions": ["permit.work_child_containment.v2", "permit.valid_at_dispatch.v1"],
+    "checks": [
+      "resolve one pre-effect signed dispatch-boundary artifact to the exact child request",
+      "verify root, authority, child, delegation, principal and authenticated credential liveness",
+      "reconstruct scoped root, authority, child, delegation, principal and credential revocations through the boundary time",
+      "verify exact review, current Policy, reservation, revocation, expiry and idempotency state",
+      "verify the provider wire body digest equals the authorized final request digest",
+      "require dispatch ownership to commit before provider network egress"
+    ],
+    "non_claims": [
+      "does not establish provider acceptance or completion",
+      "does not establish settlement",
+      "does not establish absence of effects outside the governed boundary"
+    ]
+  }
+}

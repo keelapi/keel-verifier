@@ -1,5 +1,36 @@
 # Changelog
 
+## 3.23.0
+
+### Added
+
+- Verify the canonical `keel.work_authority.v2` evidence pack from
+  keel-permit 1.21.0, including the exact signed Work request, complete lane
+  partition, heterogeneous actions, distinct authenticated principals, signed
+  delegations, and scoped root/authority/delegation/principal/credential
+  revocations.
+- Reconstruct one root-wide customer-economic-value pool across all monetary
+  lanes. Non-monetary lanes must consume zero and cannot convert AI/model
+  compute authority into customer spend authority.
+- Verify signed provider facts for `provider_verified` value. A caller-supplied
+  value-mode label without exact provider evidence fails closed.
+- Verify exact frozen-request review transitions independently from the final
+  decision. Human approval can be authentic while the resumed request is
+  denied under current authority, and a denied child cannot carry dispatch.
+- Recompute the non-authorizing `AI Permit-to-Work` summary and disprove any
+  mutation of the reported pool, lane, principal, decision, or review result.
+- Resolve `AI Permit-to-Place-Outbound-Call` only from the current signed
+  server-controlled semantic and exact-fact contracts. Missing or inconsistent
+  trusted facts safely downgrade to a generic Permit title.
+
+### Compatibility
+
+- Keep Work v1 on its unchanged payment-only verifier path and permanent
+  semantic allowlist. Work v2 uses an independently pinned exact-pack profile;
+  unsupported future Work versions still fail closed.
+- Accept Work v2 through both the Python entry point and `keel-verify` CLI
+  without changing the legacy Work v1 input tuple.
+
 ## 3.22.0
 
 ### Added

@@ -21,6 +21,7 @@ COPIES = {
     "claim_registry/v3.json": "claim_registry/v3.json",
     "claim_registry/v4.json": "claim_registry/v4.json",
     "claim_registry/v5.json": "claim_registry/v5.json",
+    "claim_registry/v6.json": "claim_registry/v6.json",
     "schemas/permit-co-signature-v2.schema.json": (
         "permit_to_x/schemas/permit-co-signature-v2.schema.json"
     ),
@@ -105,6 +106,8 @@ COPIES = {
     "semantic_registry/v17.schema.json": ("permit_to_x/semantic_registry/v17.schema.json"),
     "semantic_registry/v18.json": "permit_to_x/semantic_registry/v18.json",
     "semantic_registry/v18.schema.json": ("permit_to_x/semantic_registry/v18.schema.json"),
+    "semantic_registry/v19.json": "permit_to_x/semantic_registry/v19.json",
+    "semantic_registry/v19.schema.json": ("permit_to_x/semantic_registry/v19.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -139,6 +142,8 @@ COPIES = {
     "presentation_registry/v16.schema.json": ("permit_to_x/presentation_registry/v16.schema.json"),
     "presentation_registry/v17.json": "permit_to_x/presentation_registry/v17.json",
     "presentation_registry/v17.schema.json": ("permit_to_x/presentation_registry/v17.schema.json"),
+    "presentation_registry/v18.json": "permit_to_x/presentation_registry/v18.json",
+    "presentation_registry/v18.schema.json": ("permit_to_x/presentation_registry/v18.schema.json"),
     "consequence_registry/v13.json": "permit_to_x/consequence_registry/v13.json",
     "consequence_registry/v13.schema.json": ("permit_to_x/consequence_registry/v13.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
@@ -368,8 +373,32 @@ COPIES = {
     "schemas/work-chain-pack-v1.schema.json": (
         "permit_to_x/schemas/work-chain-pack-v1.schema.json"
     ),
+    "schemas/work-request-v2.schema.json": ("permit_to_x/schemas/work-request-v2.schema.json"),
+    "schemas/work-package-v2.schema.json": ("permit_to_x/schemas/work-package-v2.schema.json"),
+    "schemas/work-authority-v2.schema.json": ("permit_to_x/schemas/work-authority-v2.schema.json"),
+    "schemas/work-binding-v2.schema.json": ("permit_to_x/schemas/work-binding-v2.schema.json"),
+    "schemas/work-value-event-v2.schema.json": ("permit_to_x/schemas/work-value-event-v2.schema.json"),
+    "schemas/work-review-transition-v1.schema.json": (
+        "permit_to_x/schemas/work-review-transition-v1.schema.json"
+    ),
+    "schemas/provider-value-fact-v1.schema.json": (
+        "permit_to_x/schemas/provider-value-fact-v1.schema.json"
+    ),
+    "schemas/work-summary-v1.schema.json": ("permit_to_x/schemas/work-summary-v1.schema.json"),
+    "schemas/work-chain-pack-v2.schema.json": (
+        "permit_to_x/schemas/work-chain-pack-v2.schema.json"
+    ),
+    "schemas/work-dispatch-boundary-v2.schema.json": (
+        "permit_to_x/schemas/work-dispatch-boundary-v2.schema.json"
+    ),
+    "schemas/telephony-call-outbound-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/telephony-call-outbound-exact-facts-v1.schema.json"
+    ),
     "comparator_registry/work-payment-authority-v1.json": (
         "comparator_registry/work-payment-authority-v1.json"
+    ),
+    "comparator_registry/work-action-authority-v2.json": (
+        "comparator_registry/work-action-authority-v2.json"
     ),
     "semantics/work/authority_manifest_v1.json": ("semantics/work/authority_manifest_v1.json"),
     "semantics/work/child_containment_v1.json": ("semantics/work/child_containment_v1.json"),
@@ -377,9 +406,31 @@ COPIES = {
         "semantics/work/execution_authorized_at_boundary_v1.json"
     ),
     "semantics/work/value_conservation_v1.json": ("semantics/work/value_conservation_v1.json"),
+    "semantics/work/authority_manifest_v2.json": ("semantics/work/authority_manifest_v2.json"),
+    "semantics/work/child_containment_v2.json": ("semantics/work/child_containment_v2.json"),
+    "semantics/work/execution_authorized_at_boundary_v2.json": (
+        "semantics/work/execution_authorized_at_boundary_v2.json"
+    ),
+    "semantics/work/value_conservation_v2.json": ("semantics/work/value_conservation_v2.json"),
+    "semantics/work/exact_review_v1.json": ("semantics/work/exact_review_v1.json"),
+    "semantics/work/provider_value_fact_v1.json": (
+        "semantics/work/provider_value_fact_v1.json"
+    ),
+    "semantics/work/summary_v1.json": ("semantics/work/summary_v1.json"),
     "test-vectors/permit_to_work/v1/corpus.json": (
         "permit_to_x/test_vectors/permit_to_work/v1/corpus.json"
     ),
+    "test-vectors/permit_to_work/v2/authority-vectors.json": (
+        "permit_to_x/test_vectors/permit_to_work/v2/authority-vectors.json"
+    ),
+    "test-vectors/permit_to_work/v2/contract-vectors.json": (
+        "permit_to_x/test_vectors/permit_to_work/v2/contract-vectors.json"
+    ),
+    "test-vectors/telephony-call-outbound-v1.json": (
+        "permit_to_x/test_vectors/telephony-call-outbound-v1.json"
+    ),
+    "fact_profiles/v17.json": "permit_to_x/fact_profiles/v17.json",
+    "fact_profiles/v17.schema.json": "permit_to_x/fact_profiles/v17.schema.json",
 }
 
 

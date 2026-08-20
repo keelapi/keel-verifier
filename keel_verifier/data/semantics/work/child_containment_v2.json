@@ -1,0 +1,25 @@
+{
+  "id": "keel.permit.work_child_containment.v2",
+  "version": "v2",
+  "kind": "work_child_containment_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_child_containment.v2",
+    "preconditions": ["permit.work_authority_manifest.v2", "permit.decision.v1"],
+    "checks": [
+      "resolve each signed work_binding_v2 to the exact root package and authority hashes",
+      "require exact trusted action, semantic, resource, time and request correspondence",
+      "require the signed work binding value_request to match the authority value_binding and exact declared amount when caller-declared value is used",
+      "require the signed provider wire body and exact-review commitments to match downstream evidence",
+      "require exercised_by to match the root principal or exact signed lane delegation",
+      "require the authenticated credential identifier digest to be signed into the child binding",
+      "require value_binding none to carry no monetary reservation or consumption",
+      "require declared_bounded value to match the exact signed request",
+      "require provider_verified value to resolve one supported signed provider fact bound to the exact request and provider body"
+    ],
+    "non_claims": [
+      "does not establish current dispatch-time liveness",
+      "does not establish provider outcome or settlement"
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-request-v2.schema.json",
+  "title": "Keel heterogeneous work request v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "declared_purpose",
+    "resource",
+    "requested_authorities",
+    "required_authority_ids",
+    "not_before",
+    "expires_at"
+  ],
+  "properties": {
+    "version": {"type": "string", "const": "keel.work_request.v2"},
+    "declared_purpose": {"type": "string", "minLength": 1, "maxLength": 500},
+    "job_reference": {"type": "string", "minLength": 1, "maxLength": 200},
+    "existing_authority": {"$ref": "#/$defs/existing_authority"},
+    "resource": {"$ref": "#/$defs/resource"},
+    "requested_authorities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/action_authority_request"}
+    },
+    "required_authority_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/authority_id"}
+    },
+    "customer_value_pool": {"$ref": "#/$defs/customer_value_pool"},
+    "not_before": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "authority_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "digest"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1, "maxLength": 100},
+        "id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "existing_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "root_permit_id"],
+      "properties": {
+        "mode": {"type": "string", "enum": ["replace_existing", "add_separate"]},
+        "root_permit_id": {"type": "string", "format": "uuid"},
+        "combined_risk_acknowledged": {"type": "boolean"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"mode": {"const": "add_separate"}}, "required": ["mode"]},
+          "then": {
+            "required": ["combined_risk_acknowledged"],
+            "properties": {"combined_risk_acknowledged": {"const": true}}
+          }
+        }
+      ]
+    },
+    "customer_value_pool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value_domain", "value_max_minor", "currency"],
+      "properties": {
+        "value_domain": {"const": "customer_economic_value"},
+        "value_max_minor": {"type": "integer", "minimum": 1},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    },
+    "action_authority_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "requested_action",
+        "max_uses",
+        "requested_value_binding",
+        "automatic_review_threshold_minor"
+      ],
+      "properties": {
+        "authority_id": {"$ref": "#/$defs/authority_id"},
+        "requested_action": {"type": "string", "minLength": 1, "maxLength": 255},
+        "max_uses": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "requested_value_binding": {
+          "type": "string",
+          "enum": ["none", "declared_bounded", "provider_verified"]
+        },
+        "value_max_minor": {"type": "integer", "minimum": 1},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "automatic_review_threshold_minor": {"type": "integer", "minimum": 0},
+        "recipient_digest": {"$ref": "#/$defs/digest"},
+        "purpose_digest": {"$ref": "#/$defs/digest"},
+        "delegated_principal_id": {"type": "string", "format": "uuid"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"requested_value_binding": {"const": "none"}},
+            "required": ["requested_value_binding"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {"required": ["value_max_minor"]},
+                {"required": ["currency"]}
+              ]
+            }
+          },
+          "else": {"required": ["value_max_minor", "currency"]}
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "version": "keel.telephony_call_outbound_vectors.v1",
+  "candidate": {
+    "trusted_source_kind": "telephony_origination_service",
+    "permit_product": "permit",
+    "action_name": "call.outbound",
+    "operation": "call.outbound",
+    "chain_role": "action_child",
+    "evidence_capabilities": ["authorization", "dispatch", "provider_outcome"]
+  },
+  "expected_semantic_id": "keel.action.telephony_call_outbound.v1",
+  "expected_title": "AI Permit-to-Place-Outbound-Call",
+  "expected_fact_profile_id": "keel.facts.telephony_call_outbound_exact.v1",
+  "valid_authorization_facts": {
+    "version": "keel.telephony_call_outbound_exact_facts.v1",
+    "fact_profile_id": "keel.facts.telephony_call_outbound_exact.v1",
+    "action": "call.outbound",
+    "connector_identity": "voice-gateway-project-1",
+    "connector_type": "vocal_bridge_direct",
+    "provider_environment": "provider_sandbox",
+    "destination_reference_commitment": {
+      "method": "keel.salted_sha256_jcs.v1",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "destination_allowlisted": true,
+    "destination_allowlist_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "destination_country_code": "1",
+    "originating_principal_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "work_root_permit_id": "22222222-2222-4222-8222-222222222222",
+    "work_authority_id": "phone-lane",
+    "action_access_level": "write",
+    "action_risk_tags": ["external_state_change", "telephony"],
+    "provider_wire_body_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "request_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "idempotency_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "negative_cases": [
+    {
+      "id": "caller-cannot-select-source-kind",
+      "target": "candidate.trusted_source_kind",
+      "value": "action_verb_execute",
+      "expected": "fallback"
+    },
+    {
+      "id": "wrong-action-does-not-select-profile",
+      "target": "candidate.action_name",
+      "value": "payment.execute",
+      "expected": "fallback"
+    },
+    {
+      "id": "wrong-connector-cannot-earn-title",
+      "target": "valid_authorization_facts.connector_type",
+      "value": "generic_http",
+      "expected": "facts_invalid"
+    },
+    {
+      "id": "caller-cannot-assert-allowlisted-false",
+      "target": "valid_authorization_facts.destination_allowlisted",
+      "value": false,
+      "expected": "facts_invalid"
+    },
+    {
+      "id": "wire-body-binding-required",
+      "target": "valid_authorization_facts.provider_wire_body_digest",
+      "operation": "delete",
+      "expected": "facts_invalid"
+    },
+    {
+      "id": "raw-phone-number-forbidden",
+      "target": "valid_authorization_facts.destination",
+      "value": "+14155550123",
+      "expected": "facts_invalid"
+    }
+  ]
+}

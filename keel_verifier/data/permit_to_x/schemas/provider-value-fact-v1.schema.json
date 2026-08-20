@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/provider-value-fact-v1.schema.json",
+  "title": "Keel trusted provider value fact v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "project_id",
+    "root_permit_id",
+    "authority_id",
+    "child_permit_id",
+    "request_digest",
+    "connector_identity",
+    "connector_type",
+    "provider_environment",
+    "provider_wire_body_digest",
+    "amount_minor",
+    "currency",
+    "provider_response_digest",
+    "observed_at",
+    "signing_key_id",
+    "canonical_hash",
+    "signature"
+  ],
+  "properties": {
+    "version": {"const": "keel.provider_value_fact.v1"},
+    "fact_profile_id": {"type": "string", "pattern": "^keel\\.facts\\.[a-z0-9._-]+\\.v[0-9]+$"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "child_permit_id": {"type": "string", "format": "uuid"},
+    "request_digest": {"$ref": "#/$defs/digest"},
+    "connector_identity": {"type": "string", "minLength": 1},
+    "connector_type": {"type": "string", "minLength": 1},
+    "provider_environment": {"enum": ["provider_sandbox", "provider_live"]},
+    "provider_wire_body_digest": {"$ref": "#/$defs/digest"},
+    "amount_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "provider_object_commitment": {"$ref": "#/$defs/digest"},
+    "provider_response_digest": {"$ref": "#/$defs/digest"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "signing_key_id": {"type": "string", "minLength": 1},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v6.json",
+  "title": "Verifier Claim Registry - v6",
+  "version": "verifier-claims.v6",
+  "description": "Heterogeneous multi-principal Work v2 claims. These claims preserve the narrower Work v1 claims and do not infer provider outcome from valid authorization evidence.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v5",
+    "version": "verifier-claims.v5",
+    "sha256": "14b028e81b610c905ab923ce449c480352d56922e211023a6075e46592ce93d0"
+  },
+  "verdict_enum": [
+    "supported",
+    "disproved",
+    "insufficient_evidence",
+    "unverifiable_scope"
+  ],
+  "claims": [
+    {
+      "name": "permit.work_authority_manifest.v2",
+      "assertion": "A signed Work v2 package binds one exact heterogeneous authority population, one verified root principal, exact lane delegations, and at most one finite single-currency customer-economic-value pool.",
+      "required_evidence": "A supported signed Work root Permit; strict keel.work_package.v2; every strict keel.work_authority.v2 object; canonical authority and set hashes; exact delegation population; and matching project, root, resource, Policy, and time identities.",
+      "does_not_establish": [
+        "Policy correctness",
+        "current delegation or credential liveness",
+        "dispatch",
+        "provider acceptance or completion",
+        "financial settlement",
+        "AI or model compute spend"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit.work_child_containment.v2",
+      "assertion": "Each supplied Work v2 child is bound to one signed lane, exact action and resource, authenticated exercising principal, root delegation, value-binding mode, and supported trusted facts required by that mode.",
+      "required_evidence": "A supported Work v2 authority manifest; signed exact child Permit; signed keel.work_binding.v2; matching request, action, semantic, resource, principal, delegation, credential digest, window, use, value and provider-fact material; and self-contained referenced artifact bytes.",
+      "does_not_establish": [
+        "current dispatch-time liveness",
+        "provider acceptance or completion",
+        "financial settlement",
+        "conversation content or agreement"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit_chain.execution_authorized_at_boundary.v2",
+      "assertion": "A supplied Work v2 dispatch-boundary record is pre-effect, signed, exact-request-bound, and records successful rechecks of the root, lane, child, delegation, principal, authenticated credential, review, Policy, reservation, revocation, expiry, idempotency, and provider body.",
+      "required_evidence": "A supported contained Work v2 child and a signature-valid dispatch-boundary artifact whose exact identities, hashes, timestamps, liveness checks, and gate outcome match that child and its signed authority chain.",
+      "does_not_establish": [
+        "provider acceptance or completion",
+        "financial settlement",
+        "absence of execution outside the governed boundary",
+        "future authority liveness"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit.work_value_conservation.v2",
+      "assertion": "One root-wide hash-linked customer-economic-value ledger conserves the signed finite Work v2 pool across every monetary lane and principal while non-monetary lanes consume none of that pool.",
+      "required_evidence": "A supported Work v2 authority manifest; complete signed-scope population of strict keel.work_value_event.v2 events; monotonic root sequences and event hashes; exact reservation identities; matching currency; recomputed after-state; and supported provider facts for provider-verified consumption.",
+      "does_not_establish": [
+        "AI or model compute spend",
+        "provider acceptance or completion",
+        "financial settlement unless separately claimed",
+        "activity outside the declared Keel-recorded scope"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit.work_exact_review.v1",
+      "assertion": "Each supplied Work review transition is signature-valid, freezes the exact challenged request, records the human outcome, and separately records the authorization result after current Work authority and Policy were re-evaluated.",
+      "required_evidence": "A supported challenged Work v2 child; strict signed keel.work_review_transition.v1; matching root, lane, project, Permit, request and review hashes; matching terminal decision state; current-phase Policy snapshot; and no dispatch evidence when the final decision is deny.",
+      "does_not_establish": [
+        "the natural-person identity or organizational role behind actor_id",
+        "that human approval is authorization",
+        "dispatch",
+        "provider success",
+        "financial settlement"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    }
+  ]
+}

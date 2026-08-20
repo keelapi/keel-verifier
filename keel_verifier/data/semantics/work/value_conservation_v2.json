@@ -1,0 +1,26 @@
+{
+  "id": "keel.permit.work_value_conservation.v2",
+  "version": "v2",
+  "kind": "work_customer_value_conservation_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_value_conservation.v2",
+    "preconditions": ["permit.work_authority_manifest.v2", "export.integrity.v1"],
+    "event_version": "keel.work_value_event.v2",
+    "checks": [
+      "events form one continuous root_sequence and previous_root_event_hash chain",
+      "recompute each event_canonical_hash with that field omitted",
+      "reject duplicate event, reservation or idempotency transition identities",
+      "recompute reserved, consumed and remaining customer value after every event",
+      "require every monetary lane and event to use the signed root currency",
+      "require reserved plus consumed never to exceed the signed root limit",
+      "require non-monetary lanes to have no root value event",
+      "require provider_verified consumption to reference one supported exact provider value fact"
+    ],
+    "ledger_boundary": "customer economic value only; AI and model compute use a separate Keel authority and ledger",
+    "non_claims": [
+      "does not establish provider outcome or financial settlement",
+      "does not account for activity outside the signed declared scope"
+    ]
+  }
+}

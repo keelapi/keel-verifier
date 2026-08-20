@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-summary-v1.schema.json",
+  "title": "Verifier-derived Work summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "derivation",
+    "title",
+    "state_label",
+    "text",
+    "root_permit_id",
+    "customer_value_pool",
+    "ai_compute_budget_boundary",
+    "lanes",
+    "evidence_boundary"
+  ],
+  "properties": {
+    "version": {"const": "keel.work_summary.v1"},
+    "derivation": {"const": "verifier_from_verified_work_fields"},
+    "title": {"const": "AI Permit-to-Work"},
+    "state_label": {"enum": ["active", "ended", "expired", "revoked"]},
+    "text": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "customer_value_pool": {
+      "oneOf": [
+        {"$ref": "#/$defs/root_value_state"},
+        {"type": "null"}
+      ]
+    },
+    "ai_compute_budget_boundary": {
+      "const": "separate_keel_authority_not_in_work_customer_value_pool"
+    },
+    "lanes": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/lane"}
+    },
+    "evidence_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["establishes", "does_not_establish"],
+      "properties": {
+        "establishes": {"type": "array", "items": {"type": "string"}},
+        "does_not_establish": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "$defs": {
+    "root_value_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value_domain",
+        "value_max_minor",
+        "currency",
+        "reserved_value_minor",
+        "consumed_value_minor",
+        "remaining_value_minor"
+      ],
+      "properties": {
+        "value_domain": {"const": "customer_economic_value"},
+        "value_max_minor": {"type": "integer", "minimum": 1},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "reserved_value_minor": {"type": "integer", "minimum": 0},
+        "consumed_value_minor": {"type": "integer", "minimum": 0},
+        "remaining_value_minor": {"type": "integer", "minimum": 0}
+      }
+    },
+    "lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "action",
+        "permit_title",
+        "principal_id",
+        "value_binding",
+        "max_uses",
+        "child_decisions"
+      ],
+      "properties": {
+        "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+        "action": {"type": "string", "minLength": 1},
+        "permit_title": {"type": "string", "minLength": 1, "maxLength": 160},
+        "principal_id": {"type": "string", "format": "uuid"},
+        "value_binding": {"enum": ["none", "declared_bounded", "provider_verified"]},
+        "max_uses": {"type": "integer", "minimum": 1},
+        "child_decisions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["allow", "deny", "challenge"],
+          "properties": {
+            "allow": {"type": "integer", "minimum": 0},
+            "deny": {"type": "integer", "minimum": 0},
+            "challenge": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    }
+  }
+}

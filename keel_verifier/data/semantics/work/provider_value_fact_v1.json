@@ -1,0 +1,24 @@
+{
+  "id": "keel.work.provider_value_fact.v1",
+  "version": "v1",
+  "kind": "work_provider_value_fact_signature_recipe",
+  "status": "contract_only",
+  "body": {
+    "schema": "schemas/provider-value-fact-v1.schema.json",
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "hash_rule": "lowercase SHA-256 of RFC 8785/JCS bytes with canonical_hash and signature omitted",
+    "signature_rule": "Ed25519 signature over the ASCII lowercase 64-hex canonical hash suffix",
+    "key_purpose": "provider_fact_signing",
+    "checks": [
+      "resolve exactly one trusted provider-fact key active at observed_at",
+      "bind exact project, root, authority, child, request and provider wire body",
+      "bind connector identity, type, environment, amount, currency and response digest",
+      "require amount and currency to fit the signed provider_verified authority and root pool"
+    ],
+    "non_claims": [
+      "does not establish dispatch",
+      "does not establish provider acceptance or completion",
+      "does not establish financial settlement"
+    ]
+  }
+}

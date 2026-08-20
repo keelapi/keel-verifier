@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-binding-v2.schema.json",
+  "title": "Keel Work child binding v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "root_permit_id",
+    "authority_id",
+    "authority_canonical_hash",
+    "root_manifest_hash",
+    "exercised_by",
+    "value_request",
+    "provider_wire_body_digest",
+    "exact_request_review_hash"
+  ],
+  "properties": {
+    "version": {"const": "keel.work_binding.v2"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "authority_canonical_hash": {"$ref": "#/$defs/digest"},
+    "root_manifest_hash": {"$ref": "#/$defs/digest"},
+    "exercised_by": {"$ref": "#/$defs/exercised_by"},
+    "value_request": {"$ref": "#/$defs/value_request"},
+    "provider_wire_body_digest": {
+      "oneOf": [
+        {"$ref": "#/$defs/digest"},
+        {"type": "null"}
+      ]
+    },
+    "exact_request_review_hash": {
+      "oneOf": [
+        {"$ref": "#/$defs/digest"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "exercised_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verified_principal_id",
+        "root_principal_id",
+        "delegated_principal_id",
+        "delegation_id",
+        "authenticated_credential_id_digest"
+      ],
+      "properties": {
+        "verified_principal_id": {"type": "string", "format": "uuid"},
+        "root_principal_id": {"type": "string", "format": "uuid"},
+        "delegated_principal_id": {"type": ["string", "null"], "format": "uuid"},
+        "delegation_id": {"type": ["string", "null"], "format": "uuid"},
+        "authenticated_credential_id_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "value_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "value_binding"],
+      "properties": {
+        "version": {"const": "keel.work_value_request.v2"},
+        "value_binding": {
+          "enum": ["none", "declared_bounded", "provider_verified"]
+        },
+        "declared_amount_minor": {"type": "integer", "minimum": 1},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"value_binding": {"const": "declared_bounded"}},
+            "required": ["value_binding"]
+          },
+          "then": {"required": ["declared_amount_minor", "currency"]},
+          "else": {
+            "not": {
+              "anyOf": [
+                {"required": ["declared_amount_minor"]},
+                {"required": ["currency"]}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

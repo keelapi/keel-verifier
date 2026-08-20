@@ -1,0 +1,4288 @@
+{
+  "$schema": "./v18.schema.json",
+  "artifact_id": "keel.permit.presentation_registry",
+  "version": "keel.presentation_registry.v18",
+  "semantic_registry_version": "keel.semantic_selector_registry.v19",
+  "allowed_leading_fields": [
+    "declared_purpose",
+    "job_reference",
+    "resource",
+    "amount",
+    "currency",
+    "recipient",
+    "provider",
+    "model",
+    "request_digest",
+    "session_id",
+    "linked_to"
+  ],
+  "allowed_evidence_sections": [
+    "record_identity",
+    "authorization",
+    "approval",
+    "relationship",
+    "limits",
+    "dispatch",
+    "provider_outcome",
+    "authority_lifecycle",
+    "value_conservation",
+    "settlement",
+    "evidence_scope"
+  ],
+  "human_artifact_contract": {
+    "artifact_schema": "schemas/permit-human-artifact-v1.schema.json",
+    "package_manifest_schema": "schemas/permit-package-manifest-v1.schema.json",
+    "default_view": "human",
+    "title_source": "verified_semantic_profile",
+    "state_titles": {
+      "denial": "AI Action Denied",
+      "review": "AI Action Awaiting Approval"
+    },
+    "status_labels": {
+      "authorized": "Authorized, not dispatched",
+      "dispatched": "Dispatched, provider outcome pending",
+      "provider_accepted": "Provider accepted",
+      "provider_completed": "Provider reported completion",
+      "provider_rejected": "Provider rejected",
+      "outcome_unknown": "External outcome unknown",
+      "expired_unused": "Expired unused",
+      "revoked": "Revoked",
+      "denied": "Denied before dispatch",
+      "awaiting_approval": "No dispatch before approval"
+    },
+    "summary": {
+      "position": "end",
+      "derivation": "verifier_from_verified_fields",
+      "template": "semantics/permit/human_summary_v1.json",
+      "required_inputs": [
+        "artifact_kind",
+        "agent",
+        "action",
+        "target",
+        "issued_at",
+        "expires_at",
+        "dispatch_state",
+        "provider_state",
+        "provider_object_id",
+        "integrity_verdict",
+        "trust_mode"
+      ],
+      "missing_value_rule": "omit_never_invent"
+    },
+    "lifecycle_fields": {
+      "required": [
+        "issued_at",
+        "expires_at",
+        "status"
+      ],
+      "optional": [
+        "expiry_limiting_source",
+        "dispatched_at",
+        "first_used_at",
+        "last_used_at",
+        "use_count",
+        "max_uses",
+        "revoked_at",
+        "verified_at"
+      ]
+    },
+    "advanced_representations": [
+      "signed_evidence_json",
+      "canonical_signed_bytes",
+      "canonical_signed_bytes_hex",
+      "canonical_signed_bytes_base64",
+      "signatures",
+      "digests",
+      "contract_pins"
+    ],
+    "package_trust_rule": "verify_signed_evidence_and_regenerate_human_view"
+  },
+  "profiles": [
+    {
+      "semantic_id": "keel.context.work.v1",
+      "presentation_profile_id": "permit_to_work.r1",
+      "customer_title": "AI Permit-to-Work",
+      "type_definition": "Authorization for one bounded AI job",
+      "leading_fields": [
+        {
+          "field": "declared_purpose",
+          "label": "Declared purpose"
+        },
+        {
+          "field": "job_reference",
+          "label": "Job reference"
+        },
+        {
+          "field": "resource",
+          "label": "Resource"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "authority_lifecycle",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "business_job_completion",
+        "provider_success",
+        "financial_settlement",
+        "comprehensive_runtime_recording"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_execute.v1",
+      "presentation_profile_id": "permit_to_pay.r1",
+      "customer_title": "AI Permit-to-Pay",
+      "type_definition": "Exact payment authorization",
+      "leading_fields": [
+        {
+          "field": "amount",
+          "label": "Amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Recipient"
+        },
+        {
+          "field": "linked_to",
+          "label": "Linked to"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "settlement"
+      ],
+      "does_not_establish": [
+        "provider_success",
+        "financial_settlement"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.generate_text.v1",
+      "presentation_profile_id": "permit_to_generate_text.r2",
+      "customer_title": "AI Permit-to-Generate Text",
+      "type_definition": "Exact text-generation authorization through a certified adapter",
+      "leading_fields": [
+        {
+          "field": "provider",
+          "label": "Provider"
+        },
+        {
+          "field": "model",
+          "label": "Model"
+        },
+        {
+          "field": "request_digest",
+          "label": "Request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Linked to"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome"
+      ],
+      "does_not_establish": [
+        "provider_success",
+        "content_truth_or_quality"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_refund.v1",
+      "presentation_profile_id": "permit_to_refund_payment.r1",
+      "customer_title": "AI Permit-to-Refund-Payment",
+      "type_definition": "Exact bounded payment-refund authorization",
+      "leading_fields": [
+        {
+          "field": "amount",
+          "label": "Maximum amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Payer"
+        },
+        {
+          "field": "linked_to",
+          "label": "Original payment"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome"
+      ],
+      "does_not_establish": [
+        "processor_acceptance",
+        "funds_returned",
+        "financial_settlement"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.agent_delegate.v1",
+      "presentation_profile_id": "permit_to_delegate.r1",
+      "customer_title": "AI Permit-to-Delegate",
+      "type_definition": "Exact bounded delegation authorization",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Intended child"
+        },
+        {
+          "field": "declared_purpose",
+          "label": "Purpose"
+        },
+        {
+          "field": "linked_to",
+          "label": "Parent authority"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "authority_lifecycle",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "general_agent_identity_registration",
+        "independent_human_identity",
+        "activity outside delegated scope"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.context.realtime_session.v1",
+      "presentation_profile_id": "realtime_session.r1",
+      "customer_title": "AI Permit — Realtime session",
+      "type_definition": "Bounded realtime session authority",
+      "leading_fields": [
+        {
+          "field": "session_id",
+          "label": "Session"
+        },
+        {
+          "field": "provider",
+          "label": "Provider"
+        },
+        {
+          "field": "model",
+          "label": "Model"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "participant_identity",
+        "recording_consent",
+        "authority_to_represent",
+        "business_job_completion",
+        "comprehensive_runtime_recording"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "generic_qualified"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_insert.v1",
+      "presentation_profile_id": "database_rows_insert.r1",
+      "customer_title": "AI Permit-to-Insert-Database-Rows",
+      "type_definition": "Exact authorization to insert bounded rows into one database table",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table"
+        },
+        {
+          "field": "request_digest",
+          "label": "Rows"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_table",
+        "business_validity_of_inserted_data"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_update.v1",
+      "presentation_profile_id": "database_rows_update.r1",
+      "customer_title": "AI Permit-to-Update-Database-Rows",
+      "type_definition": "Exact authorization to update bounded rows matching one mandatory predicate",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Changes"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "business_validity_of_updated_data"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_rows_delete.v1",
+      "presentation_profile_id": "database_rows_delete.r1",
+      "customer_title": "AI Permit-to-Delete-Database-Rows",
+      "type_definition": "Exact authorization to delete bounded rows matching one mandatory predicate",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Table and predicate"
+        },
+        {
+          "field": "request_digest",
+          "label": "Delete request"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "effects_outside_the_bound_predicate",
+        "recoverability_of_deleted_data"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_migration_apply.v1",
+      "presentation_profile_id": "database_migration_apply.r1",
+      "customer_title": "AI Permit-to-Apply-Database-Migration",
+      "type_definition": "Exact authorization to apply one allowlisted migration from a bound schema version",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Migration"
+        },
+        {
+          "field": "request_digest",
+          "label": "Migration definition"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "migration_success_without_provider_receipt",
+        "application_compatibility",
+        "automatic_rollback_safety"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.database_dataset_export.v1",
+      "presentation_profile_id": "database_dataset_export.r1",
+      "customer_title": "AI Permit-to-Export-Dataset",
+      "type_definition": "Exact authorization to export bounded fields and rows from one database table",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dataset"
+        },
+        {
+          "field": "request_digest",
+          "label": "Fields and predicate"
+        },
+        {
+          "field": "provider",
+          "label": "Database gateway"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "downstream_use_after_export",
+        "absence_of_unrequested_external_copies",
+        "business_need_for_exported_data"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.invoice_payment_execute.v1",
+      "presentation_profile_id": "payment_invoice_pay.r1",
+      "customer_title": "AI Permit-to-Pay-Invoice",
+      "type_definition": "Exact authorization to pay one provider-verified open invoice",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "financial_settlement",
+        "delivery_of_invoiced_goods_or_services"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.ledger_entry_record.v1",
+      "presentation_profile_id": "ledger_entry_record.r1",
+      "customer_title": "AI Permit-to-Record-Ledger-Entry",
+      "type_definition": "Exact authorization to post one version-checked double-entry record",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Ledger and accounts"
+        },
+        {
+          "field": "amount",
+          "label": "Balanced amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "request_digest",
+          "label": "Entry"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "database_commit_without_provider_receipt",
+        "correct_accounting_classification",
+        "financial_settlement"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_reconciliation_record.v1",
+      "presentation_profile_id": "payment_reconciliation_record.r1",
+      "customer_title": "AI Permit-to-Reconcile-Payment",
+      "type_definition": "Exact authorization to mark one payment and ledger entry reconciled",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment and ledger entry"
+        },
+        {
+          "field": "amount",
+          "label": "Matched amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "linked_to",
+          "label": "Workflow"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "financial_settlement_beyond_the_bound_provider_observation",
+        "correctness_of_unbound_ledger_entries",
+        "absence_of_later_chargeback_or_reversal"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.payment_refund.v2",
+      "presentation_profile_id": "payment_refund_execute.r1",
+      "customer_title": "AI Permit-to-Refund-Payment",
+      "type_definition": "Exact authorization to refund one provider-verified payment amount",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Original payment"
+        },
+        {
+          "field": "amount",
+          "label": "Refund amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Payer"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "settlement",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "funds_returned_to_the_payer",
+        "financial_settlement_or_absence_of_later_reversal"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.customer_credit_issue.v1",
+      "presentation_profile_id": "customer_credit_issue.r1",
+      "customer_title": "AI Permit-to-Issue-Account-Credit",
+      "type_definition": "Exact authorization to create one immutable customer credit-balance adjustment",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Customer account"
+        },
+        {
+          "field": "amount",
+          "label": "Credit amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "value_conservation",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "application_of_the_credit_to_a_future_invoice",
+        "cash_payment_or_cash_refund"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.subscription_cancellation_schedule.v1",
+      "presentation_profile_id": "subscription_cancellation_schedule.r1",
+      "customer_title": "AI Permit-to-Schedule-Subscription-Cancellation",
+      "type_definition": "Exact authorization to schedule one active subscription to cancel at period end",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "subscription_termination_before_period_end",
+        "refund_or_credit_for_unused_service"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.subscription_cancellation_withdraw.v1",
+      "presentation_profile_id": "subscription_cancellation_withdraw.r1",
+      "customer_title": "AI Permit-to-Withdraw-Subscription-Cancellation",
+      "type_definition": "Exact authorization to withdraw a pending period-end cancellation",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Subscription"
+        },
+        {
+          "field": "effective_at",
+          "label": "Former cancellation date"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Billing provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "reinstatement_of_an_already_canceled_subscription",
+        "future_successful_renewal_or_payment"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.support_case_resolve.v1",
+      "presentation_profile_id": "support_case_resolve.r1",
+      "customer_title": "AI Permit-to-Resolve-Support-Case",
+      "type_definition": "Exact authorization to move one support ticket from an open stage to a provider-declared closed stage",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Support case"
+        },
+        {
+          "field": "request_digest",
+          "label": "Resolution"
+        },
+        {
+          "field": "recipient",
+          "label": "Customer"
+        },
+        {
+          "field": "provider",
+          "label": "Support provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "provider_acceptance_without_provider_receipt",
+        "customer_satisfaction_or_actual_problem_resolution",
+        "absence_of_a_concurrent_provider_update"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.repository_pull_request_merge.v1",
+      "presentation_profile_id": "repository_pull_request_merge.r1",
+      "customer_title": "AI Permit-to-Merge-Pull-Request",
+      "type_definition": "Exact authorization to merge one provider-verified pull-request head into one protected base branch",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository and pull request"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact merge request"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_successful_merge_without_provider_receipt",
+        "resulting_branch_tip_or_merge_commit_after_authorization",
+        "deployment_or_runtime_behavior"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.deployment_commit_deploy.v1",
+      "presentation_profile_id": "deployment_commit_deploy.r1",
+      "customer_title": "AI Permit-to-Deploy-Commit",
+      "type_definition": "Exact authorization to replace one production Fly Machine image with one immutable OCI image whose revision metadata names the source commit",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Commit and image"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "started_healthy_or_traffic_serving_application_without_provider_readback",
+        "independent_build_provenance_beyond_the_bound_registry_metadata"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.deployment_rollback.v1",
+      "presentation_profile_id": "deployment_rollback.r1",
+      "customer_title": "AI Permit-to-Roll-Back-Deployment",
+      "type_definition": "Exact authorization to replace one production Fly Machine configuration with one gateway-recorded prior release configuration",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Production machine"
+        },
+        {
+          "field": "target_digest",
+          "label": "Prior release"
+        },
+        {
+          "field": "provider",
+          "label": "Deployment provider"
+        },
+        {
+          "field": "reason",
+          "label": "Rollback reason"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fly_acceptance_or_successful_machine_update_without_provider_receipt",
+        "restored_application_health_traffic_or_data",
+        "reversal_of_external_effects_caused_by_the_failed_release"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.identity_mfa_reset.v1",
+      "presentation_profile_id": "identity_mfa_reset.r1",
+      "customer_title": "AI Permit-to-Reset-MFA",
+      "type_definition": "Exact authorization to reset every enrolled MFA factor for one provider-verified identity",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_factor_reset_without_provider_receipt",
+        "future_successful_mfa_reenrollment",
+        "revocation_of_sessions_or_oauth_tokens"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.identity_sessions_revoke.v1",
+      "presentation_profile_id": "identity_sessions_revoke.r1",
+      "customer_title": "AI Permit-to-Revoke-Sessions",
+      "type_definition": "Exact authorization to clear every Okta session and revoke OAuth tokens for one provider-verified identity",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_session_revocation_without_provider_receipt",
+        "logout_from_applications_that_do_not_honor_okta_token_revocation",
+        "absence_of_non_okta_sessions"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.identity_disable.v1",
+      "presentation_profile_id": "identity_disable.r1",
+      "customer_title": "AI Permit-to-Disable-Identity",
+      "type_definition": "Exact authorization to deprovision one active Okta identity after provider verification of its current assignments and privilege",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_terminal_deprovisioned_status_without_provider_readback",
+        "preservation_or_removal_of_data_in_assigned_applications",
+        "revocation_of_credentials_issued_outside_okta"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.identity_group_access_grant.v1",
+      "presentation_profile_id": "identity_group_access_grant.r1",
+      "customer_title": "AI Permit-to-Grant-Group-Access",
+      "type_definition": "Exact authorization to add one provider-verified identity to one provider-verified Okta group",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "specific_downstream_application_entitlements_derived_from_the_group",
+        "absence_of_other_access_paths"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.identity_group_access_remove.v1",
+      "presentation_profile_id": "identity_group_access_remove.r1",
+      "customer_title": "AI Permit-to-Remove-Group-Access",
+      "type_definition": "Exact authorization to remove one provider-verified identity from one provider-verified Okta group",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "okta_acceptance_or_completed_membership_change_without_provider_readback",
+        "revocation_of_sessions_or_entitlements_cached_by_downstream_applications",
+        "absence_of_other_group_or_direct_access"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.security_indicator_block.v1",
+      "presentation_profile_id": "security_indicator_block.r1",
+      "customer_title": "AI Permit-to-Block-Indicator",
+      "type_definition": "Exact authorization to add one enabled block rule for one indicator to one provider-verified Cloudflare zone ruleset",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Identity or security target"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact requested change"
+        },
+        {
+          "field": "provider",
+          "label": "Identity or security provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "cloudflare_acceptance_or_active_rule_without_provider_readback",
+        "maliciousness_of_the_indicator",
+        "blocking_outside_the_named_zone_and_ruleset"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.code_package_install.v1",
+      "presentation_profile_id": "code_package_install.r1",
+      "customer_title": "AI Permit-to-Install-Package",
+      "type_definition": "Exact authorization to install one allowlisted public package at one exact version with lifecycle scripts disabled in one disposable workspace",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Disposable workspace"
+        },
+        {
+          "field": "target_digest",
+          "label": "Exact package and version"
+        },
+        {
+          "field": "provider",
+          "label": "Package registry"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "package_safety_maintainer_identity_or_absence_of_malicious_content",
+        "successful_application_build_tests_or_runtime_behavior",
+        "changes_outside_the_named_disposable_workspace"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.repository_branch_push.v1",
+      "presentation_profile_id": "repository_branch_push.r1",
+      "customer_title": "AI Permit-to-Push-Branch",
+      "type_definition": "Exact authorization to publish one bounded gateway-derived workspace tree as one new commit on one absent non-protected GitHub branch",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository and target branch"
+        },
+        {
+          "field": "target_digest",
+          "label": "Exact workspace tree"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_visible_branch_without_provider_readback",
+        "code_correctness_review_approval_or_passing_checks",
+        "pull_request_merge_deployment_or_runtime_behavior"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.repository_pull_request_create.v1",
+      "presentation_profile_id": "repository_pull_request_create.r1",
+      "customer_title": "AI Permit-to-Create-Pull-Request",
+      "type_definition": "Exact authorization to open one pull request from one provider-observed head commit into one provider-observed protected base branch",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Repository, head, and base"
+        },
+        {
+          "field": "request_digest",
+          "label": "Exact pull request"
+        },
+        {
+          "field": "provider",
+          "label": "Source provider"
+        },
+        {
+          "field": "effective_at",
+          "label": "Authorized at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "github_acceptance_or_open_pull_request_without_provider_readback",
+        "review_approval_passing_checks_or_mergeability",
+        "merge_deployment_code_correctness_or_runtime_behavior"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.collections_payment_collect.v1",
+      "presentation_profile_id": "collections_payment_collect.r1",
+      "customer_title": "AI Permit-to-Collect-Payment",
+      "type_definition": "Exact authorization to create and confirm one Stripe test-mode PaymentIntent for one delinquent obligation using one already attached test payment method",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Delinquent obligation"
+        },
+        {
+          "field": "amount",
+          "label": "Collection amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Payment provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "stripe_acceptance_or_success_without_provider_readback",
+        "financial_settlement_or_chargeback_immunity",
+        "legal_validity_collectability_or_customer_identity"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.collections_payment_plan_create.v1",
+      "presentation_profile_id": "collections_payment_plan_create.r1",
+      "customer_title": "AI Permit-to-Create-Payment-Plan",
+      "type_definition": "Exact authorization to create one finite Stripe test-mode subscription schedule for one provider-verified delinquent obligation",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Delinquent obligation"
+        },
+        {
+          "field": "amount",
+          "label": "Installment amount"
+        },
+        {
+          "field": "constraints",
+          "label": "Installments and interval"
+        },
+        {
+          "field": "provider",
+          "label": "Schedule provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "future_installment_payment_success_or_financial_settlement",
+        "legal_sufficiency_of_customer_consent_or_disclosures",
+        "absence_of_future_provider_or_customer_changes"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.collections_autopay_change.v1",
+      "presentation_profile_id": "collections_autopay_change.r1",
+      "customer_title": "AI Permit-to-Change-Autopay",
+      "type_definition": "Exact authorization to change one provider-observed Stripe test-mode subscription between automatic charging and invoice collection",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Payment plan"
+        },
+        {
+          "field": "constraints",
+          "label": "Autopay change"
+        },
+        {
+          "field": "effective_at",
+          "label": "Effective at"
+        },
+        {
+          "field": "provider",
+          "label": "Schedule provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "future_charge_or_invoice_payment_success",
+        "legal_sufficiency_of_customer_consent_or_notice",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.collections_notice_send.v1",
+      "presentation_profile_id": "collections_notice_send.r1",
+      "customer_title": "AI Permit-to-Send-Collections-Notice",
+      "type_definition": "Exact authorization to send one operator-approved, versioned collections notice to one dedicated demo recipient",
+      "leading_fields": [
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "resource",
+          "label": "Notice template"
+        },
+        {
+          "field": "amount",
+          "label": "Amount due"
+        },
+        {
+          "field": "effective_at",
+          "label": "Due at"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "email_delivery_receipt_or_recipient_read_confirmation",
+        "legal_sufficiency_or_regulatory_compliance_of_the_notice",
+        "identity_of_a_real_debtor_or_validity_of_a_real_debt"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.insurance_claim_decision_record.v1",
+      "presentation_profile_id": "insurance_claim_decision_record.r1",
+      "customer_title": "AI Permit-to-Decide-Claim",
+      "type_definition": "Exact authorization to append one human-co-signed approve-or-deny determination to one synthetic insurance claim",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Insurance claim"
+        },
+        {
+          "field": "linked_to",
+          "label": "Determination and reason"
+        },
+        {
+          "field": "recipient",
+          "label": "Human adjuster approver"
+        },
+        {
+          "field": "provider",
+          "label": "Claims system"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "human_approval_without_separately_verified_co_signature_evidence",
+        "legal_correctness_or_regulatory_compliance_of_the_determination",
+        "real_claimant_identity_adjuster_licensure_or_real_policy_coverage"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.insurance_claim_settlement_set.v1",
+      "presentation_profile_id": "insurance_claim_settlement_set.r1",
+      "customer_title": "AI Permit-to-Settle-Claim",
+      "type_definition": "Exact authorization to create one bounded settlement record for one approved synthetic insurance claim",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Approved insurance claim"
+        },
+        {
+          "field": "amount",
+          "label": "Settlement amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Human adjuster approver"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "claim_payment_dispatch_or_financial_settlement",
+        "claimant_acceptance_or_release_of_claim",
+        "legal_sufficiency_of_the_settlement_terms"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.insurance_claim_payment_send.v1",
+      "presentation_profile_id": "insurance_claim_payment_send.r1",
+      "customer_title": "AI Permit-to-Pay-Claim",
+      "type_definition": "Exact authorization to create one Stripe test-mode Connect transfer for the unpaid amount of one approved synthetic claim settlement",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Claim settlement"
+        },
+        {
+          "field": "amount",
+          "label": "Claim payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Demo claimant destination"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "stripe_acceptance_or_transfer_creation_without_provider_readback",
+        "bank_settlement_recipient_receipt_or_payment_finality",
+        "validity_of_a_real_claim_or_entitlement_to_real_funds"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.insurance_claim_notice_send.v1",
+      "presentation_profile_id": "insurance_claim_notice_send.r1",
+      "customer_title": "AI Permit-to-Send-Claim-Determination-Notice",
+      "type_definition": "Exact authorization to send one operator-approved claim determination notice to one dedicated demo recipient",
+      "leading_fields": [
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "resource",
+          "label": "Insurance claim"
+        },
+        {
+          "field": "linked_to",
+          "label": "Determination and template"
+        },
+        {
+          "field": "provider",
+          "label": "Notification provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "email_delivery_receipt_or_recipient_read_confirmation",
+        "legal_sufficiency_or_regulatory_compliance_of_the_notice",
+        "identity_of_a_real_claimant_or_validity_of_a_real_claim"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.crm_deal_stage_change.v1",
+      "presentation_profile_id": "crm_deal_stage_change.r1",
+      "customer_title": "AI Permit-to-Change-Deal-Stage",
+      "type_definition": "Exact authorization to move one synthetic HubSpot developer-test deal from one provider-observed stage to one allowlisted stage",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic deal"
+        },
+        {
+          "field": "linked_to",
+          "label": "Stage transition"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "commercial_validity_or_accuracy_of_the_deal",
+        "correctness_under_the_operators_sales_process",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.crm_customer_record_update.v1",
+      "presentation_profile_id": "crm_customer_record_update.r1",
+      "customer_title": "AI Permit-to-Update-Customer-Record",
+      "type_definition": "Exact authorization to update one allowlisted property on one synthetic HubSpot developer-test contact",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic customer record"
+        },
+        {
+          "field": "linked_to",
+          "label": "One property update"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "truth_or_accuracy_of_the_customer_data",
+        "consent_for_downstream_use_of_the_updated_data",
+        "absence_of_later_writes_by_other_users_or_integrations"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.crm_quote_create.v1",
+      "presentation_profile_id": "crm_quote_create.r1",
+      "customer_title": "AI Permit-to-Create-Quote",
+      "type_definition": "Exact authorization to create one unpublished draft quote from one bounded provider-observed deal and line-item set in HubSpot developer test",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft quote"
+        },
+        {
+          "field": "amount",
+          "label": "Quote total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "CRM provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "quote_publication_delivery_signature_or_acceptance",
+        "payment_order_creation_or_legally_binding_contract",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.procurement_vendor_create.v1",
+      "presentation_profile_id": "procurement_vendor_create.r1",
+      "customer_title": "AI Permit-to-Create-Vendor",
+      "type_definition": "Exact authorization to create one synthetic supplier record in one pinned self-hosted Odoo database",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic vendor"
+        },
+        {
+          "field": "linked_to",
+          "label": "Pinned Odoo company"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "vendor_identity_tax_status_or_bank_account_ownership",
+        "commercial_approval_or_authority_to_place_orders",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.procurement_purchase_order_issue.v1",
+      "presentation_profile_id": "procurement_purchase_order_issue.r1",
+      "customer_title": "AI Permit-to-Issue-Purchase-Order",
+      "type_definition": "Exact authorization to create one bounded draft purchase order for one synthetic supplier in one pinned self-hosted Odoo database",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft purchase order"
+        },
+        {
+          "field": "amount",
+          "label": "Order total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "supplier_delivery_or_acceptance_of_the_order",
+        "spend_commitment_invoice_approval_or_payment_release",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.procurement_spend_commit.v1",
+      "presentation_profile_id": "procurement_spend_commit.r1",
+      "customer_title": "AI Permit-to-Commit-Procurement-Spend",
+      "type_definition": "Exact authorization to confirm one provider-observed draft purchase order and commit its bounded synthetic procurement spend",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Draft purchase order"
+        },
+        {
+          "field": "amount",
+          "label": "Spend commitment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "supplier_acceptance_delivery_invoice_or_payment",
+        "legal_enforceability_of_the_purchase_commitment",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.ap_invoice_approve.v1",
+      "presentation_profile_id": "ap_invoice_approve.r1",
+      "customer_title": "AI Permit-to-Approve-Invoice",
+      "type_definition": "Exact authorization to post one provider-observed synthetic vendor bill after a complete three-way match",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Vendor invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Invoice total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "authenticity_or_legal_validity_of_the_vendor_invoice",
+        "payment_dispatch_settlement_or_supplier_receipt",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.ap_invoice_duplicate_reject.v1",
+      "presentation_profile_id": "ap_invoice_duplicate_reject.r1",
+      "customer_title": "AI Permit-to-Reject-Duplicate-Invoice",
+      "type_definition": "Exact authorization to cancel one unpaid synthetic draft vendor bill after a deterministic exact duplicate match",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Duplicate vendor invoice"
+        },
+        {
+          "field": "linked_to",
+          "label": "Existing provider invoice"
+        },
+        {
+          "field": "provider",
+          "label": "ERP provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "fraud_intent_or_wrongdoing_by_the_vendor",
+        "legal_right_to_reject_or_dispute_the_invoice",
+        "absence_of_later_recreation_or_other_provider_changes"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.ap_invoice_payment_release.v1",
+      "presentation_profile_id": "ap_invoice_payment_release.r1",
+      "customer_title": "AI Permit-to-Release-Invoice-Payment",
+      "type_definition": "Exact authorization for one two-step demo saga that creates a Stripe test-mode supplier transfer and registers the matching Odoo payment",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Approved vendor invoice"
+        },
+        {
+          "field": "amount",
+          "label": "Invoice payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic supplier destination"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_supplier_receipt_or_payment_finality",
+        "successful_completion_of_both_steps_without_provider_readback",
+        "validity_of_a_real_invoice_supplier_or_payment_obligation"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.commerce_order_place.v1",
+      "presentation_profile_id": "commerce_order_place.r1",
+      "customer_title": "AI Permit-to-Place-Order",
+      "type_definition": "Exact authorization to place one bounded synthetic order in one pinned test storefront",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "amount",
+          "label": "Order total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Test storefront"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "merchant_payment_inventory_reservation_or_fulfillment",
+        "a_real_purchase_or_commercial_obligation",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.commerce_merchant_pay.v1",
+      "presentation_profile_id": "commerce_merchant_pay.r1",
+      "customer_title": "AI Permit-to-Pay-Merchant",
+      "type_definition": "Exact authorization to create one Stripe test-mode merchant payment for one placed synthetic order",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "amount",
+          "label": "Merchant payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Test merchant"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_merchant_receipt_or_payment_finality",
+        "delivery_or_acceptance_of_goods",
+        "a_real_purchase_or_commercial_obligation"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.commerce_inventory_reserve.v1",
+      "presentation_profile_id": "commerce_inventory_reserve.r1",
+      "customer_title": "AI Permit-to-Reserve-Inventory",
+      "type_definition": "Exact authorization to reserve one bounded synthetic inventory set for one order",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Inventory reservation"
+        },
+        {
+          "field": "linked_to",
+          "label": "Synthetic order"
+        },
+        {
+          "field": "provider",
+          "label": "Inventory database"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "order_placement_payment_or_fulfillment",
+        "inventory_availability_after_the_bound_snapshot",
+        "a_real_sale_or_inventory_commitment"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.benefits_case_grant.v1",
+      "presentation_profile_id": "benefits_case_grant.r1",
+      "customer_title": "AI Permit-to-Grant-Benefit",
+      "type_definition": "Exact authorization to grant one synthetic benefits case after a complete provider-observed review record",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic benefits case"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "benefit_payment_or_delivery_of_a_determination_notice"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.benefits_case_deny.v1",
+      "presentation_profile_id": "benefits_case_deny.r1",
+      "customer_title": "AI Permit-to-Deny-Benefit",
+      "type_definition": "Exact authorization to deny one synthetic benefits case after a complete provider-observed review record",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic benefits case"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "benefit_payment_or_delivery_of_a_determination_notice"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.benefits_eligibility_change.v1",
+      "presentation_profile_id": "benefits_eligibility_change.r1",
+      "customer_title": "AI Permit-to-Change-Benefit-Eligibility",
+      "type_definition": "Exact authorization to change one synthetic applicant eligibility record with an exact effective date and reason",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Eligibility record"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic applicant"
+        },
+        {
+          "field": "provider",
+          "label": "Benefits case system"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound change"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_correctness_due_process_or_final_appeal_rights",
+        "identity_or_real_eligibility_of_any_person",
+        "a_benefit_determination_payment_or_notice"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.benefits_payment_issue.v1",
+      "presentation_profile_id": "benefits_payment_issue.r1",
+      "customer_title": "AI Permit-to-Issue-Benefit-Payment",
+      "type_definition": "Exact authorization to issue one Stripe test-mode payment for one granted synthetic benefits case",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Granted benefits case"
+        },
+        {
+          "field": "amount",
+          "label": "Benefit payment"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic recipient"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "bank_settlement_recipient_receipt_or_payment_finality",
+        "legal_entitlement_or_identity_of_a_real_person",
+        "delivery_of_a_determination_notice"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.benefits_determination_notice_send.v1",
+      "presentation_profile_id": "benefits_determination_notice_send.r1",
+      "customer_title": "AI Permit-to-Send-Benefit-Determination-Notice",
+      "type_definition": "Exact authorization to send one templated determination notice to one dedicated synthetic recipient",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Determination notice"
+        },
+        {
+          "field": "recipient",
+          "label": "Dedicated demo recipient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted mail sink"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound notice"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "legal_sufficiency_service_or_proof_of_receipt",
+        "identity_or_notice_to_a_real_person",
+        "correctness_or_finality_of_the_benefit_determination"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_prior_authorization_submit.v1",
+      "presentation_profile_id": "healthcare_prior_authorization_submit.r1",
+      "customer_title": "AI Permit-to-Submit-Prior-Authorization",
+      "type_definition": "Exact authorization to submit one complete synthetic FHIR prior-authorization request",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Prior-authorization request"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound submission"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "payer_receipt_adjudication_or_coverage",
+        "medical_necessity_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_prior_authorization_clinical_information_request.v1",
+      "presentation_profile_id": "healthcare_prior_authorization_clinical_information_request.r1",
+      "customer_title": "AI Permit-to-Request-Clinical-Information",
+      "type_definition": "Exact authorization to create one synthetic FHIR Task requesting a bounded clinical-information set",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Clinical-information request"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic practitioner"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "delivery_receipt_or_response_from_a_real_clinician",
+        "medical_necessity_or_clinical_correctness",
+        "identity_or_care_of_a_real_patient"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_prior_authorization_approve.v1",
+      "presentation_profile_id": "healthcare_prior_authorization_approve.r1",
+      "customer_title": "AI Permit-to-Approve-Prior-Authorization",
+      "type_definition": "Exact authorization to approve one synthetic FHIR prior-authorization request after a complete review snapshot",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic prior authorization"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "medical_necessity_legal_compliance_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient",
+        "payment_claim_adjudication_or_provider_notification"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_prior_authorization_deny.v1",
+      "presentation_profile_id": "healthcare_prior_authorization_deny.r1",
+      "customer_title": "AI Permit-to-Deny-Prior-Authorization",
+      "type_definition": "Exact authorization to deny one synthetic FHIR prior-authorization request after a complete review snapshot",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic prior authorization"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound decision"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "medical_necessity_legal_compliance_or_clinical_correctness",
+        "identity_coverage_or_care_of_a_real_patient",
+        "payment_claim_adjudication_or_provider_notification"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_appointment_schedule.v1",
+      "presentation_profile_id": "healthcare_appointment_schedule.r1",
+      "customer_title": "AI Permit-to-Schedule-Appointment",
+      "type_definition": "Exact authorization to book one available synthetic FHIR appointment slot",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic appointment"
+        },
+        {
+          "field": "recipient",
+          "label": "Synthetic patient"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound booking"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "attendance_clinical_care_or_provider_acceptance",
+        "identity_or_scheduling_of_a_real_patient",
+        "availability_after_the_bound_snapshot"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_claim_submit.v1",
+      "presentation_profile_id": "healthcare_claim_submit.r1",
+      "customer_title": "AI Permit-to-Submit-Healthcare-Claim",
+      "type_definition": "Exact authorization to submit one bounded synthetic FHIR claim with provider-observed coverage and coding checks",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic healthcare claim"
+        },
+        {
+          "field": "amount",
+          "label": "Claim total"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "payer_receipt_adjudication_payment_or_reimbursement",
+        "medical_coding_or_legal_correctness",
+        "identity_coverage_or_care_of_a_real_patient"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.healthcare_patient_administrative_record_update.v1",
+      "presentation_profile_id": "healthcare_patient_administrative_record_update.r1",
+      "customer_title": "AI Permit-to-Update-Patient-Administrative-Record",
+      "type_definition": "Exact authorization to update one allowlisted administrative field set on one synthetic FHIR patient record",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Synthetic patient record"
+        },
+        {
+          "field": "provider",
+          "label": "Self-hosted FHIR"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound update"
+        },
+        {
+          "field": "linked_to",
+          "label": "Administrative field set"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "clinical_record_change_diagnosis_treatment_or_care",
+        "identity_or_record_of_a_real_patient",
+        "correctness_of_contact_insurance_or_demographic_information"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.trust_safety_content_remove.v1",
+      "presentation_profile_id": "trust_safety_content_remove.r1",
+      "customer_title": "AI Permit-to-Remove-Community-Content",
+      "type_definition": "Exact authorization to remove one pinned message from one dedicated demo community",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "global_account_or_platform_enforcement",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.trust_safety_member_suspend.v1",
+      "presentation_profile_id": "trust_safety_member_suspend.r1",
+      "customer_title": "AI Permit-to-Suspend-Community-Member",
+      "type_definition": "Exact authorization to ban one dedicated demo member from one dedicated demo community",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "global_discord_account_suspension",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.trust_safety_member_restore.v1",
+      "presentation_profile_id": "trust_safety_member_restore.r1",
+      "customer_title": "AI Permit-to-Restore-Community-Member",
+      "type_definition": "Exact authorization to remove one ban for one dedicated demo community member",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "global_discord_account_restoration",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.recruiting_candidate_advance.v1",
+      "presentation_profile_id": "recruiting_candidate_advance.r1",
+      "customer_title": "AI Permit-to-Advance-Candidate",
+      "type_definition": "Exact authorization to advance one synthetic applicant to one allowlisted recruiting stage",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "employment_offer_or_hiring_decision",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.recruiting_candidate_reject.v1",
+      "presentation_profile_id": "recruiting_candidate_reject.r1",
+      "customer_title": "AI Permit-to-Reject-Candidate",
+      "type_definition": "Exact authorization to reject one synthetic applicant with one allowlisted disposition reason",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "lawfulness_or_fairness_of_an_employment_decision",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.recruiting_offer_send.v1",
+      "presentation_profile_id": "recruiting_offer_send.r1",
+      "customer_title": "AI Permit-to-Send-Employment-Offer",
+      "type_definition": "Exact authorization to send one approved offer template to one dedicated synthetic recipient",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "acceptance_or_legal_enforceability_of_the_offer",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.legal_agreement_send.v1",
+      "presentation_profile_id": "legal_agreement_send.r1",
+      "customer_title": "AI Permit-to-Send-Agreement",
+      "type_definition": "Exact authorization to send one approved envelope from a DocuSign developer account to dedicated demo recipients",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "signature_acceptance_contract_formation_or_legal_enforceability",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.legal_agreement_void.v1",
+      "presentation_profile_id": "legal_agreement_void.r1",
+      "customer_title": "AI Permit-to-Void-Agreement",
+      "type_definition": "Exact authorization to void one in-process DocuSign developer-account envelope with an exact reason",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "rescission_of_any_separate_or_completed_contract",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.trading_paper_order_place.v1",
+      "presentation_profile_id": "trading_paper_order_place.r1",
+      "customer_title": "AI Permit-to-Place-Paper-Trade",
+      "type_definition": "Exact authorization to place one bounded order in one Alpaca paper-trading account",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "real_securities_trade_ownership_profit_or_settlement",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.trading_paper_order_cancel.v1",
+      "presentation_profile_id": "trading_paper_order_cancel.r1",
+      "customer_title": "AI Permit-to-Cancel-Paper-Trade",
+      "type_definition": "Exact authorization to cancel one open order in one Alpaca paper-trading account",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "cancellation_of_any_real_securities_trade",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.supply_replenishment_order_issue.v1",
+      "presentation_profile_id": "supply_replenishment_order_issue.r1",
+      "customer_title": "AI Permit-to-Issue-Replenishment-Order",
+      "type_definition": "Exact authorization to issue one bounded replenishment purchase order in a self-hosted synthetic ERP",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "supplier_acceptance_delivery_or_payment",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.supply_shipment_create.v1",
+      "presentation_profile_id": "supply_shipment_create.r1",
+      "customer_title": "AI Permit-to-Create-Shipment",
+      "type_definition": "Exact authorization to create one shipment quote request in one dedicated Shippo test account",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "carrier_acceptance_label_purchase_pickup_or_delivery",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.supply_shipping_label_purchase.v1",
+      "presentation_profile_id": "supply_shipping_label_purchase.r1",
+      "customer_title": "AI Permit-to-Purchase-Test-Shipping-Label",
+      "type_definition": "Exact authorization to purchase one test label from one exact Shippo test rate",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "purchase_of_a_live_postage_label_carrier_acceptance_or_delivery",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.supply_shipment_route_change.v1",
+      "presentation_profile_id": "supply_shipment_route_change.r1",
+      "customer_title": "AI Permit-to-Change-Shipment-Route",
+      "type_definition": "Exact authorization to change one synthetic ERP shipment to one allowlisted route before dispatch",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "carrier_rerouting_delivery_or_physical_custody",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.legacy_customer_address_change.v1",
+      "presentation_profile_id": "legacy_customer_address_change.r1",
+      "customer_title": "AI Permit-to-Change-Customer-Address",
+      "type_definition": "Exact authorization to change an allowlisted address field set for one synthetic customer through a controlled browser session",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "identity_or_accuracy_of_any_real_customer_address",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.sales_email_send.v1",
+      "presentation_profile_id": "sales_email_send.r1",
+      "customer_title": "AI Permit-to-Send-Sales-Email",
+      "type_definition": "Exact authorization to send one approved sales template to one dedicated synthetic recipient",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "recipient_engagement_consent_beyond_the_bound_record_or_delivery",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.sales_discount_offer.v1",
+      "presentation_profile_id": "sales_discount_offer.r1",
+      "customer_title": "AI Permit-to-Offer-Discount",
+      "type_definition": "Exact authorization to record one bounded discount offer on one synthetic developer-test deal",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "customer_acceptance_contract_formation_or_final_price",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.calendar_event_create.v1",
+      "presentation_profile_id": "calendar_event_create.r1",
+      "customer_title": "AI Permit-to-Create-Calendar-Event",
+      "type_definition": "Exact authorization to create one event on one dedicated demo calendar with an allowlisted attendee set",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "attendance_acceptance_or_availability_after_the_bound_snapshot",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.email_message_send.v1",
+      "presentation_profile_id": "email_message_send.r1",
+      "customer_title": "AI Permit-to-Send-Email",
+      "type_definition": "Exact authorization to send one exact message from one dedicated demo mailbox to allowlisted recipients",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "delivery_read_receipt_recipient_action_or_consent",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.commerce_item_purchase.v1",
+      "presentation_profile_id": "commerce_item_purchase.r1",
+      "customer_title": "AI Permit-to-Purchase-Item",
+      "type_definition": "Exact authorization to purchase one allowlisted synthetic item with one Stripe test-mode payment",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "real_purchase_delivery_merchant_receipt_or_settlement",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.marketing_content_publish.v1",
+      "presentation_profile_id": "marketing_content_publish.r1",
+      "customer_title": "AI Permit-to-Publish-Content",
+      "type_definition": "Exact authorization to publish one approved content revision to one self-hosted synthetic site",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "accuracy_legality_or_public_reception_of_the_content",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.marketing_campaign_launch.v1",
+      "presentation_profile_id": "marketing_campaign_launch.r1",
+      "customer_title": "AI Permit-to-Launch-Campaign",
+      "type_definition": "Exact authorization to launch one approved synthetic advertising campaign with a bounded budget",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "real_ad_delivery_audience_reach_spend_or_performance",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.marketing_campaign_budget_change.v1",
+      "presentation_profile_id": "marketing_campaign_budget_change.r1",
+      "customer_title": "AI Permit-to-Change-Campaign-Budget",
+      "type_definition": "Exact authorization to change one synthetic campaign daily budget within an exact ceiling",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "real_ad_spend_delivery_or_performance",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.education_student_enroll.v1",
+      "presentation_profile_id": "education_student_enroll.r1",
+      "customer_title": "AI Permit-to-Enroll-Student",
+      "type_definition": "Exact authorization to enroll one synthetic student in one open synthetic course",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "tuition_payment_academic_eligibility_or_identity_of_a_real_student",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.education_enrollment_drop.v1",
+      "presentation_profile_id": "education_enrollment_drop.r1",
+      "customer_title": "AI Permit-to-Drop-Enrollment",
+      "type_definition": "Exact authorization to drop one active synthetic course enrollment within an allowlisted window",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "tuition_refund_financial_aid_or_academic_consequences",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.education_transcript_release.v1",
+      "presentation_profile_id": "education_transcript_release.r1",
+      "customer_title": "AI Permit-to-Release-Transcript",
+      "type_definition": "Exact authorization to release one synthetic transcript to one dedicated demo recipient",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "authenticity_of_any_real_academic_record_or_recipient_use",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.research_dataset_purchase.v1",
+      "presentation_profile_id": "research_dataset_purchase.r1",
+      "customer_title": "AI Permit-to-Purchase-Dataset",
+      "type_definition": "Exact authorization to purchase one licensed synthetic dataset within a bounded test budget",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "scientific_validity_real_payment_or_ownership_beyond_the_demo_license",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.research_artifact_publish.v1",
+      "presentation_profile_id": "research_artifact_publish.r1",
+      "customer_title": "AI Permit-to-Publish-Research-Artifact",
+      "type_definition": "Exact authorization to publish one approved research artifact revision to one self-hosted demo repository",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "scientific_validity_peer_review_citation_or_public_acceptance",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.metered_api_usage_purchase.v1",
+      "presentation_profile_id": "metered_api_usage_purchase.r1",
+      "customer_title": "AI Permit-to-Purchase-API-Usage",
+      "type_definition": "Exact authorization to purchase one bounded metered API request from one allowlisted test endpoint",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "quality_availability_or_correctness_of_the_purchased_api_result",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.metered_compute_units_purchase.v1",
+      "presentation_profile_id": "metered_compute_units_purchase.r1",
+      "customer_title": "AI Permit-to-Purchase-Compute-Units",
+      "type_definition": "Exact authorization to purchase one bounded compute-unit grant from one allowlisted test service",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "performance_availability_or_suitability_of_the_purchased_compute",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.physical_access_unlock.v1",
+      "presentation_profile_id": "physical_access_unlock.r1",
+      "customer_title": "AI Permit-to-Unlock-Demo-Door",
+      "type_definition": "Exact authorization to unlock one approved isolated demo lock for a bounded interval after human safety signoff",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "safety_of_unapproved_hardware_or_access_to_any_real_protected_space",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.physical_relay_actuate.v1",
+      "presentation_profile_id": "physical_relay_actuate.r1",
+      "customer_title": "AI Permit-to-Actuate-Demo-Relay",
+      "type_definition": "Exact authorization to actuate one approved isolated demo relay to one bounded state after human safety signoff",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "safety_of_unapproved_hardware_or_control_of_any_real_process",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.physical_arm_move.v1",
+      "presentation_profile_id": "physical_arm_move.r1",
+      "customer_title": "AI Permit-to-Move-Demo-Arm",
+      "type_definition": "Exact authorization to move one approved isolated demo arm through one bounded trajectory after human safety signoff",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo target"
+        },
+        {
+          "field": "provider",
+          "label": "Action provider"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Exact demo target"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "safety_of_unapproved_hardware_or_motion_near_any_person_or_property",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.cloud_machine_restart.v1",
+      "presentation_profile_id": "cloud_machine_restart.r1",
+      "customer_title": "AI Permit-to-Restart-Machine",
+      "type_definition": "Exact authorization to restart one allowlisted pre-provisioned Machine in one Keel-owned dedicated demo app",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo service"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        },
+        {
+          "field": "provider",
+          "label": "Cloud provider"
+        },
+        {
+          "field": "linked_to",
+          "label": "Bound machine state"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "production_or_customer_owned_apps",
+        "machine_creation_or_deletion",
+        "authority_outside_the_named_dedicated_demo_app",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.cloud_machine_stop.v1",
+      "presentation_profile_id": "cloud_machine_stop.r1",
+      "customer_title": "AI Permit-to-Stop-Machine",
+      "type_definition": "Exact authorization to stop one allowlisted pre-provisioned Machine in one Keel-owned dedicated demo app",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo service"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        },
+        {
+          "field": "provider",
+          "label": "Cloud provider"
+        },
+        {
+          "field": "linked_to",
+          "label": "Bound machine state"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "production_or_customer_owned_apps",
+        "machine_creation_or_deletion",
+        "authority_outside_the_named_dedicated_demo_app",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.cloud_service_scale.v1",
+      "presentation_profile_id": "cloud_service_scale.r1",
+      "customer_title": "AI Permit-to-Scale-Service",
+      "type_definition": "Exact authorization to start or stop only pre-provisioned Machines so one Keel-owned dedicated demo service reaches a bounded count",
+      "leading_fields": [
+        {
+          "field": "resource",
+          "label": "Dedicated demo service"
+        },
+        {
+          "field": "environment",
+          "label": "Environment"
+        },
+        {
+          "field": "provider",
+          "label": "Cloud provider"
+        },
+        {
+          "field": "linked_to",
+          "label": "Bound machine state"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "production_or_customer_owned_apps",
+        "machine_creation_or_deletion",
+        "authority_outside_the_named_dedicated_demo_app",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.stripe_connect_transfer_send.v1",
+      "presentation_profile_id": "stripe_connect_transfer_send.r1",
+      "customer_title": "AI Permit-to-Send-Stripe-Connect-Transfer",
+      "type_definition": "Exact authorization to send one bounded Stripe test-mode Connect transfer to one preflight-verified test destination",
+      "leading_fields": [
+        {
+          "field": "amount",
+          "label": "Transfer amount"
+        },
+        {
+          "field": "currency",
+          "label": "Currency"
+        },
+        {
+          "field": "recipient",
+          "label": "Connect destination"
+        },
+        {
+          "field": "provider",
+          "label": "Payment provider"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "stripe_live_mode_or_bank_settlement",
+        "destination_identity_beyond_the_bound_test_account",
+        "authority_to_create_or_change_connected_accounts",
+        "authority_over_any_non_demo_account_or_record",
+        "legal_or_business_correctness_of_the_requested_action",
+        "provider_state_after_the_immediate_readback"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    },
+    {
+      "semantic_id": "keel.action.telephony_call_outbound.v1",
+      "presentation_profile_id": "telephony_call_outbound.r1",
+      "customer_title": "AI Permit-to-Place-Outbound-Call",
+      "type_definition": "Exact authorization to originate one outbound telephone call to one allowlisted destination through a verified telephony connector",
+      "leading_fields": [
+        {
+          "field": "recipient",
+          "label": "Allowlisted destination"
+        },
+        {
+          "field": "provider",
+          "label": "Telephony connector"
+        },
+        {
+          "field": "request_digest",
+          "label": "Bound call request"
+        },
+        {
+          "field": "linked_to",
+          "label": "Linked to"
+        }
+      ],
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "approval",
+        "relationship",
+        "limits",
+        "dispatch",
+        "provider_outcome",
+        "evidence_scope"
+      ],
+      "does_not_establish": [
+        "that_the_destination_answered_or_the_call_connected",
+        "the_content_of_anything_said_on_the_call",
+        "authorization_of_commitments_made_verbally_during_the_call",
+        "consent_of_the_called_party",
+        "keel_observation_or_recording_of_the_conversation",
+        "provider_success_or_call_completion"
+      ],
+      "fallback_profile": "generic_ai_permit",
+      "release_state": "eligible"
+    }
+  ],
+  "fallback_profiles": [
+    {
+      "presentation_profile_id": "generic_ai_permit",
+      "customer_title": "AI Permit",
+      "type_definition": "Governed authorization record",
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "dispatch",
+        "provider_outcome"
+      ]
+    },
+    {
+      "presentation_profile_id": "unclassified_action_request",
+      "customer_title": "Unclassified action request",
+      "type_definition": "Action identity was not sufficiently trusted for a specific Permit title",
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "evidence_scope"
+      ]
+    },
+    {
+      "presentation_profile_id": "historical_specific_title_unavailable",
+      "customer_title": "AI Permit — specific title unavailable for this record",
+      "type_definition": "Historical authorization record with unavailable presentation material",
+      "evidence_sections": [
+        "record_identity",
+        "authorization",
+        "evidence_scope"
+      ]
+    }
+  ]
+}

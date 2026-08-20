@@ -1,0 +1,26 @@
+{
+  "id": "keel.permit.work_exact_review.v1",
+  "version": "v1",
+  "kind": "work_exact_review_recipe",
+  "status": "contract_only",
+  "body": {
+    "claim": "permit.work_exact_review.v1",
+    "preconditions": ["permit.work_child_containment.v2", "permit.decision.v1"],
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "checks": [
+      "validate and verify every work_review_transition_v1 signature",
+      "link project, root, authority and child identifiers",
+      "require frozen_request_digest and exact_request_review_hash to match the challenged child",
+      "record human_outcome separately from final_decision",
+      "require final decision and status to match the terminal child state",
+      "require a review-resume Policy snapshot for an approved request",
+      "require no dispatch-boundary evidence when final_decision is deny"
+    ],
+    "approval_rule": "human approval permits re-evaluation only and can validly end in denial",
+    "non_claims": [
+      "does not establish the natural-person identity behind actor_id",
+      "does not turn approval into authorization",
+      "does not establish dispatch or external outcome"
+    ]
+  }
+}
