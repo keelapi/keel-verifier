@@ -1,19 +1,19 @@
 {
   "version": "1.0",
   "release_name": "keel-verifier",
-  "version_tag": "v3.21.0",
-  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v3.21.0",
-  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.21.0/manifest.json",
-  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.21.0/manifest.json.sigstore",
-  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.21.0/manifest.json.tsa.json",
+  "version_tag": "v3.22.0",
+  "expected_signing_identity": "https://github.com/keelapi/keel-verifier/.github/workflows/release.yml@refs/tags/v3.22.0",
+  "release_manifest_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.22.0/manifest.json",
+  "release_manifest_signature_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.22.0/manifest.json.sigstore",
+  "release_manifest_tsa_witness_url": "https://github.com/keelapi/keel-verifier/releases/download/v3.22.0/manifest.json.tsa.json",
   "per_file_digests": {
-    "keel_verifier/__init__.py": "2569c3a59d73b78e70e58816661cd0b8eec6f747fb57038e96fe3d69473cd45f",
+    "keel_verifier/__init__.py": "1dca1ede0222d33524675075bf0e30eadf1f890892db9cd876ad0f14239e5958",
     "keel_verifier/__main__.py": "8b4cb85d4ef4dd0c4112b69ec713a8ae1589c32b04919daf0d827430be20f603",
     "keel_verifier/action_classification_derivation.py": "886b95d8c1350c2bad9aa7d209d7b02dd3637e40a8a20c583c54e4ab51a490e8",
     "keel_verifier/canonical/__init__.py": "28718e49f1657838c1ef73525879d3281629005d069c5de9acd6a72263edeb49",
     "keel_verifier/canonical/permit_binding.py": "d359bcccfbb82a58aebcbbbbc075de052d69c096ffa06439ca5f7d32e3c6a7fd",
     "keel_verifier/capability/README.md": "1e7768b1f78b6f7f24fafe52d29febcd863c05f4e60cffcb0dd0852a59f52678",
-    "keel_verifier/capability/v1.json": "1dd5c395a313f6849b3a1ebc7d52ccf142038b4f5942dd0578424f7280a3c308",
+    "keel_verifier/capability/v1.json": "dd8ed0d146e378562c88473f529d8ba83d0c33c76dc153ae1e511725874c0417",
     "keel_verifier/cli.py": "c11718c663b14cfa0dc6a0ee8cb8b68603f33ac2529efc7840cdebdb7eebd664",
     "keel_verifier/data/claim_registry/historical/v0-sha256-02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5.json": "02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "keel_verifier/data/claim_registry/historical/v0-sha256-0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4.json": "0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
@@ -327,6 +327,6 @@
     "keel_verifier/verdicts.py": "fe64dc94f2d8ce90b3c230dfb95afa9c3ca6ef875fe3b365b544a517af29d65e",
     "keel_verifier/verifier.py": "e71c31aa95d64ed64603fa51a3a121a0ba324f54a40ff71194bec01cbb952adb",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
-    "keel_verifier/work_chain.py": "1029a877325c879b09e76cf7f07169b19a7d7564c49d9ea090c8df892bb3fed4"
+    "keel_verifier/work_chain.py": "eb6c5fbe62c327ed372af80877ed77614041e123b881ffc0c00125180ea6a554"
   }
 }

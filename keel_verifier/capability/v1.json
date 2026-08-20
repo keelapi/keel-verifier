@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.21.0",
+    "version": "3.22.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -197,7 +197,7 @@
     {
       "name": "workflow.effective_intent_hash.v1",
       "status": "implemented",
-      "description": "Re-derives effective_intent_hash = SHA-256(declaration.intent_json \u2016 ordered amendments at decision time) and matches against permit.workflow_state_json.",
+      "description": "Re-derives effective_intent_hash = SHA-256(declaration.intent_json ‖ ordered amendments at decision time) and matches against permit.workflow_state_json.",
       "depends_on_semantics": [
         "keel.workflow.canonicalization.v1"
       ],
@@ -1305,10 +1305,10 @@
       "Historical TSA certificate revocation status for TSA chains outside the release-pinned DigiCert/GlobalSign CRL snapshots.",
       "Authority grant revocation or execution-time authority-edge revocation beyond the signing-time revocation-temporal claim.",
       "Backend authorization correctness for the underlying executions (the verifier checks evidence, not the authorization decision logic itself).",
-      "Provider or tool actually performing the action correctly in the real world \u2014 the verifier validates recorded evidence."
+      "Provider or tool actually performing the action correctly in the real world — the verifier validates recorded evidence."
     ],
     "requires_for_strong_assurance": [
-      "Hardware-backed signing (TEE/HSM) for pre-signing protection \u2014 a separate capability tier above this verifier.",
+      "Hardware-backed signing (TEE/HSM) for pre-signing protection — a separate capability tier above this verifier.",
       "Live trust-root anchoring via --public-key-url against the production endpoint.",
       "Trust-root rotation via the refresh-keys subcommand."
     ]
@@ -1525,5 +1525,6 @@
       "hash": "sha256:9fb425c075b853295be0af0fefd80508a2cf2f78901872b76f5aba14bebdaa26",
       "status": "allowlisted"
     }
-  ]
+  ],
+  "version": "3.22.0"
 }
