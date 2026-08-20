@@ -319,7 +319,7 @@ def _work_enforcement_state_validator() -> jsonschema.Draft202012Validator:
 @lru_cache(maxsize=1)
 def _work_enforcement_claim_semantics() -> tuple[dict[str, str], ...]:
     resource = resources.files("keel_verifier").joinpath(
-        "data/semantics/permit/universal_verification_v4.json"
+        "data/semantics/permit/universal_verification_v5.json"
     )
     raw = resource.read_bytes()
     payload = json.loads(raw)

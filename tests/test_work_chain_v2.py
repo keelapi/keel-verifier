@@ -82,7 +82,7 @@ def _semantic(
     selector, selector_raw = _load_data("permit_to_x/semantic_registry/v19.json")
     entry = next(item for item in selector["entries"] if item["semantic_id"] == semantic_id)
     claims, claims_raw = _load_data("claim_registry/v6.json")
-    universal, universal_raw = _load_data("semantics/permit/universal_verification_v4.json")
+    universal, universal_raw = _load_data("semantics/permit/universal_verification_v5.json")
     binding: dict[str, Any] = {
         "version": "keel.permit_semantic_binding.v2",
         "semantic_id": semantic_id,
