@@ -1,5 +1,53 @@
 # Changelog
 
+## 3.22.0
+
+### Added
+
+- Verify `keel.work_authority.v2`, so one Work root may carry heterogeneous
+  consequential actions - a phone call, a payment, a calendar write - instead of
+  payment alone. Each lane binds its own `trusted_action`, and the verifier
+  detects mutation of that binding.
+- Verify the v2 `value_binding` contract, which separates *authority to act*
+  from *authority to spend*. A `none` lane consumes uses but no money, and its
+  ledger rows must record zero; declaring a ceiling or currency on such a lane
+  is disproved rather than tolerated.
+- Verify multi-principal delegation from signed artifacts alone: the root
+  package names which worker holds each lane, the child's work binding names
+  which worker exercised it, and a mismatch is disproved.
+- Reconstruct the root value pool from the value-event ledger and check it
+  against the signed `root_value_max_minor`, rather than believing an asserted
+  remaining balance.
+
+### Unchanged
+
+- `keel.work_authority.v1` verdicts are unchanged and v1 remains payment-only.
+  A v1 authority naming a non-payment action is still disproved, and a v1 lane
+  still requires a positive amount on every value event. The v1 code path was
+  restructured to dispatch on the contract version; it was checked by replaying
+  a real v1 export and its mutations against 3.21.0 and 3.22.0 and comparing
+  verdicts, which matched on every case.
+- An unrecognised authority contract still returns `unverifiable_scope` /
+  `WORK_VERSION_UNSUPPORTED` rather than being optimistically accepted.
+
+### Fixed
+
+- Enforce envelope/payload agreement on permit decision bindings (#91). The
+  envelope copies of `binding_version` and `binding_key_id` were not compared
+  against their signed `canonical_payload` counterparts, so an artifact whose
+  unsigned envelope contradicted its signed payload still verified as
+  `supported`. This does not extend authentication to the envelope; it applies
+  an invariant the verifier already promised to the two fields that were missing
+  it, reusing `PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH` with no new verdict or
+  reason code.
+
+### Known limitation
+
+- `value_binding: provider_verified` returns `unverifiable_scope`. The pack
+  contract carries no trusted provider fact, so the verifier cannot substantiate
+  a provider-verified amount and will not treat the artifact's own claim as
+  evidence of one.
+
 ## 3.21.0
 
 - Verify compact `keel.permit_exact/v4` JSON artifacts whose contract pins

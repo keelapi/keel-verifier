@@ -1183,13 +1183,9 @@ def _authority_manifest(
                     "Work authority ids must be unique non-empty strings",
                     (f"authorities[{index}].authority_id",),
                 )
-            if authority.get("version") != "keel.work_authority.v1":
-                raise _Failure(
-                    "unverifiable_scope",
-                    "WORK_VERSION_UNSUPPORTED",
-                    "only keel.work_authority.v1 is supported",
-                    (f"authorities[{index}].version",),
-                )
+            _validate_work_authority_contract(
+                authority, index=index, authority_id=authority_id
+            )
             canonical_authority = dict(authority)
             declared_hash = canonical_authority.pop("authority_canonical_hash", None)
             if declared_hash != _digest(canonical_authority):
@@ -1199,16 +1195,16 @@ def _authority_manifest(
                     f"authority {authority_id} canonical hash does not match",
                     (f"authorities[{index}]",),
                 )
+            # Action and comparator identity are checked per contract above;
+            # what remains is that the lane belongs to *this* root.
             if (
                 authority.get("project_id") != document["project_id"]
                 or authority.get("root_permit_id") != root_id
-                or authority.get("trusted_action") != "payment.execute"
-                or authority.get("comparator_version") != "work-payment-authority.v1"
             ):
                 raise _Failure(
                     "disproved",
                     "WORK_AUTHORITY_SCOPE_MISMATCH",
-                    f"authority {authority_id} does not belong to this payment-only Work root",
+                    f"authority {authority_id} does not belong to this Work root",
                     (f"authorities[{index}]",),
                 )
             authorities[authority_id] = authority
@@ -1327,6 +1323,137 @@ def _norm_sha(value: Any) -> str | None:
     return normalized
 
 
+import re as _re
+
+_CURRENCY_CODE = _re.compile(r"^[A-Z]{3}$")
+WORK_AUTHORITY_V1 = "keel.work_authority.v1"
+WORK_AUTHORITY_V2 = "keel.work_authority.v2"
+#: Comparator each signed contract is issued against.
+_WORK_COMPARATOR_BY_CONTRACT = {
+    WORK_AUTHORITY_V1: "work-payment-authority.v1",
+    WORK_AUTHORITY_V2: "work-action-authority.v2",
+}
+_WORK_VALUE_BINDINGS = frozenset({"none", "declared_bounded", "provider_verified"})
+
+
+def work_authority_value_binding(authority: Mapping[str, Any]) -> str:
+    """How a lane may draw on the job's money.
+
+    v1 has no such field because it only ever expressed payment, so it reads as
+    ``declared_bounded``. v2 states it explicitly, which is what lets one Work
+    root carry a phone call and a payment side by side without the phone call
+    being able to spend.
+    """
+
+    if authority.get("version") == WORK_AUTHORITY_V1:
+        return "declared_bounded"
+    return str(authority.get("value_binding") or "")
+
+
+def work_authority_is_monetary(authority: Mapping[str, Any]) -> bool:
+    return work_authority_value_binding(authority) != "none"
+
+
+def _validate_work_authority_contract(
+    authority: Mapping[str, Any], *, index: int, authority_id: str
+) -> None:
+    """Structural rules the signed contract itself imposes.
+
+    Enforced here rather than trusted, so a malformed lane - a non-monetary one
+    carrying a ceiling, or a monetary one missing its currency - is disproved
+    instead of quietly accepted.
+    """
+
+    version = authority.get("version")
+    if version not in _WORK_COMPARATOR_BY_CONTRACT:
+        raise _Failure(
+            "unverifiable_scope",
+            "WORK_VERSION_UNSUPPORTED",
+            "only keel.work_authority.v1 and keel.work_authority.v2 are supported",
+            (f"authorities[{index}].version",),
+        )
+    if authority.get("comparator_version") != _WORK_COMPARATOR_BY_CONTRACT[version]:
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_SCOPE_MISMATCH",
+            f"authority {authority_id} comparator does not match its contract version",
+            (f"authorities[{index}].comparator_version",),
+        )
+
+    trusted_action = authority.get("trusted_action")
+    if not isinstance(trusted_action, str) or not trusted_action.strip():
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+            f"authority {authority_id} does not bind a trusted action",
+            (f"authorities[{index}].trusted_action",),
+        )
+
+    if version == WORK_AUTHORITY_V1:
+        # v1 is published as payment-only. Nothing about that changes.
+        if trusted_action != "payment.execute":
+            raise _Failure(
+                "disproved",
+                "WORK_AUTHORITY_SCOPE_MISMATCH",
+                f"authority {authority_id} does not belong to this payment-only Work root",
+                (f"authorities[{index}]",),
+            )
+        if "value_binding" in authority:
+            raise _Failure(
+                "disproved",
+                "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+                f"authority {authority_id} declares a v2 field under the v1 contract",
+                (f"authorities[{index}].value_binding",),
+            )
+        return
+
+    binding = authority.get("value_binding")
+    if binding not in _WORK_VALUE_BINDINGS:
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+            f"authority {authority_id} has no recognised value_binding",
+            (f"authorities[{index}].value_binding",),
+        )
+    has_cap = "value_max_minor" in authority
+    has_currency = "currency" in authority
+    if binding == "none":
+        if has_cap or has_currency:
+            raise _Failure(
+                "disproved",
+                "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+                (
+                    f"authority {authority_id} claims to consume no value but "
+                    "carries monetary limits"
+                ),
+                (f"authorities[{index}]",),
+            )
+        return
+    if not has_cap or not has_currency:
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+            f"authority {authority_id} is monetary but omits its cap or currency",
+            (f"authorities[{index}]",),
+        )
+    cap = authority.get("value_max_minor")
+    if not isinstance(cap, int) or isinstance(cap, bool) or cap < 1:
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+            f"authority {authority_id} has a malformed value ceiling",
+            (f"authorities[{index}].value_max_minor",),
+        )
+    currency = authority.get("currency")
+    if not isinstance(currency, str) or not _CURRENCY_CODE.fullmatch(currency):
+        raise _Failure(
+            "disproved",
+            "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID",
+            f"authority {authority_id} has a malformed currency",
+            (f"authorities[{index}].currency",),
+        )
+
+
 def _child_containment(
     document: dict[str, Any],
     artifacts: dict[str, dict[str, Any]],
@@ -1425,12 +1552,128 @@ def _child_containment(
                     f"child {child_id} semantic binding is not signed into the Permit",
                     (f"child_permits[{index}].semantic_binding",),
                 )
+            # Multi-principal delegation: the signed root package names which
+            # worker holds each lane, and the child's signed work binding names
+            # which worker exercised it. Both come from signed bytes, so this
+            # holds without consulting any database.
+            delegations = package.get("authority_delegations")
+            if isinstance(delegations, Mapping):
+                expected_delegate = delegations.get(str(binding.get("authority_id")))
+                exercised = binding.get("exercised_by")
+                if expected_delegate is not None:
+                    if not isinstance(exercised, Mapping):
+                        raise _Failure(
+                            "disproved",
+                            "WORK_CHILD_OUTSIDE_AUTHORITY",
+                            (
+                                f"child {child_id} exercises a delegated lane but "
+                                "records no exercising worker"
+                            ),
+                            (f"child_permits[{index}].work_binding.exercised_by",),
+                        )
+                    if (
+                        str(exercised.get("delegated_principal_id") or "")
+                        != str(expected_delegate)
+                        or str(exercised.get("verified_principal_id") or "")
+                        != str(expected_delegate)
+                    ):
+                        raise _Failure(
+                            "disproved",
+                            "WORK_CHILD_OUTSIDE_AUTHORITY",
+                            (
+                                f"child {child_id} was exercised by a worker other "
+                                "than the one the signed package delegated this lane to"
+                            ),
+                            (
+                                f"child_permits[{index}].work_binding.exercised_by",
+                                "root.work_package.authority_delegations",
+                            ),
+                        )
+                elif isinstance(exercised, Mapping) and exercised.get(
+                    "delegated_principal_id"
+                ) is not None:
+                    raise _Failure(
+                        "disproved",
+                        "WORK_CHILD_OUTSIDE_AUTHORITY",
+                        (
+                            f"child {child_id} claims a delegation the signed "
+                            "package does not grant"
+                        ),
+                        (f"child_permits[{index}].work_binding.exercised_by",),
+                    )
             if decision != "deny":
+                value_binding = work_authority_value_binding(authority)
                 resource = _mapping(
                     attrs.get("work_resource_scope_v1"),
                     field="permit_decision_binding.resource_attributes_json.work_resource_scope_v1",
                     code="WORK_CHILD_OUTSIDE_AUTHORITY",
                 )
+                if value_binding == "provider_verified":
+                    # The artifact asserting "provider_verified" is not itself
+                    # evidence that a provider verified anything. Nothing in the
+                    # v1 pack contract carries a trusted provider fact, so the
+                    # honest verdict is that this cannot be checked here - not
+                    # that it passed.
+                    raise _Failure(
+                        "unverifiable_scope",
+                        "WORK_VALUE_BINDING_UNVERIFIABLE",
+                        (
+                            f"child {child_id} draws on a provider_verified lane, "
+                            "and this pack carries no trusted provider fact to "
+                            "substantiate its amount"
+                        ),
+                        (f"child_permits[{index}]", "authorities"),
+                    )
+                if value_binding == "none":
+                    # A lane that consumes no money makes no monetary claim, so
+                    # there is nothing about an amount to verify. What still
+                    # binds is the action, the resource scope, and the window.
+                    issued_at = _parse_time(
+                        canonical.get("issued_at"), field="canonical_payload.issued_at"
+                    )
+                    not_before = _parse_time(
+                        authority.get("not_before"), field="authority.not_before"
+                    )
+                    expires_at = _parse_time(
+                        authority.get("expires_at"), field="authority.expires_at"
+                    )
+                    if not (
+                        canonical.get("action_name") == authority.get("trusted_action")
+                        and resource.get("version") == "keel.work_resource_scope.v1"
+                        and {
+                            "type": resource.get("type"),
+                            "id": resource.get("id"),
+                            "digest": resource.get("digest"),
+                        }
+                        == authority.get("resource_scope")
+                        and attrs.get("work_resource_digest") == resource.get("digest")
+                        and not_before <= issued_at < expires_at
+                    ):
+                        raise _Failure(
+                            "disproved",
+                            "WORK_CHILD_OUTSIDE_AUTHORITY",
+                            (
+                                f"child {child_id} exact request is outside its "
+                                "signed Work authority"
+                            ),
+                            (f"child_permits[{index}]", "authorities"),
+                        )
+                    materials[str(child_id)] = material
+                    subjects.append(
+                        VerdictSubject(
+                            type="work_child",
+                            id=child_id,
+                            verdict="supported",
+                            reason_code="WORK_CHILD_WITHIN_AUTHORITY",
+                            message=(
+                                "the exact signed request is contained by its Work "
+                                "authority, which consumes no monetary value"
+                            ),
+                            evidence=[f"child_permits[{index}]", "authorities"],
+                            required=True,
+                        )
+                    )
+                    continue
                 spend = _mapping(
                     attrs.get("spend_scope"),
                     field="permit_decision_binding.resource_attributes_json.spend_scope",
@@ -1455,7 +1698,11 @@ def _child_containment(
                 expires_at = _parse_time(authority.get("expires_at"), field="authority.expires_at")
                 if not (
                     canonical.get("action_name") == authority.get("trusted_action")
-                    and attrs.get("operation") == "payment.execute"
+                    and (
+                        attrs.get("operation") == "payment.execute"
+                        if authority.get("version") == WORK_AUTHORITY_V1
+                        else True
+                    )
                     and resource.get("version") == "keel.work_resource_scope.v1"
                     and {
                         "type": resource.get("type"),
@@ -1741,6 +1988,9 @@ def _work_value(
         else:
             unknown_authority = True
     subjects: list[VerdictSubject] = []
+    # Per-lane drawdown, so the root pool can be reconstructed from the ledger
+    # rather than believed from a signed assertion about what remained.
+    authority_totals: dict[str, int] = {}
     if unknown_authority:
         subjects.append(
             VerdictSubject(
@@ -1785,17 +2035,35 @@ def _work_value(
             reserved_uses = 0
             consumed_uses = 0
             for index, event in enumerate(events):
+                monetary_lane = work_authority_is_monetary(authority)
                 if (
                     event.get("version") != "keel.work_value_event.v1"
                     or event.get("project_id") != document["project_id"]
                     or event.get("root_permit_id") != document["root_permit_id"]
-                    or event.get("currency") != authority.get("currency")
+                    or (
+                        # A non-monetary lane has no signed currency to agree
+                        # with; its ledger rows carry a currency only so the
+                        # event shape stays uniform. The load-bearing claim
+                        # there is that the amount is zero, checked below.
+                        monetary_lane
+                        and event.get("currency") != authority.get("currency")
+                    )
                 ):
                     raise _Failure(
                         "disproved",
                         "WORK_VALUE_CONSERVATION_MISMATCH",
                         f"authority {authority_id} value event identity or currency conflicts",
                         (f"value_events[{index}]",),
+                    )
+                if not monetary_lane and int(event.get("amount_minor") or 0) != 0:
+                    raise _Failure(
+                        "disproved",
+                        "WORK_VALUE_CONSERVATION_MISMATCH",
+                        (
+                            f"authority {authority_id} consumes no monetary value "
+                            "but its ledger records a non-zero amount"
+                        ),
+                        (f"value_events[{index}].amount_minor",),
                     )
                 child_id = str(event.get("child_permit_id") or "")
                 if not child_id or child_id not in child_ids:
@@ -1817,7 +2085,14 @@ def _work_value(
                 occurred_at = _parse_time(
                     event.get("occurred_at"), field=f"value_events[{index}].occurred_at"
                 )
-                if amount <= 0 or occurred_at > cutoff:
+                # Zero is the correct amount on a lane that consumes no money;
+                # it is a positive-value requirement only where value is what
+                # the lane draws on.
+                if (
+                    amount < 0
+                    or (amount == 0 and work_authority_is_monetary(authority))
+                    or occurred_at > cutoff
+                ):
                     raise _Failure(
                         "disproved",
                         "WORK_VALUE_CONSERVATION_MISMATCH",
@@ -1923,7 +2198,11 @@ def _work_value(
                     or consumed_value < 0
                     or reserved_uses < 0
                     or consumed_uses < 0
-                    or reserved_value + consumed_value > int(authority.get("value_max_minor") or 0)
+                    or (
+                        work_authority_is_monetary(authority)
+                        and reserved_value + consumed_value
+                        > int(authority.get("value_max_minor") or 0)
+                    )
                     or reserved_uses + consumed_uses > int(authority.get("max_uses") or 0)
                 ):
                     raise _Failure(
@@ -1932,6 +2211,7 @@ def _work_value(
                         f"authority {authority_id} exceeds its signed value or use limit",
                         ("value_events", "authorities"),
                     )
+            authority_totals[authority_id] = reserved_value + consumed_value
             subjects.append(
                 VerdictSubject(
                     type="work_authority_value_ledger",
@@ -1956,6 +2236,62 @@ def _work_value(
                     evidence=list(failure.evidence),
                 )
             )
+    signed_package = context.get("package")
+    root_ceiling = (
+        signed_package.get("root_value_max_minor")
+        if isinstance(signed_package, Mapping)
+        else None
+    )
+    if root_ceiling is not None:
+        if (
+            not isinstance(root_ceiling, int)
+            or isinstance(root_ceiling, bool)
+            or root_ceiling < 1
+        ):
+            subjects.append(
+                VerdictSubject(
+                    type="work_root_value_pool",
+                    id=document["root_permit_id"],
+                    verdict="disproved",
+                    reason_code="WORK_VALUE_CONSERVATION_MISMATCH",
+                    message="the signed root value ceiling is malformed",
+                    evidence=["root.work_package.root_value_max_minor"],
+                    required=True,
+                )
+            )
+        else:
+            drawn = sum(authority_totals.values())
+            if drawn > int(root_ceiling):
+                subjects.append(
+                    VerdictSubject(
+                        type="work_root_value_pool",
+                        id=document["root_permit_id"],
+                        verdict="disproved",
+                        reason_code="WORK_VALUE_CONSERVATION_MISMATCH",
+                        message=(
+                            "the value events draw more than the signed root "
+                            "ceiling permits"
+                        ),
+                        evidence=["value_events", "root.work_package.root_value_max_minor"],
+                        required=True,
+                    )
+                )
+            else:
+                subjects.append(
+                    VerdictSubject(
+                        type="work_root_value_pool",
+                        id=document["root_permit_id"],
+                        verdict="supported",
+                        reason_code="WORK_VALUE_CONSERVATION_SUPPORTED",
+                        message=(
+                            f"every lane together draws {drawn} of the signed "
+                            f"{root_ceiling} root ceiling, reconstructed from the "
+                            "value-event ledger rather than asserted"
+                        ),
+                        evidence=["value_events", "root.work_package.root_value_max_minor"],
+                        required=True,
+                    )
+                )
     if not subjects:
         subjects.append(
             VerdictSubject(
