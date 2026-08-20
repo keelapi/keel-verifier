@@ -16,6 +16,7 @@ import hashlib
 from importlib import resources
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 import jsonschema
@@ -1323,9 +1324,7 @@ def _norm_sha(value: Any) -> str | None:
     return normalized
 
 
-import re as _re
-
-_CURRENCY_CODE = _re.compile(r"^[A-Z]{3}$")
+_CURRENCY_CODE = re.compile(r"^[A-Z]{3}$")
 WORK_AUTHORITY_V1 = "keel.work_authority.v1"
 WORK_AUTHORITY_V2 = "keel.work_authority.v2"
 #: Comparator each signed contract is issued against.

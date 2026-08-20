@@ -327,6 +327,6 @@
     "keel_verifier/verdicts.py": "fe64dc94f2d8ce90b3c230dfb95afa9c3ca6ef875fe3b365b544a517af29d65e",
     "keel_verifier/verifier.py": "e71c31aa95d64ed64603fa51a3a121a0ba324f54a40ff71194bec01cbb952adb",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
-    "keel_verifier/work_chain.py": "9ea316d8cd7fea4b273a3ff175a5fe28db0fa186de223f060187140bee4169be"
+    "keel_verifier/work_chain.py": "eb6c5fbe62c327ed372af80877ed77614041e123b881ffc0c00125180ea6a554"
   }
 }
