@@ -228,6 +228,7 @@ def _build_pack(
     provider_verified: bool = False,
     revocation_kind: str | None = None,
     call_principal: str = PHONE,
+    policy_narrowed: bool = False,
 ) -> tuple[dict[str, Any], Path]:
     export_private, export_public = _keypair()
     binding_private, binding_public = _keypair()
@@ -323,6 +324,15 @@ def _build_pack(
             "delegated_principal_id": BOOKER,
         },
     ]
+    if policy_narrowed:
+        request_lanes[0]["max_uses"] = 3
+        request_lanes[1].update(
+            {
+                "max_uses": 4,
+                "value_max_minor": 70_000,
+                "automatic_review_threshold_minor": 7_000,
+            }
+        )
     request = {
         "version": "keel.work_request.v2",
         "declared_purpose": "Arrange one bounded trip",
@@ -332,7 +342,7 @@ def _build_pack(
         "required_authority_ids": ["call-lane", "pay-lane"],
         "customer_value_pool": {
             "value_domain": "customer_economic_value",
-            "value_max_minor": 50_000,
+            "value_max_minor": 70_000 if policy_narrowed else 50_000,
             "currency": "USD",
         },
         "not_before": START,
@@ -403,7 +413,11 @@ def _build_pack(
         "issued_authority_set_hash": _digest(sorted(issued_refs, key=lambda item: item["authority_id"])),
         "excluded_authorities": [],
         "authority_delegations": delegations,
-        "customer_value_pool": request["customer_value_pool"],
+        "customer_value_pool": {
+            "value_domain": "customer_economic_value",
+            "value_max_minor": 50_000,
+            "currency": "USD",
+        },
         "policy_snapshot": {
             "policy_id": "root-policy",
             "policy_version": "1",
@@ -1045,6 +1059,15 @@ def test_work_v2_genuine_pack_supports_heterogeneous_delegated_review(tmp_path: 
     assert report.ok, report.to_dict()
     assert report.artifact["summary"] == pack["summary"]
     assert [claim.name for claim in report.claims] == list(WORK_CLAIMS_V2)
+
+
+def test_work_v2_accepts_policy_narrowing_but_not_authority_expansion(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(tmp_path, policy_narrowed=True)
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+    assert report.ok, report.to_dict()
+    assert all(claim.aggregate_verdict == "supported" for claim in report.claims)
 
 
 def test_work_v2_mutations_fail_closed(tmp_path: Path) -> None:
