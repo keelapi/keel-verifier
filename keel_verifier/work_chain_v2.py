@@ -54,10 +54,10 @@ POPULATIONS_V2 = {
     "child_permits": ("child_permits", "permits"),
     "work_value_events": ("value_events", "permit_work_value_events"),
     "lifecycle_events": ("lifecycle_events", "governance_events"),
-    "review_transitions": ("review_transitions", "permit_work_review_transitions"),
+    "review_transitions": ("review_transitions", "governance_events"),
     "provider_value_facts": (
         "provider_value_facts",
-        "permit_provider_value_facts",
+        "permits",
     ),
 }
 
