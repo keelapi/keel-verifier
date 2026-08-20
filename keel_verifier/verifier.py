@@ -7219,6 +7219,18 @@ def _find_permit_decision_evidence(
     return None, "export.permit_decision"
 
 
+# Envelope fields that restate a value already inside the signed canonical_payload.
+# The envelope copy is unauthenticated, so it must never be permitted to disagree with
+# the signed original: a consumer reading the envelope would otherwise be shown a value
+# the signature does not cover, sitting beside a supported verdict. The
+# ``expected_decision`` check in _adjudicate_permit_decision_v1 is this same invariant
+# under a different field name.
+_PERMIT_DECISION_ENVELOPE_PAYLOAD_DUPLICATES = (
+    "binding_version",
+    "binding_key_id",
+)
+
+
 def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
     if evidence.get("artifact_type") != PERMIT_DECISION_ARTIFACT_TYPE:
         return "artifact_type must be permit_decision_binding"
@@ -7630,6 +7642,28 @@ def _adjudicate_permit_decision_v1(
             message=binding_failure.message,
             evidence=binding_failure.evidence,
         )
+
+    for duplicated_field in _PERMIT_DECISION_ENVELOPE_PAYLOAD_DUPLICATES:
+        envelope_value = evidence.get(duplicated_field)
+        if envelope_value is None:
+            continue
+        if envelope_value != canonical_payload.get(duplicated_field):
+            return _permit_claim(
+                PERMIT_DECISION_CLAIM_NAME,
+                subject_type="permit_decision",
+                subject_id=permit_id,
+                verdict="disproved",
+                reason_code="PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+                message=(
+                    f"unsigned envelope {duplicated_field} does not match signed "
+                    f"canonical_payload.{duplicated_field}"
+                ),
+                evidence=[evidence_path, f"canonical_payload.{duplicated_field}"],
+                # This runs before signature verification, so the signature state is
+                # unknown here. Record only what was actually determined: a relying
+                # party must not read this verdict as "the cryptography failed".
+                epistemic_state={"envelope_payload_agreement": "contradicted"},
+            )
 
     expected_decision = evidence.get("expected_decision")
     if isinstance(expected_decision, str) and expected_decision != canonical_payload.get(

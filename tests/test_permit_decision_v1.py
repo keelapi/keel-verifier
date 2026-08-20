@@ -43,7 +43,7 @@ from keel_verifier.verifier import (
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 PERMIT_DECISION_GOLDEN_VECTOR_PATH = (
-    FIXTURES_DIR / "permit_decision_binding_golden_vectors_v1_v6.json"
+    FIXTURES_DIR / "permit_decision_binding_golden_vectors_v1_v7.json"
 )
 
 

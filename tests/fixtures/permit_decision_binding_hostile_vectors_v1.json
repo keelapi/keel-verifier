@@ -1,0 +1,372 @@
+{
+  "schema_version": "permit_decision_binding_hostile_vectors.v1",
+  "description": "Adversarial vectors for the permit decision-binding surface (claim permit.decision.v1). Each record derives from a published golden vector by applying the listed mutations, then adjudicating the result. Positive coverage lives in permit_decision_binding_golden_vectors_v1_v7.json; this file is the refusal half, so a third party can watch the binding fail as well as pass. The canonical_payload schema is closed (unknown signed fields are refused); the envelope is deliberately open, and envelope fields that restate signed values must agree with them.",
+  "base_fixture": "permit_decision_binding_golden_vectors_v1_v7.json",
+  "verdict_tiers": {
+    "supported": "the binding is intact and trusted; this claim covers the signed canonical_payload, not unknown or unprotected envelope metadata",
+    "disproved": "the artifact is affirmatively bad — tampered, forged, or malformed",
+    "insufficient_evidence": "the verifier cannot decide because trust material is missing; NOT a statement that the artifact is bad",
+    "unverifiable_scope": "the artifact is outside what this verifier version can adjudicate"
+  },
+  "trust_root_modes": {
+    "all_published_keys": "trust root contains binding_public_key plus every additional_binding_public_keys entry",
+    "primary_key_only": "trust root contains binding_public_key only",
+    "empty": "trust root present but with an empty key list",
+    "absent": "trust root path that does not exist"
+  },
+  "mutation_ops": {
+    "set": "assign `value` at dotted `path`",
+    "delete": "remove the key at dotted `path`",
+    "recompute_binding_hash": "recompute artifact.binding_canonical_hash from the mutated canonical_payload, using canonical_binding_bytes for the artifact's binding_version",
+    "copy_field_from_vector": "overwrite `path` with the same field from the first golden vector whose binding_version equals `from_binding_version`",
+    "flip_signature_byte": "XOR 0xFF into byte `index` of the base64-decoded ed25519 signature"
+  },
+  "records": [
+    {
+      "id": "decision_binding_positive_control",
+      "kind": "positive",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [],
+      "expected_verdict": "supported",
+      "expected_code": "PERMIT_DECISION_SUPPORTED",
+      "note": "Control. If this record fails, the harness itself is wrong and every refusal below is uninterpretable."
+    },
+    {
+      "id": "decision_binding_tamper_amount_max",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.constraints.amount_max",
+          "value": 999999
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+      "note": "Raise the signed spend ceiling after issuance and leave hash and signature untouched. The material parameter no longer recomputes to the signed hash."
+    },
+    {
+      "id": "decision_binding_tamper_decision",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.decision",
+          "value": "deny"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+      "note": "Flip the adjudicated decision itself."
+    },
+    {
+      "id": "decision_binding_tamper_expires_at",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.expires_at",
+          "value": "2020-01-01T00:00:00+00:00"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+      "note": "Expiry is covered by the signature, so backdating it is caught as tampering. This surface adjudicates binding integrity, not TTL policy."
+    },
+    {
+      "id": "decision_binding_tamper_amount_max_rehashed",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.constraints.amount_max",
+          "value": 999999
+        },
+        {
+          "op": "recompute_binding_hash"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_SIGNATURE_INVALID",
+      "note": "The stronger attack: an adversary who understands the canonicalization recomputes the hash. The signature still covers the original hash, so forging the payload requires the signing key."
+    },
+    {
+      "id": "decision_binding_tamper_decision_rehashed",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.decision",
+          "value": "deny"
+        },
+        {
+          "op": "recompute_binding_hash"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "note": "Same attack against the decision field, caught by payload cross-checks before signature verification is reached."
+    },
+    {
+      "id": "decision_binding_signature_corrupted",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "flip_signature_byte",
+          "index": 0
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_SIGNATURE_INVALID",
+      "note": "Single-bit corruption of the signature."
+    },
+    {
+      "id": "decision_binding_signature_from_other_vector",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "copy_field_from_vector",
+          "path": "binding_signature",
+          "from_binding_version": "v7"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_SIGNATURE_INVALID",
+      "note": "Signature substitution: a genuine signature, issued by a trusted key, over a different permit. Valid-but-unrelated evidence must not transfer."
+    },
+    {
+      "id": "decision_binding_untrusted_key",
+      "kind": "indeterminate",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v7",
+      "trust_root": "primary_key_only",
+      "mutations": [],
+      "expected_verdict": "insufficient_evidence",
+      "expected_code": "PERMIT_DECISION_UNTRUSTED_KEY",
+      "note": "Intact artifact signed by a key absent from the trust root. Distinct from disproved: the verifier is not asserting the permit is bad, only that it cannot vouch for the signer."
+    },
+    {
+      "id": "decision_binding_trust_root_empty",
+      "kind": "indeterminate",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "empty",
+      "mutations": [],
+      "expected_verdict": "insufficient_evidence",
+      "expected_code": "PERMIT_DECISION_UNTRUSTED_KEY",
+      "note": "Trust root present but carrying no keys."
+    },
+    {
+      "id": "decision_binding_trust_root_unresolvable",
+      "kind": "indeterminate",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "absent",
+      "mutations": [],
+      "expected_verdict": "insufficient_evidence",
+      "expected_code": "PERMIT_DECISION_TRUST_ROOT_UNRESOLVABLE",
+      "note": "No trust material at all. A relying party must map this to refuse-the-consequential-effect; it is not a pass, and it is not proof of tampering."
+    },
+    {
+      "id": "decision_binding_unsupported_binding_version",
+      "kind": "indeterminate",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.binding_version",
+          "value": "v99"
+        }
+      ],
+      "expected_verdict": "unverifiable_scope",
+      "expected_code": "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION",
+      "note": "A binding version this verifier build cannot canonicalize. Reported as out-of-scope rather than as a failure, so an old verifier cannot silently condemn a newer artifact."
+    },
+    {
+      "id": "decision_binding_schema_missing_signature",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "binding_signature"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_SCHEMA_INVALID",
+      "note": "Evidence stripped of its signature must not degrade into an unsigned pass."
+    },
+    {
+      "id": "envelope_binding_version_mismatch",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "binding_version",
+          "value": "v5"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "note": "The unsigned envelope copy of binding_version contradicts the signed one. Nothing about the signature is wrong; the artifact is internally inconsistent, and a consumer reading the envelope would see a value the signature does not cover."
+    },
+    {
+      "id": "envelope_binding_key_id_mismatch",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "copy_field_from_vector",
+          "path": "binding_key_id",
+          "from_binding_version": "v7"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "note": "Envelope key id relabelled to a different trusted key. Key resolution uses the signed copy, so verification still succeeds; the mismatch is refused so a report cannot attribute the signature to the wrong key."
+    },
+    {
+      "id": "expected_decision_mismatch",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "expected_decision",
+          "value": "deny"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "note": "Pre-existing instance of the same invariant, pinned here so the three envelope/payload agreement checks are documented together."
+    },
+    {
+      "id": "payload_binding_key_id_mismatch",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.binding_key_id",
+          "value": "0000000000000000"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_HASH_MISMATCH",
+      "note": "The signed copy is covered by the hash, so altering it is ordinary tampering rather than an envelope inconsistency."
+    },
+    {
+      "id": "envelope_and_payload_version_changed_unsigned",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "binding_version",
+          "value": "v5"
+        },
+        {
+          "op": "set",
+          "path": "canonical_payload.binding_version",
+          "value": "v5"
+        }
+      ],
+      "expected_verdict": "insufficient_evidence",
+      "expected_code": "PERMIT_DECISION_EVIDENCE_MISSING",
+      "note": "Both copies moved together so the consistency check passes, but the artifact was never re-signed and a v5 binding requires evidence a v1 artifact does not carry. Version confusion cannot be laundered by editing both copies."
+    },
+    {
+      "id": "unknown_payload_member",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "canonical_payload.totally_attacker_controlled",
+          "value": "whatever"
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_SCHEMA_INVALID",
+      "note": "The signed payload schema is closed: an unrecognised signed field is refused rather than ignored."
+    },
+    {
+      "id": "unknown_envelope_member_is_not_authenticated",
+      "kind": "documented_non_claim",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "totally_attacker_controlled",
+          "value": "whatever"
+        }
+      ],
+      "expected_verdict": "supported",
+      "expected_code": "PERMIT_DECISION_SUPPORTED",
+      "note": "DELIBERATE NON-CLAIM, pinned so the decision stays explicit. The envelope is open, and a supported verdict says nothing about unknown envelope metadata: it covers the signed canonical_payload only. Anything presenting this artifact must not display unrecognised envelope fields as verified. If the envelope is ever closed, this record must change with it."
+    },
+    {
+      "id": "envelope_mismatch_precedence_over_signature",
+      "kind": "negative",
+      "claim": "permit.decision.v1",
+      "base_binding_version": "v1",
+      "trust_root": "all_published_keys",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "binding_version",
+          "value": "v5"
+        },
+        {
+          "op": "flip_signature_byte",
+          "index": 0
+        }
+      ],
+      "expected_verdict": "disproved",
+      "expected_code": "PERMIT_DECISION_CANONICAL_PAYLOAD_MISMATCH",
+      "note": "Pins the precedence: the envelope-consistency check runs BEFORE signature verification, so an artifact that is both inconsistent and forged reports the inconsistency. A CANONICAL_PAYLOAD_MISMATCH verdict therefore says nothing about whether the signature was valid — the claim's epistemic_state records only that envelope and payload disagree."
+    }
+  ]
+}
