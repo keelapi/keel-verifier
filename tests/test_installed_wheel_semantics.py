@@ -325,6 +325,10 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
         "permit_to_x/schemas/goal3a-portfolio-exact-facts-v1.schema.json",
         "permit_to_x/test_vectors/consequence_registry/v14.json",
         "permit_to_x/test_vectors/consequence_registry/v15.json",
+        "permit_to_x/presentation_registry/v20.json",
+        "permit_to_x/presentation_registry/v20.schema.json",
+        "permit_to_x/semantic_registry/v21.json",
+        "permit_to_x/semantic_registry/v21.schema.json",
     ):
         assert f"keel_verifier/data/{relative_path}" in wheel_names
     assert "keel_verifier/data/claim_registry_v0.json" in wheel_names

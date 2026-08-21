@@ -132,6 +132,8 @@
     "keel_verifier/data/permit_to_x/presentation_registry/v19.schema.json": "b275dddfc7044aff8a5c636e592afa5c0b2d91a03543b32585eafaec5f24e011",
     "keel_verifier/data/permit_to_x/presentation_registry/v2.json": "a65ccd592408c686bb05af7018e2229c3aa9c52180306e1b17dfa9ae0bae2123",
     "keel_verifier/data/permit_to_x/presentation_registry/v2.schema.json": "5d10c5f4706923453bb40cfb28e85e49e2337078c91bf9fbd3c72ee546e10170",
+    "keel_verifier/data/permit_to_x/presentation_registry/v20.json": "720259d81f98edec5ee4c9ef38bc00a20709f371ef47cc809e318f02648d86d6",
+    "keel_verifier/data/permit_to_x/presentation_registry/v20.schema.json": "a7dbc6fdfb17bee8d579f8ac37908de7a0d46aa3b9b1c8e3daf91566e0164a79",
     "keel_verifier/data/permit_to_x/presentation_registry/v3.json": "386577cf71fb117b63d59be316d4a217fee0a4fc2e82b9a91a75b188fdb77553",
     "keel_verifier/data/permit_to_x/presentation_registry/v3.schema.json": "98f5dd8b54ee1072eeff7c5070c81bb7391d7ff9f5c5728916ebcf20d189e789",
     "keel_verifier/data/permit_to_x/presentation_registry/v4.json": "548e7466d54e66eccfa73be747a27ecd389e6fb29dddb9df5dffd4eb3e8406f2",
@@ -224,6 +226,8 @@
     "keel_verifier/data/permit_to_x/semantic_registry/v2.schema.json": "f9cc64a0cbc1d2bc2f5f39b18c93502ec0c04980e6b0a203569418b1e4d529af",
     "keel_verifier/data/permit_to_x/semantic_registry/v20.json": "65af1608fec493a52819c165acfc78e5fc75ed976e76c89e776d1f7682e6f88e",
     "keel_verifier/data/permit_to_x/semantic_registry/v20.schema.json": "7348b1dcc00c2937da4e29c79620fbae445d8bf2e7d49e6dc732c7bccad78582",
+    "keel_verifier/data/permit_to_x/semantic_registry/v21.json": "e4c7ccc34baea0caa8826646be9a9efc772f4023546ab3724718da30c1b83b9e",
+    "keel_verifier/data/permit_to_x/semantic_registry/v21.schema.json": "aabc82ac21ed14e94e333c8fe742b31681a0c65f4f6c8c53f24d4e4bbe434b98",
     "keel_verifier/data/permit_to_x/semantic_registry/v3.json": "7ea4e6ab2dde98454cd2254b72bf2499e79b8bead396be9b35d2a6a729480ed4",
     "keel_verifier/data/permit_to_x/semantic_registry/v3.schema.json": "aee19c7f95363e60954cf46a59d16a3961246d16841db5b336aba36609b2fb55",
     "keel_verifier/data/permit_to_x/semantic_registry/v4.json": "29dcee32ff774378a2e0ae065fe2e65f5f0bd8602df1246a02d56177199c1d20",
@@ -354,9 +358,9 @@
     "keel_verifier/monitor.py": "29c14ce3eb444a0517221743e908bdc65c130941bf734a55be9a971d00552354",
     "keel_verifier/permit_co_signature.py": "d059336d8965110812a33b93932df9387c46b641093a0e7a309ea46ff4c4cbf0",
     "keel_verifier/permit_exact.py": "38335f7e806bf3b300cb1d4308064b7ee0a4bb5c01d8528f0debf979a8fb1357",
-    "keel_verifier/permit_exact_v2.py": "38312e9d1ab29f7e0865ffff39e6ea7a5e1cfbd03a9d140206bcf42047bf162e",
+    "keel_verifier/permit_exact_v2.py": "024c97136228dd323a44dbde899bbf232a7b7e87d5194d647f521bb89b709c20",
     "keel_verifier/permit_package.py": "439615141af6a8e110c5a52d9709b2b959048bf91ffe100ee302d62c0dee3185",
-    "keel_verifier/permit_presentation.py": "039f59c06b15f8a8682f8aed7cef194ec23c10e6cb99367a685f0415dd26cae1",
+    "keel_verifier/permit_presentation.py": "5ff22c125efde1f657b77644465061dfcd9647b87cea235bac66e89cced3894d",
     "keel_verifier/report_render.py": "1b719110e442fd8c2f3ed21698c68a30c00e37d7ffa487d7c2bbe7e6f63061c2",
     "keel_verifier/schemas/__init__.py": "4ba50e793b1a1fbb3b7c71df394d94fd4856f6745add3da4964d14123882f58f",
     "keel_verifier/schemas/artifact_ref.py": "fa4602aff953d4b7543fc6ffee04f8e81d6ca78ae43c29931db769b21e5b5347",
@@ -366,6 +370,6 @@
     "keel_verifier/verifier.py": "77b24b527f0b35da33112652b9987a573b493343b29d12df033ae2a3f5276570",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "23431a48b935701c6570ab55f8fd688fd10c6f05b8b31d47fe14acd67120796f",
-    "keel_verifier/work_chain_v2.py": "a5710642690eb45435ffd798ca87d77e595d46c4ffa1131909df97375ce7fbce"
+    "keel_verifier/work_chain_v2.py": "592f0fd81f50f686dfaf807881523ccf1873ccd2d61d64117575feaae9a484c1"
   }
 }
