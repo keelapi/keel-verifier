@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.23.1
+
+### Fixed
+
+- Report aggregate claim diagnostics from a required non-supported subject
+  whose verdict matches the aggregate verdict. Mixed-subject claims now explain
+  the failure that made the claim non-supported instead of presenting a
+  contradictory success reason from an earlier supported subject. Historical
+  all-supported claim output remains unchanged.
+
 ## 3.23.0
 
 ### Added
