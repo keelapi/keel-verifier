@@ -1057,8 +1057,14 @@ def test_work_v2_genuine_pack_supports_heterogeneous_delegated_review(tmp_path: 
     pack, trust_root = _build_pack(tmp_path)
     report = verify_work_chain_pack(pack, trust_root=trust_root)
     assert report.ok, report.to_dict()
+    rendered = report.to_dict()
     assert report.artifact["summary"] == pack["summary"]
     assert [claim.name for claim in report.claims] == list(WORK_CLAIMS_V2)
+    assert all(claim["semantics"] for claim in rendered["claims"])
+    assert rendered["semantics"]["mode"] == "work_chain_pinned"
+    assert {
+        pin["id"] for pin in rendered["semantics"]["pins"]
+    } >= {"keel.permit.universal_verification.v5"}
 
 
 def test_work_v2_accepts_policy_narrowing_but_not_authority_expansion(

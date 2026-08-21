@@ -9,6 +9,7 @@ dispatch relationship explicit and fail closed.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime
 from functools import lru_cache
 from importlib import resources
@@ -77,6 +78,7 @@ _SCHEMAS = (
 )
 
 _SEMANTIC_FILES = (
+    "data/semantics/permit/universal_verification_v5.json",
     "data/semantics/work/authority_manifest_v2.json",
     "data/semantics/work/child_containment_v2.json",
     "data/comparator_registry/work-action-authority-v2.json",
@@ -86,6 +88,26 @@ _SEMANTIC_FILES = (
     "data/semantics/work/provider_value_fact_v1.json",
     "data/semantics/work/summary_v1.json",
 )
+
+_CLAIM_SEMANTIC_FILES = {
+    WORK_CLAIMS_V2[0]: (
+        "data/semantics/work/authority_manifest_v2.json",
+        "data/comparator_registry/work-action-authority-v2.json",
+    ),
+    WORK_CLAIMS_V2[1]: (
+        "data/semantics/work/child_containment_v2.json",
+        "data/comparator_registry/work-action-authority-v2.json",
+        "data/semantics/work/provider_value_fact_v1.json",
+    ),
+    WORK_CLAIMS_V2[2]: (
+        "data/semantics/work/execution_authorized_at_boundary_v2.json",
+    ),
+    WORK_CLAIMS_V2[3]: (
+        "data/semantics/work/value_conservation_v2.json",
+        "data/semantics/work/provider_value_fact_v1.json",
+    ),
+    WORK_CLAIMS_V2[4]: ("data/semantics/work/exact_review_v1.json",),
+}
 
 _GENERIC_TITLE = "AI Permit"
 _CALL_SEMANTIC = "keel.action.telephony_call_outbound.v1"
@@ -152,6 +174,23 @@ def _work_semantics_v2() -> dict[str, Any]:
     }
 
 
+@lru_cache(maxsize=1)
+def _work_claim_semantics_v2() -> dict[str, tuple[dict[str, str], ...]]:
+    """Return claim-local pins without promoting pack-scoped semantics globally."""
+
+    result: dict[str, tuple[dict[str, str], ...]] = {}
+    for claim_name, paths in _CLAIM_SEMANTIC_FILES.items():
+        pins: list[dict[str, str]] = []
+        for path in paths:
+            value, raw = _json_resource(path)
+            artifact_id = str(
+                value.get("id") or value.get("$id") or value.get("version")
+            )
+            pins.append({"id": artifact_id, "hash": _content_hash(raw)})
+        result[claim_name] = tuple(pins)
+    return result
+
+
 def _all_claim_failure_v2(
     failure: _Failure, root_id: str | None
 ) -> list[ClaimVerdict]:
@@ -182,6 +221,13 @@ def _report_v2(
     claims: list[ClaimVerdict],
     diagnostics: list[str] | None = None,
 ) -> VerificationReport:
+    claim_semantics = _work_claim_semantics_v2()
+    claims = [
+        replace(claim, semantics=list(claim_semantics[claim.name]))
+        if claim.semantics is None
+        else claim
+        for claim in claims
+    ]
     verdicts = [claim.aggregate_verdict for claim in claims if claim.required]
     ok = bool(verdicts) and all(value == "supported" for value in verdicts)
     exit_code = (
