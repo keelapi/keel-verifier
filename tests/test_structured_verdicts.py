@@ -8,6 +8,7 @@ from keel_verifier.verdicts import (
     ClaimVerdict,
     LEGACY_PROFILE_WARNING,
     VERDICT_OUTPUT_JSON_SCHEMA,
+    VerdictSubject,
 )
 from keel_verifier.semantics import LEGACY_PROFILE_HASH
 
@@ -157,3 +158,74 @@ def test_claim_with_zero_evaluable_subjects_is_insufficient():
     claim = ClaimVerdict(name="checkpoint.tsa_imprint.v1")
 
     assert claim.to_dict()["verdict"] == "insufficient_evidence"
+
+
+def test_mixed_subject_claim_diagnostic_matches_aggregate_verdict():
+    claim = ClaimVerdict(
+        name="checkpoint.tsa_imprint.v1",
+        subjects=[
+            VerdictSubject(
+                type="supported_subject",
+                id="supported",
+                verdict="supported",
+                reason_code="SUPPORTED_SUBJECT",
+                message="the first subject is supported",
+            ),
+            VerdictSubject(
+                type="optional_disproved_subject",
+                id="optional-disproved",
+                verdict="disproved",
+                reason_code="OPTIONAL_DISPROVED_SUBJECT",
+                message="an optional subject is disproved",
+                required=False,
+            ),
+            VerdictSubject(
+                type="insufficient_subject",
+                id="insufficient",
+                verdict="insufficient_evidence",
+                reason_code="INSUFFICIENT_SUBJECT",
+                message="a later subject has insufficient evidence",
+            ),
+            VerdictSubject(
+                type="disproved_subject",
+                id="disproved",
+                verdict="disproved",
+                reason_code="DISPROVED_SUBJECT",
+                message="the aggregate-disproving subject failed",
+            ),
+        ],
+    )
+
+    rendered = claim.to_dict()
+
+    assert rendered["verdict"] == "disproved"
+    assert rendered["reason_code"] == "DISPROVED_SUBJECT"
+    assert rendered["message"] == "the aggregate-disproving subject failed"
+
+
+def test_all_supported_claim_keeps_first_subject_diagnostic():
+    claim = ClaimVerdict(
+        name="checkpoint.tsa_imprint.v1",
+        subjects=[
+            VerdictSubject(
+                type="first_supported_subject",
+                id="first",
+                verdict="supported",
+                reason_code="FIRST_SUPPORTED",
+                message="the first supported subject remains authoritative",
+            ),
+            VerdictSubject(
+                type="second_supported_subject",
+                id="second",
+                verdict="supported",
+                reason_code="SECOND_SUPPORTED",
+                message="the second supported subject is also valid",
+            ),
+        ],
+    )
+
+    rendered = claim.to_dict()
+
+    assert rendered["verdict"] == "supported"
+    assert rendered["reason_code"] == "FIRST_SUPPORTED"
+    assert rendered["message"] == "the first supported subject remains authoritative"

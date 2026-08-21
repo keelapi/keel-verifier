@@ -340,22 +340,36 @@ class ClaimVerdict:
     def to_dict(self) -> dict[str, Any]:
         definition = load_claim_registry().claim(self.name)
         subject_dicts = [subject.to_dict() for subject in self.subjects]
+        aggregate_verdict = self.aggregate_verdict
+        diagnostic_subjects = self.subjects
+        if aggregate_verdict != verdict_value("supported"):
+            matching_subjects = [
+                subject
+                for subject in self.subjects
+                if subject.required and subject.verdict == aggregate_verdict
+            ]
+            if matching_subjects:
+                diagnostic_subjects = matching_subjects
         reason_code = self.reason_code
         message = self.message
         if reason_code is None:
             reason_code = next(
-                (subject.reason_code for subject in self.subjects if subject.reason_code),
+                (
+                    subject.reason_code
+                    for subject in diagnostic_subjects
+                    if subject.reason_code
+                ),
                 None,
             )
         if message is None:
             message = next(
-                (subject.message for subject in self.subjects if subject.message),
+                (subject.message for subject in diagnostic_subjects if subject.message),
                 None,
             )
         return _clean_dict(
             {
                 "name": self.name,
-                "verdict": self.aggregate_verdict,
+                "verdict": aggregate_verdict,
                 "required": self.required,
                 "subjects": subject_dicts,
                 "semantics": (

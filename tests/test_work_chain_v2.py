@@ -1245,6 +1245,37 @@ def test_work_v2_mutations_fail_closed(tmp_path: Path) -> None:
         assert not report.ok, (name, report.to_dict())
 
 
+def test_work_v2_summary_only_tamper_sets_matching_aggregate_diagnostic(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(tmp_path)
+    pack["summary"]["text"] = "tampered"
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+    rendered = report.to_dict()
+    work_claim = next(
+        claim
+        for claim in rendered["claims"]
+        if claim["name"] == "permit.work_authority_manifest.v2"
+    )
+    summary_subject = next(
+        subject
+        for subject in work_claim["subjects"]
+        if subject["type"] == "work_summary"
+    )
+
+    assert not report.ok
+    assert work_claim["verdict"] == "disproved"
+    assert work_claim["reason_code"] == "WORK_SUMMARY_MISMATCH"
+    assert work_claim["message"] == (
+        "exported Work summary differs from verifier-derived verified fields"
+    )
+    assert summary_subject["verdict"] == "disproved"
+    assert summary_subject["reason_code"] == work_claim["reason_code"]
+    assert summary_subject["message"] == work_claim["message"]
+    assert report.artifact["summary"]["text"] != "tampered"
+
+
 def test_work_v2_provider_verified_requires_signed_exact_provider_facts(
     tmp_path: Path,
 ) -> None:
