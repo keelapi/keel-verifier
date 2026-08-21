@@ -18896,8 +18896,11 @@ def verify(
         body = None
     if (
         isinstance(body, dict)
-        and body.get("version") == "keel.work_chain_pack.v1"
-        and body.get("profile") == "work-chain.v1"
+        and (body.get("version"), body.get("profile"))
+        in {
+            ("keel.work_chain_pack.v1", "work-chain.v1"),
+            ("keel.work_chain_pack.v2", "work-chain.v2"),
+        }
     ):
         from keel_verifier.work_chain import verify_work_chain_pack
 

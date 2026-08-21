@@ -2,15 +2,15 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.22.0",
+    "version": "3.23.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.19.0",
+    "permit_spec_version": "1.21.1",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.19.0/claim_registry/v5.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.21.1/claim_registry/v6.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [
@@ -549,6 +549,71 @@
       "depends_on_semantics": [
         "keel.permit.work_value_conservation.v1"
       ],
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_authority_manifest.v2",
+      "status": "implemented",
+      "description": "Verifies the exact signed Work v2 request preimage, heterogeneous authority population, one finite customer-value pool, and complete multi-principal delegation set.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_child_containment.v2",
+      "status": "implemented",
+      "description": "Verifies exact action, resource, authenticated v7 subject, signed lane delegation and credential digest, value mode, request amount, and trusted provider facts for every Work v2 child.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit_chain.execution_authorized_at_boundary.v2",
+      "status": "implemented",
+      "description": "Verifies a signed pre-effect dispatch boundary and independently cross-checks scoped root, lane, child, delegation, principal, credential, review, Policy, reservation, request, body, expiry, and revocation state.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_value_conservation.v2",
+      "status": "implemented",
+      "description": "Reconstructs one root-wide hash-linked customer-economic-value ledger across all monetary lanes while proving non-monetary lanes consume none and AI/model compute remains separate.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.work_exact_review.v1",
+      "status": "implemented",
+      "description": "Verifies the signature-bound frozen request and human outcome separately from the final authorization result, including a valid human approval followed by current-authority denial and no dispatch.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
       "verdicts": [
         "supported",
         "disproved",
@@ -1526,5 +1591,5 @@
       "status": "allowlisted"
     }
   ],
-  "version": "3.22.0"
+  "version": "3.23.0"
 }

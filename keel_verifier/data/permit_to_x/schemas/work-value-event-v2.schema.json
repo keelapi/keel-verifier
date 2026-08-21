@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-value-event-v2.schema.json",
+  "title": "Keel root customer-value event v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "event_id",
+    "project_id",
+    "root_permit_id",
+    "authority_id",
+    "child_permit_id",
+    "reservation_id",
+    "root_sequence",
+    "previous_root_event_hash",
+    "event_type",
+    "value_domain",
+    "amount_minor",
+    "currency",
+    "idempotency_key_digest",
+    "root_value_state_after",
+    "occurred_at",
+    "event_canonical_hash"
+  ],
+  "properties": {
+    "version": {"const": "keel.work_value_event.v2"},
+    "event_id": {"type": "string", "format": "uuid"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "child_permit_id": {"type": "string", "format": "uuid"},
+    "reservation_id": {"type": "string", "format": "uuid"},
+    "root_sequence": {"type": "integer", "minimum": 1},
+    "previous_root_event_hash": {
+      "oneOf": [
+        {"$ref": "#/$defs/digest"},
+        {"type": "null"}
+      ]
+    },
+    "event_type": {
+      "enum": ["reserved", "released", "consumed", "reconciled_release", "reconciled_consume"]
+    },
+    "value_domain": {"const": "customer_economic_value"},
+    "amount_minor": {"type": "integer", "minimum": 1},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "trusted_value_fact": {"$ref": "#/$defs/artifact_reference"},
+    "idempotency_key_digest": {"$ref": "#/$defs/digest"},
+    "root_value_state_after": {"$ref": "#/$defs/root_value_state"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "event_canonical_hash": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "artifact_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "artifact_type", "artifact_digest"],
+      "properties": {
+        "artifact_id": {"type": "string", "minLength": 1},
+        "artifact_type": {
+          "enum": [
+            "keel.provider_value_fact.v1",
+            "keel.provider_value_fact.v2"
+          ]
+        },
+        "artifact_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "root_value_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value_domain",
+        "value_max_minor",
+        "currency",
+        "reserved_value_minor",
+        "consumed_value_minor",
+        "remaining_value_minor"
+      ],
+      "properties": {
+        "value_domain": {"const": "customer_economic_value"},
+        "value_max_minor": {"type": "integer", "minimum": 1},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "reserved_value_minor": {"type": "integer", "minimum": 0},
+        "consumed_value_minor": {"type": "integer", "minimum": 0},
+        "remaining_value_minor": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

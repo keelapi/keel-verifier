@@ -1,0 +1,83 @@
+{
+  "version": "keel.action_gateway_vectors.v1",
+  "cases": [
+    {
+      "id": "message-send",
+      "candidate": {
+        "trusted_source_kind": "action_gateway_service",
+        "permit_product": "permit",
+        "action_name": "message.send",
+        "operation": "message.send",
+        "chain_role": "action_child",
+        "evidence_capabilities": ["authorization", "dispatch", "provider_outcome"]
+      },
+      "expected_semantic_id": "keel.action.message_send.v1",
+      "expected_title": "AI Permit-to-Send-Message",
+      "expected_fact_profile_id": "keel.facts.message_send_gateway_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.action_gateway_exact_facts.v1",
+        "fact_profile_id": "keel.facts.message_send_gateway_exact.v1",
+        "action": "message.send",
+        "connector_identity": "11111111-1111-4111-8111-111111111111",
+        "connector_type": "keel_gateway_https",
+        "provider_environment": "provider_live",
+        "gateway_protocol_version": "keel.action_gateway.v1",
+        "originating_principal_id": "22222222-2222-4222-8222-222222222222",
+        "allowlist_source": "keel_connector_configuration",
+        "max_uses": 1,
+        "message_bridge_kind": "macos_messages",
+        "destination_hmac": "1111111111111111111111111111111111111111111111111111111111111111",
+        "destination_allowlisted": true,
+        "message_body_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "provider_wire_body_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "request_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    },
+    {
+      "id": "calendar-event-create",
+      "candidate": {
+        "trusted_source_kind": "action_gateway_service",
+        "permit_product": "permit",
+        "action_name": "calendar.event.create",
+        "operation": "calendar.event.create",
+        "chain_role": "action_child",
+        "evidence_capabilities": ["authorization", "dispatch", "provider_outcome"]
+      },
+      "expected_semantic_id": "keel.action.calendar_event_create_gateway.v1",
+      "expected_title": "AI Permit-to-Create-Calendar-Event",
+      "expected_fact_profile_id": "keel.facts.calendar_event_create_gateway_exact.v1",
+      "valid_authorization_facts": {
+        "version": "keel.action_gateway_exact_facts.v1",
+        "fact_profile_id": "keel.facts.calendar_event_create_gateway_exact.v1",
+        "action": "calendar.event.create",
+        "connector_identity": "11111111-1111-4111-8111-111111111111",
+        "connector_type": "keel_gateway_https",
+        "provider_environment": "provider_live",
+        "gateway_protocol_version": "keel.action_gateway.v1",
+        "originating_principal_id": "22222222-2222-4222-8222-222222222222",
+        "allowlist_source": "keel_connector_configuration",
+        "max_uses": 1,
+        "calendar_provider": "google_calendar",
+        "calendar_reference_hmac": "5555555555555555555555555555555555555555555555555555555555555555",
+        "calendar_allowlisted": true,
+        "attendee_set_hmac": "6666666666666666666666666666666666666666666666666666666666666666",
+        "attendees_allowlisted": true,
+        "event_payload_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "provider_wire_body_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "request_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "idempotency_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+      }
+    }
+  ],
+  "negative_cases": [
+    {"id": "caller-source-kind", "target": "candidate.trusted_source_kind", "value": "action_verb_execute", "expected": "fallback"},
+    {"id": "wrong-connector", "target": "valid_authorization_facts.connector_type", "value": "generic_http", "expected": "facts_invalid"},
+    {"id": "unallowlisted-target", "target": "valid_authorization_facts.destination_allowlisted", "value": false, "case": "message-send", "expected": "facts_invalid"},
+    {"id": "raw-message-destination", "target": "valid_authorization_facts.destination", "value": "+14155550123", "case": "message-send", "expected": "facts_invalid"},
+    {"id": "raw-message-body", "target": "valid_authorization_facts.body", "value": "private text", "case": "message-send", "expected": "facts_invalid"},
+    {"id": "unallowlisted-calendar", "target": "valid_authorization_facts.calendar_allowlisted", "value": false, "case": "calendar-event-create", "expected": "facts_invalid"},
+    {"id": "unallowlisted-attendees", "target": "valid_authorization_facts.attendees_allowlisted", "value": false, "case": "calendar-event-create", "expected": "facts_invalid"},
+    {"id": "profile-swap", "target": "valid_authorization_facts.fact_profile_id", "value": "keel.facts.message_send_gateway_exact.v1", "case": "calendar-event-create", "expected": "facts_invalid"}
+  ]
+}

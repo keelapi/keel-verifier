@@ -1,0 +1,34 @@
+{
+  "id": "keel.permit.universal_verification.v5",
+  "version": "v5",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "candidate",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v4",
+    "version": "v4",
+    "sha256": "f52bd1add7a275ef467e3193d8854056ac9a186f89db6deedcc8f6d2cd397520"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v6",
+    "work_chain_profiles": {
+      "work-chain.v2": [
+        "permit.work_authority_manifest.v2",
+        "permit.work_child_containment.v2",
+        "permit_chain.execution_authorized_at_boundary.v2",
+        "permit.work_value_conservation.v2",
+        "permit.work_exact_review.v1"
+      ]
+    },
+    "work_v2_rule": {
+      "applicability": "The v2 claims are requested only by a strict keel.work_chain_pack.v2 export whose profile is work-chain.v2.",
+      "registry_rule": "The evidence pack, every signed Permit semantic binding, and this recipe must pin verifier-claims.v6 by exact digest. Registry identity alone never establishes a claim.",
+      "population_rule": "The signed scope commitment defines the complete root, authority, delegation, child, value, lifecycle, review, provider-fact, Policy, and revocation populations through the declared cutoff.",
+      "dispatch_rule": "Execution authorization requires a supported signed pre-effect Work v2 dispatch boundary and does not establish provider acceptance or completion.",
+      "value_rule": "Customer-economic value is conserved only by the root-wide Work v2 ledger. AI or model compute spend is outside that pool unless separately governed.",
+      "presentation_rule": "The derived summary and Permit-to-X titles are non-authorizing projections and cannot satisfy or override any verification claim.",
+      "missing_evidence_verdict": "insufficient_evidence",
+      "digest_or_population_mismatch_verdict": "disproved",
+      "unsupported_contract_verdict": "unverifiable_scope"
+    }
+  }
+}

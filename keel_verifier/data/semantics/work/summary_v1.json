@@ -1,0 +1,29 @@
+{
+  "id": "keel.work.summary.v1",
+  "version": "v1",
+  "kind": "work_verifier_summary_recipe",
+  "status": "contract_only",
+  "body": {
+    "schema": "schemas/work-summary-v1.schema.json",
+    "derivation": "verifier_from_verified_work_fields",
+    "source_fields": [
+      "verified root identity and lifecycle",
+      "verified authority actions, value bindings and use limits",
+      "verified signed package delegations",
+      "verified child terminal decisions",
+      "reconstructed root customer-value state",
+      "supported semantic presentation profiles"
+    ],
+    "security": {
+      "caller_supplied_title_allowed": false,
+      "caller_supplied_summary_allowed": false,
+      "summary_is_authorization_input": false,
+      "summary_is_verifier_verdict_input": false,
+      "mismatch_rule": "disproved"
+    },
+    "required_boundary": [
+      "AI and model compute spend uses separate Keel authority",
+      "no implication of provider completion, settlement, call content or agreement"
+    ]
+  }
+}

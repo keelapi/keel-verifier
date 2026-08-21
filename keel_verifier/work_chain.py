@@ -319,7 +319,7 @@ def _work_enforcement_state_validator() -> jsonschema.Draft202012Validator:
 @lru_cache(maxsize=1)
 def _work_enforcement_claim_semantics() -> tuple[dict[str, str], ...]:
     resource = resources.files("keel_verifier").joinpath(
-        "data/semantics/permit/universal_verification_v4.json"
+        "data/semantics/permit/universal_verification_v5.json"
     )
     raw = resource.read_bytes()
     payload = json.loads(raw)
@@ -2316,6 +2316,18 @@ def verify_work_chain_pack(
     bundled Keel trust root; tests and private deployments may pin a local
     signed or legacy key manifest explicitly.
     """
+
+    try:
+        candidate, _candidate_artifact = _load_document(pack)
+    except _Failure:
+        candidate = {}
+    if (
+        candidate.get("version") == "keel.work_chain_pack.v2"
+        and candidate.get("profile") == "work-chain.v2"
+    ):
+        from keel_verifier.work_chain_v2 import verify_work_chain_pack_v2
+
+        return verify_work_chain_pack_v2(pack, trust_root=trust_root)
 
     artifact: dict[str, Any] = {"kind": "work_chain_pack"}
     try:

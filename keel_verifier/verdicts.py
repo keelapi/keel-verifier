@@ -29,7 +29,7 @@ from keel_verifier.semantics import (
 )
 
 VERDICT_SCHEMA_ID = "keel.verifier.verdicts/v0"
-CLAIM_REGISTRY_VERSION = "verifier-claims.v5"
+CLAIM_REGISTRY_VERSION = "verifier-claims.v6"
 CLAIM_REGISTRY_V1_ID = "keel.verifier_claim_registry.v1"
 CLAIM_REGISTRY_V1_VERSION = "verifier-claims.v1"
 
@@ -107,7 +107,7 @@ def _load_registry_payload() -> tuple[dict[str, Any], str]:
 
     try:
         bundled = resources.files("keel_verifier").joinpath(
-            "data/claim_registry/v5.json"
+            "data/claim_registry/v6.json"
         )
         return json.loads(bundled.read_text(encoding="utf-8")), str(bundled)
     except Exception as exc:

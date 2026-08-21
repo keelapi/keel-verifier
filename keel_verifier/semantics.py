@@ -285,6 +285,11 @@ PROFILE_DRIVEN_CLAIMS = frozenset(
         "permit.refund_original_payment_bound.v1",
         "permit.enforcement_regime_at_issuance.v1",
         "permit.enforcement_regime_at_dispatch.v1",
+        "permit.work_authority_manifest.v2",
+        "permit.work_child_containment.v2",
+        "permit_chain.execution_authorized_at_boundary.v2",
+        "permit.work_value_conservation.v2",
+        "permit.work_exact_review.v1",
     }
 )
 

@@ -1,0 +1,154 @@
+{
+  "version": "keel.permit_to_work_authority_vectors.v2",
+  "canonicalization_profile": "keel.canonical_json.payload.v1",
+  "valid": [
+    {
+      "id": "non-monetary-call",
+      "authority": {
+        "version": "keel.work_authority.v2",
+        "authority_id": "phone-lane",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "semantic_id": "keel.action.telephony_call_outbound.v1",
+        "trusted_action": "call.outbound",
+        "trusted_source_reference": {
+          "source_kind": "action_verb_execute",
+          "source_id": "phone-lane",
+          "source_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "resource_scope": {
+          "type": "concierge_job",
+          "id": "trip-2026-08-20",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "comparator_version": "work-action-authority.v2",
+        "max_uses": 3,
+        "value_binding": "none",
+        "automatic_review_threshold_minor": 0,
+        "not_before": "2026-08-20T20:00:00Z",
+        "expires_at": "2026-08-21T20:00:00Z",
+        "authority_canonical_hash": "sha256:aea45fc7e38a836dd8e4a4d4acb2c37fa4798e362141eae71dc1967d2e31014a"
+      }
+    },
+    {
+      "id": "declared-bounded-payment",
+      "authority": {
+        "version": "keel.work_authority.v2",
+        "authority_id": "restaurant-deposit-lane",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "semantic_id": "keel.action.payment_execute.v1",
+        "trusted_action": "payment.execute",
+        "trusted_source_reference": {
+          "source_kind": "action_verb_execute",
+          "source_id": "restaurant-deposit-lane",
+          "source_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "resource_scope": {
+          "type": "concierge_job",
+          "id": "trip-2026-08-20",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "comparator_version": "work-action-authority.v2",
+        "max_uses": 1,
+        "value_binding": "declared_bounded",
+        "value_max_minor": 10000,
+        "currency": "USD",
+        "automatic_review_threshold_minor": 5000,
+        "recipient_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "purpose_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "not_before": "2026-08-20T20:00:00Z",
+        "expires_at": "2026-08-21T20:00:00Z",
+        "authority_canonical_hash": "sha256:db57f0cbbbc37635ec350ab8381bdfab597e97f3b20edd523dd777585a69897c"
+      }
+    },
+    {
+      "id": "provider-verified-lodging",
+      "authority": {
+        "version": "keel.work_authority.v2",
+        "authority_id": "lodging-lane",
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "root_permit_id": "22222222-2222-4222-8222-222222222222",
+        "semantic_id": "keel.action.travel_lodging_book.v1",
+        "trusted_action": "travel.lodging.book",
+        "trusted_source_reference": {
+          "source_kind": "action_verb_execute",
+          "source_id": "lodging-lane",
+          "source_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "resource_scope": {
+          "type": "concierge_job",
+          "id": "trip-2026-08-20",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "comparator_version": "work-action-authority.v2",
+        "max_uses": 1,
+        "value_binding": "provider_verified",
+        "value_max_minor": 50000,
+        "currency": "USD",
+        "automatic_review_threshold_minor": 5000,
+        "not_before": "2026-08-20T20:00:00Z",
+        "expires_at": "2026-08-21T20:00:00Z",
+        "authority_canonical_hash": "sha256:f48a5c9f9ab99570a65be1f9d883a934a380a7f3da3cf0f2b6c305e07343ce7b"
+      }
+    }
+  ],
+  "negative_mutations": [
+    {
+      "id": "none-carries-value-cap",
+      "base": "non-monetary-call",
+      "path": ["value_max_minor"],
+      "value": 1,
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    },
+    {
+      "id": "none-carries-currency",
+      "base": "non-monetary-call",
+      "path": ["currency"],
+      "value": "USD",
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    },
+    {
+      "id": "declared-bounded-missing-currency",
+      "base": "declared-bounded-payment",
+      "path": ["currency"],
+      "operation": "delete",
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    },
+    {
+      "id": "provider-verified-missing-cap",
+      "base": "provider-verified-lodging",
+      "path": ["value_max_minor"],
+      "operation": "delete",
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    },
+    {
+      "id": "future-value-binding",
+      "base": "non-monetary-call",
+      "path": ["value_binding"],
+      "value": "externally_attested_future",
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    },
+    {
+      "id": "wrong-comparator",
+      "base": "non-monetary-call",
+      "path": ["comparator_version"],
+      "value": "work-payment-authority.v1",
+      "expected_failure_code": "WORK_AUTHORITY_SCOPE_MISMATCH"
+    },
+    {
+      "id": "unsupported-contract-version",
+      "base": "non-monetary-call",
+      "path": ["version"],
+      "value": "keel.work_authority.v3",
+      "expected_failure_code": "WORK_VERSION_UNSUPPORTED"
+    },
+    {
+      "id": "unknown-consequential-field",
+      "base": "non-monetary-call",
+      "path": ["caller_certified"],
+      "value": true,
+      "expected_failure_code": "WORK_AUTHORITY_MANIFEST_SCHEMA_INVALID"
+    }
+  ]
+}

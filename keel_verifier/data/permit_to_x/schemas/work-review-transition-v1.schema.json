@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/work-review-transition-v1.schema.json",
+  "title": "Keel exact Work review transition v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "transition_id",
+    "event_type",
+    "permit_id",
+    "project_id",
+    "root_permit_id",
+    "authority_id",
+    "actor_id",
+    "actor_kind",
+    "from_decision",
+    "from_status",
+    "human_outcome",
+    "final_decision",
+    "final_status",
+    "final_reason_code",
+    "frozen_request_digest",
+    "exact_request_commitment",
+    "review_evidence_hash",
+    "decided_at",
+    "binding_key_id",
+    "canonical_hash",
+    "signature"
+  ],
+  "properties": {
+    "version": {"const": "keel.work_review_transition.v1"},
+    "transition_id": {"type": "string", "format": "uuid"},
+    "event_type": {"const": "work.review_resolved"},
+    "permit_id": {"type": "string", "format": "uuid"},
+    "project_id": {"type": "string", "format": "uuid"},
+    "root_permit_id": {"type": "string", "format": "uuid"},
+    "authority_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"},
+    "actor_id": {"type": "string", "minLength": 1, "maxLength": 255},
+    "actor_kind": {"enum": ["dashboard_user", "external_approver", "service_approver"]},
+    "from_decision": {"const": "challenge"},
+    "from_status": {"const": "awaiting_attestation"},
+    "human_outcome": {"enum": ["approve", "reject"]},
+    "final_decision": {"enum": ["allow", "deny"]},
+    "final_status": {"enum": ["attested", "denied"]},
+    "final_reason_code": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+    "frozen_request_digest": {"$ref": "#/$defs/digest"},
+    "exact_request_commitment": {"$ref": "#/$defs/digest"},
+    "review_evidence_hash": {"$ref": "#/$defs/digest"},
+    "provider_wire_body_digest": {"$ref": "#/$defs/digest"},
+    "decided_at": {"type": "string", "format": "date-time"},
+    "binding_key_id": {"type": "string", "minLength": 1},
+    "canonical_hash": {"$ref": "#/$defs/digest"},
+    "signature": {"type": "string", "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"human_outcome": {"const": "reject"}}, "required": ["human_outcome"]},
+      "then": {
+        "properties": {
+          "final_decision": {"const": "deny"},
+          "final_status": {"const": "denied"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"final_decision": {"const": "allow"}}, "required": ["final_decision"]},
+      "then": {"properties": {"final_status": {"const": "attested"}}},
+      "else": {"properties": {"final_status": {"const": "denied"}}}
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

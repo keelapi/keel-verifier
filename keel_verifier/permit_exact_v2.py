@@ -46,12 +46,14 @@ _CLAIM_REGISTRY_IDS = {
     "verifier-claims.v3": "keel.verifier_claim_registry.v3",
     "verifier-claims.v4": "keel.verifier_claim_registry.v4",
     "verifier-claims.v5": "keel.verifier_claim_registry.v5",
+    "verifier-claims.v6": "keel.verifier_claim_registry.v6",
 }
 _UNIVERSAL_SEMANTICS_IDS = {
     "v1": "keel.permit.universal_verification.v1",
     "v2": "keel.permit.universal_verification.v2",
     "v3": "keel.permit.universal_verification.v3",
     "v4": "keel.permit.universal_verification.v4",
+    "v5": "keel.permit.universal_verification.v5",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
@@ -1485,6 +1487,7 @@ def _resolve_contracts(
             "../claim_registry/v3.json",
             "../claim_registry/v4.json",
             "../claim_registry/v5.json",
+            "../claim_registry/v6.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,
@@ -1509,6 +1512,9 @@ def _resolve_contracts(
             "semantic_registry/v16.json",
             "semantic_registry/v17.json",
             "semantic_registry/v18.json",
+            "semantic_registry/v19.json",
+            "semantic_registry/v20.json",
+            "semantic_registry/v21.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
         allow_compact=allow_compact,
@@ -1532,6 +1538,8 @@ def _resolve_contracts(
             "fact_profiles/v14.json",
             "fact_profiles/v15.json",
             "fact_profiles/v16.json",
+            "fact_profiles/v17.json",
+            "fact_profiles/v18.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
         allow_compact=allow_compact,
@@ -1544,6 +1552,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v2.json",
             "../semantics/permit/universal_verification_v3.json",
             "../semantics/permit/universal_verification_v4.json",
+            "../semantics/permit/universal_verification_v5.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/action-gateway-exact-facts-v1.schema.json",
+  "title": "Keel action gateway exact authorization facts v1",
+  "description": "Server-established facts for one exact message or calendar egress through a customer-controlled gateway whose credential, endpoint, operation path, and allowlists are held by Keel. Raw destinations and message or event content are forbidden from this verifier-safe facts object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "action",
+    "connector_identity",
+    "connector_type",
+    "provider_environment",
+    "gateway_protocol_version",
+    "originating_principal_id",
+    "allowlist_source",
+    "max_uses",
+    "provider_wire_body_digest",
+    "request_digest",
+    "idempotency_digest"
+  ],
+  "properties": {
+    "version": {"const": "keel.action_gateway_exact_facts.v1"},
+    "fact_profile_id": {
+      "enum": [
+        "keel.facts.message_send_gateway_exact.v1",
+        "keel.facts.calendar_event_create_gateway_exact.v1"
+      ]
+    },
+    "action": {"enum": ["message.send", "calendar.event.create"]},
+    "connector_identity": {"type": "string", "format": "uuid"},
+    "connector_type": {"const": "keel_gateway_https"},
+    "provider_environment": {"const": "provider_live"},
+    "gateway_protocol_version": {"const": "keel.action_gateway.v1"},
+    "originating_principal_id": {"type": "string", "format": "uuid"},
+    "allowlist_source": {"const": "keel_connector_configuration"},
+    "max_uses": {"const": 1},
+    "provider_wire_body_digest": {"$ref": "#/$defs/digest"},
+    "request_digest": {"$ref": "#/$defs/digest"},
+    "idempotency_digest": {"$ref": "#/$defs/digest"},
+    "message_bridge_kind": {"const": "macos_messages"},
+    "destination_hmac": {"$ref": "#/$defs/hmac"},
+    "destination_allowlisted": {"const": true},
+    "message_body_digest": {"$ref": "#/$defs/digest"},
+    "calendar_provider": {"const": "google_calendar"},
+    "calendar_reference_hmac": {"$ref": "#/$defs/hmac"},
+    "calendar_allowlisted": {"const": true},
+    "attendee_set_hmac": {"$ref": "#/$defs/hmac"},
+    "attendees_allowlisted": {"const": true},
+    "event_payload_digest": {"$ref": "#/$defs/digest"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "fact_profile_id": {"const": "keel.facts.message_send_gateway_exact.v1"},
+        "action": {"const": "message.send"}
+      },
+      "required": [
+        "message_bridge_kind",
+        "destination_hmac",
+        "destination_allowlisted",
+        "message_body_digest"
+      ],
+      "not": {
+        "anyOf": [
+          {"required": ["calendar_provider"]},
+          {"required": ["calendar_reference_hmac"]},
+          {"required": ["calendar_allowlisted"]},
+          {"required": ["attendee_set_hmac"]},
+          {"required": ["attendees_allowlisted"]},
+          {"required": ["event_payload_digest"]}
+        ]
+      }
+    },
+    {
+      "properties": {
+        "fact_profile_id": {"const": "keel.facts.calendar_event_create_gateway_exact.v1"},
+        "action": {"const": "calendar.event.create"}
+      },
+      "required": [
+        "calendar_provider",
+        "calendar_reference_hmac",
+        "calendar_allowlisted",
+        "attendee_set_hmac",
+        "attendees_allowlisted",
+        "event_payload_digest"
+      ],
+      "not": {
+        "anyOf": [
+          {"required": ["message_bridge_kind"]},
+          {"required": ["destination_hmac"]},
+          {"required": ["destination_allowlisted"]},
+          {"required": ["message_body_digest"]}
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "hmac": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

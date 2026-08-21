@@ -3466,6 +3466,48 @@ def test_v2_verifier_adapter_emits_structured_claims() -> None:
     assert summary["fact_profile_id"] == "keel.facts.payment_exact.v1"
 
 
+def test_v21_action_gateway_payment_contract_pin_is_supported() -> None:
+    facts = copy.deepcopy(_body()["authorization_facts"])
+    facts["payment_rail"] = "stripe.connect.transfer"
+    body = _v4_body(
+        semantic_id="keel.action.payment_execute.v1",
+        fact_profile_id="keel.facts.payment_exact.v1",
+        facts=facts,
+        action_name="payment.execute",
+        operation="payment.execute",
+        governed_surface="keel_action_gateway",
+        source_kind="action_gateway_service",
+        presentation_profile_id="permit_to_pay.r1",
+        selector_registry_file="v21.json",
+        fact_registry_file="v18.json",
+    )
+    classification = copy.deepcopy(
+        _body()["permit_decision"]["resource_attributes_json"][
+            "payment_classification_v1"
+        ]
+    )
+    for attributes in (
+        body["permit_decision"]["resource_attributes_json"],
+        body["permit_receipt"]["action"]["resource_attributes_json"],
+    ):
+        attributes["payment_classification_v1"] = copy.deepcopy(classification)
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(
+        body["permit_decision"]["resource_attributes_json"]
+    )
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+        signed_artifact_verifier=lambda _artifact, _purpose, _time: (True, None),
+    )
+    claims = _claim_map(result)
+
+    assert claims["permit.type.v1"].verdict == "supported"
+    assert claims["permit.exact_target.v1"].verdict == "supported"
+
+
 def test_v3_proves_distinct_work_issuance_and_dispatch_regimes() -> None:
     result = adjudicate_permit_exact_v2_body(
         _v3_work_body(),

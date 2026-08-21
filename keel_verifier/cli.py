@@ -1002,8 +1002,11 @@ def _looks_like_work_chain(path: str) -> bool:
         return False
     return bool(
         isinstance(data, dict)
-        and data.get("version") == "keel.work_chain_pack.v1"
-        and data.get("profile") == "work-chain.v1"
+        and (data.get("version"), data.get("profile"))
+        in {
+            ("keel.work_chain_pack.v1", "work-chain.v1"),
+            ("keel.work_chain_pack.v2", "work-chain.v2"),
+        }
     )
 
 

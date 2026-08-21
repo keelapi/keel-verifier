@@ -49,6 +49,77 @@ def _binding_for(version_file: str, semantic_id: str) -> dict:
     }
 
 
+def _payment_binding_for_v21(source_kind: str) -> dict:
+    """Build the exact payment binding issued by either trusted server path."""
+
+    registry, raw = _registry("semantic_registry/v21.json")
+    entry = next(
+        item
+        for item in registry["entries"]
+        if item["semantic_id"] == "keel.action.payment_execute.v1"
+    )
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": "keel.action.payment_execute.v1",
+        "trusted_source_kind": source_kind,
+        "chain_role": "action_child",
+        "action_name": "payment.execute",
+        "operation": "payment.execute",
+        "governed_surface": "keel_action_gateway",
+        "non_authorizing_presentation_profile_id": "permit_to_pay.r1",
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
+def test_v21_action_gateway_payment_resolves_to_pay_title() -> None:
+    resolved = resolve_permit_presentation(
+        _payment_binding_for_v21("action_gateway_service")
+    )
+
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["customer_title"] == "AI Permit-to-Pay"
+    assert resolved["presentation_registry_version"] == (
+        "keel.presentation_registry.v20"
+    )
+
+
+def test_v21_legacy_payment_source_remains_compatible() -> None:
+    resolved = resolve_permit_presentation(
+        _payment_binding_for_v21("action_verb_execute")
+    )
+
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["customer_title"] == "AI Permit-to-Pay"
+
+
+def test_v20_historical_registry_bytes_are_unchanged() -> None:
+    _registry_value, semantic_raw = _registry("semantic_registry/v20.json")
+    _presentation_value, presentation_raw = _registry(
+        "presentation_registry/v19.json"
+    )
+
+    assert hashlib.sha256(semantic_raw).hexdigest() == (
+        "65af1608fec493a52819c165acfc78e5fc75ed976e76c89e776d1f7682e6f88e"
+    )
+    assert hashlib.sha256(presentation_raw).hexdigest() == (
+        "77e4829d6a46a53fe697873d0d31a66e39930ec7649d18f1a0e3449236cb52ff"
+    )
+
+
+def test_unknown_future_payment_gateway_registry_fails_safe() -> None:
+    binding = _payment_binding_for_v21("action_gateway_service")
+    binding["selector_registry_version"] = "keel.semantic_selector_registry.v22"
+
+    resolved = resolve_permit_presentation(binding)
+
+    assert resolved["resolution"] == "historical_or_unavailable_registry"
+    assert resolved["customer_title"] != "AI Permit-to-Pay"
+
+
 def test_v1_issued_permit_keeps_its_title_after_v2_exists() -> None:
     """The regression this change prevents: v2 shipping must not retitle v1."""
 
