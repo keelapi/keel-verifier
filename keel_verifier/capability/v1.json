@@ -8,9 +8,9 @@
     "license": "MIT"
   },
   "spec_compatibility": {
-    "permit_spec_version": "1.21.0",
+    "permit_spec_version": "1.21.1",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.21.0/claim_registry/v6.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.21.1/claim_registry/v6.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [

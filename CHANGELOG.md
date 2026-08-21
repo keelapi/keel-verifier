@@ -5,7 +5,7 @@
 ### Added
 
 - Verify the canonical `keel.work_authority.v2` evidence pack from
-  keel-permit 1.21.0, including the exact signed Work request, complete lane
+  keel-permit 1.21.1, including the exact signed Work request, complete lane
   partition, heterogeneous actions, distinct authenticated principals, signed
   delegations, and scoped root/authority/delegation/principal/credential
   revocations.
@@ -22,6 +22,15 @@
 - Resolve `AI Permit-to-Place-Outbound-Call` only from the current signed
   server-controlled semantic and exact-fact contracts. Missing or inconsistent
   trusted facts safely downgrade to a generic Permit title.
+- Resolve reusable server-controlled message and calendar action-gateway facts
+  without letting agents self-select a connector, destination, or Permit title.
+- Admit exact payment facts from the server-owned action gateway through the
+  immutable semantic-selector v21 delta while preserving the historical
+  `action_verb_execute` payment source and all v20 registry bytes.
+- Verify provider value fact v2 freshness against the child Permit issuance
+  time, a code-pinned provider contract profile, an exact provider-object
+  commitment, and a signed validity window no longer than 900 seconds. Provider
+  value fact v1 remains supported but does not establish quote freshness.
 
 ### Compatibility
 

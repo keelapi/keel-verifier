@@ -392,6 +392,9 @@ COPIES = {
     "schemas/provider-value-fact-v1.schema.json": (
         "permit_to_x/schemas/provider-value-fact-v1.schema.json"
     ),
+    "schemas/provider-value-fact-v2.schema.json": (
+        "permit_to_x/schemas/provider-value-fact-v2.schema.json"
+    ),
     "schemas/work-summary-v1.schema.json": ("permit_to_x/schemas/work-summary-v1.schema.json"),
     "schemas/work-chain-pack-v2.schema.json": (
         "permit_to_x/schemas/work-chain-pack-v2.schema.json"
@@ -423,6 +426,9 @@ COPIES = {
     "semantics/work/exact_review_v1.json": ("semantics/work/exact_review_v1.json"),
     "semantics/work/provider_value_fact_v1.json": (
         "semantics/work/provider_value_fact_v1.json"
+    ),
+    "semantics/work/provider_value_fact_v2.json": (
+        "semantics/work/provider_value_fact_v2.json"
     ),
     "semantics/work/summary_v1.json": ("semantics/work/summary_v1.json"),
     "test-vectors/permit_to_work/v1/corpus.json": (

@@ -13,7 +13,7 @@
     "keel_verifier/canonical/__init__.py": "28718e49f1657838c1ef73525879d3281629005d069c5de9acd6a72263edeb49",
     "keel_verifier/canonical/permit_binding.py": "d359bcccfbb82a58aebcbbbbc075de052d69c096ffa06439ca5f7d32e3c6a7fd",
     "keel_verifier/capability/README.md": "1e7768b1f78b6f7f24fafe52d29febcd863c05f4e60cffcb0dd0852a59f52678",
-    "keel_verifier/capability/v1.json": "a8667e925122e50a33ea7769b807ff02a88ee8bc04520168999d3e774df034ee",
+    "keel_verifier/capability/v1.json": "5e88a7d4635f4a16ea1045c399298eb3fa37bf20b2d877eda299d30d0e1409a0",
     "keel_verifier/cli.py": "331d22054fa1bef8f6521fb72e74c42df06a7cffabf7e5a28fb0ea09a03e00f8",
     "keel_verifier/data/claim_registry/historical/v0-sha256-02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5.json": "02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "keel_verifier/data/claim_registry/historical/v0-sha256-0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4.json": "0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
@@ -179,6 +179,7 @@
     "keel_verifier/data/permit_to_x/schemas/procurement-ap-exact-facts-v1.schema.json": "380c9c8db5240164018fda9b75ca0434045b8664187d1e5c775adf1c9ca78f7f",
     "keel_verifier/data/permit_to_x/schemas/provider-receipt-v1.schema.json": "d87f64e2dcf057938664330b9c1511afb4db6eba1146c1ed610ce3b3dd48053a",
     "keel_verifier/data/permit_to_x/schemas/provider-value-fact-v1.schema.json": "afaa2b50df9eb7fcbdab2fd4f0b547e971eee9ebed9e7b87e0d7097e11bb3cc6",
+    "keel_verifier/data/permit_to_x/schemas/provider-value-fact-v2.schema.json": "400c62d241476b98bff903cb80d29c9dee48e42bd28513430248c58bb386cfa4",
     "keel_verifier/data/permit_to_x/schemas/refund-exact-facts-v1.schema.json": "aa225ed99e1bb122d737ec4c0d601436a9f44cadb16f127b1559db2b8de089d5",
     "keel_verifier/data/permit_to_x/schemas/release-exact-facts-v1.schema.json": "05c7ea35e5c9bb4b447af82bc7d4d0cabcafe06b2208020a1d58c9915ab94ee1",
     "keel_verifier/data/permit_to_x/schemas/runtime-enforcement-proof-v1.schema.json": "4f2784c4b773f169914c028694df9870d1232a8cd39896b4fc53bfda3209382a",
@@ -199,7 +200,7 @@
     "keel_verifier/data/permit_to_x/schemas/work-review-transition-v1.schema.json": "b8ce3b3e98da13868e73bc8cc74c56a2cea44a0be97012fcba02144b0ed0e470",
     "keel_verifier/data/permit_to_x/schemas/work-summary-v1.schema.json": "e116b03c6fb374182888259a40b4d456fedff2e406ba0013ee684b38a8cdbfe5",
     "keel_verifier/data/permit_to_x/schemas/work-value-event-v1.schema.json": "4ac66ae3c485d5d2c5d71cfc5e871821d84b6f167245abc18fe62112c705d046",
-    "keel_verifier/data/permit_to_x/schemas/work-value-event-v2.schema.json": "4286574255c1554937bac76a7af7bb82cabaad4a6808291fa704521d56fbea6c",
+    "keel_verifier/data/permit_to_x/schemas/work-value-event-v2.schema.json": "775f1473a8e87bb8dfdab249bfea6f7e44c346067c06ca50a06604ffbf6d9477",
     "keel_verifier/data/permit_to_x/semantic_registry/v1.json": "d7440aed255789fab9c7397bd5fcdb9ea3322d2590d509dc0e385287c0ef24b7",
     "keel_verifier/data/permit_to_x/semantic_registry/v1.schema.json": "8ccd1acb774fe1af6201f3f4e32c0c95c86dbf82fd10ae82b11b457264ae0cdf",
     "keel_verifier/data/permit_to_x/semantic_registry/v10.json": "397be23bf5a031f85ce3221c6e02c3bf4d9efcbde767e4fc906bef4fc4704d25",
@@ -332,6 +333,7 @@
     "keel_verifier/data/semantics/work/execution_authorized_at_boundary_v1.json": "c0c2f008fbe733f7c571fda909ba52ac818b2feebe3e2b3bc136773fad087f63",
     "keel_verifier/data/semantics/work/execution_authorized_at_boundary_v2.json": "6882ddefaa9d671864921d0401f0f9da25cbf080d30a030a83256a68d08face4",
     "keel_verifier/data/semantics/work/provider_value_fact_v1.json": "188ce961f1d151f151915ebb329eec56c7baba52a188fc7d05cca067c810a397",
+    "keel_verifier/data/semantics/work/provider_value_fact_v2.json": "d2e947e333edff19a14b7099dc59143ef509b2900a84e498e20a764ae572392a",
     "keel_verifier/data/semantics/work/summary_v1.json": "3bd5459a6ac9c3e0c3941b96a61b9cdeef7106e25f78392356abc9298cb7e300",
     "keel_verifier/data/semantics/work/value_conservation_v1.json": "6ce4403efe186f78b78070d198b9080cac77eaee9f32922904b8b2b2377163aa",
     "keel_verifier/data/semantics/work/value_conservation_v2.json": "3496402313da462ac539e2f396e2b0b3f8539c22eadd2fe62066ddc3701fa687",
@@ -370,6 +372,6 @@
     "keel_verifier/verifier.py": "77b24b527f0b35da33112652b9987a573b493343b29d12df033ae2a3f5276570",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "23431a48b935701c6570ab55f8fd688fd10c6f05b8b31d47fe14acd67120796f",
-    "keel_verifier/work_chain_v2.py": "592f0fd81f50f686dfaf807881523ccf1873ccd2d61d64117575feaae9a484c1"
+    "keel_verifier/work_chain_v2.py": "ac7aef686b053e5a331920cde4c73b5e187113113f50e3c3ca40b02f7bde4fde"
   }
 }

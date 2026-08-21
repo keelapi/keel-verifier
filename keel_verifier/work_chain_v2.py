@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import lru_cache
 from importlib import resources
 import json
@@ -71,6 +71,7 @@ _SCHEMAS = (
     "work-value-event-v2.schema.json",
     "work-review-transition-v1.schema.json",
     "provider-value-fact-v1.schema.json",
+    "provider-value-fact-v2.schema.json",
     "work-dispatch-boundary-v2.schema.json",
     "work-summary-v1.schema.json",
     "permit-semantic-binding-v2.schema.json",
@@ -87,6 +88,7 @@ _SEMANTIC_FILES = (
     "data/semantics/work/value_conservation_v2.json",
     "data/semantics/work/exact_review_v1.json",
     "data/semantics/work/provider_value_fact_v1.json",
+    "data/semantics/work/provider_value_fact_v2.json",
     "data/semantics/work/summary_v1.json",
 )
 
@@ -99,6 +101,7 @@ _CLAIM_SEMANTIC_FILES = {
         "data/semantics/work/child_containment_v2.json",
         "data/comparator_registry/work-action-authority-v2.json",
         "data/semantics/work/provider_value_fact_v1.json",
+        "data/semantics/work/provider_value_fact_v2.json",
     ),
     WORK_CLAIMS_V2[2]: (
         "data/semantics/work/execution_authorized_at_boundary_v2.json",
@@ -106,11 +109,18 @@ _CLAIM_SEMANTIC_FILES = {
     WORK_CLAIMS_V2[3]: (
         "data/semantics/work/value_conservation_v2.json",
         "data/semantics/work/provider_value_fact_v1.json",
+        "data/semantics/work/provider_value_fact_v2.json",
     ),
     WORK_CLAIMS_V2[4]: ("data/semantics/work/exact_review_v1.json",),
 }
 
 _GENERIC_TITLE = "AI Permit"
+_PROVIDER_VALUE_FACT_V2_PROFILES = {
+    "keel.provider_contract.sabre_lodging_quote.v1": {
+        "fact_profile_id": "keel.facts.lodging_booking_value.v2",
+        "connector_type": "sabre_direct",
+    },
+}
 _CALL_SEMANTIC = "keel.action.telephony_call_outbound.v1"
 _CALL_FACT_PROFILE = "keel.facts.telephony_call_outbound_exact.v1"
 _CALL_FACT_TYPE = "keel.telephony_call_outbound_exact_facts.v1"
@@ -899,9 +909,14 @@ def _provider_fact(
     *,
     artifacts: dict[str, dict[str, Any]],
     entries: list[dict[str, Any]],
+    child_issued_at: datetime,
 ) -> dict[str, Any]:
     artifact = _resolve_reference(reference, artifacts, field="provider_value_fact")
-    if artifact.get("artifact_type") != "keel.provider_value_fact.v1":
+    artifact_type = artifact.get("artifact_type")
+    if artifact_type not in {
+        "keel.provider_value_fact.v1",
+        "keel.provider_value_fact.v2",
+    }:
         raise _Failure(
             "unverifiable_scope",
             "WORK_VALUE_BINDING_UNVERIFIABLE",
@@ -913,15 +928,69 @@ def _provider_fact(
         field="provider_value_fact.payload",
         code="WORK_VALUE_BINDING_UNVERIFIABLE",
     )
-    return _signed_object(
+    schema = (
+        "provider-value-fact-v2.schema.json"
+        if artifact_type == "keel.provider_value_fact.v2"
+        else "provider-value-fact-v1.schema.json"
+    )
+    verified = _signed_object(
         payload,
-        schema="provider-value-fact-v1.schema.json",
+        schema=schema,
         entries=entries,
         key_field="signing_key_id",
         time_field="observed_at",
         purpose="provider_fact_signing",
         code="WORK_VALUE_BINDING_UNVERIFIABLE",
     )
+    if artifact_type == "keel.provider_value_fact.v1":
+        return verified
+
+    profile = _PROVIDER_VALUE_FACT_V2_PROFILES.get(
+        str(verified.get("provider_contract_profile_id"))
+    )
+    if (
+        profile is None
+        or verified.get("fact_profile_id") != profile["fact_profile_id"]
+        or verified.get("connector_type") != profile["connector_type"]
+        or not isinstance(verified.get("provider_object_commitment"), str)
+    ):
+        raise _Failure(
+            "unverifiable_scope" if profile is None else "disproved",
+            "WORK_VALUE_BINDING_UNVERIFIABLE",
+            "provider value fact v2 does not match a code-pinned provider contract profile",
+            ("provider_value_fact.provider_contract_profile_id",),
+        )
+    observed_at = _parse_time(
+        verified.get("observed_at"), field="provider_value_fact.observed_at"
+    )
+    valid_until = _parse_time(
+        verified.get("valid_until"), field="provider_value_fact.valid_until"
+    )
+    validity_seconds = verified.get("validity_seconds")
+    if (
+        not isinstance(validity_seconds, int)
+        or isinstance(validity_seconds, bool)
+        or not 1 <= validity_seconds <= 900
+        or valid_until - observed_at != timedelta(seconds=validity_seconds)
+    ):
+        raise _Failure(
+            "disproved",
+            "WORK_VALUE_BINDING_UNVERIFIABLE",
+            "provider value fact v2 validity window is inconsistent or unbounded",
+            ("provider_value_fact.valid_until", "provider_value_fact.validity_seconds"),
+        )
+    if not observed_at <= child_issued_at < valid_until:
+        raise _Failure(
+            "disproved",
+            "WORK_VALUE_BINDING_UNVERIFIABLE",
+            "child Permit issuance is outside the provider value fact v2 validity window",
+            (
+                "provider_value_fact.observed_at",
+                "canonical.issued_at",
+                "provider_value_fact.valid_until",
+            ),
+        )
+    return verified
 
 
 def _verified_lane_title(
@@ -1197,7 +1266,9 @@ def _child_containment_v2(
                     f"child {child_id} resource is outside its signed Work lane",
                     ("work_resource_scope_v1", "authorities"),
                 )
-            issued_at = _parse_time(canonical["issued_at"], field="canonical.issued_at")
+            issued_at = _parse_time(
+                canonical.get("issued_at"), field="canonical.issued_at"
+            )
             if not (
                 _parse_time(authority["not_before"], field="authority.not_before")
                 <= issued_at
@@ -1265,7 +1336,10 @@ def _child_containment_v2(
                         ("provider_value_fact",),
                     )
                 provider_fact = _provider_fact(
-                    child["provider_value_fact"], artifacts=artifacts, entries=entries
+                    child["provider_value_fact"],
+                    artifacts=artifacts,
+                    entries=entries,
+                    child_issued_at=issued_at,
                 )
                 if (
                     provider_fact["project_id"] != document["project_id"]

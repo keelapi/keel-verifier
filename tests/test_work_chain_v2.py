@@ -142,6 +142,7 @@ def _permit_artifact(
     request_hex: str,
     decision: str,
     issued_at: str,
+    omit_canonical_issued_at: bool = False,
 ) -> dict[str, Any]:
     key_id = verifier._binding_key_id_from_public_key(public)
     canonical = permit_binding.canonical_binding_payload_v7(
@@ -181,6 +182,8 @@ def _permit_artifact(
         account_id=None,
         org_id=None,
     )
+    if omit_canonical_issued_at:
+        canonical.pop("issued_at")
     canonical_hash = permit_binding.compute_canonical_binding_hash(canonical)
     capability = {
         "artifact_type": "permit_decision_binding",
@@ -236,9 +239,18 @@ def _build_pack(
     call_principal: str = PHONE,
     policy_narrowed: bool = False,
     gateway_action: str | None = None,
+    provider_fact_version: int = 1,
+    provider_fact_overrides: dict[str, Any] | None = None,
+    provider_fact_remove: set[str] | None = None,
+    provider_fact_tamper: str | None = None,
+    pay_issued_at: str = "2026-08-20T20:04:00Z",
+    review_issued_at: str = "2026-08-20T20:09:00Z",
+    omit_pay_canonical_issued_at: bool = False,
 ) -> tuple[dict[str, Any], Path]:
     if gateway_action not in {None, "message.send", "calendar.event.create"}:
         raise AssertionError(f"unsupported gateway action: {gateway_action}")
+    if provider_fact_version not in {1, 2, 3}:
+        raise AssertionError(f"unsupported provider fact version: {provider_fact_version}")
     lane_action = gateway_action or "call.outbound"
     lane_semantic_id = (
         "keel.action.message_send.v1"
@@ -619,31 +631,63 @@ def _build_pack(
                 "2026-08-20T20:08:30Z",
             ),
         ):
-            payload = _signed_object(
-                provider_private,
-                {
-                    "version": "keel.provider_value_fact.v1",
-                    "fact_profile_id": "keel.facts.provider_booking_value.v1",
-                    "project_id": PROJECT,
-                    "root_permit_id": ROOT,
-                    "authority_id": "pay-lane",
-                    "child_permit_id": child_id,
-                    "request_digest": "sha256:" + request_hex,
-                    "connector_identity": "provider-gateway-1",
-                    "connector_type": "direct_provider_api",
-                    "provider_environment": "provider_sandbox",
-                    "provider_wire_body_digest": binding["provider_wire_body_digest"],
-                    "amount_minor": amount,
-                    "currency": "USD",
-                    "provider_response_digest": "sha256:" + ("4" if suffix == "pay" else "5") * 64,
-                    "observed_at": observed_at,
-                    "signing_key_id": provider_key_id,
-                },
-            )
+            provider_fields: dict[str, Any] = {
+                "version": f"keel.provider_value_fact.v{provider_fact_version}",
+                "fact_profile_id": "keel.facts.provider_booking_value.v1",
+                "project_id": PROJECT,
+                "root_permit_id": ROOT,
+                "authority_id": "pay-lane",
+                "child_permit_id": child_id,
+                "request_digest": "sha256:" + request_hex,
+                "connector_identity": "provider-gateway-1",
+                "connector_type": "direct_provider_api",
+                "provider_environment": "provider_sandbox",
+                "provider_wire_body_digest": binding["provider_wire_body_digest"],
+                "amount_minor": amount,
+                "currency": "USD",
+                "provider_response_digest": (
+                    "sha256:" + ("4" if suffix == "pay" else "5") * 64
+                ),
+                "observed_at": observed_at,
+                "signing_key_id": provider_key_id,
+            }
+            if provider_fact_version == 2:
+                provider_fields.update(
+                    {
+                        "fact_profile_id": "keel.facts.lodging_booking_value.v2",
+                        "provider_contract_profile_id": (
+                            "keel.provider_contract.sabre_lodging_quote.v1"
+                        ),
+                        "connector_type": "sabre_direct",
+                        "provider_object_commitment": (
+                            "sha256:" + ("a" if suffix == "pay" else "b") * 64
+                        ),
+                        "valid_until": (
+                            "2026-08-20T20:08:00Z"
+                            if suffix == "pay"
+                            else "2026-08-20T20:13:30Z"
+                        ),
+                        "validity_seconds": 300,
+                    }
+                )
+            provider_fields.update(provider_fact_overrides or {})
+            for field in provider_fact_remove or set():
+                provider_fields.pop(field, None)
+            payload = _signed_object(provider_private, provider_fields)
+            if provider_fact_tamper == "hash":
+                payload["canonical_hash"] = "sha256:" + "0" * 64
+            elif provider_fact_tamper == "signature":
+                payload["signature"] = "ed25519:" + base64.b64encode(
+                    b"0" * 64
+                ).decode("ascii")
+            elif provider_fact_tamper is not None:
+                raise AssertionError(
+                    f"unsupported provider fact tamper: {provider_fact_tamper}"
+                )
             provider_artifacts.append(
                 _artifact(
                     "urn:x-keel:provider-value:" + suffix,
-                    "keel.provider_value_fact.v1",
+                    f"keel.provider_value_fact.v{provider_fact_version}",
                     payload,
                 )
             )
@@ -676,6 +720,9 @@ def _build_pack(
             request_hex=request_hex,
             decision=decision,
             issued_at=issued_at,
+            omit_canonical_issued_at=(
+                omit_pay_canonical_issued_at and permit_id == PAY_CHILD
+            ),
         )
 
     call_permit = child_permit(
@@ -688,8 +735,26 @@ def _build_pack(
         "allow",
         "2026-08-20T20:04:00Z",
     )
-    pay_permit = child_permit(PAY_CHILD, "payment.execute", BOOKER, pay_binding, payment_semantic, pay_request, "allow", "2026-08-20T20:04:00Z")
-    review_permit = child_permit(REVIEW_CHILD, "payment.execute", BOOKER, reviewed_binding, payment_semantic, review_request, "challenge", "2026-08-20T20:09:00Z")
+    pay_permit = child_permit(
+        PAY_CHILD,
+        "payment.execute",
+        BOOKER,
+        pay_binding,
+        payment_semantic,
+        pay_request,
+        "allow",
+        pay_issued_at,
+    )
+    review_permit = child_permit(
+        REVIEW_CHILD,
+        "payment.execute",
+        BOOKER,
+        reviewed_binding,
+        payment_semantic,
+        review_request,
+        "challenge",
+        review_issued_at,
+    )
 
     def dispatch(child_id: str, authority_id: str, binding: dict[str, Any], request_hex: str, at: str, idem_hex: str, policy: str) -> dict[str, Any]:
         return _signed_object(
@@ -1196,6 +1261,185 @@ def test_work_v2_provider_verified_requires_signed_exact_provider_facts(
     label_only["provider_value_facts"] = []
     label_only_report = verify_work_chain_pack(label_only, trust_root=trust_root)
     assert not label_only_report.ok
+
+
+def test_work_v2_provider_value_fact_v1_remains_supported_unchanged(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        provider_verified=True,
+        provider_fact_version=1,
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert report.ok, report.to_dict()
+    facts = [
+        item["payload"]
+        for item in pack["artifacts"]
+        if item["artifact_type"] == "keel.provider_value_fact.v1"
+    ]
+    assert len(facts) == 2
+    assert all("provider_contract_profile_id" not in fact for fact in facts)
+    assert all("valid_until" not in fact for fact in facts)
+    assert all("validity_seconds" not in fact for fact in facts)
+
+
+def test_work_v2_provider_value_fact_v2_proves_fresh_issuance(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        provider_verified=True,
+        provider_fact_version=2,
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert report.ok, report.to_dict()
+    facts = [
+        item["payload"]
+        for item in pack["artifacts"]
+        if item["artifact_type"] == "keel.provider_value_fact.v2"
+    ]
+    assert len(facts) == 2
+    assert all(
+        fact["provider_contract_profile_id"]
+        == "keel.provider_contract.sabre_lodging_quote.v1"
+        for fact in facts
+    )
+    assert all(fact["provider_object_commitment"].startswith("sha256:") for fact in facts)
+
+
+def test_work_v2_provider_value_fact_v2_accepts_issuance_at_observation(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        provider_verified=True,
+        provider_fact_version=2,
+        pay_issued_at="2026-08-20T20:03:00Z",
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert report.ok, report.to_dict()
+
+
+def test_work_v2_provider_value_fact_v2_rejects_signed_profile_and_window_drift(
+    tmp_path: Path,
+) -> None:
+    cases = {
+        "unknown_profile": {
+            "provider_fact_overrides": {
+                "provider_contract_profile_id": (
+                    "keel.provider_contract.unknown_quote.v1"
+                )
+            }
+        },
+        "wrong_fact_profile": {
+            "provider_fact_overrides": {
+                "fact_profile_id": "keel.facts.lodging_booking_value.v3"
+            }
+        },
+        "wrong_connector_type": {
+            "provider_fact_overrides": {"connector_type": "direct_provider_api"}
+        },
+        "missing_object_commitment": {
+            "provider_fact_remove": {"provider_object_commitment"}
+        },
+        "malformed_object_commitment": {
+            "provider_fact_overrides": {"provider_object_commitment": "sha256:bad"}
+        },
+        "window_duration_mismatch": {
+            "provider_fact_overrides": {"validity_seconds": 299}
+        },
+        "zero_second_window": {
+            "provider_fact_overrides": {"validity_seconds": 0}
+        },
+        "window_over_maximum": {
+            "provider_fact_overrides": {"validity_seconds": 901}
+        },
+    }
+    for name, options in cases.items():
+        pack, trust_root = _build_pack(
+            tmp_path,
+            provider_verified=True,
+            provider_fact_version=2,
+            **options,
+        )
+
+        report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+        assert not report.ok, (name, report.to_dict())
+
+
+def test_work_v2_provider_value_fact_v2_rejects_hash_and_signature_mutation(
+    tmp_path: Path,
+) -> None:
+    for mutation in ("hash", "signature"):
+        pack, trust_root = _build_pack(
+            tmp_path,
+            provider_verified=True,
+            provider_fact_version=2,
+            provider_fact_tamper=mutation,
+        )
+
+        report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+        assert not report.ok, (mutation, report.to_dict())
+
+
+def test_work_v2_provider_value_fact_v2_rejects_stale_child_issuance(
+    tmp_path: Path,
+) -> None:
+    cases = {
+        "before_observation": "2026-08-20T20:02:59Z",
+        "at_valid_until": "2026-08-20T20:08:00Z",
+        "unparseable": "not-a-timestamp",
+    }
+    for name, issued_at in cases.items():
+        pack, trust_root = _build_pack(
+            tmp_path,
+            provider_verified=True,
+            provider_fact_version=2,
+            pay_issued_at=issued_at,
+        )
+
+        report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+        assert not report.ok, (name, report.to_dict())
+
+
+def test_work_v2_provider_value_fact_v2_rejects_missing_child_issuance(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        provider_verified=True,
+        provider_fact_version=2,
+        omit_pay_canonical_issued_at=True,
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert not report.ok, report.to_dict()
+
+
+def test_work_v2_provider_value_fact_future_version_fails_closed(
+    tmp_path: Path,
+) -> None:
+    pack, trust_root = _build_pack(
+        tmp_path,
+        provider_verified=True,
+        provider_fact_version=3,
+    )
+
+    report = verify_work_chain_pack(pack, trust_root=trust_root)
+
+    assert not report.ok, report.to_dict()
+    assert report.exit_code != 0
 
 
 def test_work_v2_scoped_revocations_override_claimed_liveness(tmp_path: Path) -> None:

@@ -58,7 +58,12 @@
       "required": ["artifact_id", "artifact_type", "artifact_digest"],
       "properties": {
         "artifact_id": {"type": "string", "minLength": 1},
-        "artifact_type": {"const": "keel.provider_value_fact.v1"},
+        "artifact_type": {
+          "enum": [
+            "keel.provider_value_fact.v1",
+            "keel.provider_value_fact.v2"
+          ]
+        },
         "artifact_digest": {"$ref": "#/$defs/digest"}
       }
     },
