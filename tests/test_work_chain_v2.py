@@ -79,7 +79,11 @@ def _semantic(
     presentation: str,
     facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    selector, selector_raw = _load_data("permit_to_x/semantic_registry/v19.json")
+    selector_version = 20 if source == "action_gateway_service" else 19
+    fact_version = 18 if source == "action_gateway_service" else 17
+    selector, selector_raw = _load_data(
+        f"permit_to_x/semantic_registry/v{selector_version}.json"
+    )
     entry = next(item for item in selector["entries"] if item["semantic_id"] == semantic_id)
     claims, claims_raw = _load_data("claim_registry/v6.json")
     universal, universal_raw = _load_data("semantics/permit/universal_verification_v5.json")
@@ -102,7 +106,9 @@ def _semantic(
         "derived_at": START,
     }
     if facts is not None:
-        registry, registry_raw = _load_data("permit_to_x/fact_profiles/v17.json")
+        registry, registry_raw = _load_data(
+            f"permit_to_x/fact_profiles/v{fact_version}.json"
+        )
         profile = next(
             item
             for item in registry["profiles"]
@@ -229,7 +235,25 @@ def _build_pack(
     revocation_kind: str | None = None,
     call_principal: str = PHONE,
     policy_narrowed: bool = False,
+    gateway_action: str | None = None,
 ) -> tuple[dict[str, Any], Path]:
+    if gateway_action not in {None, "message.send", "calendar.event.create"}:
+        raise AssertionError(f"unsupported gateway action: {gateway_action}")
+    lane_action = gateway_action or "call.outbound"
+    lane_semantic_id = (
+        "keel.action.message_send.v1"
+        if gateway_action == "message.send"
+        else "keel.action.calendar_event_create_gateway.v1"
+        if gateway_action == "calendar.event.create"
+        else "keel.action.telephony_call_outbound.v1"
+    )
+    lane_title = (
+        "AI Permit-to-Send-Message"
+        if gateway_action == "message.send"
+        else "AI Permit-to-Create-Calendar-Event"
+        if gateway_action == "calendar.event.create"
+        else "AI Permit-to-Place-Outbound-Call"
+    )
     export_private, export_public = _keypair()
     binding_private, binding_public = _keypair()
     provider_private, provider_public = _keypair()
@@ -305,7 +329,7 @@ def _build_pack(
     request_lanes = [
         {
             "authority_id": "call-lane",
-            "requested_action": "call.outbound",
+            "requested_action": lane_action,
             "max_uses": 1,
             "requested_value_binding": "none",
             "automatic_review_threshold_minor": 0,
@@ -376,7 +400,7 @@ def _build_pack(
         return value
 
     authorities = [
-        authority("call-lane", "keel.action.telephony_call_outbound.v1", "call.outbound", "none", 1),
+        authority("call-lane", lane_semantic_id, lane_action, "none", 1),
         authority(
             "pay-lane",
             "keel.action.payment_execute.v1",
@@ -513,35 +537,61 @@ def _build_pack(
         amount=None if provider_verified else 6_000,
         review_hex="d",
     )
-    call_facts = {
-        "version": "keel.telephony_call_outbound_exact_facts.v1",
-        "fact_profile_id": "keel.facts.telephony_call_outbound_exact.v1",
-        "action": "call.outbound",
-        "connector_identity": "vocal-gateway-1",
-        "connector_type": "vocal_bridge_direct",
-        "provider_environment": "provider_sandbox",
-        "destination_reference_commitment": {
-            "method": "keel.salted_sha256_jcs.v1",
-            "digest": "sha256:" + "e" * 64,
-        },
-        "destination_allowlisted": True,
-        "destination_allowlist_digest": "sha256:" + "f" * 64,
-        "destination_country_code": "1",
-        "originating_principal_id": call_principal,
-        "work_root_permit_id": ROOT,
-        "work_authority_id": "call-lane",
-        "action_access_level": "write",
-        "action_risk_tags": ["external_communication"],
-        "provider_wire_body_digest": call_binding["provider_wire_body_digest"],
-        "request_digest": "sha256:" + call_request,
-        "idempotency_digest": "sha256:" + "1" * 64,
-    }
+    if gateway_action is None:
+        call_facts = {
+            "version": "keel.telephony_call_outbound_exact_facts.v1",
+            "fact_profile_id": "keel.facts.telephony_call_outbound_exact.v1",
+            "action": "call.outbound",
+            "connector_identity": "vocal-gateway-1",
+            "connector_type": "vocal_bridge_direct",
+            "provider_environment": "provider_sandbox",
+            "destination_reference_commitment": {
+                "method": "keel.salted_sha256_jcs.v1",
+                "digest": "sha256:" + "e" * 64,
+            },
+            "destination_allowlisted": True,
+            "destination_allowlist_digest": "sha256:" + "f" * 64,
+            "destination_country_code": "1",
+            "originating_principal_id": call_principal,
+            "work_root_permit_id": ROOT,
+            "work_authority_id": "call-lane",
+            "action_access_level": "write",
+            "action_risk_tags": ["external_communication"],
+            "provider_wire_body_digest": call_binding["provider_wire_body_digest"],
+            "request_digest": "sha256:" + call_request,
+            "idempotency_digest": "sha256:" + "1" * 64,
+        }
+        lane_source = "telephony_origination_service"
+        lane_surface = "telephony_provider"
+        lane_presentation = "telephony_call_outbound.r1"
+    else:
+        vectors, _raw = _load_data("permit_to_x/test_vectors/action-gateway-v1.json")
+        gateway_case = next(
+            item for item in vectors["cases"] if item["candidate"]["action_name"] == gateway_action
+        )
+        call_facts = copy.deepcopy(gateway_case["valid_authorization_facts"])
+        call_facts.update(
+            {
+                "originating_principal_id": call_principal,
+                "provider_wire_body_digest": call_binding[
+                    "provider_wire_body_digest"
+                ],
+                "request_digest": "sha256:" + call_request,
+            }
+        )
+        lane_source = "action_gateway_service"
+        lane_surface = "keel_action_gateway"
+        lane_presentation = (
+            "message_send.r1"
+            if gateway_action == "message.send"
+            else "calendar_event_create_gateway.r1"
+        )
     call_semantic = _semantic(
-        "keel.action.telephony_call_outbound.v1",
-        source="telephony_origination_service",
-        action="call.outbound",
-        surface="telephony_provider",
-        presentation="telephony_call_outbound.r1",
+        lane_semantic_id,
+        source=lane_source,
+        action=lane_action,
+        surface=lane_surface,
+        presentation=lane_presentation,
         facts=call_facts,
     )
     payment_semantic = _semantic(
@@ -553,7 +603,7 @@ def _build_pack(
     )
     fact_artifact = _artifact(
         "urn:x-keel:call-facts",
-        "keel.telephony_call_outbound_exact_facts.v1",
+        call_facts["version"],
         call_facts,
     )
     provider_artifacts: list[dict[str, Any]] = []
@@ -630,7 +680,7 @@ def _build_pack(
 
     call_permit = child_permit(
         CALL_CHILD,
-        "call.outbound",
+        lane_action,
         call_principal,
         call_binding,
         call_semantic,
@@ -907,8 +957,8 @@ def _build_pack(
         "lanes": [
             {
                 "authority_id": "call-lane",
-                "action": "call.outbound",
-                "permit_title": "AI Permit-to-Place-Outbound-Call",
+                "action": lane_action,
+                "permit_title": lane_title,
                 "principal_id": PHONE,
                 "value_binding": "none",
                 "max_uses": 1,
@@ -1074,6 +1124,41 @@ def test_work_v2_accepts_policy_narrowing_but_not_authority_expansion(
     report = verify_work_chain_pack(pack, trust_root=trust_root)
     assert report.ok, report.to_dict()
     assert all(claim.aggregate_verdict == "supported" for claim in report.claims)
+
+
+def test_work_v2_verifies_reusable_message_and_calendar_lane_titles(
+    tmp_path: Path,
+) -> None:
+    expected_titles = {
+        "message.send": "AI Permit-to-Send-Message",
+        "calendar.event.create": "AI Permit-to-Create-Calendar-Event",
+    }
+    for action, expected_title in expected_titles.items():
+        pack, trust_root = _build_pack(tmp_path, gateway_action=action)
+        report = verify_work_chain_pack(pack, trust_root=trust_root)
+        assert report.ok, (action, report.to_dict())
+        lane = next(
+            item
+            for item in report.artifact["summary"]["lanes"]
+            if item["authority_id"] == "call-lane"
+        )
+        assert lane["action"] == action
+        assert lane["permit_title"] == expected_title
+
+        forged = copy.deepcopy(pack)
+        facts_reference = forged["child_permits"][1][
+            "authorization_fact_artifacts"
+        ][0]
+        facts_artifact = next(
+            item
+            for item in forged["artifacts"]
+            if item["artifact_id"] == facts_reference["artifact_id"]
+        )
+        facts_artifact["payload"]["provider_wire_body_digest"] = (
+            "sha256:" + "0" * 64
+        )
+        forged_report = verify_work_chain_pack(forged, trust_root=trust_root)
+        assert not forged_report.ok
 
 
 def test_work_v2_mutations_fail_closed(tmp_path: Path) -> None:

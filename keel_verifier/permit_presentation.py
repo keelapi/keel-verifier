@@ -56,12 +56,14 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v17": "semantic_registry/v17.json",
     "keel.semantic_selector_registry.v18": "semantic_registry/v18.json",
     "keel.semantic_selector_registry.v19": "semantic_registry/v19.json",
+    "keel.semantic_selector_registry.v20": "semantic_registry/v20.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v19.json",
     "presentation_registry/v18.json",
     "presentation_registry/v17.json",
     "presentation_registry/v16.json",
@@ -160,6 +162,7 @@ def _presentation_registry_for(
             "keel.semantic_selector_registry.v17",
             "keel.semantic_selector_registry.v18",
             "keel.semantic_selector_registry.v19",
+            "keel.semantic_selector_registry.v20",
         }:
             if registry.get("semantic_registry_version") != selector_version:
                 continue
@@ -174,7 +177,9 @@ def _presentation_registry_for(
         ):
             return registry, raw
     legacy_name = (
-        "presentation_registry/v18.json"
+        "presentation_registry/v19.json"
+        if selector_version == "keel.semantic_selector_registry.v20"
+        else "presentation_registry/v18.json"
         if selector_version == "keel.semantic_selector_registry.v19"
         else "presentation_registry/v17.json"
         if selector_version == "keel.semantic_selector_registry.v18"

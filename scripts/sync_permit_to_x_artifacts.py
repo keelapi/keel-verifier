@@ -108,6 +108,8 @@ COPIES = {
     "semantic_registry/v18.schema.json": ("permit_to_x/semantic_registry/v18.schema.json"),
     "semantic_registry/v19.json": "permit_to_x/semantic_registry/v19.json",
     "semantic_registry/v19.schema.json": ("permit_to_x/semantic_registry/v19.schema.json"),
+    "semantic_registry/v20.json": "permit_to_x/semantic_registry/v20.json",
+    "semantic_registry/v20.schema.json": ("permit_to_x/semantic_registry/v20.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -144,6 +146,8 @@ COPIES = {
     "presentation_registry/v17.schema.json": ("permit_to_x/presentation_registry/v17.schema.json"),
     "presentation_registry/v18.json": "permit_to_x/presentation_registry/v18.json",
     "presentation_registry/v18.schema.json": ("permit_to_x/presentation_registry/v18.schema.json"),
+    "presentation_registry/v19.json": "permit_to_x/presentation_registry/v19.json",
+    "presentation_registry/v19.schema.json": ("permit_to_x/presentation_registry/v19.schema.json"),
     "consequence_registry/v13.json": "permit_to_x/consequence_registry/v13.json",
     "consequence_registry/v13.schema.json": ("permit_to_x/consequence_registry/v13.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
@@ -429,8 +433,16 @@ COPIES = {
     "test-vectors/telephony-call-outbound-v1.json": (
         "permit_to_x/test_vectors/telephony-call-outbound-v1.json"
     ),
+    "test-vectors/action-gateway-v1.json": (
+        "permit_to_x/test_vectors/action-gateway-v1.json"
+    ),
     "fact_profiles/v17.json": "permit_to_x/fact_profiles/v17.json",
     "fact_profiles/v17.schema.json": "permit_to_x/fact_profiles/v17.schema.json",
+    "fact_profiles/v18.json": "permit_to_x/fact_profiles/v18.json",
+    "fact_profiles/v18.schema.json": "permit_to_x/fact_profiles/v18.schema.json",
+    "schemas/action-gateway-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/action-gateway-exact-facts-v1.schema.json"
+    ),
 }
 
 

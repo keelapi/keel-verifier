@@ -75,6 +75,7 @@ _SCHEMAS = (
     "work-summary-v1.schema.json",
     "permit-semantic-binding-v2.schema.json",
     "telephony-call-outbound-exact-facts-v1.schema.json",
+    "action-gateway-exact-facts-v1.schema.json",
 )
 
 _SEMANTIC_FILES = (
@@ -113,6 +114,29 @@ _GENERIC_TITLE = "AI Permit"
 _CALL_SEMANTIC = "keel.action.telephony_call_outbound.v1"
 _CALL_FACT_PROFILE = "keel.facts.telephony_call_outbound_exact.v1"
 _CALL_FACT_TYPE = "keel.telephony_call_outbound_exact_facts.v1"
+_ACTION_GATEWAY_FACT_TYPE = "keel.action_gateway_exact_facts.v1"
+_ACTION_GATEWAY_PROFILES = {
+    "keel.action.message_send.v1": (
+        "keel.facts.message_send_gateway_exact.v1",
+        "message.send",
+    ),
+    "keel.action.calendar_event_create_gateway.v1": (
+        "keel.facts.calendar_event_create_gateway_exact.v1",
+        "calendar.event.create",
+    ),
+}
+_SELECTOR_FILES = {
+    f"keel.semantic_selector_registry.v{version}": (
+        f"data/permit_to_x/semantic_registry/v{version}.json"
+    )
+    for version in range(1, 21)
+}
+_FACT_PROFILE_FILES = {
+    f"keel.fact_profile_registry.v{version}": (
+        f"data/permit_to_x/fact_profiles/v{version}.json"
+    )
+    for version in range(1, 19)
+}
 
 
 def _json_resource(path: str) -> tuple[dict[str, Any], bytes]:
@@ -938,9 +962,10 @@ def _verified_lane_title(
     presentation = resolve_permit_presentation(binding)
     if presentation.get("resolution") != "trusted_signed_semantic":
         return _GENERIC_TITLE
-    selector, _selector_raw = _json_resource(
-        "data/permit_to_x/semantic_registry/v19.json"
-    )
+    selector_path = _SELECTOR_FILES.get(str(binding.get("selector_registry_version")))
+    if selector_path is None:
+        return _GENERIC_TITLE
+    selector, _selector_raw = _json_resource(selector_path)
     selector_entries = [
         entry
         for entry in selector["entries"]
@@ -954,9 +979,12 @@ def _verified_lane_title(
     if binding.get("fact_profile_id") != expected_fact_profile:
         return _GENERIC_TITLE
 
-    fact_registry, fact_registry_raw = _json_resource(
-        "data/permit_to_x/fact_profiles/v17.json"
+    fact_registry_path = _FACT_PROFILE_FILES.get(
+        str(binding.get("fact_profile_registry_version"))
     )
+    if fact_registry_path is None:
+        return _GENERIC_TITLE
+    fact_registry, fact_registry_raw = _json_resource(fact_registry_path)
     profiles = [
         profile
         for profile in fact_registry["profiles"]
@@ -1016,6 +1044,27 @@ def _verified_lane_title(
             or fact.get("provider_wire_body_digest")
             != work_binding["provider_wire_body_digest"]
             or (dispatch is not None and fact.get("provider_wire_body_digest") != dispatch["provider_wire_body_digest"])
+        ):
+            return _GENERIC_TITLE
+    gateway_profile = _ACTION_GATEWAY_PROFILES.get(str(binding["semantic_id"]))
+    if gateway_profile is not None:
+        expected_profile, expected_action = gateway_profile
+        exercised = child["work_binding"]["exercised_by"]
+        if (
+            binding.get("fact_profile_id") != expected_profile
+            or fact.get("version") != _ACTION_GATEWAY_FACT_TYPE
+            or fact.get("fact_profile_id") != expected_profile
+            or fact.get("action") != expected_action
+            or fact.get("originating_principal_id")
+            != exercised["verified_principal_id"]
+            or fact.get("request_digest") != child["request_digest"]
+            or fact.get("provider_wire_body_digest")
+            != child["work_binding"]["provider_wire_body_digest"]
+            or (
+                dispatch is not None
+                and fact.get("provider_wire_body_digest")
+                != dispatch["provider_wire_body_digest"]
+            )
         ):
             return _GENERIC_TITLE
     return str(presentation.get("customer_title") or _GENERIC_TITLE)
