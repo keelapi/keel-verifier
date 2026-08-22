@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json",
+  "title": "Outbound telephone call gateway exact authorization facts v1",
+  "description": "Facts established by Keel before one exact outbound call is sent to a pinned customer-controlled telephony gateway. The gateway cannot be selected by the governed caller and no dialable number is disclosed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "action",
+    "connector_identity",
+    "connector_type",
+    "provider_environment",
+    "destination_reference_commitment",
+    "destination_allowlisted",
+    "destination_allowlist_digest",
+    "originating_principal_id",
+    "action_access_level",
+    "action_risk_tags",
+    "provider_wire_body_digest",
+    "request_digest",
+    "idempotency_digest",
+    "gateway_protocol_version",
+    "telephony_gateway_protocol_version",
+    "work_root_permit_id",
+    "work_authority_id"
+  ],
+  "properties": {
+    "version": {
+      "const": "keel.telephony_call_outbound_gateway_exact_facts.v1"
+    },
+    "fact_profile_id": {
+      "const": "keel.facts.telephony_call_outbound_gateway_exact.v1"
+    },
+    "action": {
+      "const": "call.outbound"
+    },
+    "connector_identity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "connector_type": {
+      "const": "keel_gateway_https"
+    },
+    "provider_environment": {
+      "enum": [
+        "provider_live",
+        "provider_sandbox"
+      ]
+    },
+    "destination_reference_commitment": {
+      "$ref": "#/$defs/commitment"
+    },
+    "destination_allowlisted": {
+      "const": true
+    },
+    "destination_allowlist_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "destination_country_code": {
+      "type": "string",
+      "pattern": "^[0-9]{1,3}$"
+    },
+    "originating_principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "work_root_permit_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "work_authority_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "action_access_level": {
+      "enum": [
+        "read",
+        "write",
+        "admin"
+      ]
+    },
+    "action_risk_tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "maxItems": 16
+    },
+    "provider_wire_body_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "request_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "idempotency_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "gateway_protocol_version": {
+      "const": "keel.action_gateway.v1"
+    },
+    "telephony_gateway_protocol_version": {
+      "const": "keel.telephony_gateway.v1"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

@@ -76,6 +76,8 @@ _SCHEMAS = (
     "work-summary-v1.schema.json",
     "permit-semantic-binding-v2.schema.json",
     "telephony-call-outbound-exact-facts-v1.schema.json",
+    "telephony-call-outbound-gateway-exact-facts-v1.schema.json",
+    "telephony-call-respond-gateway-exact-facts-v1.schema.json",
     "action-gateway-exact-facts-v1.schema.json",
 )
 
@@ -135,17 +137,29 @@ _ACTION_GATEWAY_PROFILES = {
         "calendar.event.create",
     ),
 }
+_TELEPHONY_GATEWAY_PROFILES = {
+    "keel.action.telephony_call_outbound.v1": (
+        "keel.facts.telephony_call_outbound_gateway_exact.v1",
+        "keel.telephony_call_outbound_gateway_exact_facts.v1",
+        "call.outbound",
+    ),
+    "keel.action.telephony_call_respond_gateway.v1": (
+        "keel.facts.telephony_call_respond_gateway_exact.v1",
+        "keel.telephony_call_respond_gateway_exact_facts.v1",
+        "call.respond",
+    ),
+}
 _SELECTOR_FILES = {
     f"keel.semantic_selector_registry.v{version}": (
         f"data/permit_to_x/semantic_registry/v{version}.json"
     )
-    for version in range(1, 22)
+    for version in range(1, 23)
 }
 _FACT_PROFILE_FILES = {
     f"keel.fact_profile_registry.v{version}": (
         f"data/permit_to_x/fact_profiles/v{version}.json"
     )
-    for version in range(1, 19)
+    for version in range(1, 20)
 }
 
 
@@ -1097,7 +1111,10 @@ def _verified_lane_title(
         )
     except _Failure:
         return _GENERIC_TITLE
-    if binding["semantic_id"] == _CALL_SEMANTIC:
+    if (
+        binding["semantic_id"] == _CALL_SEMANTIC
+        and binding.get("trusted_source_kind") == "telephony_origination_service"
+    ):
         if (
             binding.get("fact_profile_id") != _CALL_FACT_PROFILE
             or fact.get("version") != _CALL_FACT_TYPE
@@ -1129,6 +1146,40 @@ def _verified_lane_title(
             or fact.get("request_digest") != child["request_digest"]
             or fact.get("provider_wire_body_digest")
             != child["work_binding"]["provider_wire_body_digest"]
+            or (
+                dispatch is not None
+                and fact.get("provider_wire_body_digest")
+                != dispatch["provider_wire_body_digest"]
+            )
+        ):
+            return _GENERIC_TITLE
+    telephony_gateway_profile = _TELEPHONY_GATEWAY_PROFILES.get(
+        str(binding["semantic_id"])
+    )
+    if (
+        telephony_gateway_profile is not None
+        and binding.get("trusted_source_kind") == "telephony_gateway_service"
+    ):
+        expected_profile, expected_version, expected_action = (
+            telephony_gateway_profile
+        )
+        exercised = child["work_binding"]["exercised_by"]
+        work_binding = child["work_binding"]
+        if (
+            binding.get("trusted_source_kind") != "telephony_gateway_service"
+            or binding.get("fact_profile_id") != expected_profile
+            or fact.get("version") != expected_version
+            or fact.get("fact_profile_id") != expected_profile
+            or fact.get("action") != expected_action
+            or fact.get("connector_type") != "keel_gateway_https"
+            or fact.get("gateway_protocol_version") != "keel.action_gateway.v1"
+            or fact.get("originating_principal_id")
+            != exercised["verified_principal_id"]
+            or fact.get("work_root_permit_id") != work_binding["root_permit_id"]
+            or fact.get("work_authority_id") != work_binding["authority_id"]
+            or fact.get("request_digest") != child["request_digest"]
+            or fact.get("provider_wire_body_digest")
+            != work_binding["provider_wire_body_digest"]
             or (
                 dispatch is not None
                 and fact.get("provider_wire_body_digest")
