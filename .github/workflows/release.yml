@@ -32,17 +32,17 @@ jobs:
         with:
           repository: keelapi/keel-permit
           path: keel-permit
-          ref: v1.21.1
+          ref: v1.22.0
 
       - name: Verify released Permit commit
         run: >-
           python -c
           'import subprocess, sys;
-          expected = "34f5d84f6d4a901e3b9e6e586028d1db89942817";
+          expected = "35fcba451d60eab8c2f69ef61bb3e825fea716fe";
           actual = subprocess.check_output(
           ["git", "-C", "keel-permit", "rev-parse", "HEAD"], text=True).strip();
           sys.exit(0 if actual == expected else
-          print(f"keel-permit v1.21.1 resolved to {actual}, expected {expected}",
+          print(f"keel-permit v1.22.0 resolved to {actual}, expected {expected}",
           file=sys.stderr) or 1)'
 
       - uses: actions/setup-python@v6
