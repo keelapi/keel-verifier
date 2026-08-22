@@ -112,6 +112,8 @@ COPIES = {
     "semantic_registry/v20.schema.json": ("permit_to_x/semantic_registry/v20.schema.json"),
     "semantic_registry/v21.json": "permit_to_x/semantic_registry/v21.json",
     "semantic_registry/v21.schema.json": ("permit_to_x/semantic_registry/v21.schema.json"),
+    "semantic_registry/v22.json": "permit_to_x/semantic_registry/v22.json",
+    "semantic_registry/v22.schema.json": ("permit_to_x/semantic_registry/v22.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -152,6 +154,8 @@ COPIES = {
     "presentation_registry/v19.schema.json": ("permit_to_x/presentation_registry/v19.schema.json"),
     "presentation_registry/v20.json": "permit_to_x/presentation_registry/v20.json",
     "presentation_registry/v20.schema.json": ("permit_to_x/presentation_registry/v20.schema.json"),
+    "presentation_registry/v21.json": "permit_to_x/presentation_registry/v21.json",
+    "presentation_registry/v21.schema.json": ("permit_to_x/presentation_registry/v21.schema.json"),
     "consequence_registry/v13.json": "permit_to_x/consequence_registry/v13.json",
     "consequence_registry/v13.schema.json": ("permit_to_x/consequence_registry/v13.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
@@ -450,8 +454,16 @@ COPIES = {
     "fact_profiles/v17.schema.json": "permit_to_x/fact_profiles/v17.schema.json",
     "fact_profiles/v18.json": "permit_to_x/fact_profiles/v18.json",
     "fact_profiles/v18.schema.json": "permit_to_x/fact_profiles/v18.schema.json",
+    "fact_profiles/v19.json": "permit_to_x/fact_profiles/v19.json",
+    "fact_profiles/v19.schema.json": "permit_to_x/fact_profiles/v19.schema.json",
     "schemas/action-gateway-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/action-gateway-exact-facts-v1.schema.json"
+    ),
+    "schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json"
+    ),
+    "schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json"
     ),
 }
 

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json",
+  "title": "Voice turn response gateway exact authorization facts v1",
+  "description": "Verifier-safe facts established by Keel before one exact text response is released to a pending authenticated voice turn. Raw session references, turn references, and response text are forbidden.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "fact_profile_id",
+    "action",
+    "connector_identity",
+    "connector_type",
+    "provider_environment",
+    "gateway_protocol_version",
+    "originating_principal_id",
+    "work_root_permit_id",
+    "work_authority_id",
+    "call_response_bridge_kind",
+    "session_reference_digest",
+    "turn_reference_digest",
+    "response_text_digest",
+    "provider_wire_body_digest",
+    "request_digest",
+    "idempotency_digest"
+  ],
+  "properties": {
+    "version": {
+      "const": "keel.telephony_call_respond_gateway_exact_facts.v1"
+    },
+    "fact_profile_id": {
+      "const": "keel.facts.telephony_call_respond_gateway_exact.v1"
+    },
+    "action": {
+      "const": "call.respond"
+    },
+    "connector_identity": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "connector_type": {
+      "const": "keel_gateway_https"
+    },
+    "provider_environment": {
+      "enum": [
+        "provider_live",
+        "provider_sandbox"
+      ]
+    },
+    "gateway_protocol_version": {
+      "const": "keel.action_gateway.v1"
+    },
+    "originating_principal_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "work_root_permit_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "work_authority_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "call_response_bridge_kind": {
+      "const": "synchronous_voice_turn_v1"
+    },
+    "session_reference_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "turn_reference_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "response_text_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "provider_wire_body_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "request_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "idempotency_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.24.0
+
+### Added
+
+- Verify provider-neutral `call.outbound` and exact `call.respond` Work lanes
+  issued under keel-permit 1.22.0's v22/v19/v21 registries.
+- Require telephony gateway facts to agree with the authenticated delegated
+  principal, Work root, authority lane, request digest, provider wire digest,
+  and pre-effect dispatch boundary before resolving a specific Permit title.
+
+### Compatibility
+
+- Preserve the direct Vocal Bridge profile and every historical registry.
+  Unknown future selector or fact-profile versions continue to fail closed or
+  render generically without changing Work verdicts.
+
 ## 3.23.1
 
 ### Fixed
