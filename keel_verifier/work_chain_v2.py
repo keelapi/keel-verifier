@@ -138,7 +138,7 @@ _ACTION_GATEWAY_PROFILES = {
     ),
 }
 _TELEPHONY_GATEWAY_PROFILES = {
-    "keel.action.telephony_call_outbound_gateway.v1": (
+    "keel.action.telephony_call_outbound.v1": (
         "keel.facts.telephony_call_outbound_gateway_exact.v1",
         "keel.telephony_call_outbound_gateway_exact_facts.v1",
         "call.outbound",
@@ -1111,7 +1111,10 @@ def _verified_lane_title(
         )
     except _Failure:
         return _GENERIC_TITLE
-    if binding["semantic_id"] == _CALL_SEMANTIC:
+    if (
+        binding["semantic_id"] == _CALL_SEMANTIC
+        and binding.get("trusted_source_kind") == "telephony_origination_service"
+    ):
         if (
             binding.get("fact_profile_id") != _CALL_FACT_PROFILE
             or fact.get("version") != _CALL_FACT_TYPE
@@ -1153,7 +1156,10 @@ def _verified_lane_title(
     telephony_gateway_profile = _TELEPHONY_GATEWAY_PROFILES.get(
         str(binding["semantic_id"])
     )
-    if telephony_gateway_profile is not None:
+    if (
+        telephony_gateway_profile is not None
+        and binding.get("trusted_source_kind") == "telephony_gateway_service"
+    ):
         expected_profile, expected_version, expected_action = (
             telephony_gateway_profile
         )

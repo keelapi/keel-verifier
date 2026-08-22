@@ -2904,9 +2904,10 @@
       "semantic_id": "keel.action.telephony_call_outbound.v1",
       "semantic_kind": "exact_action",
       "trusted_source_kinds": [
-        "telephony_origination_service"
+        "telephony_origination_service",
+        "telephony_gateway_service"
       ],
-      "fact_profile_id": "keel.facts.telephony_call_outbound_exact.v1",
+      "fact_profile_id": "keel.facts.telephony_call_outbound_gateway_exact.v1",
       "match": {
         "action_names": [
           "call.outbound"
@@ -2971,35 +2972,6 @@
         ],
         "operations": [
           "calendar.event.create"
-        ],
-        "allowed_chain_roles": [
-          "session_root",
-          "action_child"
-        ],
-        "required_evidence_capabilities": [
-          "authorization",
-          "dispatch",
-          "provider_outcome"
-        ]
-      },
-      "excluded_permit_products": [
-        "cost_permit"
-      ],
-      "release_state": "eligible"
-    },
-    {
-      "semantic_id": "keel.action.telephony_call_outbound_gateway.v1",
-      "semantic_kind": "exact_action",
-      "trusted_source_kinds": [
-        "telephony_gateway_service"
-      ],
-      "fact_profile_id": "keel.facts.telephony_call_outbound_gateway_exact.v1",
-      "match": {
-        "action_names": [
-          "call.outbound"
-        ],
-        "operations": [
-          "call.outbound"
         ],
         "allowed_chain_roles": [
           "session_root",

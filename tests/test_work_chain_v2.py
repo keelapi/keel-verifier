@@ -268,7 +268,7 @@ def _build_pack(
         if gateway_action == "message.send"
         else "keel.action.calendar_event_create_gateway.v1"
         if gateway_action == "calendar.event.create"
-        else "keel.action.telephony_call_outbound_gateway.v1"
+        else "keel.action.telephony_call_outbound.v1"
         if gateway_action == "call.outbound"
         else "keel.action.telephony_call_respond_gateway.v1"
         if gateway_action == "call.respond"
@@ -653,7 +653,7 @@ def _build_pack(
                     "keel.telephony_gateway.v1"
                 ),
             }
-            lane_presentation = "telephony_call_outbound_gateway.r1"
+            lane_presentation = "telephony_call_outbound.r1"
         else:
             call_facts = {
                 **base_facts,

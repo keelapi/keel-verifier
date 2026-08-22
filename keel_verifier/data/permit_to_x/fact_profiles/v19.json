@@ -47984,7 +47984,7 @@
     {
       "fact_profile_id": "keel.facts.telephony_call_outbound_gateway_exact.v1",
       "semantic_ids": [
-        "keel.action.telephony_call_outbound_gateway.v1"
+        "keel.action.telephony_call_outbound.v1"
       ],
       "authorized_action": "call.outbound",
       "facts_schema": "schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json",
