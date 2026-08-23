@@ -65,6 +65,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v22.json",
     "presentation_registry/v21.json",
     "presentation_registry/v20.json",
     "presentation_registry/v19.json",
@@ -116,7 +117,7 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v17.json")
+    registry, _raw = _load("presentation_registry/v22.json")
     return json.loads(json.dumps(registry))
 
 
@@ -183,7 +184,7 @@ def _presentation_registry_for(
         ):
             return registry, raw
     legacy_name = (
-        "presentation_registry/v21.json"
+        "presentation_registry/v22.json"
         if selector_version == "keel.semantic_selector_registry.v22"
         else "presentation_registry/v20.json"
         if selector_version == "keel.semantic_selector_registry.v21"

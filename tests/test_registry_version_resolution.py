@@ -96,6 +96,34 @@ def test_v21_legacy_payment_source_remains_compatible() -> None:
     assert resolved["customer_title"] == "AI Permit-to-Pay"
 
 
+def test_v22_verified_profile_exposes_registry_defined_acronym() -> None:
+    binding = _payment_binding_for_v21("action_gateway_service")
+    registry, raw = _registry("semantic_registry/v22.json")
+    entry = next(
+        item
+        for item in registry["entries"]
+        if item["semantic_id"] == "keel.action.payment_execute.v1"
+    )
+    binding.update(
+        {
+            "selector_registry_version": registry["version"],
+            "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+            "selector_entry_digest": (
+                f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+            ),
+        }
+    )
+
+    resolved = resolve_permit_presentation(binding)
+
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["acronym"] == "AI-PTP"
+    assert resolved["customer_title"] == "AI Permit-to-Pay"
+    assert resolved["presentation_registry_version"] == (
+        "keel.presentation_registry.v22"
+    )
+
+
 def test_v20_historical_registry_bytes_are_unchanged() -> None:
     _registry_value, semantic_raw = _registry("semantic_registry/v20.json")
     _presentation_value, presentation_raw = _registry(
