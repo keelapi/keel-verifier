@@ -127,10 +127,11 @@ def _presentation_registry_for(
     """Select the newest bundled registry that exactly names the signed profile.
 
     Presentation registry v3 intentionally renamed the refund profile.  The
-    signed non-authorizing profile identifier therefore doubles as the stable
-    historical discriminator: old refund Permits continue to resolve through
-    v2, while newly issued refund Permits resolve through v3.  A semantic ID
-    alone is not enough to silently retitle the back catalogue.
+    The signed non-authorizing profile identifier remains the historical
+    discriminator.  v22 adds a narrow exception: profiles carrying an explicit
+    canonical acronym are public identity aliases, so their registry-defined
+    acronym/title are used after the original selector bytes verify.  This does
+    not change authorization or permit claim adjudication.
     """
 
     semantic_id = (
@@ -148,6 +149,18 @@ def _presentation_registry_for(
         if isinstance(semantic_binding, Mapping)
         else None
     )
+    canonical_registry, canonical_raw = _load("presentation_registry/v22.json")
+    canonical_profiles = canonical_registry.get("profiles")
+    if isinstance(canonical_profiles, list) and any(
+        isinstance(profile, Mapping)
+        and profile.get("semantic_id") == semantic_id
+        and profile.get("presentation_profile_id") == profile_id
+        and isinstance(profile.get("acronym"), str)
+        and bool(str(profile.get("acronym")).strip())
+        for profile in canonical_profiles
+    ):
+        return canonical_registry, canonical_raw
+
     for name in _PRESENTATION_REGISTRIES:
         registry, raw = _load(name)
         if selector_version in {

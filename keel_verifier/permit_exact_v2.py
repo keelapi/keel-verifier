@@ -1515,6 +1515,7 @@ def _resolve_contracts(
             "semantic_registry/v19.json",
             "semantic_registry/v20.json",
             "semantic_registry/v21.json",
+            "semantic_registry/v22.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
         allow_compact=allow_compact,

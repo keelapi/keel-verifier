@@ -901,7 +901,7 @@ def test_human_artifact_validates_and_ignores_caller_title_and_summary() -> None
     assert "Drain" not in human["summary"]["text"]
     assert "Caller says" not in human["summary"]["text"]
     assert human["source"]["presentation_registry_version"] == (
-        "keel.presentation_registry.v3"
+        "keel.presentation_registry.v22"
     )
 
 
@@ -1582,7 +1582,7 @@ def test_human_artifact_resolves_commerce_regulated_title_target_and_lifecycle(
         (
             "stripe.transfer.create",
             "keel.action.stripe_connect_transfer_send.v1",
-            "AI Permit-to-Send-Stripe-Connect-Transfer",
+            "AI Permit-to-Transfer",
             "destination_account_reference_commitment",
             "Stripe Connect test destination",
         ),

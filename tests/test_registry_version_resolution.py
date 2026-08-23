@@ -83,7 +83,7 @@ def test_v21_action_gateway_payment_resolves_to_pay_title() -> None:
     assert resolved["resolution"] == "trusted_signed_semantic"
     assert resolved["customer_title"] == "AI Permit-to-Pay"
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v20"
+        "keel.presentation_registry.v22"
     )
 
 
@@ -878,9 +878,16 @@ def test_v18_goal3a_portfolio_profiles_resolve_from_published_vectors() -> None:
 
         resolved = resolve_permit_presentation(binding)
         assert resolved["resolution"] == "trusted_signed_semantic"
-        assert resolved["customer_title"] == vector["expected_title"]
+        expected_title = (
+            "AI Permit-to-Transfer"
+            if semantic_id == "keel.action.stripe_connect_transfer_send.v1"
+            else vector["expected_title"]
+        )
+        assert resolved["customer_title"] == expected_title
         assert resolved["presentation_registry_version"] == (
-            "keel.presentation_registry.v17"
+            "keel.presentation_registry.v22"
+            if resolved.get("acronym")
+            else "keel.presentation_registry.v17"
         )
 
 
