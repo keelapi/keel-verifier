@@ -65,6 +65,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v22.json",
     "presentation_registry/v21.json",
     "presentation_registry/v20.json",
     "presentation_registry/v19.json",
@@ -116,7 +117,7 @@ def _raw_digest(raw: bytes) -> str:
 def load_permit_presentation_registry() -> dict[str, Any]:
     """Return a defensive copy of the non-trust-input presentation registry."""
 
-    registry, _raw = _load("presentation_registry/v17.json")
+    registry, _raw = _load("presentation_registry/v22.json")
     return json.loads(json.dumps(registry))
 
 
@@ -126,10 +127,11 @@ def _presentation_registry_for(
     """Select the newest bundled registry that exactly names the signed profile.
 
     Presentation registry v3 intentionally renamed the refund profile.  The
-    signed non-authorizing profile identifier therefore doubles as the stable
-    historical discriminator: old refund Permits continue to resolve through
-    v2, while newly issued refund Permits resolve through v3.  A semantic ID
-    alone is not enough to silently retitle the back catalogue.
+    The signed non-authorizing profile identifier remains the historical
+    discriminator.  v22 adds a narrow exception: profiles carrying an explicit
+    canonical acronym are public identity aliases, so their registry-defined
+    acronym/title are used after the original selector bytes verify.  This does
+    not change authorization or permit claim adjudication.
     """
 
     semantic_id = (
@@ -147,6 +149,18 @@ def _presentation_registry_for(
         if isinstance(semantic_binding, Mapping)
         else None
     )
+    canonical_registry, canonical_raw = _load("presentation_registry/v22.json")
+    canonical_profiles = canonical_registry.get("profiles")
+    if isinstance(canonical_profiles, list) and any(
+        isinstance(profile, Mapping)
+        and profile.get("semantic_id") == semantic_id
+        and profile.get("presentation_profile_id") == profile_id
+        and isinstance(profile.get("acronym"), str)
+        and bool(str(profile.get("acronym")).strip())
+        for profile in canonical_profiles
+    ):
+        return canonical_registry, canonical_raw
+
     for name in _PRESENTATION_REGISTRIES:
         registry, raw = _load(name)
         if selector_version in {
@@ -183,7 +197,7 @@ def _presentation_registry_for(
         ):
             return registry, raw
     legacy_name = (
-        "presentation_registry/v21.json"
+        "presentation_registry/v22.json"
         if selector_version == "keel.semantic_selector_registry.v22"
         else "presentation_registry/v20.json"
         if selector_version == "keel.semantic_selector_registry.v21"

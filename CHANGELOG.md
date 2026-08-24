@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.24.1
+
+- Release the v22 Permit presentation identity contract used by API and
+  dashboard consumers. Verified semantic profiles may expose the registry-owned
+  AI-PTW, AI-PTP, and AI-PTT identities; unknown, invalid, or unbound semantics
+  remain generic and fail closed.
+- Preserve verification scope: presentation identity does not strengthen
+  authorization, dispatch, provider-effect, closure, or external-outcome claims.
+
 ## 3.24.0
 
 ### Added

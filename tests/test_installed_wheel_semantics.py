@@ -333,6 +333,8 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
         "permit_to_x/fact_profiles/v19.schema.json",
         "permit_to_x/presentation_registry/v21.json",
         "permit_to_x/presentation_registry/v21.schema.json",
+        "permit_to_x/presentation_registry/v22.json",
+        "permit_to_x/presentation_registry/v22.schema.json",
         "permit_to_x/semantic_registry/v22.json",
         "permit_to_x/semantic_registry/v22.schema.json",
         "permit_to_x/schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json",
