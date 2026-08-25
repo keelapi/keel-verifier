@@ -138,7 +138,7 @@ def test_self_check_happy_path_with_sigstore_mock(monkeypatch, tmp_path: Path) -
     assert result.to_dict()["form"] == "wheel"
 
 
-def test_verify_sigstore_fixture_does_not_emit_unsupported_key_warning(
+def test_sigstore_4_verifies_historical_rekor_v1_fixture_offline(
     caplog,
     capsys,
     monkeypatch,
@@ -158,15 +158,19 @@ def test_verify_sigstore_fixture_does_not_emit_unsupported_key_warning(
     )
     caplog.set_level(logging.WARNING, logger="sigstore._internal.trust")
 
-    self_check.verify_sigstore(
+    sigstore_result = self_check.verify_sigstore(
         manifest_bytes,
         signature,
         expected_identity,
         offline=True,
     )
+    rekor_result = self_check.verify_rekor(manifest_bytes, signature)
     captured = capsys.readouterr()
 
-    assert "Failed to load a trusted root key" not in captured.err
-    assert "unsupported key type" not in captured.err
+    assert sigstore_result.log_index == 1613425410
+    assert sigstore_result.integrated_time == 1779518408
+    assert sigstore_result.log_id
+    assert rekor_result.log_index == 1613425410
+    assert rekor_result.checkpoint_present is True
+    assert captured.err == ""
     assert "Failed to load a trusted root key" not in caplog.text
-    assert "unsupported key type" not in caplog.text

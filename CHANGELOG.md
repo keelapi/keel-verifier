@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- Upgrade the reviewed Sigstore trust stack to Sigstore 4.5.0 and
+  cryptography 50.0.0, removing the affected OpenSSL runtime from installed
+  wheels while preserving offline verification of historical Rekor v1 bundles.
+- Read transparency-log evidence through the standardized Sigstore bundle JSON
+  model so inclusion-proof and checkpoint checks remain explicit under
+  Sigstore 4 without depending on private model internals.
+
 ## 3.24.1
 
 - Release the v22 Permit presentation identity contract used by API and

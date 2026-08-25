@@ -142,11 +142,9 @@ VERSION_PARITY_REGISTRY: list[VersionParityEntry] = [
 
 HISTORICAL_REFERENCE_ALLOWLIST: list[HistoricalReference] = [
     HistoricalReference(
-        file=REPO_ROOT / "keel_verifier" / "self_check.py",
-        line_number_or_pattern=re.compile(r"v2\.4\.2 release bundle"),
-        justification=(
-            "historical context for the sigstore warning filter added after v2.4.2"
-        ),
+        file=REPO_ROOT / "pyproject.toml",
+        line_number_or_pattern=re.compile(r'"pydantic==2\.12\.5"'),
+        justification="reviewed dependency pin, not a keel-verifier version",
     ),
     HistoricalReference(
         file=REPO_ROOT / "keel_verifier" / "verifier.py",
