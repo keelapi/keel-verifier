@@ -17,12 +17,13 @@ from keel_verifier.semantics import (
     RELEASED_ARTIFACT_HASHES,
 )
 from keel_verifier.verdicts import load_claim_registry
+from scripts.generate_release_manifest import _package_file_digests
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EMBEDDED_MANIFEST = REPO_ROOT / "keel_verifier" / "_release_manifest.json"
 URL_VERSION_RE = re.compile(r"(?:refs/tags/|releases/download/)(v\d+\.\d+\.\d+)")
-VERSION_PATTERN = re.compile(r"\b2\.\d+\.\d+\b")
+VERSION_PATTERN = re.compile(r"\b3\.24\.\d+\b")
 URL_FIELDS = (
     "expected_signing_identity",
     "release_manifest_url",
@@ -54,20 +55,21 @@ class HistoricalReference:
 
 
 REGISTERED_LOCATOR_PATTERNS: dict[str, re.Pattern[str]] = {
-    "project.version source of truth": re.compile(r'^\s*version\s*='),
-    "_SOURCE_TREE_VERSION constant assignment": re.compile(
-        r"^\s*_SOURCE_TREE_VERSION\s*="
-    ),
+    "project.version source of truth": re.compile(r"^\s*version\s*="),
+    "_SOURCE_TREE_VERSION constant assignment": re.compile(r"^\s*_SOURCE_TREE_VERSION\s*="),
     "verifier.version": re.compile(r'^\s*"version"\s*:'),
+    "capability.version": re.compile(r'^\s*"version"\s*:'),
     "version_tag": re.compile(r'^\s*"version_tag"\s*:'),
+    "expected_signing_identity": re.compile(r'^\s*"expected_signing_identity"\s*:'),
+    "release_manifest_url": re.compile(r'^\s*"release_manifest_url"\s*:'),
+    "release_manifest_signature_url": re.compile(r'^\s*"release_manifest_signature_url"\s*:'),
+    "release_manifest_tsa_witness_url": re.compile(r'^\s*"release_manifest_tsa_witness_url"\s*:'),
 }
 
 
 def _project_version() -> str:
     current_section: str | None = None
-    for raw_line in (REPO_ROOT / "pyproject.toml").read_text(
-        encoding="utf-8"
-    ).splitlines():
+    for raw_line in (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -95,9 +97,7 @@ def _extract_source_tree_version(path: Path) -> str:
             for target in node.targets
         ):
             continue
-        if not isinstance(node.value, ast.Constant) or not isinstance(
-            node.value.value, str
-        ):
+        if not isinstance(node.value, ast.Constant) or not isinstance(node.value.value, str):
             raise AssertionError("_SOURCE_TREE_VERSION must be assigned a string")
         return node.value.value
     raise AssertionError("missing _SOURCE_TREE_VERSION assignment")
@@ -107,8 +107,22 @@ def _extract_capability_verifier_version(path: Path) -> str:
     return json.loads(path.read_text(encoding="utf-8"))["verifier"]["version"]
 
 
+def _extract_capability_version(path: Path) -> str:
+    return json.loads(path.read_text(encoding="utf-8"))["version"]
+
+
 def _extract_release_manifest_version_tag(path: Path) -> str:
     return json.loads(path.read_text(encoding="utf-8"))["version_tag"]
+
+
+def _release_manifest_field(field: str) -> Callable[[Path], str]:
+    def extract(path: Path) -> str:
+        value = json.loads(path.read_text(encoding="utf-8"))[field]
+        match = URL_VERSION_RE.search(value)
+        assert match is not None, f"{field} does not contain a release version"
+        return match.group(1)
+
+    return extract
 
 
 VERSION_PARITY_REGISTRY: list[VersionParityEntry] = [
@@ -131,22 +145,35 @@ VERSION_PARITY_REGISTRY: list[VersionParityEntry] = [
         expected_format="bare",
     ),
     VersionParityEntry(
+        file=REPO_ROOT / "keel_verifier" / "capability" / "v1.json",
+        locator="capability.version",
+        extractor=_extract_capability_version,
+        expected_format="bare",
+    ),
+    VersionParityEntry(
         file=EMBEDDED_MANIFEST,
         locator="version_tag",
         extractor=_extract_release_manifest_version_tag,
         expected_format="v-prefixed",
     ),
+    *[
+        VersionParityEntry(
+            file=EMBEDDED_MANIFEST,
+            locator=field,
+            extractor=_release_manifest_field(field),
+            expected_format="v-prefixed",
+        )
+        for field in URL_FIELDS
+    ],
     # Future entries go here. When a new version-bearing file is added, the
     # discovery scanner below fails until the location is registered here.
 ]
 
 HISTORICAL_REFERENCE_ALLOWLIST: list[HistoricalReference] = [
     HistoricalReference(
-        file=REPO_ROOT / "keel_verifier" / "self_check.py",
-        line_number_or_pattern=re.compile(r"v2\.4\.2 release bundle"),
-        justification=(
-            "historical context for the sigstore warning filter added after v2.4.2"
-        ),
+        file=REPO_ROOT / "pyproject.toml",
+        line_number_or_pattern=re.compile(r'"pydantic==2\.12\.5"'),
+        justification="reviewed dependency pin, not a keel-verifier version",
     ),
     HistoricalReference(
         file=REPO_ROOT / "keel_verifier" / "verifier.py",
@@ -250,17 +277,14 @@ def _scan_version_strings() -> list[str]:
             continue
         if _is_excluded_from_scan(path):
             continue
-        for line_number, line in enumerate(
-            path.read_text(encoding="utf-8").splitlines(), start=1
-        ):
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             for match in VERSION_PATTERN.finditer(line):
                 if _is_registered_version_site(path, line):
                     continue
                 if _is_historical_reference(path, line_number, line):
                     continue
                 unregistered.append(
-                    f"{_relative(path)}:{line_number}: {match.group(0)} in "
-                    f"{line.strip()!r}"
+                    f"{_relative(path)}:{line_number}: {match.group(0)} in {line.strip()!r}"
                 )
     return unregistered
 
@@ -297,14 +321,22 @@ def test_release_manifest_urls_match_pyproject_version() -> None:
         )
 
 
+def test_embedded_manifest_binds_current_candidate_bytes() -> None:
+    manifest = _load_embedded_manifest()
+
+    assert manifest["per_file_digests"] == _package_file_digests(REPO_ROOT), (
+        "changed verifier bytes cannot share or silently reuse an earlier "
+        "embedded release identity; regenerate the embedded manifest"
+    )
+
+
 def test_no_unregistered_version_strings_in_source() -> None:
     unregistered = _scan_version_strings()
 
     assert not unregistered, (
         "unregistered version string(s) found. Register real version-bearing "
         "locations in VERSION_PARITY_REGISTRY or add legitimate historical "
-        "references to HISTORICAL_REFERENCE_ALLOWLIST:\n- "
-        + "\n- ".join(unregistered)
+        "references to HISTORICAL_REFERENCE_ALLOWLIST:\n- " + "\n- ".join(unregistered)
     )
 
 
@@ -321,6 +353,7 @@ def test_verifier_version_matches_package() -> None:
 def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
+    assert inv["version"] == _project_version()
     assert inv["spec_compatibility"]["permit_spec_version"] == "1.22.0"
 
 
@@ -363,8 +396,7 @@ def test_inventory_pinned_semantics_match_allowlist_hashes() -> None:
     }
     assert set(inventory_pins) == referenced
     assert inventory_pins == {
-        semantic_id: RELEASED_ARTIFACT_HASHES[semantic_id]
-        for semantic_id in sorted(referenced)
+        semantic_id: RELEASED_ARTIFACT_HASHES[semantic_id] for semantic_id in sorted(referenced)
     }
 
 
@@ -408,6 +440,5 @@ def test_inventory_claims_have_required_fields() -> None:
     for claim in inv["claims"]:
         missing = required - claim.keys()
         assert not missing, (
-            f"Inventory claim {claim.get('name', '<unnamed>')!r} missing: "
-            f"{sorted(missing)}"
+            f"Inventory claim {claim.get('name', '<unnamed>')!r} missing: {sorted(missing)}"
         )

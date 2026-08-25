@@ -8,14 +8,12 @@ import io
 import importlib.metadata
 import importlib.resources
 import json
-import logging
 import re
 import tempfile
 import time
 import urllib.error
 import urllib.request
 import zipfile
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -95,29 +93,6 @@ SELF_CHECK_FAILURE_CODES = frozenset(
         "SELF_CHECK_WHEEL_SUBJECT_MISSING",
     }
 )
-_SIGSTORE_TRUST_LOGGER = "sigstore._internal.trust"
-_SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING = (
-    "Failed to load a trusted root key: unsupported key type: 7"
-)
-
-
-class _SigstoreUnsupportedKeyType7Filter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        return not (
-            record.name == _SIGSTORE_TRUST_LOGGER
-            and record.getMessage() == _SIGSTORE_UNSUPPORTED_KEY_TYPE_7_WARNING
-        )
-
-
-@contextmanager
-def _suppress_sigstore_unsupported_key_type_7_warning():
-    logger = logging.getLogger(_SIGSTORE_TRUST_LOGGER)
-    warning_filter = _SigstoreUnsupportedKeyType7Filter()
-    logger.addFilter(warning_filter)
-    try:
-        yield
-    finally:
-        logger.removeFilter(warning_filter)
 
 
 @dataclass(frozen=True)
@@ -787,10 +762,10 @@ def verify_sigstore(
 ) -> SigstoreVerification:
     """Verify the signed release manifest with sigstore-python.
 
-    sigstore-python 3.6.7 can warn while skipping Sigstore's Rekor 2025
-    Ed25519 trusted-root key. The v2.4.2 release bundle verifies against the
-    existing Rekor v1 key, so the skipped key is not load-bearing for this
-    check. Keep the suppression scoped to that exact library warning.
+    Sigstore 4 verifies both the historical Rekor v1 fixture used here and
+    current Rekor v2 bundles, including Ed25519 trusted-root keys. Verification
+    remains offline when requested and still applies the expected workflow
+    identity policy.
     """
     try:
         from sigstore.errors import VerificationError
@@ -805,16 +780,15 @@ def verify_sigstore(
 
     try:
         bundle = Bundle.from_json(signature)
-        with _suppress_sigstore_unsupported_key_type_7_warning():
-            verifier = Verifier.production(offline=offline)
-            verifier.verify_artifact(
-                signed_manifest_bytes,
-                bundle,
-                Identity(
-                    identity=expected_identity,
-                    issuer=GITHUB_ACTIONS_OIDC_ISSUER,
-                ),
-            )
+        verifier = Verifier.production(offline=offline)
+        verifier.verify_artifact(
+            signed_manifest_bytes,
+            bundle,
+            Identity(
+                identity=expected_identity,
+                issuer=GITHUB_ACTIONS_OIDC_ISSUER,
+            ),
+        )
     except VerificationError as exc:
         message = str(exc)
         code = (
@@ -826,11 +800,36 @@ def verify_sigstore(
     except Exception as exc:
         raise SelfCheckError("SELF_CHECK_SIGSTORE_INVALID", str(exc)) from exc
 
+    log_entry = _sigstore_log_entry_payload(bundle)
+    log_id = log_entry.get("logId")
+    if isinstance(log_id, dict):
+        log_id = log_id.get("keyId")
     return SigstoreVerification(
-        log_index=getattr(bundle.log_entry, "log_index", None),
-        log_id=getattr(bundle.log_entry, "log_id", None),
-        integrated_time=getattr(bundle.log_entry, "integrated_time", None),
+        log_index=_optional_int(log_entry.get("logIndex")),
+        log_id=log_id if isinstance(log_id, str) else None,
+        integrated_time=_optional_int(log_entry.get("integratedTime")),
     )
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    return int(value)
+
+
+def _sigstore_log_entry_payload(bundle: Any) -> dict[str, Any]:
+    """Return the standard bundle log-entry shape across Sigstore model internals."""
+    payload = json.loads(bundle.to_json())
+    verification_material = payload.get("verificationMaterial")
+    if not isinstance(verification_material, dict):
+        raise ValueError("Sigstore bundle verification material is missing")
+    entries = verification_material.get("tlogEntries")
+    if not isinstance(entries, list) or len(entries) != 1:
+        raise ValueError("Sigstore bundle must contain exactly one transparency log entry")
+    entry = entries[0]
+    if not isinstance(entry, dict):
+        raise ValueError("Sigstore transparency log entry is malformed")
+    return entry
 
 
 def verify_rekor(signed_manifest_bytes: bytes, signature: bytes) -> RekorVerification:
@@ -845,9 +844,14 @@ def verify_rekor(signed_manifest_bytes: bytes, signature: bytes) -> RekorVerific
 
     try:
         bundle = Bundle.from_json(signature)
-        proof = bundle.log_entry.inclusion_proof
-        checkpoint = getattr(proof, "checkpoint", None)
-        log_index = int(bundle.log_entry.log_index)
+        log_entry = _sigstore_log_entry_payload(bundle)
+        proof = log_entry.get("inclusionProof")
+        if not isinstance(proof, dict):
+            raise ValueError("Sigstore bundle does not contain a Rekor inclusion proof")
+        checkpoint = proof.get("checkpoint")
+        if isinstance(checkpoint, dict):
+            checkpoint = checkpoint.get("envelope")
+        log_index = int(log_entry["logIndex"])
     except Exception as exc:
         raise SelfCheckError("SELF_CHECK_REKOR_INVALID", str(exc)) from exc
     if not checkpoint:

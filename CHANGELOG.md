@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.24.2
+
+### Security
+
+- Upgrade the reviewed Sigstore trust stack to Sigstore 4.5.0 and
+  cryptography 50.0.0, removing the affected OpenSSL runtime from installed
+  wheels while preserving offline verification of historical Rekor v1 bundles.
+- Read transparency-log evidence through the standardized Sigstore bundle JSON
+  model so inclusion-proof and checkpoint checks remain explicit under
+  Sigstore 4 without depending on private model internals.
+
+### Release integrity
+
+- Assign a new release identity to the changed verifier and trust-stack bytes;
+  the 3.24.2 candidate cannot reuse the signed 3.24.1 release manifest.
+- Bind candidate self-check URLs and the expected GitHub Actions signing
+  identity exclusively to `refs/tags/v3.24.2`. Until that tag is signed and
+  published, online candidate self-check fails closed instead of falling back
+  to an earlier release.
+
 ## 3.24.1
 
 - Release the v22 Permit presentation identity contract used by API and
