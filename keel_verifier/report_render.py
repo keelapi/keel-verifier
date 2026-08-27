@@ -82,7 +82,13 @@ _COVERAGE = (
         ),
     ),
     (
-        "Human co-signature",
+        # Not "Human co-signature". What this claim adjudicates is a WebAuthn
+        # assertion produced by a registered co-signer key and bound to a signed
+        # Permit decision. Whether a human held that key is not established by
+        # any check in the chain: enrolment for this path accepts credentials
+        # with no verified authenticator attestation, so the label must not
+        # render as "Human co-signature: verified".
+        "Co-signer key assertion",
         ("permit.co_signature.v1", "permit.co_signature.v2"),
     ),
     ("Co-signature quorum", ("permit.co_signature.quorum.v1",)),
@@ -91,6 +97,17 @@ _COVERAGE = (
     ("Revocation", ("permit.revoked.v1",)),
     ("Timestamp", ("checkpoint.tsa_imprint.v1",)),
 )
+
+#: Coverage rows whose label alone would overstate what the claim adjudicates.
+#: Rendered directly beneath the row, and only when the claim is actually in
+#: scope, so a reader cannot take "verified" for a finding about a person. This
+#: narrows what is displayed; it changes no verdict and no check.
+_COVERAGE_CAVEATS = {
+    "Co-signer key assertion": (
+        "does not establish verified human custody of the key, "
+        "hardware backing, or legal identity"
+    ),
+}
 
 _COVERAGE_STATUS = {
     "supported": "verified",
@@ -477,6 +494,14 @@ def _coverage_lines(verdicts: dict[str, str]) -> list[ReportLine]:
         lines.append(
             ReportLine(f"  {label}: {status}", provenance="DERIVED_VERIFICATION_RESULT")
         )
+        caveat = _COVERAGE_CAVEATS.get(label)
+        if caveat is not None and status != "not provided":
+            lines.append(
+                ReportLine(
+                    f"    — {caveat}",
+                    provenance="DERIVED_VERIFICATION_RESULT",
+                )
+            )
     return lines if any_present else []
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.24.3
+
+### Changed
+
+- Report rendering no longer labels the co-signature coverage row "Human
+  co-signature". The claim adjudicates a WebAuthn assertion produced by a
+  registered co-signer key and bound to a signed Permit decision; whether a
+  human held that key is established by no check in the chain, because
+  enrolment for this path accepts credentials with no verified authenticator
+  attestation. The row now reads "Co-signer key assertion" and, whenever the
+  claim is in scope, carries an explicit line stating that it does not
+  establish verified human custody of the key, hardware backing, or legal
+  identity.
+
+  Presentation only. No verdict changes, no check is relaxed or removed, the
+  four-verdict model is unchanged, and the pinned claim registries and
+  semantics recipes are untouched.
+
 ## 3.24.2
 
 ### Security

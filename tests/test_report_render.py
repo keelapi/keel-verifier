@@ -804,6 +804,63 @@ def test_evidence_coverage_lists_present_and_absent() -> None:
     assert "Timestamp: not provided" in out
 
 
+def test_co_signature_coverage_never_renders_as_a_human_finding() -> None:
+    """The label must describe what was adjudicated, not who was assumed.
+
+    The claim adjudicates a WebAuthn assertion from a registered co-signer key
+    bound to a signed Permit decision. Enrolment for this path accepts
+    credentials with no verified authenticator attestation, so nothing in the
+    chain establishes that a human held the key. "Human co-signature: verified"
+    told a reader otherwise.
+    """
+
+    report = _report(
+        [
+            _claim("export.integrity.v1", "supported"),
+            _claim("permit.co_signature.v2", "supported"),
+        ],
+        artifact={"kind": "export", "trust_source": "embedded"},
+    )
+    out = render_human(report)
+    assert "Human co-signature" not in out
+    assert "Co-signer key assertion: verified" in out
+    assert (
+        "does not establish verified human custody of the key, "
+        "hardware backing, or legal identity"
+    ) in out
+
+
+def test_co_signature_caveat_is_absent_when_the_claim_is_out_of_scope() -> None:
+    """A caveat about evidence that was never presented would be noise."""
+
+    report = _report(
+        [
+            _claim("export.integrity.v1", "supported"),
+            _claim("permit.operator_approval.v1", "supported"),
+        ],
+        artifact={"kind": "export", "trust_source": "embedded"},
+    )
+    out = render_human(report)
+    assert "Co-signer key assertion: not provided" in out
+    assert "does not establish verified human custody" not in out
+
+
+def test_co_signature_caveat_also_renders_on_a_failed_assertion() -> None:
+    """A disproved assertion is still not a statement about a person."""
+
+    report = _report(
+        [
+            _claim("export.integrity.v1", "supported"),
+            _claim("permit.co_signature.v1", "disproved"),
+        ],
+        artifact={"kind": "export", "trust_source": "embedded"},
+    )
+    out = render_human(report)
+    assert "Human co-signature" not in out
+    assert "Co-signer key assertion: present (failed)" in out
+    assert "does not establish verified human custody" in out
+
+
 def test_exact_payment_report_uses_permit_to_pay_title_and_signed_facts() -> None:
     report = _report(
         [],
