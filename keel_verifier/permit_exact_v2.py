@@ -47,6 +47,7 @@ _CLAIM_REGISTRY_IDS = {
     "verifier-claims.v4": "keel.verifier_claim_registry.v4",
     "verifier-claims.v5": "keel.verifier_claim_registry.v5",
     "verifier-claims.v6": "keel.verifier_claim_registry.v6",
+    "verifier-claims.v7": "keel.verifier_claim_registry.v7",
 }
 _UNIVERSAL_SEMANTICS_IDS = {
     "v1": "keel.permit.universal_verification.v1",
@@ -54,6 +55,17 @@ _UNIVERSAL_SEMANTICS_IDS = {
     "v3": "keel.permit.universal_verification.v3",
     "v4": "keel.permit.universal_verification.v4",
     "v5": "keel.permit.universal_verification.v5",
+    "v6": "keel.permit.universal_verification.v6",
+}
+# Which claim registry each universal recipe version is allowed to pin. A
+# recipe version missing here is unsupported, not a licence to skip the check.
+_UNIVERSAL_RECIPE_CLAIM_REGISTRY = {
+    "v1": "verifier-claims.v2",
+    "v2": "verifier-claims.v3",
+    "v3": "verifier-claims.v4",
+    "v4": "verifier-claims.v5",
+    "v5": "verifier-claims.v6",
+    "v6": "verifier-claims.v7",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
@@ -70,6 +82,65 @@ ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM = (
 ENFORCEMENT_REGIME_CLAIMS = (
     ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
     ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+)
+MCP_ACTION_MAPPING_BINDING_CLAIM = "permit.mcp_action_mapping_binding.v1"
+MCP_GOVERNANCE_INTERPRETATION_CLAIM = "permit.mcp_governance_interpretation.v1"
+MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM = "permit.mcp_structural_hold_evidence.v1"
+ACTION_MAPPING_CLAIMS = (
+    MCP_ACTION_MAPPING_BINDING_CLAIM,
+    MCP_GOVERNANCE_INTERPRETATION_CLAIM,
+    MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM,
+)
+ACTION_MAPPING_ATTRIBUTE_KEY = "mcp_action_mapping_evidence_v1"
+ACTION_MAPPING_SURFACE_KEY = "managed_mcp:action_mapping"
+ACTION_MAPPING_SCHEMA = "mcp-action-mapping-evidence-v1.schema.json"
+MANAGED_MCP_PERMIT_ACTION_NAME = "mcp.tool.call"
+# The two bounded positive statements. Nothing else may be emitted as a
+# positive Action Mapping claim, and neither is reachable without the exact
+# supporting artifacts named in the v7 claim registry.
+ACTION_MAPPING_BINDING_STATEMENT = (
+    "The Permit binds the mapping and activation reference used by Keel's "
+    "decision."
+)
+ACTION_MAPPING_INTERPRETATION_STATEMENT = (
+    "Keel evaluated this exact managed MCP request using the human-approved "
+    "governance interpretation {governance_action_id} under mandatory review."
+)
+# Fields the mapping evidence must carry in its own right. A manifest hash is
+# not a mapping revision and a basis hash is not a basis version: a consumer
+# that cannot see the version cannot know whether two hashes are comparable.
+_ACTION_MAPPING_REQUIRED_FIELDS: tuple[tuple[str, str], ...] = (
+    ("mapping", "mapping_id"),
+    ("mapping", "mapping_revision"),
+    ("mapping", "manifest_hash"),
+    ("mapping", "lifecycle_epoch"),
+    ("mapping", "lifecycle_state"),
+    ("mapping", "assurance"),
+    ("governance_action", "governance_action_id"),
+    ("governance_action", "governance_action_version"),
+    ("governance_action", "catalog_entry_hash"),
+    ("structural", "challenge_class"),
+    ("structural", "challenge_basis_hash"),
+    ("structural", "challenge_basis_version"),
+    ("structural", "typed_absence_hash"),
+    ("structural", "derivation_diagnostics_hash"),
+    ("activation", "activation_record_id"),
+    ("activation", "activation_record_hash"),
+)
+_ACTION_MAPPING_APPROVAL_FIELDS = (
+    "claim_record_id",
+    "reviewed_permit_id",
+    "execution_permit_id",
+    "original_trace_id",
+    "current_trace_id",
+    "exact_request_review_hash",
+    "approval_requirement_hash",
+    "exact_request_binding_hash",
+    "idempotency_binding_hash",
+    "idempotency_binding_version",
+    "consumed_at",
+    "governed_request_id",
+    "dispatch_claim",
 )
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
@@ -1168,7 +1239,14 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
     ceilings: dict[str, tuple[str, ...]] = {}
-    for registry_name in ("v2.json", "v3.json", "v4.json", "v5.json"):
+    for registry_name in (
+        "v2.json",
+        "v3.json",
+        "v4.json",
+        "v5.json",
+        "v6.json",
+        "v7.json",
+    ):
         registry = _json(f"../claim_registry/{registry_name}")
         for claim in registry.get("claims", []):
             if not isinstance(claim, Mapping):
@@ -1488,6 +1566,7 @@ def _resolve_contracts(
             "../claim_registry/v4.json",
             "../claim_registry/v5.json",
             "../claim_registry/v6.json",
+            "../claim_registry/v7.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,
@@ -1554,6 +1633,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v3.json",
             "../semantics/permit/universal_verification_v4.json",
             "../semantics/permit/universal_verification_v5.json",
+            "../semantics/permit/universal_verification_v6.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,
@@ -1588,16 +1668,19 @@ def _resolve_contracts(
             "PERMIT_CONTRACT_PIN_ID_MISMATCH",
             "universal semantics artifact identity does not match its version",
         )
-    expected_recipe_claims = {
-        "v1": "verifier-claims.v2",
-        "v2": "verifier-claims.v3",
-        "v3": "verifier-claims.v4",
-        "v4": "verifier-claims.v5",
-    }
+    expected_recipe_claim_version = _UNIVERSAL_RECIPE_CLAIM_REGISTRY.get(
+        universal_version
+    )
+    if expected_recipe_claim_version is None:
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            "universal semantics version has no admitted claim registry",
+        )
     if universal_semantics.get("body", {}).get(
         "claim_registry_version"
-    ) != expected_recipe_claims[universal_version] or claim_version != (
-        expected_recipe_claims[universal_version]
+    ) != expected_recipe_claim_version or claim_version != (
+        expected_recipe_claim_version
     ):
         raise _AdjudicationError(
             "disproved",
@@ -2536,6 +2619,381 @@ def _enforcement_regime_assessments(
     return assessments
 
 
+def _mapping_section(
+    block: Mapping[str, Any],
+    name: str,
+) -> Mapping[str, Any]:
+    section = block.get(name)
+    return section if isinstance(section, Mapping) else {}
+
+
+def action_mapping_expected_claims(
+    block: Mapping[str, Any],
+    recipe: Mapping[str, Any],
+) -> list[str]:
+    """Claims the pinned recipe requests for this mapping artifact class.
+
+    The binding claim is always requested. Exactly one of the execution and
+    structural claims follows from ``artifact_class`` -- never both, and never
+    neither, so an emitter cannot drop the stricter claim by omitting it.
+    """
+
+    phases = ["binding"]
+    artifact_class = str(block.get("artifact_class") or "")
+    if artifact_class == "execution":
+        phases.append("execution")
+    elif artifact_class == "structural_decision":
+        phases.append("structural")
+    return [
+        str(name)
+        for phase in phases
+        for name in recipe.get(phase, [])
+        if isinstance(name, str)
+    ]
+
+
+def _action_mapping_assessments(
+    *,
+    body: Mapping[str, Any],
+    signed_attributes: Mapping[str, Any],
+    permit_id: str,
+    binding: Mapping[str, Any],
+    authorized_action: str,
+    declared: list[str],
+) -> dict[str, ExactClaimAssessment]:
+    """Adjudicate the managed-MCP Action Mapping evidence group.
+
+    Every positive statement here is structurally gated on the exact signed
+    artifacts that support it. A disclaimer never licenses a claim, a manifest
+    hash never stands in for a mapping revision, and a basis hash never stands
+    in for its basis version.
+    """
+
+    requested = [name for name in ACTION_MAPPING_CLAIMS if name in declared]
+    evidence_paths = ("body.permit_decision.resource_attributes_json",)
+
+    def uniform(
+        verdict: str,
+        reason_code: str,
+        message: str,
+    ) -> dict[str, ExactClaimAssessment]:
+        return {
+            name: _assessment(
+                name,
+                verdict,
+                reason_code,
+                message,
+                evidence=evidence_paths,
+            )
+            for name in requested
+        }
+
+    block = signed_attributes.get(ACTION_MAPPING_ATTRIBUTE_KEY)
+    if not isinstance(block, Mapping):
+        return uniform(
+            "insufficient_evidence",
+            "MCP_ACTION_MAPPING_EVIDENCE_NOT_RECORDED",
+            "the signed Permit does not record managed-MCP Action Mapping evidence",
+        )
+    if block.get("enforcement_surface_key") != ACTION_MAPPING_SURFACE_KEY:
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_SURFACE_MISMATCH",
+            "the mapping evidence does not name the managed-MCP Action Mapping surface",
+        )
+
+    # Individually required fields, checked before schema validation so the
+    # missing field is named rather than folded into one schema error.
+    for group, field_name in _ACTION_MAPPING_REQUIRED_FIELDS:
+        value = _mapping_section(block, group).get(field_name)
+        if value is None or (isinstance(value, str) and not value):
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_FIELD_MISSING",
+                f"the mapping evidence does not bind {group}.{field_name}",
+            )
+
+    mapping = _mapping_section(block, "mapping")
+    governance_action = _mapping_section(block, "governance_action")
+    structural = _mapping_section(block, "structural")
+    activation = _mapping_section(block, "activation")
+    governance_action_id = str(governance_action.get("governance_action_id") or "")
+
+    basis_version = str(structural.get("challenge_basis_version") or "")
+    if basis_version != "mcp_challenge_basis.v2":
+        return uniform(
+            "disproved" if basis_version == "mcp_challenge_basis.v1" else "unverifiable_scope",
+            "MCP_ACTION_MAPPING_BASIS_VERSION_UNSUPPORTED",
+            "the challenge basis version is not the admitted mcp_challenge_basis.v2; "
+            "a basis hash is comparable only within an identical basis version",
+        )
+
+    # The governance action is an interpretation. It must never appear as the
+    # Permit's action on any surface: not the evidence block's own
+    # permit_action_name, not the signed semantic binding, not the resolved
+    # authorized action. Top-level Permit.action_name stays mcp.tool.call.
+    permit_action_name = str(block.get("permit_action_name") or "")
+    if permit_action_name != MANAGED_MCP_PERMIT_ACTION_NAME:
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_ACTION_NAME_INVALID",
+            "the top-level Permit action is not mcp.tool.call",
+        )
+    substituted = [
+        surface
+        for surface, value in (
+            ("the mapping evidence", permit_action_name),
+            ("the signed semantic binding", binding.get("action_name")),
+            ("the signed semantic binding operation", binding.get("operation")),
+            ("the resolved fact profile", authorized_action),
+        )
+        if isinstance(value, str) and value and value == governance_action_id
+    ]
+    if substituted:
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_ACTION_NAME_MISMATCH",
+            "the target governance action replaced the Permit action name in "
+            f"{substituted[0]}",
+        )
+
+    assurance = str(mapping.get("assurance") or "")
+    certified = mapping.get("certified_action_contract")
+    if not isinstance(certified, Mapping) or certified.get("state") not in (
+        "absent",
+        "present",
+    ):
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_CERTIFIED_CONTRACT_UNTYPED",
+            "the certified-action-contract state is not typed present or absent",
+        )
+    arbitrary_mapping = assurance == "human_mapped_review_only"
+    if arbitrary_mapping and certified.get("state") != "absent":
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_CERTIFIED_CONTRACT_FORBIDDEN",
+            "an arbitrary human mapping binds no certified_action_contract_id, "
+            "but the evidence names one",
+        )
+    if arbitrary_mapping and mapping.get("classification_provenance") != (
+        "human_approved_action_mapping"
+    ):
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_PROVENANCE_INVALID",
+            "an arbitrary human mapping cannot claim curated or verified-adapter "
+            "classification provenance",
+        )
+
+    lifecycle_epoch = mapping.get("lifecycle_epoch")
+    activated_epoch = activation.get("activated_lifecycle_epoch")
+    if not isinstance(lifecycle_epoch, int) or not isinstance(activated_epoch, int):
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_FIELD_MISSING",
+            "the mapping evidence does not bind an integer lifecycle epoch",
+        )
+    if activated_epoch > lifecycle_epoch:
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_ACTIVATION_EPOCH_INVALID",
+            "the activation record names a later lifecycle epoch than the mapping",
+        )
+
+    artifact_class = str(block.get("artifact_class") or "")
+    challenge_class = str(structural.get("challenge_class") or "")
+    approval = block.get("approval")
+    if artifact_class == "structural_decision":
+        if challenge_class != "structural_hold":
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_CHALLENGE_CLASS_MISMATCH",
+                "a structural decision artifact must carry challenge_class structural_hold",
+            )
+        if approval is not None:
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_STRUCTURAL_APPROVAL_PRESENT",
+                "a structural hold creates no approval action and no execution Permit, "
+                "but the evidence carries an approval group",
+            )
+        enforcement = body.get("enforcement_evidence")
+        runtime_proof = (
+            enforcement.get("runtime_enforcement_proof")
+            if isinstance(enforcement, Mapping)
+            else None
+        )
+        if (
+            isinstance(runtime_proof, Mapping)
+            or body.get("bounded_use_transitions")
+            or body.get("provider_receipts")
+        ):
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_STRUCTURAL_DISPATCH_EVIDENCE",
+                "a structural hold has no resume or dispatch semantics, but the pack "
+                "supplies dispatch evidence",
+            )
+        decision_state = body.get("decision_state")
+        decision = (
+            str(decision_state.get("decision") or "").lower()
+            if isinstance(decision_state, Mapping)
+            else ""
+        )
+        if decision == "allow":
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_STRUCTURAL_DECISION_INVALID",
+                "a structural hold cannot carry an allow decision state",
+            )
+    elif artifact_class == "execution":
+        if challenge_class != "action_review":
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_CHALLENGE_CLASS_MISMATCH",
+                "an execution artifact must carry challenge_class action_review",
+            )
+        if not isinstance(approval, Mapping):
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_APPROVAL_MISSING",
+                "the execution evidence carries no reviewed-approval consumption record",
+            )
+        for field_name in _ACTION_MAPPING_APPROVAL_FIELDS:
+            value = approval.get(field_name)
+            if value is None or (isinstance(value, str) and not value):
+                return uniform(
+                    "disproved",
+                    "MCP_ACTION_MAPPING_APPROVAL_FIELD_MISSING",
+                    "the reviewed-approval consumption record does not bind "
+                    f"{field_name}",
+                )
+        dispatch_claim = approval.get("dispatch_claim")
+        if not isinstance(dispatch_claim, Mapping) or dispatch_claim.get(
+            "state"
+        ) not in ("absent", "acquired"):
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_DISPATCH_CLAIM_UNTYPED",
+                "the dispatch-claim state is not typed absent or acquired",
+            )
+        if dispatch_claim.get("state") == "absent" and (
+            "dispatch_claim_reference" in dispatch_claim
+        ):
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_DISPATCH_CLAIM_FORBIDDEN",
+                "a dispatch-claim reference must not be emitted where no claim "
+                "was acquired",
+            )
+        if dispatch_claim.get("state") == "acquired":
+            if dispatch_claim.get("claimed_lifecycle_epoch") != lifecycle_epoch:
+                return uniform(
+                    "disproved",
+                    "MCP_ACTION_MAPPING_DISPATCH_CLAIM_EPOCH_MISMATCH",
+                    "the dispatch claim names a different lifecycle epoch than the mapping",
+                )
+            if mapping.get("lifecycle_state") != "active":
+                return uniform(
+                    "disproved",
+                    "MCP_ACTION_MAPPING_LIFECYCLE_STATE_INVALID",
+                    "a dispatch claim cannot be acquired at an epoch whose mapping "
+                    "revision is not active",
+                )
+        if approval.get("execution_permit_id") != permit_id:
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_APPROVAL_PERMIT_MISMATCH",
+                "the consumption record names a different execution Permit",
+            )
+        if approval.get("reviewed_permit_id") == permit_id:
+            return uniform(
+                "disproved",
+                "MCP_ACTION_MAPPING_APPROVAL_PERMIT_MISMATCH",
+                "the reviewed Permit and the execution Permit are the same record",
+            )
+    else:
+        return uniform(
+            "unverifiable_scope",
+            "MCP_ACTION_MAPPING_ARTIFACT_CLASS_UNSUPPORTED",
+            "the mapping evidence artifact class is not supported",
+        )
+
+    try:
+        _validate_schema(block, ACTION_MAPPING_SCHEMA)
+    except jsonschema.ValidationError as exc:
+        return uniform(
+            "disproved",
+            "MCP_ACTION_MAPPING_EVIDENCE_INVALID",
+            f"the signed mapping evidence is invalid: {exc.message}",
+        )
+
+    assessments: dict[str, ExactClaimAssessment] = {}
+    arbitrary_ceiling: tuple[str, ...] = (
+        (
+            "no certified_action_contract_id is bound by this arbitrary human "
+            "mapping; the governance action is an interpretation, not a certification",
+        )
+        if arbitrary_mapping
+        else ()
+    )
+    if MCP_ACTION_MAPPING_BINDING_CLAIM in requested:
+        assessments[MCP_ACTION_MAPPING_BINDING_CLAIM] = _assessment(
+            MCP_ACTION_MAPPING_BINDING_CLAIM,
+            "supported",
+            "MCP_ACTION_MAPPING_BINDING_VERIFIED",
+            ACTION_MAPPING_BINDING_STATEMENT,
+            evidence=evidence_paths,
+            does_not_establish=arbitrary_ceiling,
+        )
+    if MCP_GOVERNANCE_INTERPRETATION_CLAIM in requested:
+        if artifact_class == "execution":
+            assessments[MCP_GOVERNANCE_INTERPRETATION_CLAIM] = _assessment(
+                MCP_GOVERNANCE_INTERPRETATION_CLAIM,
+                "supported",
+                "MCP_GOVERNANCE_INTERPRETATION_VERIFIED",
+                ACTION_MAPPING_INTERPRETATION_STATEMENT.format(
+                    governance_action_id=governance_action_id
+                ),
+                evidence=evidence_paths,
+                does_not_establish=arbitrary_ceiling,
+            )
+        else:
+            assessments[MCP_GOVERNANCE_INTERPRETATION_CLAIM] = _assessment(
+                MCP_GOVERNANCE_INTERPRETATION_CLAIM,
+                "insufficient_evidence",
+                "MCP_GOVERNANCE_INTERPRETATION_NOT_ESTABLISHED",
+                "the evidence records a non-approvable structural hold, so no exact "
+                "reviewed managed MCP request is established",
+                evidence=evidence_paths,
+                does_not_establish=arbitrary_ceiling,
+            )
+    if MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM in requested:
+        if artifact_class == "structural_decision":
+            assessments[MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM] = _assessment(
+                MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM,
+                "supported",
+                "MCP_STRUCTURAL_HOLD_EVIDENCE_VERIFIED",
+                "the signed evidence binds the structural challenge basis, typed "
+                "absence, and derivation diagnostics for a managed MCP request that "
+                "created no approval action and no execution Permit",
+                evidence=evidence_paths,
+                does_not_establish=arbitrary_ceiling,
+            )
+        else:
+            assessments[MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM] = _assessment(
+                MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM,
+                "insufficient_evidence",
+                "MCP_STRUCTURAL_HOLD_EVIDENCE_NOT_RECORDED",
+                "the evidence records an executed managed MCP request, not a "
+                "non-approvable structural hold",
+                evidence=evidence_paths,
+                does_not_establish=arbitrary_ceiling,
+            )
+    return assessments
+
+
 def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
@@ -2745,6 +3203,30 @@ def adjudicate_permit_exact_v2_body(
                         "the exact pack omitted Work enforcement claims required by its pinned recipe",
                     )
                 )
+    mapping_block = decision_attrs.get(ACTION_MAPPING_ATTRIBUTE_KEY)
+    mapping_governed = (
+        isinstance(mapping_block, Mapping)
+        and mapping_block.get("enforcement_surface_key") == ACTION_MAPPING_SURFACE_KEY
+    )
+    if mapping_governed and isinstance(evidence_claims, Mapping):
+        mapping_recipe = evidence_claims.get(ACTION_MAPPING_SURFACE_KEY)
+        if isinstance(mapping_recipe, Mapping):
+            missing_mapping_claims = [
+                name
+                for name in action_mapping_expected_claims(
+                    mapping_block, mapping_recipe
+                )
+                if name not in declared
+            ]
+            if missing_mapping_claims:
+                declared.extend(missing_mapping_claims)
+                return fail_all(
+                    _AdjudicationError(
+                        "disproved",
+                        "PERMIT_CONDITIONAL_CLAIM_MISSING",
+                        "the exact pack omitted Action Mapping claims required by its pinned recipe",
+                    )
+                )
     try:
         _verify_profile_classification(
             fact_profile=contracts.fact_profile,
@@ -2865,6 +3347,18 @@ def adjudicate_permit_exact_v2_body(
                 semantic_id=semantic_id,
                 material_values=material_values,
                 signed_artifact_verifier=signed_artifact_verifier,
+            )
+        )
+
+    if any(name in declared for name in ACTION_MAPPING_CLAIMS):
+        assessments.update(
+            _action_mapping_assessments(
+                body=body,
+                signed_attributes=decision_attrs,
+                permit_id=permit_id,
+                binding=binding,
+                authorized_action=authorized_action,
+                declared=declared,
             )
         )
 

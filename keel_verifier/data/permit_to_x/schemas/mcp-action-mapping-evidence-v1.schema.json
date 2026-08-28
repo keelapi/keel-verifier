@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/mcp-action-mapping-evidence-v1.schema.json",
+  "title": "Managed MCP Action Mapping evidence v1",
+  "description": "Server-derived Action Mapping evidence carried in a signed Permit's resource attributes. It records the exact source identity, the human-approved mapping revision and its lifecycle epoch, the target governance-action interpretation, the versioned structural challenge basis, and the activation-record reference Keel's decision used. Binding an activation reference is not verification of the ceremony that produced it. The block records eligibility state only: it does not record dispatch, provider acceptance, or downstream effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "enforcement_surface_key",
+    "artifact_class",
+    "permit_action_name",
+    "source",
+    "mapping",
+    "governance_action",
+    "structural",
+    "activation"
+  ],
+  "properties": {
+    "version": {
+      "const": "keel.mcp_action_mapping_evidence.v1"
+    },
+    "enforcement_surface_key": {
+      "const": "managed_mcp:action_mapping",
+      "description": "The enforcement program whose mapping state was resolved. semantic_id is insufficient: the mapped governance action is an interpretation, not the Permit's action."
+    },
+    "artifact_class": {
+      "enum": [
+        "execution",
+        "structural_decision"
+      ],
+      "description": "execution: an exact reviewed-and-consumed managed MCP request. structural_decision: a non-approvable structural hold that minted no approval action and no execution Permit and carries no resume or dispatch semantics."
+    },
+    "permit_action_name": {
+      "const": "mcp.tool.call",
+      "description": "Top-level Permit action. The target governance action never replaces it."
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "mapping": {
+      "$ref": "#/$defs/mapping"
+    },
+    "governance_action": {
+      "$ref": "#/$defs/governance_action"
+    },
+    "structural": {
+      "$ref": "#/$defs/structural"
+    },
+    "approval": {
+      "$ref": "#/$defs/approval"
+    },
+    "activation": {
+      "$ref": "#/$defs/activation"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "artifact_class": {
+            "const": "structural_decision"
+          }
+        },
+        "required": [
+          "artifact_class"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "approval"
+          ]
+        },
+        "properties": {
+          "structural": {
+            "properties": {
+              "challenge_class": {
+                "const": "structural_hold"
+              }
+            },
+            "required": [
+              "challenge_class"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "artifact_class": {
+            "const": "execution"
+          }
+        },
+        "required": [
+          "artifact_class"
+        ]
+      },
+      "then": {
+        "required": [
+          "approval"
+        ],
+        "properties": {
+          "structural": {
+            "properties": {
+              "challenge_class": {
+                "const": "action_review"
+              }
+            },
+            "required": [
+              "challenge_class"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mapping": {
+            "properties": {
+              "assurance": {
+                "const": "human_mapped_review_only"
+              }
+            },
+            "required": [
+              "assurance"
+            ]
+          }
+        },
+        "required": [
+          "mapping"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mapping": {
+            "properties": {
+              "certified_action_contract": {
+                "properties": {
+                  "state": {
+                    "const": "absent"
+                  }
+                },
+                "required": [
+                  "state"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The exact managed MCP invocation identity. accepted and observed schema hashes are recorded separately because their divergence is what drift is.",
+      "required": [
+        "mcp_server_id",
+        "source_tool_name",
+        "accepted_tool_schema_hash",
+        "observed_tool_schema_hash",
+        "tool_arguments_hash",
+        "tool_contract_status"
+      ],
+      "properties": {
+        "mcp_server_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "source_tool_name": {
+          "$ref": "#/$defs/identifier"
+        },
+        "accepted_tool_schema_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "observed_tool_schema_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "tool_contract_status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "stale",
+            "drifted",
+            "missing"
+          ]
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Server-canonical mapping revision state. mapping_revision and manifest_hash are separate required fields: a consumer that cannot see the revision cannot express 'this exact revision' and cannot tell whether a manifest hash is even comparable.",
+      "required": [
+        "mapping_id",
+        "mapping_revision",
+        "manifest_hash",
+        "lifecycle_epoch",
+        "lifecycle_state",
+        "assurance",
+        "classification_provenance",
+        "certified_action_contract"
+      ],
+      "properties": {
+        "mapping_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "mapping_revision": {
+          "$ref": "#/$defs/identifier"
+        },
+        "manifest_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "lifecycle_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lifecycle_state": {
+          "enum": [
+            "active",
+            "frozen",
+            "superseded",
+            "permanently_revoked"
+          ]
+        },
+        "assurance": {
+          "enum": [
+            "human_mapped_review_only",
+            "certified_adapter_contract"
+          ]
+        },
+        "classification_provenance": {
+          "enum": [
+            "human_approved_action_mapping",
+            "keel_verified_adapter"
+          ]
+        },
+        "certified_action_contract": {
+          "$ref": "#/$defs/certified_action_contract"
+        }
+      }
+    },
+    "certified_action_contract": {
+      "description": "Typed presence or absence of a certified action contract. An arbitrary human mapping binds none; absence is stated positively so a verifier can report it rather than infer it from a missing key.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "const": "absent"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "certified_action_contract_id",
+            "connector_identity"
+          ],
+          "properties": {
+            "state": {
+              "const": "present"
+            },
+            "certified_action_contract_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "connector_identity": {
+              "$ref": "#/$defs/identifier"
+            }
+          }
+        }
+      ]
+    },
+    "governance_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The connector-independent governance interpretation the mapping targets. It carries no connector identity, adapter identity, fact profile, trusted facts, semantic transform, or automatic-authorization eligibility.",
+      "required": [
+        "governance_action_id",
+        "governance_action_version",
+        "catalog_entry_hash"
+      ],
+      "properties": {
+        "governance_action_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "governance_action_version": {
+          "$ref": "#/$defs/identifier"
+        },
+        "catalog_entry_hash": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "structural": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The versioned pre-review challenge basis and the typed absence and diagnostic commitments. challenge_basis_hash is comparable only within an identical challenge_basis_version, so the version is required in its own right.",
+      "required": [
+        "challenge_class",
+        "challenge_basis_hash",
+        "challenge_basis_version",
+        "reason_code",
+        "typed_absence_hash",
+        "derivation_diagnostics_hash"
+      ],
+      "properties": {
+        "challenge_class": {
+          "enum": [
+            "action_review",
+            "structural_hold"
+          ]
+        },
+        "challenge_basis_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "challenge_basis_version": {
+          "const": "mcp_challenge_basis.v2",
+          "description": "v1 is legacy, circular, and non-dischargeable with no reconstruction or cross-version comparison."
+        },
+        "reason_code": {
+          "$ref": "#/$defs/identifier"
+        },
+        "typed_absence_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "derivation_diagnostics_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "unavailable_fact_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The reviewed-approval consumption record for an exact executed request. Present only on an execution artifact. It establishes single consumption; it does not establish which approvals satisfied the requirement.",
+      "required": [
+        "claim_record_id",
+        "reviewed_permit_id",
+        "execution_permit_id",
+        "original_trace_id",
+        "current_trace_id",
+        "exact_request_review_hash",
+        "approval_requirement_hash",
+        "exact_request_binding_hash",
+        "idempotency_binding_hash",
+        "idempotency_binding_version",
+        "consumed_at",
+        "governed_request_id",
+        "dispatch_claim"
+      ],
+      "properties": {
+        "claim_record_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reviewed_permit_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "execution_permit_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "original_trace_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "current_trace_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "exact_request_review_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "approval_requirement_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "exact_request_binding_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "idempotency_binding_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "idempotency_binding_version": {
+          "$ref": "#/$defs/identifier"
+        },
+        "consumed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "governed_request_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "dispatch_claim": {
+          "$ref": "#/$defs/dispatch_claim"
+        }
+      }
+    },
+    "dispatch_claim": {
+      "description": "Typed presence or absence of the atomic dispatch claim. A reference must not be emitted where no claim was acquired: absence is information, not a missing field.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "const": "absent"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "dispatch_claim_reference",
+            "claimed_lifecycle_epoch"
+          ],
+          "properties": {
+            "state": {
+              "const": "acquired"
+            },
+            "dispatch_claim_reference": {
+              "$ref": "#/$defs/identifier"
+            },
+            "claimed_lifecycle_epoch": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An immutable reference to the activation record for the active mapping revision. A reference is not the ceremony: this block does not carry the WebAuthn assertion and never establishes that it was independently verified.",
+      "required": [
+        "activation_record_id",
+        "activation_record_hash",
+        "activated_lifecycle_epoch"
+      ],
+      "properties": {
+        "activation_record_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "activation_record_hash": {
+          "$ref": "#/$defs/hash"
+        },
+        "activated_lifecycle_epoch": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "id": "keel.permit.universal_verification.v6",
+  "version": "v6",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "candidate",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v5",
+    "version": "v5",
+    "sha256": "c390fd3b68c79cbdfafd83a5be5056c54b75d29c19d6e0cadd2972203d7bfbdc"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v7",
+    "conditional_evidence_claims": {
+      "managed_mcp:action_mapping": {
+        "binding": [
+          "permit.mcp_action_mapping_binding.v1"
+        ],
+        "execution": [
+          "permit.mcp_governance_interpretation.v1"
+        ],
+        "structural": [
+          "permit.mcp_structural_hold_evidence.v1"
+        ]
+      }
+    },
+    "action_mapping_rule": {
+      "schema": "mcp-action-mapping-evidence-v1.schema.json",
+      "applicability": "The claims are requested only for a signed Permit carrying one keel.mcp_action_mapping_evidence.v1 block with enforcement_surface_key=managed_mcp:action_mapping. The binding claim is always requested; the execution and structural claims are requested by artifact_class and never both.",
+      "identity_rule": "The mapping-evidence block must be covered by the supported signed Permit resource-attributes commitment and belong to the same Permit and project under adjudication.",
+      "action_name_rule": "permit_action_name must equal mcp.tool.call, must differ from the target governance_action_id, and must agree with any action_name carried by the signed semantic binding. The governance action never replaces the Permit action.",
+      "individually_required_fields": [
+        "mapping.mapping_revision",
+        "mapping.lifecycle_epoch",
+        "structural.challenge_basis_version",
+        "governance_action.governance_action_id",
+        "governance_action.governance_action_version",
+        "governance_action.catalog_entry_hash",
+        "mapping.assurance",
+        "activation.activation_record_id",
+        "activation.activation_record_hash"
+      ],
+      "hash_substitution_rule": "mapping.manifest_hash never substitutes for mapping.mapping_revision, and structural.challenge_basis_hash never substitutes for structural.challenge_basis_version. A basis hash is comparable only within an identical basis version.",
+      "certified_contract_rule": "assurance=human_mapped_review_only requires certified_action_contract.state=absent. A present certified contract on an arbitrary human mapping is forged evidence and is disproved, never ignored, downgraded, or silently dropped.",
+      "activation_rule": "The activation record reference is a binding, not a ceremony verification. Independent verification of the WebAuthn assertion requires a bundle carrying the canonical activation record and sufficient signed or server-authenticated supporting evidence; absent that bundle the claim must stay bounded to the reference it binds.",
+      "structural_artifact_rule": "artifact_class=structural_decision requires challenge_class=structural_hold, no approval group, non-null typed-absence and derivation-diagnostic hashes, a Permit decision state that is not an allow, and no dispatch, bounded-use, or provider-receipt evidence in the pack. The artifact carries no resume or dispatch semantics.",
+      "execution_artifact_rule": "artifact_class=execution requires challenge_class=action_review, a complete approval group whose execution_permit_id is the Permit under adjudication and whose reviewed_permit_id is a distinct record, and a typed dispatch-claim state. A dispatch-claim reference must not appear where no claim was acquired.",
+      "approval_set_rule": "The consumption claim establishes single consumption, not which approvals satisfied the frozen requirement. Approval satisfaction is a server-validated dispatch precondition; without a bundle containing and validating the canonical qualifying attestations the verifier must say the approval set is not independently established.",
+      "presentation_rule": "Derived summaries, Permit-to-X titles, and disclaimer text are non-authorizing projections. A disclaimer never licenses a positive claim, and a positive claim is emitted only when the exact supporting artifacts are present.",
+      "missing_state_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved",
+      "unsupported_contract_verdict": "unverifiable_scope",
+      "current_configuration_rule": "Current mapping, catalog, or policy configuration is excluded and must never be inferred from or used to rewrite historical signed evidence."
+    }
+  }
+}

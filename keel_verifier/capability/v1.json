@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.24.3",
+    "version": "3.25.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -1093,6 +1093,45 @@
         "insufficient_evidence",
         "unverifiable_scope"
       ]
+    },
+    {
+      "name": "permit.mcp_action_mapping_binding.v1",
+      "status": "implemented",
+      "description": "Adjudicates the signed managed-MCP Action Mapping evidence: exact source identity, mapping ID, mapping revision, canonical manifest hash, lifecycle epoch, assurance, target governance-action ID/version/catalog-entry hash, versioned challenge basis, and activation-record reference. Binding an activation reference is not verification of the ceremony that produced it.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.mcp_governance_interpretation.v1",
+      "status": "implemented",
+      "description": "Adjudicates whether the signed execution evidence carries the complete reviewed-approval consumption record for an exact managed MCP request evaluated under the named human-approved governance interpretation and the mandatory review floor. It establishes single consumption, never which approvals satisfied the requirement, and never dispatch.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
+      "name": "permit.mcp_structural_hold_evidence.v1",
+      "status": "implemented",
+      "description": "Adjudicates the signed non-approvable structural decision evidence: structural challenge class, versioned basis, typed absence and derivation-diagnostic commitments for a managed MCP request that created no approval action, no execution Permit, and no dispatch claim. The artifact carries no resume or dispatch semantics.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
     }
   ],
   "artifact_formats": [
@@ -1591,5 +1630,5 @@
       "status": "allowlisted"
     }
   ],
-  "version": "3.24.3"
+  "version": "3.25.0"
 }
