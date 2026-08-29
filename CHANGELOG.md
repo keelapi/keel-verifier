@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.25.2
+
+### Added
+
+- Admit the released `keel.permit.universal_verification.v7` recipe extension,
+  vendored byte-identically from keel-permit. It pins `verifier-claims.v7` and
+  extends recipe v6 by its exact SHA-256. The vendored bytes came from local
+  keel-permit 1.24.0 candidate
+  `a72f6d897c8bb3146331dc4d9764acdc58c171f4`; the verifier release pin must be
+  corrected to the eventual signed v1.24.0 tag commit after that PR merges.
+
+### Unchanged
+
+- Recipe v7's body is JSON-value-identical to recipe v6. Existing v6 bundles
+  remain supported, and no verdict, claim registry, evidence schema,
+  adjudication rule, or presentation statement changes in this release.
+
+### Release integrity
+
+- Assign a new candidate identity to the additional packaged recipe and
+  allowlist bytes. Release publication requires the signed `v3.25.2` tag and
+  the release workflow's Sigstore signatures, TSA witnesses, GitHub assets,
+  and exact PyPI upload. It also requires published keel-permit v1.24.0 and an
+  additive correction to the capability and release-workflow pin from the
+  currently published v1.23.0 commit to the future v1.24.0 tag commit. This
+  source commit establishes none of those states.
+
 ## 3.25.1
 
 ### Security

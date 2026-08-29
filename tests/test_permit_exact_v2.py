@@ -213,6 +213,113 @@ def _body() -> dict:
     }
 
 
+def _body_with_claim_registry_v7_and_recipe(version: str) -> dict:
+    body = _body()
+    claim_path = ROOT / "claim_registry/v7.json"
+    universal_path = (
+        ROOT / f"semantics/permit/universal_verification_{version}.json"
+    )
+    universal = json.loads(universal_path.read_text(encoding="utf-8"))
+    artifact_id = str(universal["id"])
+    binding = body["semantic_binding"]
+    binding.update(
+        {
+            "claim_registry_version": "verifier-claims.v7",
+            "claim_registry_digest": _digest_bytes(claim_path.read_bytes()),
+            "universal_semantics_id": artifact_id,
+            "universal_semantics_digest": _digest_bytes(
+                universal_path.read_bytes()
+            ),
+        }
+    )
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v7",
+    )
+    body["contract_pins"]["universal_semantics"] = _pin(
+        universal_path,
+        artifact_id=artifact_id,
+    )
+    attributes = body["permit_decision"]["resource_attributes_json"]
+    attributes["permit_semantic_binding_v2"] = copy.deepcopy(binding)
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attributes
+    )
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(attributes)
+    return body
+
+
+def test_universal_recipe_v7_is_the_exact_released_extension() -> None:
+    v6_path = ROOT / "semantics/permit/universal_verification_v6.json"
+    v7_path = ROOT / "semantics/permit/universal_verification_v7.json"
+    v6 = json.loads(v6_path.read_text(encoding="utf-8"))
+    v7 = json.loads(v7_path.read_text(encoding="utf-8"))
+
+    assert hashlib.sha256(v6_path.read_bytes()).hexdigest() == (
+        "d84bb5543c60d461ff0fdf1f2155199fb69adb877bd9e081ce364221d56d0bf2"
+    )
+    assert hashlib.sha256(v7_path.read_bytes()).hexdigest() == (
+        "90aa59f07c6907c246b7b783381ac69c7ba8066f6b80e41690426233ff9771ff"
+    )
+    assert v7["id"] == "keel.permit.universal_verification.v7"
+    assert v7["version"] == "v7"
+    assert v7["status"] == "released"
+    assert v7["extends"] == {
+        "artifact_id": "keel.permit.universal_verification.v6",
+        "version": "v6",
+        "sha256": hashlib.sha256(v6_path.read_bytes()).hexdigest(),
+    }
+    assert v7["body"] == v6["body"]
+
+
+def test_v7_adjudicates_identically_while_v6_remains_supported() -> None:
+    results = {}
+    for version in ("v6", "v7"):
+        result = adjudicate_permit_exact_v2_body(
+            _body_with_claim_registry_v7_and_recipe(version),
+            decision_verdict="supported",
+        )
+        results[version] = [
+            (claim.name, claim.verdict, claim.reason_code)
+            for claim in result.claims
+        ]
+
+    assert results["v7"] == results["v6"]
+    assert results["v7"]
+
+
+def test_v7_refuses_a_claim_registry_other_than_v7() -> None:
+    body = _body_with_claim_registry_v7_and_recipe("v7")
+    claim_path = ROOT / "claim_registry/v6.json"
+    binding = body["semantic_binding"]
+    binding["claim_registry_version"] = "verifier-claims.v6"
+    binding["claim_registry_digest"] = _digest_bytes(claim_path.read_bytes())
+    body["contract_pins"]["claim_registry"] = _pin(
+        claim_path,
+        artifact_id="keel.verifier_claim_registry.v6",
+    )
+    attributes = body["permit_decision"]["resource_attributes_json"]
+    attributes["permit_semantic_binding_v2"] = copy.deepcopy(binding)
+    body["permit_receipt"]["action"]["resource_attributes_json"] = copy.deepcopy(
+        attributes
+    )
+    body["permit_decision"]["canonical_payload"][
+        "resource_attributes_canonical_hash"
+    ] = canonical_resource_attributes_payload(attributes)
+
+    result = adjudicate_permit_exact_v2_body(
+        body,
+        decision_verdict="supported",
+    )
+
+    assert result.claims
+    assert {claim.reason_code for claim in result.claims} == {
+        "PERMIT_CONTRACT_PIN_VERSION_MISMATCH"
+    }
+
+
 def _v3_work_body(*, runtime_version: int | None = 2) -> dict:
     body = _body()
     claim_path = ROOT / "claim_registry/v5.json"

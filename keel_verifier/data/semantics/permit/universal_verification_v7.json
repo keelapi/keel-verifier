@@ -1,0 +1,63 @@
+{
+  "id": "keel.permit.universal_verification.v7",
+  "version": "v7",
+  "kind": "permit_universal_verification_recipe_extension",
+  "status": "released",
+  "extends": {
+    "artifact_id": "keel.permit.universal_verification.v6",
+    "version": "v6",
+    "sha256": "d84bb5543c60d461ff0fdf1f2155199fb69adb877bd9e081ce364221d56d0bf2"
+  },
+  "body": {
+    "claim_registry_version": "verifier-claims.v7",
+    "conditional_evidence_claims": {
+      "managed_mcp:action_mapping": {
+        "binding": [
+          "permit.mcp_action_mapping_binding.v1"
+        ],
+        "execution": [
+          "permit.mcp_governance_interpretation.v1"
+        ],
+        "structural": [
+          "permit.mcp_structural_hold_evidence.v1"
+        ],
+        "post_claim": [
+          "permit.mcp_dispatch_eligibility.v1"
+        ]
+      }
+    },
+    "action_mapping_rule": {
+      "schema": "mcp-action-mapping-evidence-v1.schema.json",
+      "schema_source": "keel-api docs/public-artifacts/mcp-action-mapping-evidence-v1.schema.json, vendored byte-identically",
+      "applicability": "The claims are requested only for one keel.mcp_action_mapping_evidence.v1 artifact with enforcement_surface_key=managed_mcp:action_mapping. The binding claim is always requested; the remaining claims follow from artifact_class.",
+      "artifact_class_rule": "execution is the pre-dispatch-claim artifact bound into the signed execution Permit and names neither relational claim. structural_decision is a non-approvable hold: it is not Permit evidence, has no approval group, and carries no resume or dispatch semantics. post_claim_execution is separate durable evidence emitted only after both relational claims commit, and is the only class that may name a dispatch claim. Only execution may be adjudicated through a Permit.",
+      "identity_rule": "For the execution class the artifact must be covered by the supported signed Permit resource-attributes commitment and its approval group must name that Permit as the execution Permit, with a distinct reviewed Permit.",
+      "action_name_rule": "permit_action_name must equal mcp.tool.call, and the target governance_action_id must not appear as the Permit action on any surface: the evidence block, the signed semantic binding's action name or operation, or the resolved fact profile's authorized action.",
+      "individually_required_fields": [
+        "mapping.mapping_revision",
+        "mapping.lifecycle_epoch",
+        "mapping.lifecycle_state",
+        "mapping.assurance",
+        "structural.challenge_basis_version",
+        "structural.unavailable_fact_paths",
+        "governance_action.governance_action_id",
+        "governance_action.governance_action_version",
+        "governance_action.catalog_entry_hash",
+        "activation.activation_record_id",
+        "activation.activation_record_hash",
+        "activation.activated_lifecycle_epoch"
+      ],
+      "basis_version_rule": "challenge_basis_version must equal mcp_challenge_basis.v4. A basis hash is comparable only within an identical basis version: a superseded version is disproved and an unrecognised one is unverifiable_scope, with no fallback, reconstruction, or cross-version comparison.",
+      "revision_rule": "mapping_revision is a positive integer required in its own right. The manifest hash never substitutes for it: the manifest hash is invariant across a lifecycle transition that moves the epoch.",
+      "certified_contract_rule": "assurance=human_mapped_review_only requires certified_action_contract.state=absent and classification_provenance=human_approved_action_mapping. A present certified contract on an arbitrary human mapping is forged evidence and is disproved, never ignored, downgraded, or silently dropped.",
+      "activation_rule": "The activation reference is a binding, not a ceremony verification. activation.independently_verified must be false; independent verification of the WebAuthn assertion would require a bundle carrying the canonical activation record and sufficient signed or server-authenticated supporting evidence, and no such bundle reaches the verifier.",
+      "relational_claim_rule": "claim_record and dispatch_claim are typed objects. An absent state must name why it is absent and must carry no reference. execution requires both absent; post_claim_execution requires claim_record recorded and dispatch_claim acquired for the same governed request, at the mapping's own lifecycle epoch, on an active revision.",
+      "approval_set_rule": "approval_set_independently_established must be false. The unique consumption claim establishes single consumption, not which approvals satisfied the frozen requirement. A verifier may establish the approval set only from a bundle containing and validating the canonical qualifying attestations; without one it must say the approval set is not independently established.",
+      "presentation_rule": "Derived summaries, Permit-to-X titles, and disclaimer text are non-authorizing projections. A disclaimer never licenses a positive claim, and a positive claim is emitted only when the exact supporting artifacts are present. The interpretation sentence ends at 'under exact review, with the consequence-critical facts bound in the review material'; the truncated 'under mandatory review' form is forbidden because it would be emittable in exactly the case the specification withholds it.",
+      "missing_state_verdict": "insufficient_evidence",
+      "mismatch_verdict": "disproved",
+      "unsupported_contract_verdict": "unverifiable_scope",
+      "current_configuration_rule": "Current mapping, catalog, or policy configuration is excluded and must never be inferred from or used to rewrite historical signed evidence."
+    }
+  }
+}
