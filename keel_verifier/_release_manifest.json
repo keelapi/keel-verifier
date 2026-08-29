@@ -14,7 +14,7 @@
     "keel_verifier/canonical/__init__.py": "28718e49f1657838c1ef73525879d3281629005d069c5de9acd6a72263edeb49",
     "keel_verifier/canonical/permit_binding.py": "d359bcccfbb82a58aebcbbbbc075de052d69c096ffa06439ca5f7d32e3c6a7fd",
     "keel_verifier/capability/README.md": "1e7768b1f78b6f7f24fafe52d29febcd863c05f4e60cffcb0dd0852a59f52678",
-    "keel_verifier/capability/v1.json": "b77b0f55cc0cd34359a7d258d2ab4f58b8a9171aac2d94754abd39d9babfbe99",
+    "keel_verifier/capability/v1.json": "cb605386bc7882d031610cfaec75acf2da617b1acee450d7882d54e89a375a0c",
     "keel_verifier/cli.py": "331d22054fa1bef8f6521fb72e74c42df06a7cffabf7e5a28fb0ea09a03e00f8",
     "keel_verifier/data/claim_registry/historical/v0-sha256-02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5.json": "02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "keel_verifier/data/claim_registry/historical/v0-sha256-0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4.json": "0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
