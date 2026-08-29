@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -67,6 +68,33 @@ def test_the_bundled_schema_is_the_producer_owned_artifact() -> None:
     assert MANIFEST["attribute_key"] == ame.ATTRIBUTE_KEY
     assert MANIFEST["enforcement_surface_key"] == ame.SURFACE_KEY
     assert MANIFEST["evidence_version"] == ame.EVIDENCE_VERSION
+
+
+def test_every_vector_file_is_tracked_by_git() -> None:
+    """A fresh clone must carry these, not just this working tree.
+
+    ``.gitignore`` carries an unanchored ``manifest.json`` rule for release
+    artifacts. On a case-insensitive filesystem it also matches this directory's
+    ``MANIFEST.json``, which is test input. The file existed locally and the
+    suite passed while a clone would have failed collection, so the tracking is
+    asserted rather than assumed.
+    """
+
+    tracked = set(
+        subprocess.run(
+            ["git", "ls-files", "--", str(VECTOR_DIR)],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=VECTOR_DIR.parents[2],
+        ).stdout.split()
+    )
+    expected = {
+        f"tests/fixtures/action_mapping_evidence/{path.name}"
+        for path in VECTOR_DIR.iterdir()
+        if path.is_file()
+    }
+    assert expected <= tracked, sorted(expected - tracked)
 
 
 @pytest.mark.parametrize("entry", MANIFEST["vectors"], ids=lambda e: e["vector_id"])
