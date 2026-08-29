@@ -98,7 +98,6 @@ MCP_DISPATCH_ELIGIBILITY_CLAIM = action_mapping_evidence.DISPATCH_ELIGIBILITY_CL
 ACTION_MAPPING_CLAIMS = action_mapping_evidence.ACTION_MAPPING_CLAIMS
 ACTION_MAPPING_ATTRIBUTE_KEY = action_mapping_evidence.ATTRIBUTE_KEY
 ACTION_MAPPING_SURFACE_KEY = action_mapping_evidence.SURFACE_KEY
-MANAGED_MCP_PERMIT_ACTION_NAME = action_mapping_evidence.PERMIT_ACTION_NAME
 ACTION_MAPPING_BINDING_STATEMENT = action_mapping_evidence.BINDING_STATEMENT
 ACTION_MAPPING_INTERPRETATION_STATEMENT = (
     action_mapping_evidence.INTERPRETATION_STATEMENT
@@ -2580,44 +2579,11 @@ def _enforcement_regime_assessments(
     return assessments
 
 
-def action_mapping_expected_claims(
-    block: Mapping[str, Any],
-    recipe: Mapping[str, Any],
-) -> list[str]:
-    """Claims the pinned recipe requests for this mapping artifact class.
-
-    The recipe names claims per phase; the artifact class selects the phases.
-    An emitter cannot drop the stricter claim by omitting it, because a missing
-    requested claim is disproved rather than narrowed away.
-    """
-
-    phases = ["binding"]
-    artifact_class = str(block.get("artifact_class") or "")
-    if artifact_class == action_mapping_evidence.ARTIFACT_CLASS_EXECUTION:
-        phases.append("execution")
-    elif artifact_class == (
-        action_mapping_evidence.ARTIFACT_CLASS_STRUCTURAL_DECISION
-    ):
-        phases.append("structural")
-    elif artifact_class == (
-        action_mapping_evidence.ARTIFACT_CLASS_POST_CLAIM_EXECUTION
-    ):
-        phases.extend(("execution", "post_claim"))
-    return [
-        str(name)
-        for phase in phases
-        for name in recipe.get(phase, [])
-        if isinstance(name, str)
-    ]
-
-
 def _action_mapping_assessments(
     *,
     body: Mapping[str, Any],
     signed_attributes: Mapping[str, Any],
     permit_id: str,
-    binding: Mapping[str, Any],
-    authorized_action: str,
     declared: list[str],
 ) -> dict[str, ExactClaimAssessment]:
     """Adjudicate the Action Mapping evidence carried by a signed Permit.
@@ -2641,9 +2607,6 @@ def _action_mapping_assessments(
         signed_attributes.get(ACTION_MAPPING_ATTRIBUTE_KEY),
         permit_bound=True,
         permit_id=permit_id or None,
-        authorized_action=authorized_action,
-        binding_action_name=binding.get("action_name"),
-        binding_operation=binding.get("operation"),
         dispatch_evidence_present=bool(
             isinstance(runtime_proof, Mapping)
             or body.get("bounded_use_transitions")
@@ -2888,9 +2851,7 @@ def adjudicate_permit_exact_v2_body(
         if isinstance(mapping_recipe, Mapping):
             missing_mapping_claims = [
                 name
-                for name in action_mapping_expected_claims(
-                    mapping_block, mapping_recipe
-                )
+                for name in action_mapping_evidence.expected_claims(mapping_block)
                 if name not in declared
             ]
             if missing_mapping_claims:
@@ -3031,8 +2992,6 @@ def adjudicate_permit_exact_v2_body(
                 body=body,
                 signed_attributes=decision_attrs,
                 permit_id=permit_id,
-                binding=binding,
-                authorized_action=authorized_action,
                 declared=declared,
             )
         )

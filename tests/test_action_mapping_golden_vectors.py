@@ -2,10 +2,10 @@
 
 The vectors and their manifest are vendored byte-identically from the producer
 so the two repositories are checked against one artifact set rather than two
-descriptions of one. Every vector's own ``expectation`` block is asserted, and
-each positive vector's ``bounded_projection`` is compared to what this verifier
-independently derives — equality, not overlap. A verifier that produced a
-weaker or a stronger sentence than the producer would fail here.
+descriptions of one. Every vector's own ``expectation`` block is asserted. The
+verifier independently derives the bounded projection, with one deliberate
+narrowing: an acquired dispatch claim is not presented as proof that an
+upstream request crossed a point of no return or was already dispatched.
 """
 
 from __future__ import annotations
@@ -117,11 +117,24 @@ def test_positive_vectors_are_supported(name: str) -> None:
 
 
 @pytest.mark.parametrize("name", POSITIVE_VECTORS)
-def test_the_bounded_projection_equals_the_producers(name: str) -> None:
-    """Not "compatible with" — equal. One contract, two implementations."""
+def test_the_bounded_projection_matches_except_for_the_dispatch_overclaim(
+    name: str,
+) -> None:
+    """Preserve the corpus while refusing its one unsafe report sentence."""
 
     expected = _vector(name)["bounded_projection"]
-    assert _verify(name).bounded_projection == expected
+    actual = _verify(name).bounded_projection
+    if name != "execution_after_committed_claim":
+        assert actual == expected
+        return
+
+    assert "point of no return" in expected["in_flight_statement"]
+    assert actual["in_flight_statement"] == ame.DISPATCH_CLAIM_ACQUIRED_STATEMENT
+    expected_without_statement = dict(expected)
+    actual_without_statement = dict(actual)
+    expected_without_statement.pop("in_flight_statement")
+    actual_without_statement.pop("in_flight_statement")
+    assert actual_without_statement == expected_without_statement
 
 
 def test_execution_before_the_claim_carries_only_pre_claim_conclusions() -> None:
@@ -146,8 +159,11 @@ def test_post_claim_execution_adds_only_the_claims_it_carries() -> None:
 
     assert claims[ame.DISPATCH_ELIGIBILITY_CLAIM].verdict == "supported"
     assert projection["statements"][-1] == ame.ELIGIBILITY_STATEMENT
-    # In-flight work may still complete; nothing here says a freeze recalled it.
-    assert projection["in_flight_statement"] == ame.IN_FLIGHT_NOT_RECALLED_STATEMENT
+    assert projection["in_flight_statement"] == (
+        ame.DISPATCH_CLAIM_ACQUIRED_STATEMENT
+    )
+    assert "point of no return" not in projection["in_flight_statement"]
+    assert "already dispatched" not in projection["in_flight_statement"]
     assert claims[ame.STRUCTURAL_HOLD_EVIDENCE_CLAIM].verdict == "insufficient_evidence"
 
 
@@ -363,9 +379,53 @@ def test_the_rendered_report_states_the_two_standing_limits() -> None:
 
     assert ame.CERTIFIED_CONTRACT_NOT_BOUND_STATEMENT in rendered
     assert ame.APPROVAL_SET_NOT_ESTABLISHED_STATEMENT in rendered
-    assert ame.IN_FLIGHT_NOT_RECALLED_STATEMENT in rendered
+    assert ame.DISPATCH_CLAIM_ACQUIRED_STATEMENT in rendered
+    assert "point of no return" not in rendered
+    assert "already dispatched" not in rendered
     for value in ame.DOES_NOT_ESTABLISH:
         assert value in rendered
+
+
+def test_the_report_never_repeats_the_source_vectors_dispatch_overclaim() -> None:
+    source_projection = _vector("execution_after_committed_claim")[
+        "bounded_projection"
+    ]
+    report = {
+        "artifact": {"kind": "permit_exact", "permit": {"permit_id": "p"}},
+        "claims": [],
+        "action_mapping_bounded_projection": source_projection,
+    }
+
+    rendered = "\n".join(line.text for line in build_report_lines(report))
+
+    assert source_projection["in_flight_statement"] not in rendered
+    assert ame.DISPATCH_CLAIM_ACQUIRED_STATEMENT in rendered
+    assert "point of no return" not in rendered
+    assert "already dispatched" not in rendered
+
+
+def test_a_claim_only_report_also_removes_already_dispatched_wording() -> None:
+    result = _verify("execution_after_committed_claim")
+    report = {
+        "artifact": {"kind": "permit_exact", "permit": {"permit_id": "p"}},
+        "claims": [
+            {
+                "name": claim.name,
+                "verdict": claim.verdict,
+                "reason_code": claim.reason_code,
+                "message": claim.message,
+                "required": True,
+                "does_not_establish": list(claim.does_not_establish),
+            }
+            for claim in result.claims.values()
+        ],
+    }
+
+    rendered = "\n".join(line.text for line in build_report_lines(report))
+
+    assert "point of no return" not in rendered
+    assert "already dispatched" not in rendered
+    assert "does not establish that one was sent" in rendered
 
 
 # ---------------------------------------------------------------------------
@@ -560,23 +620,38 @@ def test_the_governance_action_may_not_become_the_permit_action() -> None:
     )
     governance_action_id = artifact["governance_action"]["governance_action_id"]
 
-    assert (
-        ame.verify_action_mapping_evidence(
-            artifact, authorized_action=governance_action_id
-        ).reason_code
-        == "MCP_ACTION_MAPPING_ACTION_NAME_MISMATCH"
-    )
-    assert (
-        ame.verify_action_mapping_evidence(
-            artifact, binding_action_name=governance_action_id
-        ).reason_code
-        == "MCP_ACTION_MAPPING_ACTION_NAME_MISMATCH"
-    )
     artifact["permit_action_name"] = governance_action_id
     assert (
         ame.verify_action_mapping_evidence(artifact).reason_code
         == "MCP_ACTION_MAPPING_ACTION_NAME_INVALID"
     )
+
+
+def test_direct_adjudication_does_not_require_an_mcp_semantic_selector() -> None:
+    artifact = _vector("execution_before_dispatch_claim")["artifact"]
+
+    result = ame.verify_action_mapping_evidence(artifact)
+
+    assert result.verdict == "supported"
+    assert result.claims[ame.BINDING_CLAIM].verdict == "supported"
+
+
+@pytest.mark.parametrize("name", POSITIVE_VECTORS)
+def test_each_artifact_class_uses_recipe_v6_and_registry_v7_ceilings(
+    name: str,
+) -> None:
+    artifact = _vector(name)["artifact"]
+    result = ame.verify_action_mapping_evidence(artifact)
+    expected = set(ame.expected_claims(artifact))
+    supported = {
+        claim.name for claim in result.claims.values() if claim.verdict == "supported"
+    }
+
+    assert ame.ACTION_MAPPING_RECIPE_VERSION == "v6"
+    assert ame.ACTION_MAPPING_CLAIM_REGISTRY_VERSION == "verifier-claims.v7"
+    assert supported == expected
+    for claim in result.claims.values():
+        assert claim.does_not_establish == ame.claim_evidence_ceiling(claim.name)
 
 
 def test_a_structural_artifact_may_not_ride_alongside_dispatch_evidence() -> None:

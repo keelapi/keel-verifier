@@ -30,8 +30,9 @@
   `reviewed_authorizer_input_hash` with the contract version captured at that
   evaluation.
 - Emit the bounded projection `keel.mcp_action_mapping_bounded_evidence.v1`,
-  equal to the producer's, so the two repositories publish one set of sentences
-  rather than two compatible ones.
+  from the API-owned evidence artifact. The six producer vectors remain
+  byte-identical test inputs. Verifier output deliberately narrows the
+  post-claim presentation described below.
 
 ### Changed
 
@@ -49,6 +50,13 @@
   ceremony that produced it. Neither becomes true without a bundle carrying and
   validating the canonical qualifying attestations, and no such bundle format
   exists.
+- Adjudicate the three Action Mapping artifact classes directly from the
+  API-owned evidence contract, claim registry v7, and universal recipe v6. No
+  `mcp.tool.call` semantic-selector entry is required or invented.
+- Stop rendering an acquired dispatch claim as a point of no return or as work
+  already dispatched upstream. The report now says only that Keel recorded the
+  claim at the mapping lifecycle epoch and explicitly states that the claim does
+  not establish that an upstream request was sent, accepted, or completed.
 
 ### Unchanged
 

@@ -4,7 +4,7 @@
   "enforcement_surface_key": "managed_mcp:action_mapping",
   "evidence_version": "keel.mcp_action_mapping_evidence.v1",
   "schema_artifact_id": "mcp-action-mapping-evidence-v1.schema.json",
-  "schema_sha256": "9919d731e06c3d2c5f8669799ebaf8916fddee24236b1dc715f2064ad051f087",
+  "schema_sha256": "5da46824817f41bd164771e341d21ea89811408e4b6f88cdfbfbe20ea6ed07e3",
   "vector_set_version": "keel.mcp_action_mapping_evidence_vectors.v1",
   "vectors": [
     {

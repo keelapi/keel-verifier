@@ -42,6 +42,9 @@ ATTRIBUTE_KEY: Final = "mcp_action_mapping_evidence_v1"
 SURFACE_KEY: Final = "managed_mcp:action_mapping"
 SCHEMA_ARTIFACT_ID: Final = "mcp-action-mapping-evidence-v1.schema.json"
 PERMIT_ACTION_NAME: Final = "mcp.tool.call"
+ACTION_MAPPING_CLAIM_REGISTRY_VERSION: Final = "verifier-claims.v7"
+ACTION_MAPPING_RECIPE_ID: Final = "keel.permit.universal_verification.v6"
+ACTION_MAPPING_RECIPE_VERSION: Final = "v6"
 
 #: The live basis tuple. WP4 added the mapping lifecycle epoch and WP7 added the
 #: governance action, catalog-entry hash, and assurance. A basis hash is
@@ -121,9 +124,10 @@ APPROVAL_SET_NOT_ESTABLISHED_STATEMENT: Final = (
     "canonical qualifying attestations."
 )
 
-IN_FLIGHT_NOT_RECALLED_STATEMENT: Final = (
-    "A dispatch claim recorded here had already crossed Keel's point of no "
-    "return. Work already dispatched upstream may still complete."
+DISPATCH_CLAIM_ACQUIRED_STATEMENT: Final = (
+    "Keel recorded an acquired dispatch claim at the mapping lifecycle epoch. "
+    "That claim does not establish that an upstream request was sent, accepted, "
+    "or completed."
 )
 
 #: A floor, not a ceiling.
@@ -159,6 +163,10 @@ BANNED_PHRASES: Final[tuple[str, ...]] = (
     "fully protected",
     "freeze cancels in-flight",
     "freeze recalled",
+    "point of no return",
+    "already dispatched",
+    "dispatched upstream",
+    "may still complete",
     "under mandatory review",
     "refund of",
     "refunded",
@@ -264,6 +272,80 @@ def evidence_schema() -> dict[str, Any]:
     return json.loads(resource.read_text(encoding="utf-8"))
 
 
+@lru_cache(maxsize=1)
+def _action_mapping_claim_definitions() -> dict[str, dict[str, Any]]:
+    """Load the Action Mapping claims directly from bundled registry v7."""
+
+    resource = resources.files("keel_verifier").joinpath(
+        "data/claim_registry/v7.json"
+    )
+    payload = json.loads(resource.read_text(encoding="utf-8"))
+    if payload.get("version") != ACTION_MAPPING_CLAIM_REGISTRY_VERSION:
+        raise RuntimeError("the bundled Action Mapping claim registry is not v7")
+    claims = {
+        str(item["name"]): dict(item)
+        for item in payload.get("claims", [])
+        if isinstance(item, Mapping) and isinstance(item.get("name"), str)
+    }
+    if set(claims) != set(ACTION_MAPPING_CLAIMS):
+        raise RuntimeError(
+            "the bundled Action Mapping claim registry does not define exactly "
+            "the four v7 claims"
+        )
+    return claims
+
+
+@lru_cache(maxsize=1)
+def action_mapping_recipe() -> dict[str, tuple[str, ...]]:
+    """Load the class-to-claim routing directly from universal recipe v6."""
+
+    resource = resources.files("keel_verifier").joinpath(
+        "data/semantics/permit/universal_verification_v6.json"
+    )
+    payload = json.loads(resource.read_text(encoding="utf-8"))
+    if (
+        payload.get("id") != ACTION_MAPPING_RECIPE_ID
+        or payload.get("version") != ACTION_MAPPING_RECIPE_VERSION
+    ):
+        raise RuntimeError("the bundled Action Mapping recipe is not v6")
+    body = payload.get("body")
+    if not isinstance(body, Mapping) or body.get("claim_registry_version") != (
+        ACTION_MAPPING_CLAIM_REGISTRY_VERSION
+    ):
+        raise RuntimeError("the bundled Action Mapping recipe does not pin registry v7")
+    conditional = body.get("conditional_evidence_claims")
+    recipe = (
+        conditional.get(SURFACE_KEY) if isinstance(conditional, Mapping) else None
+    )
+    if not isinstance(recipe, Mapping):
+        raise RuntimeError("the bundled Action Mapping recipe is missing its surface")
+    normalized = {
+        phase: tuple(name for name in recipe.get(phase, []) if isinstance(name, str))
+        for phase in ("binding", "execution", "structural", "post_claim")
+    }
+    routed = {name for names in normalized.values() for name in names}
+    if routed != set(_action_mapping_claim_definitions()):
+        raise RuntimeError(
+            "the bundled Action Mapping recipe and registry disagree on claims"
+        )
+    return normalized
+
+
+def claim_evidence_ceiling(name: str) -> tuple[str, ...]:
+    """Return one claim's exact v7 ``does_not_establish`` ceiling."""
+
+    try:
+        definition = _action_mapping_claim_definitions()[name]
+    except KeyError as exc:
+        raise ValueError(f"unknown Action Mapping claim {name!r}") from exc
+    ceiling = definition.get("does_not_establish")
+    if not isinstance(ceiling, list) or not all(
+        isinstance(value, str) and value for value in ceiling
+    ):
+        raise RuntimeError(f"Action Mapping claim {name!r} has no valid ceiling")
+    return tuple(ceiling)
+
+
 def _section(artifact: Mapping[str, Any], name: str) -> Mapping[str, Any]:
     section = artifact.get(name)
     return section if isinstance(section, Mapping) else {}
@@ -357,7 +439,7 @@ def build_bounded_projection(
     if claim_recorded and isinstance(approval, Mapping):
         dispatch = approval.get("dispatch_claim")
         if isinstance(dispatch, Mapping) and dispatch.get("state") == "acquired":
-            projection["in_flight_statement"] = IN_FLIGHT_NOT_RECALLED_STATEMENT
+            projection["in_flight_statement"] = DISPATCH_CLAIM_ACQUIRED_STATEMENT
     assert_bounded_language(projection)
     return projection
 
@@ -381,7 +463,7 @@ def _failure(
                 verdict=verdict,
                 reason_code=reason_code,
                 message=message,
-                does_not_establish=DOES_NOT_ESTABLISH,
+                does_not_establish=claim_evidence_ceiling(name),
             )
             for name in requested
         },
@@ -401,17 +483,18 @@ def expected_claims(artifact: Mapping[str, Any] | None) -> tuple[str, ...]:
     if artifact is None:
         return ()
     artifact_class = str(artifact.get("artifact_class") or "")
-    if artifact_class == ARTIFACT_CLASS_STRUCTURAL_DECISION:
-        return (BINDING_CLAIM, STRUCTURAL_HOLD_EVIDENCE_CLAIM)
-    if artifact_class == ARTIFACT_CLASS_EXECUTION:
-        return (BINDING_CLAIM, GOVERNANCE_INTERPRETATION_CLAIM)
-    if artifact_class == ARTIFACT_CLASS_POST_CLAIM_EXECUTION:
-        return (
-            BINDING_CLAIM,
-            GOVERNANCE_INTERPRETATION_CLAIM,
-            DISPATCH_ELIGIBILITY_CLAIM,
-        )
-    return ()
+    phases_by_class = {
+        ARTIFACT_CLASS_STRUCTURAL_DECISION: ("binding", "structural"),
+        ARTIFACT_CLASS_EXECUTION: ("binding", "execution"),
+        ARTIFACT_CLASS_POST_CLAIM_EXECUTION: (
+            "binding",
+            "execution",
+            "post_claim",
+        ),
+    }
+    phases = phases_by_class.get(artifact_class, ())
+    recipe = action_mapping_recipe()
+    return tuple(name for phase in phases for name in recipe[phase])
 
 
 def verify_action_mapping_evidence(
@@ -419,9 +502,6 @@ def verify_action_mapping_evidence(
     *,
     permit_bound: bool = False,
     permit_id: str | None = None,
-    authorized_action: str | None = None,
-    binding_action_name: str | None = None,
-    binding_operation: str | None = None,
     dispatch_evidence_present: bool = False,
     decision_is_allow: bool | None = None,
     requested_claims: tuple[str, ...] | None = None,
@@ -527,8 +607,10 @@ def verify_action_mapping_evidence(
             "the mapping evidence does not bind structural.unavailable_fact_paths",
         )
 
-    # The governance action is an interpretation. It must never appear as the
-    # Permit's action on any surface it could hide in.
+    # The governance action is an interpretation, while the artifact itself
+    # binds the managed-MCP Permit action. No semantic-selector entry for
+    # mcp.tool.call is required (or currently published) to adjudicate this
+    # separate evidence contract.
     permit_action_name = str(artifact.get("permit_action_name") or "")
     if permit_action_name != PERMIT_ACTION_NAME:
         return fail(
@@ -536,22 +618,12 @@ def verify_action_mapping_evidence(
             "MCP_ACTION_MAPPING_ACTION_NAME_INVALID",
             "the top-level Permit action is not mcp.tool.call",
         )
-    substituted = [
-        surface
-        for surface, value in (
-            ("the mapping evidence", permit_action_name),
-            ("the signed semantic binding", binding_action_name),
-            ("the signed semantic binding operation", binding_operation),
-            ("the resolved fact profile", authorized_action),
-        )
-        if isinstance(value, str) and value and value == governance_action_id
-    ]
-    if substituted:
+    if permit_action_name == governance_action_id:
         return fail(
             "disproved",
             "MCP_ACTION_MAPPING_ACTION_NAME_MISMATCH",
             "the target governance action replaced the Permit action name in "
-            f"{substituted[0]}",
+            "the mapping evidence",
         )
 
     assurance = str(mapping.get("assurance") or "")
@@ -712,15 +784,6 @@ def verify_action_mapping_evidence(
         )
 
     projection = build_bounded_projection(artifact)
-    ceiling = DOES_NOT_ESTABLISH + (
-        (
-            "no certified_action_contract_id is bound by this arbitrary human "
-            "mapping; the governance action is an interpretation, not a "
-            "certification",
-        )
-        if arbitrary_mapping
-        else ()
-    )
     carried = expected_claims(artifact)
     claims: dict[str, ClaimResult] = {}
     for name in requested:
@@ -730,7 +793,7 @@ def verify_action_mapping_evidence(
                 verdict="supported",
                 reason_code=_SUPPORTED_REASON_CODES[name],
                 message=_supported_message(name, governance_action_id),
-                does_not_establish=ceiling,
+                does_not_establish=claim_evidence_ceiling(name),
             )
         else:
             claims[name] = ClaimResult(
@@ -738,7 +801,7 @@ def verify_action_mapping_evidence(
                 verdict="insufficient_evidence",
                 reason_code=_UNCARRIED_REASON_CODES[name],
                 message=_UNCARRIED_MESSAGES[name],
-                does_not_establish=ceiling,
+                does_not_establish=claim_evidence_ceiling(name),
             )
     return ActionMappingEvidenceResult(
         verdict="supported",
@@ -907,6 +970,9 @@ def _supported_message(name: str, governance_action_id: str) -> str:
 
 __all__ = [
     "ACTION_MAPPING_CLAIMS",
+    "ACTION_MAPPING_CLAIM_REGISTRY_VERSION",
+    "ACTION_MAPPING_RECIPE_ID",
+    "ACTION_MAPPING_RECIPE_VERSION",
     "ARTIFACT_CLASS_EXECUTION",
     "ARTIFACT_CLASS_POST_CLAIM_EXECUTION",
     "ARTIFACT_CLASS_STRUCTURAL_DECISION",
@@ -917,13 +983,13 @@ __all__ = [
     "BOUNDED_PROJECTION_VERSION",
     "CHALLENGE_BASIS_VERSION",
     "DISPATCH_ELIGIBILITY_CLAIM",
+    "DISPATCH_CLAIM_ACQUIRED_STATEMENT",
     "DOES_NOT_ESTABLISH",
     "ELIGIBILITY_STATEMENT",
     "EVIDENCE_VERSION",
     "GOVERNANCE_INTERPRETATION_CLAIM",
     "INCOMPLETE_FACTS_STATEMENT",
     "INTERPRETATION_STATEMENT",
-    "IN_FLIGHT_NOT_RECALLED_STATEMENT",
     "PERMIT_ACTION_NAME",
     "PERMIT_BOUND_ARTIFACT_CLASSES",
     "STRUCTURAL_HOLD_EVIDENCE_CLAIM",
@@ -933,7 +999,9 @@ __all__ = [
     "BoundedLanguageError",
     "ClaimResult",
     "assert_bounded_language",
+    "action_mapping_recipe",
     "build_bounded_projection",
+    "claim_evidence_ceiling",
     "evidence_schema",
     "expected_claims",
     "verify_action_mapping_evidence",

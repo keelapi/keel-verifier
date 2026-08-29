@@ -21,6 +21,9 @@ from dataclasses import dataclass
 from importlib import resources
 from typing import Any
 
+from keel_verifier.action_mapping_evidence import (
+    DISPATCH_CLAIM_ACQUIRED_STATEMENT,
+)
 from keel_verifier.human_artifact import derive_human_artifact
 from keel_verifier.permit_presentation import resolve_permit_presentation
 
@@ -158,6 +161,11 @@ _ACTION_MAPPING_CLAIMS = (
 #: in full. The projection is the producer-and-verifier-agreed contract for what
 #: an artifact supports; re-deriving it here would create a second answer.
 _PROJECTION_KEY = "action_mapping_bounded_projection"
+
+_DISPATCH_CLAIM_FREEZE_CEILING = (
+    "whether a freeze affected an upstream request; the acquired dispatch claim "
+    "does not establish that one was sent"
+)
 
 _COVERAGE_STATUS = {
     "supported": "verified",
@@ -586,6 +594,8 @@ def _action_mapping_lines(report: dict[str, Any]) -> list[ReportLine]:
         )
         for value in claim.get("does_not_establish") or []:
             if isinstance(value, str) and value:
+                if "already dispatched upstream" in value.casefold():
+                    value = _DISPATCH_CLAIM_FREEZE_CEILING
                 lines.append(
                     ReportLine(
                         f"    — does not establish: {value}",
@@ -604,8 +614,18 @@ def _projection_lines(projection: dict[str, Any]) -> list[ReportLine]:
             lines.append(
                 ReportLine(f"  {statement}", provenance="DERIVED_VERIFICATION_RESULT")
             )
+    # Older producer vectors called an acquired relational claim a point of no
+    # return and described the request as already dispatched upstream. The claim
+    # itself establishes neither fact, so never repeat producer-supplied wording
+    # from this presentation-only field.
+    if projection.get("in_flight_statement"):
+        lines.append(
+            ReportLine(
+                f"  {DISPATCH_CLAIM_ACQUIRED_STATEMENT}",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
+        )
     for key in (
-        "in_flight_statement",
         "certified_action_contract_statement",
         "approval_set_statement",
     ):

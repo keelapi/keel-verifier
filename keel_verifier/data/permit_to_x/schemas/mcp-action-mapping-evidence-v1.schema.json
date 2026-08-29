@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/keelapi/keel-permit/schemas/mcp-action-mapping-evidence-v1.schema.json",
+  "$id": "https://github.com/keelapi/keel-api/blob/main/docs/public-artifacts/mcp-action-mapping-evidence-v1.schema.json",
   "title": "Managed MCP Action Mapping evidence v1",
   "description": "Server-derived Action Mapping evidence for one managed MCP decision. One schema, three artifact classes, because the three are established at different moments and carry different authority. `execution` is bound into the signed execution Permit before any dispatch claim exists. `structural_decision` describes a non-approvable hold that created no approval action and no Permit, and has no resume or dispatch semantics. `post_claim_execution` is emitted only after the authoritative reviewed-approval consumption and dispatch claim have committed, and is the only class that may name a dispatch claim. Binding an activation reference is not verification of the ceremony that produced it. No class records provider acceptance or downstream effect.",
   "type": "object",
