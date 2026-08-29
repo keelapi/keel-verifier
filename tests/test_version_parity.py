@@ -309,6 +309,23 @@ def test_imported_package_version_matches_pyproject_toml() -> None:
     assert keel_verifier.__version__ == _project_version()
 
 
+def test_reviewed_cryptography_pin_matches_release_and_development_graphs() -> None:
+    expected = "cryptography==50.0.1"
+    project = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    requirements = {
+        line.strip()
+        for line in (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+    assert project.count(f'"{expected}"') == 1
+    assert expected in requirements
+    assert not any(
+        requirement.startswith("cryptography") and requirement != expected
+        for requirement in requirements
+    )
+
+
 def test_release_manifest_urls_match_pyproject_version() -> None:
     manifest = _load_embedded_manifest()
     expected_version_tag = f"v{_project_version()}"

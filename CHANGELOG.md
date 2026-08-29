@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.25.1
+
+### Security
+
+- Repin cryptography from 50.0.0 to 50.0.1 so the verifier's installed wheel
+  uses the dependency release whose wheels include OpenSSL 4.0.2. The exact
+  pin remains part of the reviewed verifier dependency graph.
+
+### Unchanged
+
+- Evidence schemas, claim registries, semantics recipes, adjudication,
+  rendering, and the four-verdict model are unchanged from 3.25.0.
+
+### Release integrity
+
+- Assign a new candidate identity to the dependency and packaged-manifest
+  bytes. Release publication requires the signed `v3.25.1` tag and the release
+  workflow's Sigstore signatures, TSA witnesses, GitHub assets, and exact PyPI
+  upload; this source commit establishes none of those states.
+
 ## 3.25.0
 
 ### Added
