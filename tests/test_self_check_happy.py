@@ -144,9 +144,9 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
     requested_urls: list[str] = []
     manifest = self_check.load_embedded_manifest("wheel")
 
-    assert manifest["version_tag"] == "v3.24.3"
+    assert manifest["version_tag"] == "v3.25.0"
     assert all(
-        "v3.24.2" not in manifest[field]
+        "v3.24.3" not in manifest[field]
         for field in (
             "expected_signing_identity",
             "release_manifest_url",
@@ -170,7 +170,7 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
         requested_urls.append(url)
         raise self_check.SelfCheckError(
             "SELF_CHECK_FETCH_FAILED",
-            "3.24.3 signed release artifacts do not exist",
+            "3.25.0 signed release artifacts do not exist",
         )
 
     monkeypatch.setattr(self_check, "fetch_signed_manifest", unavailable)
@@ -189,8 +189,8 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
     assert result.stages[-1].name == "fetch"
     assert result.stages[-1].code == "SELF_CHECK_FETCH_FAILED"
     assert requested_urls == [manifest["release_manifest_url"]]
-    assert "/v3.24.3/" in requested_urls[0]
-    assert "/v3.24.2/" not in requested_urls[0]
+    assert "/v3.25.0/" in requested_urls[0]
+    assert "/v3.24.3/" not in requested_urls[0]
 
 
 def test_sigstore_4_verifies_historical_rekor_v1_fixture_offline(

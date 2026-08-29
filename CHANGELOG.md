@@ -1,5 +1,78 @@
 # Changelog
 
+## 3.25.0
+
+### Added
+
+- Adjudicate managed MCP Action Mapping evidence (`ACTION_MAPPING_SPEC.md` §8)
+  against the **keel-api-owned canonical schema**, vendored byte-identically as
+  `keel_verifier/data/permit_to_x/schemas/mcp-action-mapping-evidence-v1.schema.json`.
+  Producer and verifier validate one artifact, so a divergence is a byte
+  difference rather than a judgement call.
+- Add claim registry `verifier-claims.v7`, extending `verifier-claims.v6` by
+  exact artifact ID, version, and SHA-256. Four claims are added and none is
+  redefined: `permit.mcp_action_mapping_binding.v1`,
+  `permit.mcp_governance_interpretation.v1`,
+  `permit.mcp_structural_hold_evidence.v1`, and
+  `permit.mcp_dispatch_eligibility.v1`.
+- Verify the three artifact classes through the paths their authority actually
+  supports. `execution` is the pre-dispatch-claim artifact bound into the signed
+  execution Permit and names neither relational claim. `structural_decision` is
+  a non-approvable hold that created no approval action and no Permit: it is
+  **not Permit evidence**, and a Permit carrying one is refused as a category
+  error rather than adjudicated leniently. `post_claim_execution` is separate
+  durable evidence emitted after both relational claims commit, and is the only
+  class that may name a dispatch claim.
+- Verify the `challenge_basis_version` `mcp_challenge_basis.v4` tuple, an
+  integer `mapping_revision`, the full Source group (project, server boundary
+  hash, arguments-hash version, decision-trace identity), the typed
+  `claim_record` and `dispatch_claim` objects, and
+  `reviewed_authorizer_input_hash` with the contract version captured at that
+  evaluation.
+- Emit the bounded projection `keel.mcp_action_mapping_bounded_evidence.v1`,
+  from the API-owned evidence artifact. The six producer vectors remain
+  byte-identical test inputs. Verifier output deliberately narrows the
+  post-claim presentation described below.
+
+### Changed
+
+- Replace the interpretation sentence with the §8 exact-review form: *"Keel
+  evaluated this exact managed MCP request using the human-approved governance
+  interpretation `<governance_action_id>` under exact review, with the
+  consequence-critical facts bound in the review material."* The trailing clause
+  is load-bearing, so the truncated *"under mandatory review"* form is banned
+  outright — it would be emittable in exactly the case §8 withholds it.
+- Refuse, rather than merely omit, evidence that overclaims. An artifact
+  asserting `approval_set_independently_established` or
+  `activation.independently_verified` is disproved: the unique consumption claim
+  establishes single consumption, not which approvals satisfied the frozen
+  requirement, and binding an activation reference is not verifying the WebAuthn
+  ceremony that produced it. Neither becomes true without a bundle carrying and
+  validating the canonical qualifying attestations, and no such bundle format
+  exists.
+- Adjudicate the three Action Mapping artifact classes directly from the
+  API-owned evidence contract, claim registry v7, and universal recipe v6. No
+  `mcp.tool.call` semantic-selector entry is required or invented.
+- Stop rendering an acquired dispatch claim as a point of no return or as work
+  already dispatched upstream. The report now says only that Keel recorded the
+  claim at the mapping lifecycle epoch and explicitly states that the claim does
+  not establish that an upstream request was sent, accepted, or completed.
+
+### Unchanged
+
+- The four-verdict model, every existing fail-closed behavior, and every pinned
+  historical registry. Claim registries v0 through v6 and universal recipes v1
+  through v5 are byte-identical, and a bundle pinning one of them never sees a
+  v7 claim.
+
+### Release integrity
+
+- Release publication requires the signed `v3.25.0` tag and the release
+  workflow's Sigstore signatures, TSA witnesses, GitHub assets, and exact PyPI
+  upload. Merging this source change alone establishes none of those states.
+- The release workflow pins the Action Mapping contract to published
+  `keel-permit` v1.23.0 at merge commit `b14ebb9d75cc9f169666877d2dbbe8fb2aad1322`.
+
 ## 3.24.3
 
 ### Changed

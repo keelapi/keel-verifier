@@ -1,0 +1,41 @@
+{
+  "attribute_key": "mcp_action_mapping_evidence_v1",
+  "challenge_basis_version": "mcp_challenge_basis.v4",
+  "enforcement_surface_key": "managed_mcp:action_mapping",
+  "evidence_version": "keel.mcp_action_mapping_evidence.v1",
+  "schema_artifact_id": "mcp-action-mapping-evidence-v1.schema.json",
+  "schema_sha256": "5da46824817f41bd164771e341d21ea89811408e4b6f88cdfbfbe20ea6ed07e3",
+  "vector_set_version": "keel.mcp_action_mapping_evidence_vectors.v1",
+  "vectors": [
+    {
+      "file": "execution_before_dispatch_claim.json",
+      "sha256": "a3b33097160499d4c4bdd131d1a545e829a26ef902b8477e661bbf492481df4a",
+      "vector_id": "execution_before_dispatch_claim"
+    },
+    {
+      "file": "execution_after_committed_claim.json",
+      "sha256": "2005f45448e002e3636bd4005173f514d33e410bf8bc084839c0718838464b47",
+      "vector_id": "execution_after_committed_claim"
+    },
+    {
+      "file": "structural_hold_incomplete_financial_facts.json",
+      "sha256": "a5748947ed350cf114b5a505591152909ca3003a604c422c48ce217080d71b76",
+      "vector_id": "structural_hold_incomplete_financial_facts"
+    },
+    {
+      "file": "absent_unmapped_source.json",
+      "sha256": "ddf822f2a1c2d929f9a2c0b0d2008d828e6de9dbee2285bee2ee17b5fe8df7d9",
+      "vector_id": "absent_unmapped_source"
+    },
+    {
+      "file": "forged_certified_contract.json",
+      "sha256": "cee26418e22e58277294c14d82e6d5007d737334c555298f2b675f0659fb7ae2",
+      "vector_id": "forged_certified_contract"
+    },
+    {
+      "file": "changed_basis_version.json",
+      "sha256": "2d1f90f80a15f80eaea4cf9f4c66959d27830846807fdc050913009744fecda9",
+      "vector_id": "changed_basis_version"
+    }
+  ]
+}

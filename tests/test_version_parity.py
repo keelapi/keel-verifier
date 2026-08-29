@@ -23,7 +23,7 @@ from scripts.generate_release_manifest import _package_file_digests
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EMBEDDED_MANIFEST = REPO_ROOT / "keel_verifier" / "_release_manifest.json"
 URL_VERSION_RE = re.compile(r"(?:refs/tags/|releases/download/)(v\d+\.\d+\.\d+)")
-VERSION_PATTERN = re.compile(r"\b3\.24\.\d+\b")
+VERSION_PATTERN = re.compile(r"\b3\.25\.\d+\b")
 URL_FIELDS = (
     "expected_signing_identity",
     "release_manifest_url",
@@ -354,7 +354,7 @@ def test_capability_versions() -> None:
     inv = _load_inventory()
     assert inv["verifier"]["version"] == _project_version()
     assert inv["version"] == _project_version()
-    assert inv["spec_compatibility"]["permit_spec_version"] == "1.22.0"
+    assert inv["spec_compatibility"]["permit_spec_version"] == "1.23.0"
 
 
 def test_step4_claims_and_failure_codes_advertised() -> None:

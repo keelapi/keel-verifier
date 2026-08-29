@@ -10,13 +10,17 @@ from keel_verifier import verdicts
 def test_current_claim_registry_composes_full_pinned_chain() -> None:
     registry = verdicts.load_claim_registry()
 
-    assert registry.version == "verifier-claims.v6"
+    assert registry.version == "verifier-claims.v7"
     assert registry.claim("permit.decision.v1").name == "permit.decision.v1"
     assert registry.claim("permit.type.v1").name == "permit.type.v1"
     assert registry.claim("provider.completed.v1").does_not_establish
     assert registry.claim("permit.delegate_child_linkage.v1").does_not_establish
     assert registry.claim("permit.generate_text_exact_request.v1").does_not_establish
     assert registry.claim("permit.enforcement_regime_at_dispatch.v1").does_not_establish
+    assert registry.claim("permit.work_exact_review.v1").does_not_establish
+    assert registry.claim("permit.mcp_action_mapping_binding.v1").does_not_establish
+    assert registry.claim("permit.mcp_governance_interpretation.v1").does_not_establish
+    assert registry.claim("permit.mcp_structural_hold_evidence.v1").does_not_establish
 
 
 def test_v2_claim_registry_rejects_wrong_base_digest(

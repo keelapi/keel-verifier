@@ -18,6 +18,11 @@ build/
 dist/
 manifest.json
 manifest.json.sigstore
+# The release-artifact rule above is unanchored and case-insensitive on macOS,
+# so it silently swallowed the vendored golden-vector MANIFEST.json. That file
+# is test input, not a release artifact, and a fresh clone without it fails
+# collection rather than a check.
+!tests/fixtures/action_mapping_evidence/MANIFEST.json
 manifest.json.tsa.json
 sbom.cyclonedx.json
 keel_verifier/_release_manifest.json

@@ -20,6 +20,7 @@ import jsonschema
 from referencing import Registry, Resource
 import rfc8785
 
+from keel_verifier import action_mapping_evidence
 from keel_verifier.action_classification_derivation import (
     default_trust_config,
     derive,
@@ -47,6 +48,7 @@ _CLAIM_REGISTRY_IDS = {
     "verifier-claims.v4": "keel.verifier_claim_registry.v4",
     "verifier-claims.v5": "keel.verifier_claim_registry.v5",
     "verifier-claims.v6": "keel.verifier_claim_registry.v6",
+    "verifier-claims.v7": "keel.verifier_claim_registry.v7",
 }
 _UNIVERSAL_SEMANTICS_IDS = {
     "v1": "keel.permit.universal_verification.v1",
@@ -54,6 +56,17 @@ _UNIVERSAL_SEMANTICS_IDS = {
     "v3": "keel.permit.universal_verification.v3",
     "v4": "keel.permit.universal_verification.v4",
     "v5": "keel.permit.universal_verification.v5",
+    "v6": "keel.permit.universal_verification.v6",
+}
+# Which claim registry each universal recipe version is allowed to pin. A
+# recipe version missing here is unsupported, not a licence to skip the check.
+_UNIVERSAL_RECIPE_CLAIM_REGISTRY = {
+    "v1": "verifier-claims.v2",
+    "v2": "verifier-claims.v3",
+    "v3": "verifier-claims.v4",
+    "v4": "verifier-claims.v5",
+    "v5": "verifier-claims.v6",
+    "v6": "verifier-claims.v7",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
@@ -70,6 +83,24 @@ ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM = (
 ENFORCEMENT_REGIME_CLAIMS = (
     ENFORCEMENT_REGIME_AT_ISSUANCE_CLAIM,
     ENFORCEMENT_REGIME_AT_DISPATCH_CLAIM,
+)
+# The Action Mapping contract lives in one place. Only the ``execution`` class
+# is bound into a signed Permit; the structural and post-claim artifacts are
+# durable standalone evidence and are refused on this path.
+MCP_ACTION_MAPPING_BINDING_CLAIM = action_mapping_evidence.BINDING_CLAIM
+MCP_GOVERNANCE_INTERPRETATION_CLAIM = (
+    action_mapping_evidence.GOVERNANCE_INTERPRETATION_CLAIM
+)
+MCP_STRUCTURAL_HOLD_EVIDENCE_CLAIM = (
+    action_mapping_evidence.STRUCTURAL_HOLD_EVIDENCE_CLAIM
+)
+MCP_DISPATCH_ELIGIBILITY_CLAIM = action_mapping_evidence.DISPATCH_ELIGIBILITY_CLAIM
+ACTION_MAPPING_CLAIMS = action_mapping_evidence.ACTION_MAPPING_CLAIMS
+ACTION_MAPPING_ATTRIBUTE_KEY = action_mapping_evidence.ATTRIBUTE_KEY
+ACTION_MAPPING_SURFACE_KEY = action_mapping_evidence.SURFACE_KEY
+ACTION_MAPPING_BINDING_STATEMENT = action_mapping_evidence.BINDING_STATEMENT
+ACTION_MAPPING_INTERPRETATION_STATEMENT = (
+    action_mapping_evidence.INTERPRETATION_STATEMENT
 )
 _SAFE_LOW_ENTROPY_METHODS = {
     "keel.salted_sha256_jcs.v1",
@@ -1168,7 +1199,14 @@ def _one_entry(values: Any, *, key: str, expected: str) -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def _claim_evidence_ceilings() -> dict[str, tuple[str, ...]]:
     ceilings: dict[str, tuple[str, ...]] = {}
-    for registry_name in ("v2.json", "v3.json", "v4.json", "v5.json"):
+    for registry_name in (
+        "v2.json",
+        "v3.json",
+        "v4.json",
+        "v5.json",
+        "v6.json",
+        "v7.json",
+    ):
         registry = _json(f"../claim_registry/{registry_name}")
         for claim in registry.get("claims", []):
             if not isinstance(claim, Mapping):
@@ -1488,6 +1526,7 @@ def _resolve_contracts(
             "../claim_registry/v4.json",
             "../claim_registry/v5.json",
             "../claim_registry/v6.json",
+            "../claim_registry/v7.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,
@@ -1554,6 +1593,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v3.json",
             "../semantics/permit/universal_verification_v4.json",
             "../semantics/permit/universal_verification_v5.json",
+            "../semantics/permit/universal_verification_v6.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,
@@ -1588,16 +1628,19 @@ def _resolve_contracts(
             "PERMIT_CONTRACT_PIN_ID_MISMATCH",
             "universal semantics artifact identity does not match its version",
         )
-    expected_recipe_claims = {
-        "v1": "verifier-claims.v2",
-        "v2": "verifier-claims.v3",
-        "v3": "verifier-claims.v4",
-        "v4": "verifier-claims.v5",
-    }
+    expected_recipe_claim_version = _UNIVERSAL_RECIPE_CLAIM_REGISTRY.get(
+        universal_version
+    )
+    if expected_recipe_claim_version is None:
+        raise _AdjudicationError(
+            "unverifiable_scope",
+            "PERMIT_CONTRACT_PIN_UNSUPPORTED",
+            "universal semantics version has no admitted claim registry",
+        )
     if universal_semantics.get("body", {}).get(
         "claim_registry_version"
-    ) != expected_recipe_claims[universal_version] or claim_version != (
-        expected_recipe_claims[universal_version]
+    ) != expected_recipe_claim_version or claim_version != (
+        expected_recipe_claim_version
     ):
         raise _AdjudicationError(
             "disproved",
@@ -2536,6 +2579,59 @@ def _enforcement_regime_assessments(
     return assessments
 
 
+def _action_mapping_assessments(
+    *,
+    body: Mapping[str, Any],
+    signed_attributes: Mapping[str, Any],
+    permit_id: str,
+    declared: list[str],
+) -> dict[str, ExactClaimAssessment]:
+    """Adjudicate the Action Mapping evidence carried by a signed Permit.
+
+    Adjudication itself lives in :mod:`keel_verifier.action_mapping_evidence`,
+    because two of the three artifact classes never reach a Permit at all. This
+    wrapper supplies only what the Permit adds: the Permit identity the approval
+    group must name, the signed binding surfaces the governance action must not
+    have replaced, and whether the pack carries dispatch evidence.
+    """
+
+    requested = tuple(name for name in ACTION_MAPPING_CLAIMS if name in declared)
+    enforcement = body.get("enforcement_evidence")
+    runtime_proof = (
+        enforcement.get("runtime_enforcement_proof")
+        if isinstance(enforcement, Mapping)
+        else None
+    )
+    decision_state = body.get("decision_state")
+    result = action_mapping_evidence.verify_action_mapping_evidence(
+        signed_attributes.get(ACTION_MAPPING_ATTRIBUTE_KEY),
+        permit_bound=True,
+        permit_id=permit_id or None,
+        dispatch_evidence_present=bool(
+            isinstance(runtime_proof, Mapping)
+            or body.get("bounded_use_transitions")
+            or body.get("provider_receipts")
+        ),
+        decision_is_allow=(
+            str(decision_state.get("decision") or "").lower() == "allow"
+            if isinstance(decision_state, Mapping)
+            else None
+        ),
+        requested_claims=requested,
+    )
+    return {
+        name: _assessment(
+            claim.name,
+            claim.verdict,
+            claim.reason_code,
+            claim.message,
+            evidence=("body.permit_decision.resource_attributes_json",),
+            does_not_establish=claim.does_not_establish,
+        )
+        for name, claim in result.claims.items()
+    }
+
+
 def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
@@ -2745,6 +2841,28 @@ def adjudicate_permit_exact_v2_body(
                         "the exact pack omitted Work enforcement claims required by its pinned recipe",
                     )
                 )
+    mapping_block = decision_attrs.get(ACTION_MAPPING_ATTRIBUTE_KEY)
+    mapping_governed = (
+        isinstance(mapping_block, Mapping)
+        and mapping_block.get("enforcement_surface_key") == ACTION_MAPPING_SURFACE_KEY
+    )
+    if mapping_governed and isinstance(evidence_claims, Mapping):
+        mapping_recipe = evidence_claims.get(ACTION_MAPPING_SURFACE_KEY)
+        if isinstance(mapping_recipe, Mapping):
+            missing_mapping_claims = [
+                name
+                for name in action_mapping_evidence.expected_claims(mapping_block)
+                if name not in declared
+            ]
+            if missing_mapping_claims:
+                declared.extend(missing_mapping_claims)
+                return fail_all(
+                    _AdjudicationError(
+                        "disproved",
+                        "PERMIT_CONDITIONAL_CLAIM_MISSING",
+                        "the exact pack omitted Action Mapping claims required by its pinned recipe",
+                    )
+                )
     try:
         _verify_profile_classification(
             fact_profile=contracts.fact_profile,
@@ -2865,6 +2983,16 @@ def adjudicate_permit_exact_v2_body(
                 semantic_id=semantic_id,
                 material_values=material_values,
                 signed_artifact_verifier=signed_artifact_verifier,
+            )
+        )
+
+    if any(name in declared for name in ACTION_MAPPING_CLAIMS):
+        assessments.update(
+            _action_mapping_assessments(
+                body=body,
+                signed_attributes=decision_attrs,
+                permit_id=permit_id,
+                declared=declared,
             )
         )
 

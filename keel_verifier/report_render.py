@@ -21,6 +21,9 @@ from dataclasses import dataclass
 from importlib import resources
 from typing import Any
 
+from keel_verifier.action_mapping_evidence import (
+    DISPATCH_CLAIM_ACQUIRED_STATEMENT,
+)
 from keel_verifier.human_artifact import derive_human_artifact
 from keel_verifier.permit_presentation import resolve_permit_presentation
 
@@ -92,6 +95,27 @@ _COVERAGE = (
         ("permit.co_signature.v1", "permit.co_signature.v2"),
     ),
     ("Co-signature quorum", ("permit.co_signature.quorum.v1",)),
+    (
+        # Not "Mapping approved". What this claim adjudicates is that the
+        # signed Permit *binds* a mapping revision and an activation-record
+        # reference. Binding a reference to an activation record is not
+        # verifying the WebAuthn ceremony that produced it, and the row must
+        # not read as though it were.
+        "Managed MCP mapping binding",
+        ("permit.mcp_action_mapping_binding.v1",),
+    ),
+    (
+        "Governance interpretation",
+        ("permit.mcp_governance_interpretation.v1",),
+    ),
+    (
+        "Structural hold evidence",
+        ("permit.mcp_structural_hold_evidence.v1",),
+    ),
+    (
+        "Dispatch eligibility",
+        ("permit.mcp_dispatch_eligibility.v1",),
+    ),
     ("Dispatch", ("closure.dispatch_binding.v1",)),
     ("Closure", ("closure.signature.v1",)),
     ("Revocation", ("permit.revoked.v1",)),
@@ -107,7 +131,41 @@ _COVERAGE_CAVEATS = {
         "does not establish verified human custody of the key, "
         "hardware backing, or legal identity"
     ),
+    "Managed MCP mapping binding": (
+        "binds the mapping and activation reference only; it does not "
+        "independently verify the WebAuthn activation assertion"
+    ),
+    "Governance interpretation": (
+        "an interpretation, not a certification: an arbitrary human mapping "
+        "binds no certified_action_contract_id"
+    ),
+    "Structural hold evidence": (
+        "a non-approvable record; it carries no resume or dispatch semantics"
+    ),
+    "Dispatch eligibility": (
+        "eligibility is not dispatch, and dispatch is not effect"
+    ),
 }
+
+#: Action Mapping claims whose adjudicated message and evidence ceiling are
+#: rendered verbatim. The renderer never composes a mapping sentence of its
+#: own: the bounded statement a reader sees is the one adjudication produced.
+_ACTION_MAPPING_CLAIMS = (
+    "permit.mcp_action_mapping_binding.v1",
+    "permit.mcp_governance_interpretation.v1",
+    "permit.mcp_structural_hold_evidence.v1",
+    "permit.mcp_dispatch_eligibility.v1",
+)
+
+#: Where a report carries the bounded projection, it is rendered verbatim and
+#: in full. The projection is the producer-and-verifier-agreed contract for what
+#: an artifact supports; re-deriving it here would create a second answer.
+_PROJECTION_KEY = "action_mapping_bounded_projection"
+
+_DISPATCH_CLAIM_FREEZE_CEILING = (
+    "whether a freeze affected an upstream request; the acquired dispatch claim "
+    "does not establish that one was sent"
+)
 
 _COVERAGE_STATUS = {
     "supported": "verified",
@@ -505,6 +563,88 @@ def _coverage_lines(verdicts: dict[str, str]) -> list[ReportLine]:
     return lines if any_present else []
 
 
+def _action_mapping_lines(report: dict[str, Any]) -> list[ReportLine]:
+    """Render the bounded Action Mapping statements and their ceiling.
+
+    Only ``supported`` mapping claims contribute a positive statement, and the
+    text is copied from the claim, never composed here. Every such claim also
+    renders its full ``does_not_establish`` list, so the disclaimers §8 requires
+    (handler semantics, certified action facts, the deployed source revision,
+    bypass absence, downstream completion) travel with the statement rather
+    than sitting in a separate paragraph a reader can skip.
+    """
+
+    projection = report.get(_PROJECTION_KEY)
+    if isinstance(projection, dict) and projection.get("statements"):
+        return _projection_lines(projection)
+
+    lines: list[ReportLine] = []
+    for claim in report.get("claims", []):
+        if not isinstance(claim, dict):
+            continue
+        if claim.get("name") not in _ACTION_MAPPING_CLAIMS:
+            continue
+        if claim.get("verdict") != "supported":
+            continue
+        message = str(claim.get("message") or "").strip()
+        if not message:
+            continue
+        lines.append(
+            ReportLine(f"  {message}", provenance="DERIVED_VERIFICATION_RESULT")
+        )
+        for value in claim.get("does_not_establish") or []:
+            if isinstance(value, str) and value:
+                if "already dispatched upstream" in value.casefold():
+                    value = _DISPATCH_CLAIM_FREEZE_CEILING
+                lines.append(
+                    ReportLine(
+                        f"    — does not establish: {value}",
+                        provenance="DERIVED_VERIFICATION_RESULT",
+                    )
+                )
+    return lines
+
+
+def _projection_lines(projection: dict[str, Any]) -> list[ReportLine]:
+    """Render the bounded projection exactly as adjudication produced it."""
+
+    lines: list[ReportLine] = []
+    for statement in projection.get("statements") or []:
+        if isinstance(statement, str) and statement:
+            lines.append(
+                ReportLine(f"  {statement}", provenance="DERIVED_VERIFICATION_RESULT")
+            )
+    # Older producer vectors called an acquired relational claim a point of no
+    # return and described the request as already dispatched upstream. The claim
+    # itself establishes neither fact, so never repeat producer-supplied wording
+    # from this presentation-only field.
+    if projection.get("in_flight_statement"):
+        lines.append(
+            ReportLine(
+                f"  {DISPATCH_CLAIM_ACQUIRED_STATEMENT}",
+                provenance="DERIVED_VERIFICATION_RESULT",
+            )
+        )
+    for key in (
+        "certified_action_contract_statement",
+        "approval_set_statement",
+    ):
+        value = projection.get(key)
+        if isinstance(value, str) and value:
+            lines.append(
+                ReportLine(f"  {value}", provenance="DERIVED_VERIFICATION_RESULT")
+            )
+    for value in projection.get("does_not_establish") or []:
+        if isinstance(value, str) and value:
+            lines.append(
+                ReportLine(
+                    f"    — does not establish: {value}",
+                    provenance="DERIVED_VERIFICATION_RESULT",
+                )
+            )
+    return lines
+
+
 def build_report_lines(
     report: dict[str, Any],
     *,
@@ -590,6 +730,13 @@ def build_report_lines(
             lines.append(ReportLine("", structural=True))
             lines.append(ReportLine(dimension["title"], structural=True))
             lines.extend(dim_lines)
+
+    # Action Mapping: the bounded statement plus its full evidence ceiling.
+    mapping_lines = _action_mapping_lines(report)
+    if mapping_lines:
+        lines.append(ReportLine("", structural=True))
+        lines.append(ReportLine("Action Mapping", structural=True))
+        lines.extend(mapping_lines)
 
     # Evidence coverage (explicit negative space) -- permit reports only.
     if not is_checkpoint:
