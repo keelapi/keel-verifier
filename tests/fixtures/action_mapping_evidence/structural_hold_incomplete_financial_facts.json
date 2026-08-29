@@ -1,0 +1,94 @@
+{
+  "artifact": {
+    "activation": {
+      "activated_lifecycle_epoch": 1,
+      "activation_record_hash": "sha256:fc9ac3651b6cb053a82091b9879808515e1979e89644f2fd50aae960c5c96283",
+      "activation_record_id": "2dd55653-9e8c-4864-83f8-f965ef2e5bcb",
+      "independently_verified": false
+    },
+    "artifact_class": "structural_decision",
+    "enforcement_surface_key": "managed_mcp:action_mapping",
+    "governance_action": {
+      "catalog_entry_hash": "sha256:126d75aa95071664ffecb6584fd628750db948b1ab92fa2c751cbb92e24b78a2",
+      "governance_action_id": "payment.refund",
+      "governance_action_version": "1"
+    },
+    "mapping": {
+      "assurance": "human_mapped_review_only",
+      "certified_action_contract": {
+        "state": "absent"
+      },
+      "classification_provenance": "human_approved_action_mapping",
+      "lifecycle_epoch": 1,
+      "lifecycle_state": "active",
+      "manifest_hash": "sha256:e16d2637375f5685bc281ff292277c15333abbf33c9bf9fd431705126dd68a3e",
+      "mapping_id": "39c8d121-ab67-4b6b-8cfb-fde3176d92bb",
+      "mapping_revision": 1
+    },
+    "permit_action_name": "mcp.tool.call",
+    "source": {
+      "accepted_tool_schema_hash": "sha256:134d7cbce64885e14ddd0d6156b72ee0a7b1e0abfaa4fc483e8a3ff0b76b121d",
+      "decision_trace_hash": "sha256:b9b9b7eeaa17c0de4bd1cc1ff2889a8be07de66afab38fa785ae876553fbacb0",
+      "decision_trace_id": "1fdf6064-2cf5-4735-8502-73eade4c6564",
+      "mcp_server_id": "f5b7ff02-db4b-4daa-8471-82c5a8602e9e",
+      "observed_tool_schema_hash": "sha256:134d7cbce64885e14ddd0d6156b72ee0a7b1e0abfaa4fc483e8a3ff0b76b121d",
+      "project_id": "522ad561-85cd-4656-8391-3a7b9120a71a",
+      "server_boundary_hash": "sha256:a10ad45834089d406b7fb135aecbfb64fce091c394917b0d3d4ca0f3131dd49a",
+      "source_tool_name": "payment.issue_refund",
+      "tool_arguments_hash": "sha256:4e60f1254217b574752cd8faa9c13dc62ecde91664875d0e0482213665df795c",
+      "tool_arguments_hash_version": "mcp_tool_arguments_sha256_v1",
+      "tool_contract_effective_status": "verified_fresh",
+      "tool_contract_status": "verified"
+    },
+    "structural": {
+      "challenge_basis_hash": "sha256:5a5f3b56908026c44b79bfe58cbcdc0d996701beada4ae582b6d7551a0133aed",
+      "challenge_basis_version": "mcp_challenge_basis.v4",
+      "challenge_class": "structural_hold",
+      "derivation_diagnostics_hash": "sha256:faf33c6ca74719bab9218464d4943ec33e2de2f511daddc4846c14512e2617c5",
+      "reason_code": "mcp.financial_facts_incomplete",
+      "typed_absence_hash": "sha256:688a2214760a3c2f063a42d76474b43afcce5ec0448fbeeef1892c88c251a88b",
+      "unavailable_fact_paths": [
+        "amount_minor",
+        "currency"
+      ]
+    },
+    "version": "keel.mcp_action_mapping_evidence.v1"
+  },
+  "bounded_projection": {
+    "approval_set_independently_established": false,
+    "approval_set_statement": "The unique consumption claim establishes single consumption, not which approvals satisfied the requirement. The approval set is not independently established without a bundle containing and validating the canonical qualifying attestations.",
+    "artifact_class": "structural_decision",
+    "certified_action_contract_bound": false,
+    "certified_action_contract_statement": "No certified action contract was bound. The governance action is an interpretation, not a certification.",
+    "does_not_establish": [
+      "that upstream dispatch occurred",
+      "that upstream dispatch occurred at most once",
+      "that upstream dispatch did not occur before approval",
+      "which approvals satisfied the frozen requirement",
+      "provider acceptance",
+      "downstream completion or effect",
+      "handler semantics",
+      "certified action facts or certified adapter semantics",
+      "deployment of the mapped source revision",
+      "absence of bypass",
+      "independent verification of the WebAuthn activation ceremony",
+      "that the human understood the mapping or its handler semantics"
+    ],
+    "permit_action_name": "mcp.tool.call",
+    "statements": [
+      "The Permit binds the mapping and activation reference used by Keel's decision.",
+      "The signed evidence binds the structural challenge basis, typed absence, and derivation diagnostics for a managed MCP request that created no approval action and no execution Permit.",
+      "Keel held this opaque mapped invocation because required trusted financial facts were unavailable; no approval action or execution Permit was created."
+    ],
+    "version": "keel.mcp_action_mapping_bounded_evidence.v1",
+    "webauthn_assertion_independently_verified": false
+  },
+  "description": "An arbitrary mapping to payment.refund whose required trusted financial facts are unavailable. Non-approvable: no approval group, no Permit, no resume or dispatch semantics. Binds the governance interpretation plus typed absence and diagnostics.",
+  "expectation": {
+    "approval_present": false,
+    "artifact_class": "structural_decision",
+    "certified_action_contract_state": "absent",
+    "schema_valid": true
+  },
+  "vector_id": "structural_hold_incomplete_financial_facts"
+}

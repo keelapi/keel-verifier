@@ -3,7 +3,7 @@
   "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v7.json",
   "title": "Verifier Claim Registry - v7",
   "version": "verifier-claims.v7",
-  "description": "Managed MCP Action Mapping evidence claims. These claims report what a signed Permit binds about a human-approved mapping, its governance interpretation, and its activation reference. They never convert a bound reference into a verified ceremony, an eligibility into a dispatch, or an arbitrary mapping into a certified action contract.",
+  "description": "Managed MCP Action Mapping evidence claims. Three artifact classes are established at different moments and carry different authority: an execution artifact is signed into the Permit before either relational claim exists, a structural decision is non-approvable evidence with no Permit and no resume or dispatch semantics, and a post-claim execution artifact is durable standalone evidence emitted after both claims commit. These claims report what an artifact binds. They never convert a bound reference into a verified ceremony, an eligibility into a dispatch, single consumption into approval-set satisfaction, or an arbitrary mapping into a certified action contract.",
   "extends": {
     "artifact_id": "keel.verifier_claim_registry.v6",
     "version": "verifier-claims.v6",
@@ -18,49 +18,77 @@
   "claims": [
     {
       "name": "permit.mcp_action_mapping_binding.v1",
-      "assertion": "The signed managed-MCP Permit binds one exact source identity, the mapping ID, the mapping revision, the canonical manifest hash, the mapping lifecycle epoch, the mapping assurance, the target governance-action ID, version and catalog-entry hash, the versioned challenge basis, and the activation-record reference that Keel's decision used.",
-      "required_evidence": "A supported signed Permit decision whose signed resource attributes carry one schema-valid keel.mcp_action_mapping_evidence.v1 block with enforcement_surface_key=managed_mcp:action_mapping and permit_action_name=mcp.tool.call; individually present mapping revision and challenge_basis_version; a complete governance-action identity; a typed certified-action-contract state consistent with the mapping assurance; and an activation record reference bound to the mapping's activated lifecycle epoch.",
+      "assertion": "The signed managed-MCP Action Mapping evidence binds one exact source identity, the mapping ID, the mapping revision, the canonical manifest hash, the mapping lifecycle epoch and state, the mapping assurance, the target governance-action ID, version and catalog-entry hash, the versioned challenge basis, and the activation-record reference that Keel's decision used.",
+      "required_evidence": "One schema-valid keel.mcp_action_mapping_evidence.v1 artifact with enforcement_surface_key=managed_mcp:action_mapping and permit_action_name=mcp.tool.call; an integer mapping revision and a challenge_basis_version of mcp_challenge_basis.v4, each present in its own right; a complete governance-action identity; a typed certified-action-contract state consistent with the mapping assurance; and an activation record whose activated lifecycle epoch does not lead the mapping's and whose independently_verified is false. For the execution class the artifact must additionally be covered by a supported signed Permit decision commitment.",
       "does_not_establish": [
-        "dispatch",
-        "provider acceptance or completion",
-        "downstream effect",
-        "independent verification of the WebAuthn activation assertion",
-        "that the approving human understood the mapping or the handler semantics",
-        "handler semantics, certified action facts, or the deployed source revision",
-        "absence of execution outside the governed boundary",
-        "that any certified action contract was bound",
-        "that human approval preceded upstream dispatch"
+        "that upstream dispatch occurred",
+        "that upstream dispatch occurred at most once",
+        "that upstream dispatch did not occur before approval",
+        "which approvals satisfied the frozen requirement",
+        "provider acceptance",
+        "downstream completion or effect",
+        "handler semantics",
+        "certified action facts or certified adapter semantics",
+        "deployment of the mapped source revision",
+        "absence of bypass",
+        "independent verification of the WebAuthn activation ceremony",
+        "that the human understood the mapping or its handler semantics"
       ],
       "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
     },
     {
       "name": "permit.mcp_governance_interpretation.v1",
-      "assertion": "Keel evaluated this exact managed MCP request under the named human-approved governance interpretation and the mandatory review floor, and the signed execution evidence binds the reviewed-approval consumption record, the distinct reviewed and execution Permits, both decision traces, the exact-review, approval-requirement, exact-request and idempotency binding values, and the consumption instant.",
-      "required_evidence": "A supported permit.mcp_action_mapping_binding.v1 on an execution artifact whose signed mapping evidence carries challenge_class=action_review and a complete approval group whose execution Permit is the Permit under adjudication, whose reviewed Permit is a distinct record, and whose dispatch-claim state is typed rather than inferred.",
+      "assertion": "Keel evaluated this exact managed MCP request under the named human-approved governance interpretation and exact review, with the consequence-critical facts bound in the review material, and the evidence binds the reviewed and execution Permit references, both decision traces, the exact-review, approval-requirement, exact-request and idempotency binding values, and the reviewed authorizer-input hash with the contract version captured at that evaluation.",
+      "required_evidence": "A supported permit.mcp_action_mapping_binding.v1 on an execution or post_claim_execution artifact carrying challenge_class=action_review and a complete approval group whose reviewed and execution Permits are distinct records, whose approval_set_independently_established is false, and whose consumption and dispatch claims are typed for the artifact class.",
       "does_not_establish": [
-        "dispatch",
-        "provider acceptance or completion",
-        "downstream effect",
-        "which approvals satisfied the frozen approval requirement",
-        "that two humans approved",
-        "that Keel required human approval before upstream dispatch",
-        "certified action facts, automatic-authorization eligibility, or a certified adapter contract",
-        "that the source revision named by the mapping is the deployed one"
+        "that upstream dispatch occurred",
+        "that upstream dispatch occurred at most once",
+        "that upstream dispatch did not occur before approval",
+        "which approvals satisfied the frozen requirement",
+        "provider acceptance",
+        "downstream completion or effect",
+        "handler semantics",
+        "certified action facts or certified adapter semantics",
+        "deployment of the mapped source revision",
+        "absence of bypass",
+        "independent verification of the WebAuthn activation ceremony",
+        "that the human understood the mapping or its handler semantics"
       ],
       "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
     },
     {
       "name": "permit.mcp_structural_hold_evidence.v1",
-      "assertion": "The signed non-approvable structural decision evidence binds the structural challenge class, the versioned challenge basis, the typed absence commitment, and the derivation-diagnostic commitment for a managed MCP request that created no approval action, no execution Permit, and no dispatch claim.",
-      "required_evidence": "A supported permit.mcp_action_mapping_binding.v1 on a structural artifact whose signed mapping evidence carries challenge_class=structural_hold, non-null typed-absence and derivation-diagnostic hashes, no approval group, and a Permit decision state that is not an allow, together with an absence of dispatch, bounded-use, and provider-receipt evidence in the pack.",
+      "assertion": "The non-approvable structural decision evidence binds the structural challenge class, the versioned challenge basis, the typed absence commitment, and the derivation-diagnostic commitment for a managed MCP request that created no approval action, no execution Permit, and no dispatch claim.",
+      "required_evidence": "A supported permit.mcp_action_mapping_binding.v1 on a structural_decision artifact carrying challenge_class=structural_hold, non-null typed-absence and derivation-diagnostic hashes, a bound unavailable-fact-path list, and no approval group, supplied as standalone evidence rather than through a Permit, with no dispatch, bounded-use, provider-receipt, or allow-decision material in the bundle.",
       "does_not_establish": [
         "resume or dispatch semantics of any kind",
         "that the unavailable consequence-critical facts are false rather than unestablished",
         "a payment, refund, amount, or business-effect interpretation of the held request",
-        "dispatch",
-        "provider acceptance or completion",
-        "downstream effect",
+        "that upstream dispatch occurred",
+        "provider acceptance",
+        "downstream completion or effect",
+        "handler semantics",
+        "certified action facts or certified adapter semantics",
+        "independent verification of the WebAuthn activation ceremony",
         "that any certified action contract was bound"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    },
+    {
+      "name": "permit.mcp_dispatch_eligibility.v1",
+      "assertion": "Keel's managed MCP decision made this exact request eligible for dispatch only after the bound action approval was satisfied, evidenced by a committed reviewed-approval consumption claim and a dispatch claim acquired at the mapping's own lifecycle epoch on an active revision.",
+      "required_evidence": "A supported permit.mcp_governance_interpretation.v1 on a post_claim_execution artifact whose consumption claim is recorded, whose dispatch claim is acquired for the same governed request, whose claimed lifecycle epoch equals the mapping's, and whose mapping revision is active at that epoch.",
+      "does_not_establish": [
+        "that upstream dispatch occurred",
+        "that upstream dispatch occurred at most once",
+        "that upstream dispatch did not occur before approval",
+        "which approvals satisfied the frozen requirement",
+        "provider acceptance",
+        "downstream completion or effect",
+        "that a freeze recalled work already dispatched upstream",
+        "handler semantics",
+        "certified action facts or certified adapter semantics",
+        "independent verification of the WebAuthn activation ceremony"
       ],
       "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
     }

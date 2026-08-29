@@ -293,6 +293,7 @@ PROFILE_DRIVEN_CLAIMS = frozenset(
         "permit.mcp_action_mapping_binding.v1",
         "permit.mcp_governance_interpretation.v1",
         "permit.mcp_structural_hold_evidence.v1",
+        "permit.mcp_dispatch_eligibility.v1",
     }
 )
 

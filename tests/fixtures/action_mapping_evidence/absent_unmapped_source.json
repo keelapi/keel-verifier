@@ -1,0 +1,36 @@
+{
+  "artifact": null,
+  "bounded_projection": {
+    "approval_set_independently_established": false,
+    "approval_set_statement": "The unique consumption claim establishes single consumption, not which approvals satisfied the requirement. The approval set is not independently established without a bundle containing and validating the canonical qualifying attestations.",
+    "artifact_class": null,
+    "certified_action_contract_bound": false,
+    "certified_action_contract_statement": "No certified action contract was bound. The governance action is an interpretation, not a certification.",
+    "does_not_establish": [
+      "that upstream dispatch occurred",
+      "that upstream dispatch occurred at most once",
+      "that upstream dispatch did not occur before approval",
+      "which approvals satisfied the frozen requirement",
+      "provider acceptance",
+      "downstream completion or effect",
+      "handler semantics",
+      "certified action facts or certified adapter semantics",
+      "deployment of the mapped source revision",
+      "absence of bypass",
+      "independent verification of the WebAuthn activation ceremony",
+      "that the human understood the mapping or its handler semantics"
+    ],
+    "permit_action_name": "mcp.tool.call",
+    "statements": [],
+    "version": "keel.mcp_action_mapping_bounded_evidence.v1",
+    "webauthn_assertion_independently_verified": false
+  },
+  "description": "No mapping governs this source. No artifact is produced at all: an unmapped managed MCP call keeps exactly the signed shape it had before WP9. Absence of the attribute is the evidence.",
+  "expectation": {
+    "artifact_absent": true,
+    "resolution_state": "absent",
+    "schema_valid": false,
+    "verifier_reason_code": "MCP_ACTION_MAPPING_EVIDENCE_NOT_RECORDED"
+  },
+  "vector_id": "absent_unmapped_source"
+}

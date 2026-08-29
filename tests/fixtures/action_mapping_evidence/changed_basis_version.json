@@ -1,0 +1,87 @@
+{
+  "artifact": {
+    "activation": {
+      "activated_lifecycle_epoch": 1,
+      "activation_record_hash": "sha256:fc9ac3651b6cb053a82091b9879808515e1979e89644f2fd50aae960c5c96283",
+      "activation_record_id": "2dd55653-9e8c-4864-83f8-f965ef2e5bcb",
+      "independently_verified": false
+    },
+    "approval": {
+      "approval_requirement_hash": "sha256:cd07f2cfbc2fcd72aa171226af880a7d3c6a8ca6bf7191253987b5397be63fbc",
+      "approval_set_independently_established": false,
+      "claim_record": {
+        "detail": "no_consumption_claim_at_permit_signing_time",
+        "state": "absent"
+      },
+      "current_trace_id": "cec14675-f0f4-4866-8c7b-d5d4cc215312",
+      "dispatch_claim": {
+        "detail": "no_dispatch_claim_at_permit_signing_time",
+        "state": "absent"
+      },
+      "exact_request_binding_hash": "sha256:f3f3d6041f4af7c197e575ef5525e61aa92b21d04b171a005fa91046f778b15f",
+      "exact_request_hash": "sha256:f3f3d6041f4af7c197e575ef5525e61aa92b21d04b171a005fa91046f778b15f",
+      "exact_request_hash_version": "mcp_review_exact_binding.v2",
+      "exact_request_review_hash": "sha256:6d9df8606dacd7088dc4beb188bdcff4391a0688e9baa02d9af67e8d0cfd5042",
+      "execution_permit_id": "12f978e1-3764-4bfb-8fa6-c75d47db3bf4",
+      "idempotency_binding_hash": "sha256:8abda2d3535a84000465610c3da1ff17fd539adccafa15012d45239739787023",
+      "idempotency_binding_version": "sha256.v1",
+      "original_trace_id": "b1d4aa6c-6f6a-41df-814f-a5bd3aecf58e",
+      "reviewed_authorizer_input_contract_version": "keel.authorizer_input.v3",
+      "reviewed_authorizer_input_hash": "sha256:8ea0d87c2e23f340d715f4a901acc153d5641aaef24b5b7f4d333763a0797886",
+      "reviewed_permit_id": "da3349fb-b9c0-4cd8-8bed-f2ac900b77ab"
+    },
+    "artifact_class": "execution",
+    "enforcement_surface_key": "managed_mcp:action_mapping",
+    "governance_action": {
+      "catalog_entry_hash": "sha256:d9f423e25c30b8e6f997c1aa934bc42419bf4ca272f9509e65baa105edd21983",
+      "governance_action_id": "keel.vector.record_note",
+      "governance_action_version": "1"
+    },
+    "mapping": {
+      "assurance": "human_mapped_review_only",
+      "certified_action_contract": {
+        "state": "absent"
+      },
+      "classification_provenance": "human_approved_action_mapping",
+      "lifecycle_epoch": 1,
+      "lifecycle_state": "active",
+      "manifest_hash": "sha256:e16d2637375f5685bc281ff292277c15333abbf33c9bf9fd431705126dd68a3e",
+      "mapping_id": "39c8d121-ab67-4b6b-8cfb-fde3176d92bb",
+      "mapping_revision": 1
+    },
+    "permit_action_name": "mcp.tool.call",
+    "source": {
+      "accepted_tool_schema_hash": "sha256:134d7cbce64885e14ddd0d6156b72ee0a7b1e0abfaa4fc483e8a3ff0b76b121d",
+      "decision_trace_hash": "sha256:39b06f182de4269888c32ce0b60193f55ce37d85eb23ab506f44d7555d001726",
+      "decision_trace_id": "cec14675-f0f4-4866-8c7b-d5d4cc215312",
+      "mcp_server_id": "f5b7ff02-db4b-4daa-8471-82c5a8602e9e",
+      "observed_tool_schema_hash": "sha256:134d7cbce64885e14ddd0d6156b72ee0a7b1e0abfaa4fc483e8a3ff0b76b121d",
+      "project_id": "522ad561-85cd-4656-8391-3a7b9120a71a",
+      "server_boundary_hash": "sha256:a10ad45834089d406b7fb135aecbfb64fce091c394917b0d3d4ca0f3131dd49a",
+      "source_tool_name": "notes.append_entry",
+      "tool_arguments_hash": "sha256:23275e89d55cccdcf08850b0060ce442821821809bf1bdaff5b3134887a6686f",
+      "tool_arguments_hash_version": "mcp_tool_arguments_sha256_v1",
+      "tool_contract_effective_status": "verified_fresh",
+      "tool_contract_status": "verified"
+    },
+    "structural": {
+      "challenge_basis_hash": "sha256:3ef9cc56efdf2c178fd9cae6ee60c6e32d1ec02844b1f2016bccbd25c1fbd8c4",
+      "challenge_basis_version": "mcp_challenge_basis.v2",
+      "challenge_class": "action_review",
+      "derivation_diagnostics_hash": "sha256:438351052e1fa4388c38f627063c317df63a168b119c386583bb370fe56bd110",
+      "reason_code": "mcp.mapping_review_required",
+      "typed_absence_hash": "sha256:27f7c90651039111cf61b4732962cc6936a6a6f97b03f391b29e03e5fedc1e31",
+      "unavailable_fact_paths": []
+    },
+    "version": "keel.mcp_action_mapping_evidence.v1"
+  },
+  "bounded_projection": null,
+  "description": "An execution artifact whose challenge basis version was substituted. A basis hash is comparable only within an identical basis version, so this is non-dischargeable with no fallback, reconstruction, or cross-version comparison.",
+  "expectation": {
+    "current_basis_version": "mcp_challenge_basis.v4",
+    "producer_refusal_code": "action_mapping_evidence.basis_version_unsupported",
+    "schema_valid": false,
+    "verifier_reason_code": "MCP_ACTION_MAPPING_BASIS_VERSION_UNSUPPORTED"
+  },
+  "vector_id": "changed_basis_version"
+}

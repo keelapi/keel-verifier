@@ -4,93 +4,63 @@
 
 ### Added
 
-- Adjudicate managed MCP Action Mapping evidence
-  (`ACTION_MAPPING_SPEC.md` §8) from a new claim registry `verifier-claims.v7`,
-  which extends `verifier-claims.v6` by exact artifact ID, version, and
-  SHA-256. Three claims are added and none is redefined:
-  `permit.mcp_action_mapping_binding.v1`,
-  `permit.mcp_governance_interpretation.v1`, and
-  `permit.mcp_structural_hold_evidence.v1`.
-- Verify the signed `keel.mcp_action_mapping_evidence.v1` resource-attribute
-  block: exact source identity, mapping ID, mapping **revision**, canonical
-  manifest hash, mapping **lifecycle epoch**, lifecycle state, assurance,
-  classification provenance, target governance-action **ID / version /
-  catalog-entry hash**, `challenge_class`, `challenge_basis_hash`,
-  **`challenge_basis_version`**, typed-absence and derivation-diagnostic
-  commitments, the reviewed-approval consumption record, and the activation
-  record reference.
-- Require mapping **revision** and **`challenge_basis_version`** in their own
-  right. A canonical manifest hash never substitutes for the revision, and a
-  basis hash never substitutes for its basis version: a consumer that cannot
-  see the version cannot know whether two basis hashes are even comparable.
-- Reject a `certified_action_contract_id` bound to an arbitrary human mapping.
-  `assurance = human_mapped_review_only` requires a typed
-  `certified_action_contract: {"state": "absent"}`, and the verifier states
-  explicitly that no certified action contract was bound. A governance action
-  is an interpretation, not a certification.
-- Reject a target governance action that replaced `Permit.action_name`. The
-  substitution is checked on every surface it could hide in: the evidence
-  block's own `permit_action_name`, the signed semantic binding's action name
-  and operation, and the resolved fact profile's authorized action. Top-level
-  `Permit.action_name` stays `mcp.tool.call`.
-- Treat a dispatch-claim reference as forbidden where no claim was acquired.
-  The state is typed `absent` or `acquired`; absence is information, not a
-  missing field. An acquired claim must name the mapping's own lifecycle epoch
-  and an `active` revision, so a claim fenced by a freeze cannot read as valid.
-- Adjudicate the non-approvable structural decision artifact separately. It
-  must carry `challenge_class = structural_hold`, no approval group, no allow
-  decision, and no dispatch, bounded-use, or provider-receipt evidence, and it
-  exposes no resume or dispatch semantics.
-- Compose digest-pinned universal verification semantics through
-  `keel.permit.universal_verification.v6`, whose conditional evidence recipe
-  requests the binding claim always and exactly one of the execution and
-  structural claims by artifact class. A pack that omits a requested claim is
-  `disproved`, not silently narrowed.
+- Adjudicate managed MCP Action Mapping evidence (`ACTION_MAPPING_SPEC.md` §8)
+  against the **keel-api-owned canonical schema**, vendored byte-identically as
+  `keel_verifier/data/permit_to_x/schemas/mcp-action-mapping-evidence-v1.schema.json`.
+  Producer and verifier validate one artifact, so a divergence is a byte
+  difference rather than a judgement call.
+- Add claim registry `verifier-claims.v7`, extending `verifier-claims.v6` by
+  exact artifact ID, version, and SHA-256. Four claims are added and none is
+  redefined: `permit.mcp_action_mapping_binding.v1`,
+  `permit.mcp_governance_interpretation.v1`,
+  `permit.mcp_structural_hold_evidence.v1`, and
+  `permit.mcp_dispatch_eligibility.v1`.
+- Verify the three artifact classes through the paths their authority actually
+  supports. `execution` is the pre-dispatch-claim artifact bound into the signed
+  execution Permit and names neither relational claim. `structural_decision` is
+  a non-approvable hold that created no approval action and no Permit: it is
+  **not Permit evidence**, and a Permit carrying one is refused as a category
+  error rather than adjudicated leniently. `post_claim_execution` is separate
+  durable evidence emitted after both relational claims commit, and is the only
+  class that may name a dispatch claim.
+- Verify the `challenge_basis_version` `mcp_challenge_basis.v4` tuple, an
+  integer `mapping_revision`, the full Source group (project, server boundary
+  hash, arguments-hash version, decision-trace identity), the typed
+  `claim_record` and `dispatch_claim` objects, and
+  `reviewed_authorizer_input_hash` with the contract version captured at that
+  evaluation.
+- Emit the bounded projection `keel.mcp_action_mapping_bounded_evidence.v1`,
+  equal to the producer's, so the two repositories publish one set of sentences
+  rather than two compatible ones.
 
 ### Changed
 
-- Bound the language the verifier may emit for Action Mapping. The only
-  positive statements are *"The Permit binds the mapping and activation
-  reference used by Keel's decision."* and, when the complete execution
-  evidence is present, *"Keel evaluated this exact managed MCP request using
-  the human-approved governance interpretation `<governance_action_id>` under
-  mandatory review."* Each renders with its full evidence ceiling attached, so
-  the §8 disclaimers -- handler semantics, certified action facts, the deployed
-  source revision, bypass absence, downstream completion -- travel with the
-  statement rather than sitting in a separate paragraph. Binding an activation
-  reference is not verifying the WebAuthn ceremony that produced it, and the
-  report never says otherwise.
-- The human report gains an "Action Mapping" section and three evidence
-  coverage rows. The rendered statement is copied from adjudication; the
-  presentation layer composes no mapping sentence of its own.
-
-### Fixed
-
-- Fail closed on an exact pack pinning a universal recipe with no admitted
-  claim registry. `keel.permit.universal_verification.v5` raised an uncaught
-  `KeyError` from the recipe-to-registry table instead of returning
-  `unverifiable_scope` / `PERMIT_CONTRACT_PIN_UNSUPPORTED`.
-- Extend the registry evidence-ceiling lookup through v6 and v7 so a claim's
-  `does_not_establish` list is read from every bundled registry rather than
-  v2 through v5 alone.
-
-### Release integrity
-
-- Assign a new release identity to the changed verifier bytes; the 3.25.0
-  candidate cannot reuse the signed 3.24.3 release manifest. Candidate
-  self-check URLs and the expected GitHub Actions signing identity bind
-  exclusively to `refs/tags/v3.25.0`. Until that tag is signed and published,
-  online candidate self-check fails closed instead of falling back to an
-  earlier release.
+- Replace the interpretation sentence with the §8 exact-review form: *"Keel
+  evaluated this exact managed MCP request using the human-approved governance
+  interpretation `<governance_action_id>` under exact review, with the
+  consequence-critical facts bound in the review material."* The trailing clause
+  is load-bearing, so the truncated *"under mandatory review"* form is banned
+  outright — it would be emittable in exactly the case §8 withholds it.
+- Refuse, rather than merely omit, evidence that overclaims. An artifact
+  asserting `approval_set_independently_established` or
+  `activation.independently_verified` is disproved: the unique consumption claim
+  establishes single consumption, not which approvals satisfied the frozen
+  requirement, and binding an activation reference is not verifying the WebAuthn
+  ceremony that produced it. Neither becomes true without a bundle carrying and
+  validating the canonical qualifying attestations, and no such bundle format
+  exists.
 
 ### Unchanged
 
-- The four-verdict model, every existing fail-closed behavior, and every
-  pinned historical registry. Claim registries v0 through v6 and universal
-  recipes v1 through v5 are byte-identical, and a bundle pinning one of them
-  never sees a v7 claim. Verdict parity against 3.24.3 was checked by
-  replaying 18 historical pack and mutation cases through both builds and
-  comparing 259 claim results, which matched byte for byte.
+- The four-verdict model, every existing fail-closed behavior, and every pinned
+  historical registry. Claim registries v0 through v6 and universal recipes v1
+  through v5 are byte-identical, and a bundle pinning one of them never sees a
+  v7 claim.
+
+### Release integrity
+
+- The 3.25.0 candidate remains unpublished. No tag, Sigstore signature, TSA
+  witness, GitHub release, PyPI upload, or keel-api pin change accompanies it.
 
 ## 3.24.3
 

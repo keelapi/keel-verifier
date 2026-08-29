@@ -109,6 +109,10 @@ _COVERAGE = (
         "Structural hold evidence",
         ("permit.mcp_structural_hold_evidence.v1",),
     ),
+    (
+        "Dispatch eligibility",
+        ("permit.mcp_dispatch_eligibility.v1",),
+    ),
     ("Dispatch", ("closure.dispatch_binding.v1",)),
     ("Closure", ("closure.signature.v1",)),
     ("Revocation", ("permit.revoked.v1",)),
@@ -135,6 +139,9 @@ _COVERAGE_CAVEATS = {
     "Structural hold evidence": (
         "a non-approvable record; it carries no resume or dispatch semantics"
     ),
+    "Dispatch eligibility": (
+        "eligibility is not dispatch, and dispatch is not effect"
+    ),
 }
 
 #: Action Mapping claims whose adjudicated message and evidence ceiling are
@@ -144,7 +151,13 @@ _ACTION_MAPPING_CLAIMS = (
     "permit.mcp_action_mapping_binding.v1",
     "permit.mcp_governance_interpretation.v1",
     "permit.mcp_structural_hold_evidence.v1",
+    "permit.mcp_dispatch_eligibility.v1",
 )
+
+#: Where a report carries the bounded projection, it is rendered verbatim and
+#: in full. The projection is the producer-and-verifier-agreed contract for what
+#: an artifact supports; re-deriving it here would create a second answer.
+_PROJECTION_KEY = "action_mapping_bounded_projection"
 
 _COVERAGE_STATUS = {
     "supported": "verified",
@@ -553,6 +566,10 @@ def _action_mapping_lines(report: dict[str, Any]) -> list[ReportLine]:
     than sitting in a separate paragraph a reader can skip.
     """
 
+    projection = report.get(_PROJECTION_KEY)
+    if isinstance(projection, dict) and projection.get("statements"):
+        return _projection_lines(projection)
+
     lines: list[ReportLine] = []
     for claim in report.get("claims", []):
         if not isinstance(claim, dict):
@@ -575,6 +592,36 @@ def _action_mapping_lines(report: dict[str, Any]) -> list[ReportLine]:
                         provenance="DERIVED_VERIFICATION_RESULT",
                     )
                 )
+    return lines
+
+
+def _projection_lines(projection: dict[str, Any]) -> list[ReportLine]:
+    """Render the bounded projection exactly as adjudication produced it."""
+
+    lines: list[ReportLine] = []
+    for statement in projection.get("statements") or []:
+        if isinstance(statement, str) and statement:
+            lines.append(
+                ReportLine(f"  {statement}", provenance="DERIVED_VERIFICATION_RESULT")
+            )
+    for key in (
+        "in_flight_statement",
+        "certified_action_contract_statement",
+        "approval_set_statement",
+    ):
+        value = projection.get(key)
+        if isinstance(value, str) and value:
+            lines.append(
+                ReportLine(f"  {value}", provenance="DERIVED_VERIFICATION_RESULT")
+            )
+    for value in projection.get("does_not_establish") or []:
+        if isinstance(value, str) and value:
+            lines.append(
+                ReportLine(
+                    f"    — does not establish: {value}",
+                    provenance="DERIVED_VERIFICATION_RESULT",
+                )
+            )
     return lines
 
 
