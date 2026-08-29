@@ -104,7 +104,7 @@
       "independent verification of the WebAuthn activation ceremony",
       "that the human understood the mapping or its handler semantics"
     ],
-    "in_flight_statement": "A dispatch claim recorded here had already crossed Keel's point of no return. Work already dispatched upstream may still complete.",
+    "in_flight_statement": "Keel acquired the dispatch claim. This does not establish that an upstream request was sent, accepted, or completed.",
     "permit_action_name": "mcp.tool.call",
     "statements": [
       "The Permit binds the mapping and activation reference used by Keel's decision.",

@@ -3,9 +3,9 @@
 The vectors and their manifest are vendored byte-identically from the producer
 so the two repositories are checked against one artifact set rather than two
 descriptions of one. Every vector's own ``expectation`` block is asserted. The
-verifier independently derives the bounded projection, with one deliberate
-narrowing: an acquired dispatch claim is not presented as proof that an
-upstream request crossed a point of no return or was already dispatched.
+verifier independently derives the bounded projection. The producer and
+verifier use their own bounded dispatch-claim sentences, and both expressly
+withhold any claim that an upstream request was sent, accepted, or completed.
 """
 
 from __future__ import annotations
@@ -117,10 +117,10 @@ def test_positive_vectors_are_supported(name: str) -> None:
 
 
 @pytest.mark.parametrize("name", POSITIVE_VECTORS)
-def test_the_bounded_projection_matches_except_for_the_dispatch_overclaim(
+def test_the_bounded_projection_matches_except_for_verifier_owned_claim_wording(
     name: str,
 ) -> None:
-    """Preserve the corpus while refusing its one unsafe report sentence."""
+    """Preserve the corpus while keeping verifier presentation code-owned."""
 
     expected = _vector(name)["bounded_projection"]
     actual = _verify(name).bounded_projection
@@ -128,7 +128,9 @@ def test_the_bounded_projection_matches_except_for_the_dispatch_overclaim(
         assert actual == expected
         return
 
-    assert "point of no return" in expected["in_flight_statement"]
+    assert "point of no return" not in expected["in_flight_statement"]
+    assert "already dispatched" not in expected["in_flight_statement"]
+    assert "does not establish" in expected["in_flight_statement"]
     assert actual["in_flight_statement"] == ame.DISPATCH_CLAIM_ACQUIRED_STATEMENT
     expected_without_statement = dict(expected)
     actual_without_statement = dict(actual)

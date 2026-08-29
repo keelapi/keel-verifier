@@ -67,8 +67,11 @@
 
 ### Release integrity
 
-- The 3.25.0 candidate remains unpublished. No tag, Sigstore signature, TSA
-  witness, GitHub release, PyPI upload, or keel-api pin change accompanies it.
+- Release publication requires the signed `v3.25.0` tag and the release
+  workflow's Sigstore signatures, TSA witnesses, GitHub assets, and exact PyPI
+  upload. Merging this source change alone establishes none of those states.
+- The release workflow pins the Action Mapping contract to published
+  `keel-permit` v1.23.0 at merge commit `b14ebb9d75cc9f169666877d2dbbe8fb2aad1322`.
 
 ## 3.24.3
 
