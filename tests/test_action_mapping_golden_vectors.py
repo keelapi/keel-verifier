@@ -639,7 +639,7 @@ def test_direct_adjudication_does_not_require_an_mcp_semantic_selector() -> None
 
 
 @pytest.mark.parametrize("name", POSITIVE_VECTORS)
-def test_each_artifact_class_uses_recipe_v6_and_registry_v7_ceilings(
+def test_each_artifact_class_uses_recipe_v7_and_registry_v7_ceilings(
     name: str,
 ) -> None:
     artifact = _vector(name)["artifact"]
@@ -649,7 +649,7 @@ def test_each_artifact_class_uses_recipe_v6_and_registry_v7_ceilings(
         claim.name for claim in result.claims.values() if claim.verdict == "supported"
     }
 
-    assert ame.ACTION_MAPPING_RECIPE_VERSION == "v6"
+    assert ame.ACTION_MAPPING_RECIPE_VERSION == "v7"
     assert ame.ACTION_MAPPING_CLAIM_REGISTRY_VERSION == "verifier-claims.v7"
     assert supported == expected
     for claim in result.claims.values():

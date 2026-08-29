@@ -15,6 +15,6 @@ def test_release_checks_out_pinned_permit_contract_before_compatibility_gate() -
     checkout_block = workflow[checkout:compatibility_gate]
     assert "repository: keelapi/keel-permit" in checkout_block
     assert "path: keel-permit" in checkout_block
-    assert "ref: v1.23.0" in checkout_block
-    assert "b14ebb9d75cc9f169666877d2dbbe8fb2aad1322" in checkout_block
+    assert "ref: v1.24.0" in checkout_block
+    assert "e6c12a1c82bce85e1a906b031dbb30d61a9c2c26" in checkout_block
     assert '["git", "-C", "keel-permit", "rev-parse", "HEAD"]' in checkout_block

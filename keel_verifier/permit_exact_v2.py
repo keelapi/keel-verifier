@@ -57,6 +57,7 @@ _UNIVERSAL_SEMANTICS_IDS = {
     "v4": "keel.permit.universal_verification.v4",
     "v5": "keel.permit.universal_verification.v5",
     "v6": "keel.permit.universal_verification.v6",
+    "v7": "keel.permit.universal_verification.v7",
 }
 # Which claim registry each universal recipe version is allowed to pin. A
 # recipe version missing here is unsupported, not a licence to skip the check.
@@ -67,6 +68,7 @@ _UNIVERSAL_RECIPE_CLAIM_REGISTRY = {
     "v4": "verifier-claims.v5",
     "v5": "verifier-claims.v6",
     "v6": "verifier-claims.v7",
+    "v7": "verifier-claims.v7",
 }
 _PROVIDER_RECEIPT_SEMANTICS_ID = "keel.provider.receipt_state.v1"
 DELEGATE_CHILD_LINKAGE_CLAIM = "permit.delegate_child_linkage.v1"
@@ -1594,6 +1596,7 @@ def _resolve_contracts(
             "../semantics/permit/universal_verification_v4.json",
             "../semantics/permit/universal_verification_v5.json",
             "../semantics/permit/universal_verification_v6.json",
+            "../semantics/permit/universal_verification_v7.json",
         ),
         artifact_id=None,
         allow_compact=allow_compact,

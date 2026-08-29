@@ -43,8 +43,8 @@ SURFACE_KEY: Final = "managed_mcp:action_mapping"
 SCHEMA_ARTIFACT_ID: Final = "mcp-action-mapping-evidence-v1.schema.json"
 PERMIT_ACTION_NAME: Final = "mcp.tool.call"
 ACTION_MAPPING_CLAIM_REGISTRY_VERSION: Final = "verifier-claims.v7"
-ACTION_MAPPING_RECIPE_ID: Final = "keel.permit.universal_verification.v6"
-ACTION_MAPPING_RECIPE_VERSION: Final = "v6"
+ACTION_MAPPING_RECIPE_ID: Final = "keel.permit.universal_verification.v7"
+ACTION_MAPPING_RECIPE_VERSION: Final = "v7"
 
 #: The live basis tuple. WP4 added the mapping lifecycle epoch and WP7 added the
 #: governance action, catalog-entry hash, and assurance. A basis hash is
@@ -297,17 +297,17 @@ def _action_mapping_claim_definitions() -> dict[str, dict[str, Any]]:
 
 @lru_cache(maxsize=1)
 def action_mapping_recipe() -> dict[str, tuple[str, ...]]:
-    """Load the class-to-claim routing directly from universal recipe v6."""
+    """Load the class-to-claim routing directly from universal recipe v7."""
 
     resource = resources.files("keel_verifier").joinpath(
-        "data/semantics/permit/universal_verification_v6.json"
+        "data/semantics/permit/universal_verification_v7.json"
     )
     payload = json.loads(resource.read_text(encoding="utf-8"))
     if (
         payload.get("id") != ACTION_MAPPING_RECIPE_ID
         or payload.get("version") != ACTION_MAPPING_RECIPE_VERSION
     ):
-        raise RuntimeError("the bundled Action Mapping recipe is not v6")
+        raise RuntimeError("the bundled Action Mapping recipe is not v7")
     body = payload.get("body")
     if not isinstance(body, Mapping) or body.get("claim_registry_version") != (
         ACTION_MAPPING_CLAIM_REGISTRY_VERSION
