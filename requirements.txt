@@ -1,6 +1,6 @@
 asn1crypto>=1.5,<2
 certifi>=2024.8.30
-cryptography==50.0.0
+cryptography==50.0.1
 pydantic==2.12.5
 rfc8785>=0.1.4,<1
 jsonschema>=4.18,<5
