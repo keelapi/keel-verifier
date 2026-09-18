@@ -9,6 +9,12 @@ name: TSA trust bundle maintenance
 # proves the result against the vendored issuer certificates and the full
 # verifier suite, then opens a pull request for human review. Cryptographic
 # trust material is merged by a person, not by a cron.
+#
+# The refresh always lands on one standing branch, so repeated runs replace
+# the proposal instead of leaving a branch behind each time. Where repository
+# policy stops GITHUB_TOKEN from opening pull requests ("Allow GitHub Actions
+# to create and approve pull requests" is off), the job files one standing
+# issue that links the ready pull request, so a person opens it with one click.
 
 on:
   schedule:
@@ -26,6 +32,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 concurrency:
   group: tsa-trust-maintenance
@@ -146,48 +153,17 @@ jobs:
           pytest -q tests/test_tsa_trust.py -rs
           pytest -q
 
-      - name: Open a review pull request
+      # Commits to one standing branch and opens (or refreshes) the review pull
+      # request. If repository policy forbids the workflow token from opening
+      # pull requests, it files one standing issue linking the ready PR instead
+      # of failing the run. See the script header for the full contract.
+      - name: Propose the refresh for review
         if: steps.diff.outputs.changed == 'true'
         working-directory: keel-verifier
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          BRANCH="chore/tsa-trust-refresh-$(date -u +%Y%m%dT%H%M%SZ)"
-          git config user.name "keel-tsa-maintenance"
-          git config user.email "noreply@keelapi.com"
-          git checkout -b "${BRANCH}"
-          git add -A
-          printf '%s\n' \
-            'chore: refresh release-pinned TSA CRL snapshots' \
-            '' \
-            'Scheduled maintenance. Each CRL was accepted only after its issuer matched' \
-            'the vendored issuer certificate and its signature verified against that' \
-            "certificate's public key. Coupled real-crypto receipt fixtures were" \
-            're-minted so their fixed genTime falls inside the new CRL window.' \
-            '' \
-            'Proposed for review; trust material is not merged automatically.' \
-            > /tmp/tsa-commit.txt
-          git commit -F /tmp/tsa-commit.txt
-          git push -u origin "${BRANCH}"
-          {
-            echo 'Scheduled refresh of the release-pinned TSA CRL snapshots.'
-            echo
-            cat /tmp/tsa-diff.md
-            echo
-            echo '### Why this is safe to review quickly'
-            echo
-            echo '- A CRL entered the bundle only after its issuer matched the **vendored**'
-            echo '  issuer certificate and its signature verified against that public key.'
-            echo '  A wrong URL, stale mirror, or poisoned response cannot pass.'
-            echo '- The full verifier suite, Ruff, the historical compatibility corpus, and'
-            echo '  the TSA real-crypto tests ran green against the refreshed bundle before'
-            echo '  this PR opened.'
-            echo '- This job never merges. A human merges trust material.'
-          } > /tmp/tsa-pr-body.md
-          gh pr create --base main --head "${BRANCH}" \
-            --title "chore: refresh release-pinned TSA CRL snapshots" \
-            --body-file /tmp/tsa-pr-body.md
+          TSA_DIFF_SUMMARY: /tmp/tsa-diff.md
+        run: bash scripts/propose_tsa_trust_refresh.sh
 
       - name: Warn when the bundle is stale and no refresh was available
         if: steps.diff.outputs.changed != 'true' && steps.current.outputs.status != '0'
