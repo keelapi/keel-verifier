@@ -11,11 +11,52 @@
   v1.24.0 tag at merge commit
   `e6c12a1c82bce85e1a906b031dbb30d61a9c2c26`.
 
+### Fixed
+
+- `governance_chain.local_continuity.v1` now walks a filtered
+  `keel.governance_events/v1` export across the gaps its filter leaves. Before
+  this change the walk read only `records`. A filtered export's records are
+  not contiguous, so its first gap was reported `disproved` with
+  `WALK_PREV_HASH_DISCONTINUITY`, even though the chain was intact and the
+  signed payload already carried the missing links. The walk now also reads
+  the payload's own `scope_faithfulness.segments[].chain_evidence.proof_bridge_records`.
+  The released `keel.export.scope_faithfulness.v1` semantics define those
+  records as out-of-scope records "supplied only to satisfy continuity".
+  Each bridge carries the omitted event's chain-hash preimage as selector
+  metadata only, and no payload content, because the v1 record hash covers
+  none. The walk recomputes every bridge's `record_hash` and checks
+  `prev_hash` continuity across records and bridges together.
+- An altered, removed, reordered, relabelled, or forged bridge fails with the
+  code a tampered record gets: `WALK_RECORD_HASH_MISMATCH`,
+  `WALK_PREV_HASH_DISCONTINUITY`, or `WALK_SEQUENCE_INVERSION`. A run of links
+  (sequence and hashes) without a matching preimage cannot close a gap. A
+  bridge that restates a disclosed record with different facts is refused as
+  a duplicate sequence number. An identical copy is walked once. A present but
+  malformed bridge list fails closed.
+- Bridges are reported apart from records, as `proof_bridge_entries` in the
+  walk summary and in the claim message. They never count as disclosed
+  records, so a walk that finds bridges but no records is still
+  `insufficient_evidence` (`WALK_NO_EVALUABLE_SUBJECTS`).
+- The continuity claim now reads its counts from the walk's final summary
+  only. Before, a `chain_scope` value supplied by the export, which the walk
+  echoes earlier in its output, could stand in for `entries_walked`. That
+  could only ever turn a pass into `insufficient_evidence`, never a failure
+  into a pass.
+
 ### Unchanged
 
 - Recipe v7's body is JSON-value-identical to recipe v6. Existing v6 bundles
-  remain supported, and no verdict, claim registry, evidence schema,
-  adjudication rule, or presentation statement changes in this release.
+  remain supported, and the recipe admission changes no verdict, claim
+  registry, evidence schema, adjudication rule, or presentation statement.
+- The v1 record-hash recipe and its pinned artifact
+  (`keel.governance_chain.record_hash.v1`) are byte-identical. An unbridged
+  gap is still `disproved` (`WALK_PREV_HASH_DISCONTINUITY`), as the golden
+  `neg-chain-dropped-interior-event` vector requires. Exports without a
+  `scope_faithfulness` block, `audit_export_bundle` walks, and every
+  contiguous export are walked exactly as before. Scope-faithfulness
+  adjudication itself is unchanged.
+- Existing filtered production packs need no reissue. Their bridges were
+  already inside the signed payload, so they verify as they are.
 
 ### Release integrity
 

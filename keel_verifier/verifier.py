@@ -3193,12 +3193,154 @@ def _flatten_chain_entries(
     return flattened, None
 
 
+# Fields the v1 record hash covers that a proof-bridge record carries as
+# selector metadata rather than at the top level. The hash covers no payload
+# content, so these four plus the top-level identity, sequence, timestamp and
+# hash fields are the complete preimage.
+_PROOF_BRIDGE_SELECTOR_HASH_FIELDS = ("resource_type", "resource_id", "outcome", "severity")
+
+
+def _proof_bridge_walk_entry(
+    record: dict[str, Any],
+    *,
+    derived_chain_scope: str | None,
+) -> dict[str, Any]:
+    """Turn one scope-faithfulness proof-bridge record into a walkable entry.
+
+    A bridge record stands in for an event the export's filter left out. It
+    carries that event's chain-hash preimage as selector metadata only: event
+    identity, sequence, timestamp and hashes at the top level, and
+    ``resource_type``, ``resource_id``, ``outcome`` and ``severity`` in the
+    selector-only ``payload_json``. The fields are copied verbatim and the walk
+    recomputes the record hash from them, so a bridge whose metadata was
+    altered, or whose hash was invented to connect two records, fails exactly
+    as a tampered record would. Links alone (sequence and hashes) would prove
+    nothing: without the preimage, any made-up run of hashes connects.
+    """
+
+    normalized = _normalize_scope_record(record)
+    source = record.get("chain_entry_ref")
+    if not isinstance(source, dict):
+        source = record
+    payload = normalized.get("payload_json") if isinstance(normalized, dict) else None
+    if not isinstance(payload, dict):
+        payload = {}
+    entry: dict[str, Any] = {
+        "event_id": normalized.get("event_id"),
+        "event_type": normalized.get("event_type"),
+        "chain_scope": normalized.get("chain_scope") or derived_chain_scope,
+        "sequence_number": normalized.get("sequence_number"),
+        "record_hash": normalized.get("record_hash"),
+        "prev_hash": normalized.get("prev_hash"),
+        "created_at": normalized.get("created_at"),
+        "chain_format_version": str(normalized.get("chain_format_version") or "v1"),
+        "payload_json": payload,
+    }
+    for field in _PROOF_BRIDGE_SELECTOR_HASH_FIELDS:
+        if field in record:
+            entry[field] = record[field]
+        elif field in source:
+            entry[field] = source[field]
+        else:
+            entry[field] = payload.get(field)
+    return entry
+
+
+def _walk_entry_identity(entry: dict[str, Any]) -> tuple[Any, ...] | None:
+    """Everything the v1 record hash commits to, plus the stated hashes.
+
+    Two entries with the same identity are the same chain entry supplied
+    twice, so keeping one loses nothing: the kept copy's hash is still
+    recomputed. Anything short of full equality is left for the walk's
+    duplicate-sequence check to refuse.
+    """
+
+    try:
+        created_at = _parse_record_hash_timestamp(entry.get("created_at"))
+    except (TypeError, ValueError):
+        return None
+    if created_at.tzinfo is not None:
+        created_at = created_at.replace(tzinfo=None)
+    sequence_number = entry.get("sequence_number")
+    if isinstance(sequence_number, bool) or not isinstance(sequence_number, int):
+        return None
+    return (
+        entry.get("chain_scope"),
+        sequence_number,
+        entry.get("event_id"),
+        entry.get("event_type"),
+        entry.get("resource_type") or "",
+        entry.get("resource_id") or "",
+        entry.get("outcome") or "",
+        entry.get("severity"),
+        created_at.strftime("%Y-%m-%dT%H:%M:%S.%f"),
+        entry.get("prev_hash"),
+        entry.get("record_hash"),
+        entry.get("chain_format_version"),
+    )
+
+
+def _governance_events_proof_bridge_arrays(
+    bundle: dict[str, Any],
+    *,
+    derived_chain_scope: str | None,
+) -> tuple[list[list[dict[str, Any]]], int | None]:
+    """Return the export's own proof-bridge records, one array per segment.
+
+    They are read only from the signed payload's ``scope_faithfulness``
+    block, whose released semantics define ``proof_bridge_records`` as
+    out-of-scope records "supplied only to satisfy continuity". An export
+    without that block contributes nothing, which leaves the walk exactly as
+    it was. A block that is present but whose bridge list is not a list of
+    objects fails closed rather than being skipped.
+    """
+
+    block = bundle.get("scope_faithfulness")
+    if not isinstance(block, dict):
+        return [], None
+    segments = block.get("segments")
+    if not isinstance(segments, list):
+        return [], None
+    arrays: list[list[dict[str, Any]]] = []
+    for segment_index, segment in enumerate(segments):
+        if not isinstance(segment, dict):
+            continue
+        evidence = segment.get("chain_evidence")
+        if not isinstance(evidence, dict) or "proof_bridge_records" not in evidence:
+            continue
+        bridges = evidence.get("proof_bridge_records")
+        label = f"scope_faithfulness.segments[{segment_index}].chain_evidence.proof_bridge_records"
+        if not isinstance(bridges, list):
+            return [], _walk_structure_fail(f"{label} must be a list")
+        converted: list[dict[str, Any]] = []
+        for bridge_index, bridge in enumerate(bridges):
+            if not isinstance(bridge, dict):
+                return [], _walk_structure_fail(f"{label}[{bridge_index}] must be an object")
+            converted.append(
+                _proof_bridge_walk_entry(bridge, derived_chain_scope=derived_chain_scope)
+            )
+        arrays.append(converted)
+    return arrays, None
+
+
 def _governance_events_export_as_walk_bundle(
     bundle: dict[str, Any],
-) -> tuple[dict[str, Any] | None, int | None]:
+) -> tuple[dict[str, Any] | None, int | None, int]:
+    """Convert a governance-events export into walkable chain-entry arrays.
+
+    The records are the disclosed events. A filtered export's records are not
+    contiguous, so on their own they cannot show that the chain runs unbroken
+    from one to the next. The export's proof-bridge records supply the
+    omitted events' chain-hash preimages (selector metadata only), and are
+    walked alongside the records: every hash is recomputed and every link
+    checked across the union. Bridges are never counted as disclosed records.
+
+    The third return value is the number of bridge entries added to the walk.
+    """
+
     records = bundle.get("records")
     if not isinstance(records, list):
-        return None, _walk_structure_fail("records must be a list")
+        return None, _walk_structure_fail("records must be a list"), 0
 
     chain_entries: list[dict[str, Any]] = []
     project_id = bundle.get("project_id")
@@ -3209,7 +3351,7 @@ def _governance_events_export_as_walk_bundle(
         if not isinstance(record, dict):
             return None, _walk_structure_fail(
                 f"records[{record_index}] must be an object",
-            )
+            ), 0
         entry = dict(record)
         entry["chain_format_version"] = str(record.get("chain_format_version") or "v1")
         entry["created_at"] = record.get("occurred_at") or record.get("created_at")
@@ -3219,13 +3361,54 @@ def _governance_events_export_as_walk_bundle(
             entry["chain_scope"] = derived_chain_scope
         chain_entries.append(entry)
 
+    bridge_arrays, bridge_failure = _governance_events_proof_bridge_arrays(
+        bundle,
+        derived_chain_scope=derived_chain_scope,
+    )
+    if bridge_failure is not None:
+        return None, bridge_failure, 0
+
+    # A bridge that is byte-for-byte the same chain entry as a record (or as a
+    # bridge in another segment) is dropped rather than walked twice. A bridge
+    # that shares a sequence number with a record but differs in any hashed
+    # field is kept, and the walk refuses the duplicate.
+    seen_identities: set[tuple[Any, ...]] = set()
+    for entry in chain_entries:
+        identity = _walk_entry_identity(entry)
+        if identity is not None:
+            seen_identities.add(identity)
+    walk_arrays: list[list[dict[str, Any]]] = [chain_entries]
+    bridge_count = 0
+    for bridges in bridge_arrays:
+        kept: list[dict[str, Any]] = []
+        for bridge in bridges:
+            identity = _walk_entry_identity(bridge)
+            if identity is not None and identity in seen_identities:
+                continue
+            if identity is not None:
+                seen_identities.add(identity)
+            kept.append(bridge)
+        if kept:
+            walk_arrays.append(kept)
+            bridge_count += len(kept)
+
+    if bridge_count == 0:
+        return {
+            "bundle_type": "audit_export_bundle",
+            "schema_version": 2,
+            "include_chain_entries": True,
+            "chain_entries": chain_entries,
+            "records": [],
+        }, None, 0
+
+    # Each source array keeps its own array-order check; the walk then sorts
+    # the union per chain scope.
     return {
         "bundle_type": "audit_export_bundle",
         "schema_version": 2,
         "include_chain_entries": True,
-        "chain_entries": chain_entries,
-        "records": [],
-    }, None
+        "records": [{"chain_entries": array} for array in walk_arrays],
+    }, None, bridge_count
 
 
 def _walk_export_events(
@@ -3242,8 +3425,11 @@ def _walk_export_events(
 
     if not isinstance(bundle, dict):
         return _walk_structure_fail("bundle must be a JSON object")
+    proof_bridge_entries = 0
     if bundle.get("schema") == "keel.governance_events/v1":
-        bundle, conversion_result = _governance_events_export_as_walk_bundle(bundle)
+        bundle, conversion_result, proof_bridge_entries = (
+            _governance_events_export_as_walk_bundle(bundle)
+        )
         if conversion_result is not None:
             return conversion_result
         if bundle is None:
@@ -3435,6 +3621,10 @@ def _walk_export_events(
     print("WALK-EVENTS: VERIFIED")
     print(f"  chain_scopes:        {len(by_scope)}")
     print(f"  entries_walked:      {entries_walked}")
+    if proof_bridge_entries:
+        # Bridges are walked and hash-checked like any entry but are not
+        # disclosed records, so they are reported apart from them.
+        print(f"  proof_bridge_entries: {proof_bridge_entries} (selector metadata only)")
     print(f"  record_hash_checks:  {record_hash_checks} PASS")
     print(f"  prev_hash_checks:    {prev_hash_checks} PASS (excludes window-edge entries)")
     print(f"  sequence_checks:     {sequence_checks} PASS")
@@ -13697,11 +13887,33 @@ def _walk_claim_from_output(
     result: int,
 ) -> ClaimVerdict:
     if result == 0 and "WALK-EVENTS: VERIFIED" in stdout:
-        entries = _count_from_output(stdout, "entries_walked")
-        if entries is not None and entries == 0:
+        # Counts are read from the summary the walk prints last. Earlier lines
+        # echo export-supplied values such as chain_scope, which must not be
+        # able to stand in for a count.
+        summary = stdout.rsplit("WALK-EVENTS: VERIFIED", 1)[-1]
+        entries = _count_from_output(summary, "entries_walked")
+        bridges = _count_from_output(summary, "proof_bridge_entries") or 0
+        evidence = ["export.chain_entries", "export.records.chain_entries"]
+        # Proof-bridge entries prove the links between disclosed records; they
+        # are not subjects in their own right, so a walk of bridges alone has
+        # nothing to adjudicate.
+        if entries is not None and entries - bridges <= 0:
             verdict = "insufficient_evidence"
             reason_code = "WALK_NO_EVALUABLE_SUBJECTS"
             message = "walk-events found zero evaluable chain entries"
+        elif bridges:
+            disclosed = (entries or 0) - bridges
+            verdict = "supported"
+            reason_code = "WALK_EVENTS_SUPPORTED"
+            message = (
+                "governance chain local continuity verified across "
+                f"{disclosed} disclosed {'record' if disclosed == 1 else 'records'} "
+                f"and {bridges} proof-bridge {'entry' if bridges == 1 else 'entries'} "
+                "carrying selector metadata only"
+            )
+            evidence.append(
+                "export.scope_faithfulness.segments.chain_evidence.proof_bridge_records"
+            )
         else:
             verdict = "supported"
             reason_code = "WALK_EVENTS_SUPPORTED"
@@ -13713,7 +13925,7 @@ def _walk_claim_from_output(
             verdict=verdict,
             reason_code=reason_code,
             message=message,
-            evidence=["export.chain_entries", "export.records.chain_entries"],
+            evidence=evidence,
         )
 
     reason_code, message = _failure_from_output(stdout, stderr)

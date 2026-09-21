@@ -267,6 +267,8 @@ keel-verify export export.json manifest.json --allow-unsigned
 
 It groups entries by `chain_scope`, sorts by `sequence_number`, recomputes every `record_hash`, verifies `prev_hash` continuity inside the export window, and fails closed on unknown `chain_format_version` values.
 
+It also walks `keel.governance_events/v1` exports. A filtered governance-events export discloses only the events that match its filter, so its records are not contiguous. When the signed payload carries a `scope_faithfulness` block, the walk also reads that block's `proof_bridge_records`. For each event the filter left out between two disclosed records, a bridge record carries the chain-hash preimage as selector metadata only: event id and type, resource type and id, outcome, severity, timestamp, sequence number, and previous and record hashes. The v1 record hash covers no payload content, so no payload is needed. Every bridge's hash is recomputed and every link is checked across records and bridges together, so an altered, missing, reordered, or forged bridge fails the walk. Bridges are reported as `proof_bridge_entries` and never count as disclosed records. An unbridged gap is still `WALK_PREV_HASH_DISCONTINUITY`.
+
 Schema version 1 exports remain backward compatible. They can still be verified at the export-signature layer, but they do not contain chain entries to walk.
 
 ## Closure Verification
