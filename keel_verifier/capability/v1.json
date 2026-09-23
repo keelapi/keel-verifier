@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.26.0",
+    "version": "3.27.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -10,7 +10,7 @@
   "spec_compatibility": {
     "permit_spec_version": "1.24.0",
     "permit_spec_source": "https://github.com/keelapi/keel-permit",
-    "claim_registry": "https://github.com/keelapi/keel-permit/blob/v1.24.0/claim_registry/v7.json",
+    "claim_registry": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v8.json",
     "comparator_registry": "https://github.com/keelapi/keel-permit/blob/main/comparator_registry/v0.json"
   },
   "claims": [
@@ -1095,6 +1095,19 @@
       ]
     },
     {
+      "name": "mcp.review_journey.v1",
+      "status": "implemented",
+      "description": "Adjudicates signed review approval, a distinct execution Permit citation for the same exact request, and an optional signed closure. It does not establish upstream dispatch timing, provider completion, or external effect.",
+      "depends_on_semantics": [],
+      "semantics_resolution": "evidence_pack_pinned",
+      "verdicts": [
+        "supported",
+        "disproved",
+        "insufficient_evidence",
+        "unverifiable_scope"
+      ]
+    },
+    {
       "name": "permit.mcp_action_mapping_binding.v1",
       "status": "implemented",
       "description": "Adjudicates managed-MCP Action Mapping evidence against the keel-api-owned canonical schema: exact source identity, mapping ID, integer mapping revision, canonical manifest hash, lifecycle epoch and state, assurance, target governance-action ID/version/catalog-entry hash, the mcp_challenge_basis.v4 challenge basis, and the activation-record reference. Binding an activation reference is not verification of the ceremony that produced it.",
@@ -1643,5 +1656,5 @@
       "status": "allowlisted"
     }
   ],
-  "version": "3.26.0"
+  "version": "3.27.0"
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased (3.27.0 candidate)
+
+- Verify signed MCP review-to-execution journey bundles, including distinct
+  reviewed and execution Permit decisions, the signed approval transition,
+  exact request linkage, and the signed closure when one is recorded. The
+  `mcp.review_journey.v1` claim does not establish provider completion or an
+  external effect.
+
 ## 3.26.0
 
 A minor release rather than a patch: the event walk now verifies a filtered
