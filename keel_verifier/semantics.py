@@ -280,6 +280,7 @@ AuthorityEnvelopeComparator = Callable[..., Any]
 # turn pack-scoped contracts into verifier-global semantics.
 PROFILE_DRIVEN_CLAIMS = frozenset(
     {
+        "mcp.review_journey.v1",
         "permit.delegate_child_linkage.v1",
         "permit.generate_text_exact_request.v1",
         "permit.refund_original_payment_bound.v1",

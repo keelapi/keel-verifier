@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/blob/main/claim_registry/v8.json",
+  "title": "Verifier Claim Registry - v8",
+  "version": "verifier-claims.v8",
+  "description": "Signed MCP review-to-execution journey linkage and closure evidence, with explicit limits on provider and external-effect claims.",
+  "extends": {
+    "artifact_id": "keel.verifier_claim_registry.v7",
+    "version": "verifier-claims.v7",
+    "sha256": "1c8c5d1165470e34f7a1913019aae0da1fd194d46ce916a2a5de94e39f4fd95b"
+  },
+  "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"],
+  "claims": [
+    {
+      "name": "mcp.review_journey.v1",
+      "assertion": "The export links a signed, approved reviewed MCP Permit to a distinct signed execution Permit for the same exact request, and where present verifies the execution Permit closure signature and request digest.",
+      "required_evidence": "Valid signed inner Permit bundles, trusted signed Permit decisions, the reviewed Permit's signed approval transition, the execution Permit's signed citation to the reviewed Permit ID, equal signed final request hashes, and, for a reported closure, a trusted signed closure payload whose Permit ID and request digest match the execution Permit.",
+      "does_not_establish": [
+        "independent validity of the review hash or approval requirement hash",
+        "absence of execution when no execution Permit is in the export",
+        "upstream dispatch timing or uniqueness",
+        "provider completion, settlement, or external real-world outcome"
+      ],
+      "verdict_enum": ["supported", "disproved", "insufficient_evidence", "unverifiable_scope"]
+    }
+  ]
+}

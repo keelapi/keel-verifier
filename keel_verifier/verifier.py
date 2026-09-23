@@ -98,6 +98,10 @@ from keel_verifier.verdicts import (
 )
 from keel_verifier.semantics import (
     CLAIM_SEMANTICS,
+    CLOSURE_FORMAT_V2_ID,
+    PERMIT_DECISION_ID,
+    PERMIT_REVIEW_TRANSITION_ID,
+    RELEASED_ARTIFACT_HASHES,
     SemanticsDispatch,
     ResolvedSemantics,
     SCOPE_STATE_MERKLE_ID,
@@ -14551,6 +14555,275 @@ def _adjudicate_permit_exact_v2(
     )
 
 
+def _adjudicate_mcp_review_journey_v1(
+    *,
+    body: dict[str, Any],
+    args: argparse.Namespace,
+) -> tuple[list[ClaimVerdict], dict[str, Any], str | None]:
+    """Verify the review-to-execution link without claiming universal enforcement.
+
+    The review hash and approval requirement hash cited by the execution
+    Permit are opaque to this export. The checked link is the signed reviewed
+    Permit ID plus the exact request hash signed by both Permit decisions.
+    """
+
+    claims: list[ClaimVerdict] = []
+    reviewed_id = body.get("reviewed_permit_id")
+    execution_id = body.get("execution_permit_id")
+    project_id = body.get("project_id")
+
+    def check(ok: bool, code: str, message: str, evidence: list[str]) -> None:
+        claims.append(
+            replace(
+                _permit_claim(
+                    "mcp.review_journey.v1",
+                    subject_type="mcp_review_journey",
+                    subject_id=str(reviewed_id or ""),
+                    verdict="supported" if ok else "disproved",
+                    reason_code=code,
+                    message=message,
+                    evidence=evidence,
+                ),
+                semantics=[
+                    {"id": semantic_id, "hash": RELEASED_ARTIFACT_HASHES[semantic_id]}
+                    for semantic_id in (
+                        PERMIT_DECISION_ID,
+                        PERMIT_REVIEW_TRANSITION_ID,
+                        CLOSURE_FORMAT_V2_ID,
+                    )
+                ],
+            )
+        )
+
+    def nested_bundle(name: str) -> dict[str, Any] | None:
+        value = body.get(name)
+        if not isinstance(value, dict):
+            check(False, "MCP_JOURNEY_BUNDLE_MISSING", f"{name} is missing", [name])
+            return None
+        ok, error, inner, _, _, _ = _verify_self_attesting_bundle_payload(
+            value, artifact_id=name, check_tsa=True
+        )
+        if not ok or not isinstance(inner, dict) or inner.get("profile") != "keel.permit_exact/v4":
+            check(
+                False,
+                "MCP_JOURNEY_BUNDLE_INVALID",
+                f"{name} has invalid signature, integrity, or profile: {error}",
+                [name],
+            )
+            return None
+        return inner
+
+    reviewed = nested_bundle("reviewed_permit_bundle")
+    if reviewed is None:
+        return claims, {}, claims[-1].message
+    reviewed_decision = reviewed.get("permit_decision")
+    reviewed_attrs = (
+        reviewed_decision.get("resource_attributes_json")
+        if isinstance(reviewed_decision, dict)
+        else None
+    )
+    reviewed_facts = (
+        reviewed_attrs.get("permit_authorization_facts_v1")
+        if isinstance(reviewed_attrs, dict)
+        else None
+    )
+    reviewed_signed = (
+        reviewed_decision.get("canonical_payload") if isinstance(reviewed_decision, dict) else None
+    )
+    reviewed_claim = _adjudicate_permit_decision_v1(
+        export_document=reviewed,
+        key_manifest_source=_key_manifest_source_for_args(args),
+    )
+    claims.append(reviewed_claim)
+    if reviewed_claim.aggregate_verdict != verdict_value("supported"):
+        return claims, {}, reviewed_claim.message
+    check(
+        isinstance(reviewed_signed, dict)
+        and reviewed.get("permit_id") == reviewed_id
+        and reviewed.get("project_id") == project_id
+        and reviewed_signed.get("permit_id") == reviewed_id
+        and reviewed_signed.get("project_id") == project_id
+        and reviewed_signed.get("decision") == "challenge"
+        and reviewed_signed.get("provider") == "mcp",
+        "MCP_JOURNEY_REVIEW_IDENTITY",
+        "reviewed Permit identity, project, and challenge decision agree",
+        ["reviewed_permit_bundle.body.permit_decision"],
+    )
+    if claims[-1].aggregate_verdict != verdict_value("supported"):
+        return claims, {}, claims[-1].message
+    has_execution = (
+        execution_id is not None
+        or body.get("execution_permit_bundle") is not None
+        or body.get("execution_closure") is not None
+    )
+    transition_payload = reviewed.get("review_transition")
+    if (
+        not has_execution
+        and isinstance(transition_payload, dict)
+        and transition_payload.get("status") == "not_present"
+    ):
+        return (
+            claims,
+            {
+                "profile": "keel.mcp_review_journey/v1",
+                "state": "review_without_approval_transition_in_export",
+                "reviewed_permit_id": reviewed_id,
+            },
+            None,
+        )
+    approval_claim = _adjudicate_permit_review_transition_v1(
+        export_document=reviewed,
+        key_manifest_source=_key_manifest_source_for_args(args),
+    )
+    claims.append(approval_claim)
+    if approval_claim.aggregate_verdict != verdict_value("supported"):
+        return claims, {}, approval_claim.message
+    transition = reviewed["review_transition"]["signed_event"]
+    check(
+        transition.get("permit_id") == reviewed_id
+        and transition.get("project_id") == project_id
+        and transition.get("to_decision") == "allow",
+        "MCP_JOURNEY_APPROVAL_IDENTITY",
+        "signed approval transition names the reviewed Permit",
+        ["reviewed_permit_bundle.body.review_transition"],
+    )
+    if claims[-1].aggregate_verdict != verdict_value("supported"):
+        return claims, {}, claims[-1].message
+
+    if not has_execution:
+        return (
+            claims,
+            {
+                "profile": "keel.mcp_review_journey/v1",
+                "state": "review_approved_execution_not_in_export",
+                "reviewed_permit_id": reviewed_id,
+            },
+            None,
+        )
+
+    execution = nested_bundle("execution_permit_bundle")
+    if execution is None:
+        return claims, {}, claims[-1].message
+    execution_claim = _adjudicate_permit_decision_v1(
+        export_document=execution,
+        key_manifest_source=_key_manifest_source_for_args(args),
+    )
+    claims.append(execution_claim)
+    if execution_claim.aggregate_verdict != verdict_value("supported"):
+        return claims, {}, execution_claim.message
+    execution_decision = execution.get("permit_decision")
+    execution_signed = (
+        execution_decision.get("canonical_payload")
+        if isinstance(execution_decision, dict)
+        else None
+    )
+    execution_attrs = (
+        execution_decision.get("resource_attributes_json")
+        if isinstance(execution_decision, dict)
+        else None
+    )
+    citation = (
+        execution_attrs.get("mcp_review_resume_v1") if isinstance(execution_attrs, dict) else None
+    )
+    check(
+        isinstance(execution_signed, dict)
+        and isinstance(reviewed_signed, dict)
+        and isinstance(citation, dict)
+        and execution_id != reviewed_id
+        and execution.get("permit_id") == execution_id
+        and execution.get("project_id") == project_id
+        and execution_signed.get("permit_id") == execution_id
+        and execution_signed.get("project_id") == project_id
+        and execution_signed.get("decision") == "allow"
+        and execution_signed.get("provider") == "mcp"
+        and citation.get("reviewed_permit_id") == reviewed_id
+        and isinstance(reviewed_facts, dict)
+        and isinstance(execution_signed.get("final_request_hash"), str)
+        and reviewed_facts.get("request_digest")
+        == f"sha256:{execution_signed.get('final_request_hash')}"
+        and isinstance(execution_attrs.get("permit_authorization_facts_v1"), dict)
+        and execution_attrs["permit_authorization_facts_v1"] == reviewed_facts,
+        "MCP_JOURNEY_EXECUTION_LINK",
+        "signed execution Permit cites the approved reviewed Permit and the same exact request",
+        [
+            "reviewed_permit_bundle.body.permit_decision",
+            "execution_permit_bundle.body.permit_decision",
+        ],
+    )
+    if claims[-1].aggregate_verdict != verdict_value("supported"):
+        return claims, {}, claims[-1].message
+
+    closure = body.get("execution_closure")
+    closure_status = None
+    receipt = execution.get("permit_receipt")
+    digests = receipt.get("result_digests") if isinstance(receipt, dict) else None
+    if closure is None and isinstance(digests, dict) and digests.get("closure_status") is not None:
+        check(
+            False,
+            "MCP_JOURNEY_CLOSURE_MISSING",
+            "execution receipt names a closure but the signed closure is absent",
+            ["execution_closure", "execution_permit_bundle.body.permit_receipt"],
+        )
+        return claims, {}, claims[-1].message
+    if closure is not None:
+        closure_ok = False
+        reason = "signed closure shape is invalid"
+        if isinstance(closure, dict) and closure.get("binding_version") in {
+            "closure_v2",
+            CLOSURE_RFC8785_BINDING_VERSION,
+        }:
+            closure_ok, reason = _verify_closure_v2_signature(payload=closure, args=args)
+        closure_fields_match = bool(
+            closure_ok
+            and isinstance(digests, dict)
+            and closure.get("permit_id") == execution_id
+            and closure.get("dispatch_request_digest_v1")
+            == execution_signed.get("final_request_hash")
+            and closure.get("closure_canonical_hash") == digests.get("closure_canonical_hash")
+            and closure.get("closure_status") == digests.get("closure_status")
+            and (
+                closure.get("closure_status") != "closed"
+                or (
+                    isinstance(closure.get("provider_response_digest_v1"), str)
+                    and bool(closure.get("provider_response_digest_v1"))
+                    and isinstance(closure.get("client_response_digest_v1"), str)
+                    and bool(closure.get("client_response_digest_v1"))
+                )
+            )
+        )
+        if closure_ok and not closure_fields_match:
+            reason = "closure fields do not match the signed execution Permit"
+        closure_ok = closure_fields_match
+        check(
+            closure_ok,
+            "MCP_JOURNEY_CLOSURE_SIGNATURE",
+            "signed closure verifies and binds the execution Permit request"
+            if closure_ok
+            else f"execution closure failed verification: {reason}",
+            ["execution_closure", "execution_permit_bundle.body.permit_receipt"],
+        )
+        if not closure_ok:
+            return claims, {}, claims[-1].message
+        closure_status = closure.get("closure_status")
+    return (
+        claims,
+        {
+            "profile": "keel.mcp_review_journey/v1",
+            "state": "execution_recorded"
+            if execution_id
+            else "review_approved_execution_not_in_export",
+            "reviewed_permit_id": reviewed_id,
+            "execution_permit_id": execution_id,
+            "closure_status": closure_status,
+            "does_not_establish": [
+                "independent validity of the review hash or approval requirement hash",
+                "provider completion or external real-world outcome",
+            ],
+        },
+        None,
+    )
+
+
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
     manifest_arg = getattr(args, "manifest", None)
@@ -14624,6 +14897,22 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             "keel.permit_exact/v3",
             "keel.permit_exact/v4",
         }
+        if ok and exact_profile == "keel.mcp_review_journey/v1" and isinstance(body, dict):
+            journey_claims, journey_summary, journey_error = _adjudicate_mcp_review_journey_v1(
+                body=body, args=args
+            )
+            claims.extend(journey_claims)
+            if journey_error is not None:
+                ok = False
+                error = journey_error
+                diagnostics.append(journey_error)
+            artifact.update(
+                {
+                    "kind": "mcp_review_journey",
+                    "profile": exact_profile,
+                    "journey": journey_summary,
+                }
+            )
         if (
             ok
             and exact_profile is not None
@@ -14793,7 +15082,11 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             and bundle.get("schema_version")
             == SELF_ATTESTING_BUNDLE_SCHEMA_VERSION_V2
             and exact_profile
-            not in (SUPPORTED_CO_SIGNATURE_PROFILES | supported_exact_profiles)
+            not in (
+                SUPPORTED_CO_SIGNATURE_PROFILES
+                | supported_exact_profiles
+                | {"keel.mcp_review_journey/v1"}
+            )
         ):
             # v2 exists precisely so that a body profile cannot be ignored.
             # Reaching here means the profile was never adjudicated, so the
