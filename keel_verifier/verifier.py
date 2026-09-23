@@ -4115,6 +4115,17 @@ def _authority_constraints_subset(child: Any, parent: Any) -> bool:
         and child.get("requires_human_approval") is not True
     ):
         return False
+    # An absent bound is unbounded, so a child must carry each bound its parent
+    # sets.
+    for key in (
+        "max_recipients",
+        "max_item_amount_usd_micros",
+        "allow_domains",
+        "deny_external_domains",
+        "allowed_hours",
+    ):
+        if parent.get(key) not in (None, [], {}) and key not in child:
+            return False
     if (
         "max_recipients" in child
         and "max_recipients" in parent

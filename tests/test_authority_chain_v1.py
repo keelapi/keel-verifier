@@ -19,6 +19,7 @@ from keel_verifier.verifier import (
     _adjudicate_authority_revocation_temporal_v1,
     _adjudicate_permit_authority_chain_v1,
     _authority_chain_payload_for_edges,
+    _authority_constraints_subset,
     _authority_resource_subset,
     _authority_rfc8785_bytes,
     _authority_sha256_hex,
@@ -339,9 +340,11 @@ def _two_edge_authority_export(
     *,
     parent_resources: dict[str, Any],
     child_resources: dict[str, Any],
+    parent_constraints: dict[str, Any] | None = None,
+    child_constraints: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Build a signed user -> agent -> agent chain that differs only in the
-    two edges' scope.resources."""
+    two edges' scope.resources and scope.constraints."""
 
     root_private_key, root_public_key, root_key_id = keypair()
     agent_private_key, agent_public_key, agent_key_id = keypair()
@@ -354,13 +357,15 @@ def _two_edge_authority_export(
         "not_after": "2026-12-31T00:00:00Z",
     }
 
-    def _scope(resources: dict[str, Any]) -> dict[str, Any]:
+    def _scope(
+        resources: dict[str, Any], constraints: dict[str, Any] | None
+    ) -> dict[str, Any]:
         return {
             "action_verbs": ["execute"],
             "action_classes": ["llm.invoke"],
             "resources": resources,
             "data_classes": ["prompt"],
-            "constraints": {},
+            "constraints": constraints or {},
         }
 
     root_edge = _signed_authority_edge(
@@ -373,7 +378,7 @@ def _two_edge_authority_export(
             "delegator": {"principal_type": "user", "principal_id": user_id},
             "delegate": {"principal_type": "agent", "principal_id": parent_agent_id},
             "signing_key": {"key_id": root_key_id, "custody_tier": "org_key"},
-            "scope": _scope(parent_resources),
+            "scope": _scope(parent_resources, parent_constraints),
             "budget_partition": None,
             "creation_policy": {"remaining_depth": 1, "max_children": 1},
             "validity": dict(validity),
@@ -391,7 +396,7 @@ def _two_edge_authority_export(
             "delegator": {"principal_type": "agent", "principal_id": parent_agent_id},
             "delegate": {"principal_type": "agent", "principal_id": leaf_agent_id},
             "signing_key": {"key_id": agent_key_id, "custody_tier": "org_key"},
-            "scope": _scope(child_resources),
+            "scope": _scope(child_resources, child_constraints),
             "budget_partition": None,
             "creation_policy": {"remaining_depth": 0, "max_children": 0},
             "validity": dict(validity),
@@ -949,6 +954,38 @@ def test_authority_resource_subset_requires_every_parent_key(
     expected: bool,
 ) -> None:
     assert _authority_resource_subset(child, parent) is expected
+
+
+@pytest.mark.parametrize(
+    ("constraint", "value"),
+    [
+        ("max_recipients", 5),
+        ("max_item_amount_usd_micros", 250000),
+        ("allow_domains", ["example.com"]),
+        ("deny_external_domains", ["blocked.example"]),
+        ("allowed_hours", {"tz": "UTC", "start": "09:00", "end": "17:00"}),
+    ],
+)
+def test_authority_chain_child_omitting_parent_constraint_is_disproved(
+    constraint: str,
+    value: Any,
+) -> None:
+    export_document, trust_root = _two_edge_authority_export(
+        parent_resources={},
+        child_resources={},
+        parent_constraints={constraint: value},
+        child_constraints={},
+    )
+
+    claim = _adjudicate_permit_authority_chain_v1(
+        export_document=export_document,
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "authority_chain.constraint_not_stricter"
+    assert _authority_constraints_subset({constraint: value}, {constraint: value}) is True
+    assert _authority_constraints_subset({}, {constraint: value}) is False
 
 
 # ---------------------------------------------------------------------------
