@@ -4085,6 +4085,10 @@ def _authority_set_subset(child: Any, parent: Any) -> bool:
 def _authority_resource_subset(child: Any, parent: Any) -> bool:
     if not isinstance(child, dict) or not isinstance(parent, dict):
         return False
+    # A resource key the edge does not carry is unrestricted, so a child that
+    # omits a key its parent restricts widens that dimension.
+    if any(key not in child for key in parent):
+        return False
     for key, child_value in child.items():
         if not isinstance(child_value, str) or key not in parent:
             return False

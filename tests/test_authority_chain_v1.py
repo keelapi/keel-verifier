@@ -19,6 +19,7 @@ from keel_verifier.verifier import (
     _adjudicate_authority_revocation_temporal_v1,
     _adjudicate_permit_authority_chain_v1,
     _authority_chain_payload_for_edges,
+    _authority_resource_subset,
     _authority_rfc8785_bytes,
     _authority_sha256_hex,
     _edge_status_canonical_hash,
@@ -329,6 +330,114 @@ def _supported_authority_export() -> tuple[dict[str, Any], dict[str, Any]]:
                 "revoked_at": None,
                 "compromised_at": None,
             }
+        ],
+    }
+    return export_document, trust_root
+
+
+def _two_edge_authority_export(
+    *,
+    parent_resources: dict[str, Any],
+    child_resources: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build a signed user -> agent -> agent chain that differs only in the
+    two edges' scope.resources."""
+
+    root_private_key, root_public_key, root_key_id = keypair()
+    agent_private_key, agent_public_key, agent_key_id = keypair()
+    user_id = "user_ci_root"
+    parent_agent_id = "agent_ci_parent"
+    leaf_agent_id = "agent_ci_leaf"
+    project_id = "project_ci"
+    validity = {
+        "not_before": "2026-01-01T00:00:00Z",
+        "not_after": "2026-12-31T00:00:00Z",
+    }
+
+    def _scope(resources: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "action_verbs": ["execute"],
+            "action_classes": ["llm.invoke"],
+            "resources": resources,
+            "data_classes": ["prompt"],
+            "constraints": {},
+        }
+
+    root_edge = _signed_authority_edge(
+        private_key=root_private_key,
+        payload={
+            "edge_version": "authority_edge.v1",
+            "org_id": "org_ci",
+            "project_id": project_id,
+            "parent_edge_digest": None,
+            "delegator": {"principal_type": "user", "principal_id": user_id},
+            "delegate": {"principal_type": "agent", "principal_id": parent_agent_id},
+            "signing_key": {"key_id": root_key_id, "custody_tier": "org_key"},
+            "scope": _scope(parent_resources),
+            "budget_partition": None,
+            "creation_policy": {"remaining_depth": 1, "max_children": 1},
+            "validity": dict(validity),
+            "policy_version": "policy_ci_v1",
+            "signed_at": "2026-06-01T00:00:00Z",
+        },
+    )
+    leaf_edge = _signed_authority_edge(
+        private_key=agent_private_key,
+        payload={
+            "edge_version": "authority_edge.v1",
+            "org_id": "org_ci",
+            "project_id": project_id,
+            "parent_edge_digest": root_edge["edge_digest"],
+            "delegator": {"principal_type": "agent", "principal_id": parent_agent_id},
+            "delegate": {"principal_type": "agent", "principal_id": leaf_agent_id},
+            "signing_key": {"key_id": agent_key_id, "custody_tier": "org_key"},
+            "scope": _scope(child_resources),
+            "budget_partition": None,
+            "creation_policy": {"remaining_depth": 0, "max_children": 0},
+            "validity": dict(validity),
+            "policy_version": "policy_ci_v1",
+            "signed_at": "2026-06-02T00:00:00Z",
+        },
+    )
+    edges = [root_edge, leaf_edge]
+    chain_payload = _authority_chain_payload_for_edges(edges)
+    export_document = {
+        "permit": {
+            "permit_id": "permit_ci_two_edge_authority",
+            "binding_version": "v7",
+            "subject_type": "agent",
+            "subject_id": leaf_agent_id,
+            "authority_chain_digest": _authority_sha256_hex(
+                _authority_rfc8785_bytes(chain_payload)
+            ),
+        },
+        "authority_chain": {
+            "chain_version": "authority_chain.v1",
+            "payload": chain_payload,
+        },
+        "authority_edges": edges,
+        "resolution_time": "2026-06-03T00:00:00Z",
+        "requested_action": {"kind": "execute"},
+        "action_class_map": {"execute": ["llm.invoke"]},
+    }
+
+    def _key_record(key_id: str, public_key: str, signer_id: str) -> dict[str, Any]:
+        return {
+            "key_id": key_id,
+            "algorithm": "ed25519",
+            "public_key_bytes": public_key,
+            "signer_id": signer_id,
+            "custody_tier": "org_key",
+            "valid_from": "2026-01-01T00:00:00Z",
+            "valid_until": None,
+            "revoked_at": None,
+            "compromised_at": None,
+        }
+
+    trust_root = {
+        "keys": [
+            _key_record(root_key_id, root_public_key, user_id),
+            _key_record(agent_key_id, agent_public_key, parent_agent_id),
         ],
     }
     return export_document, trust_root
@@ -779,6 +888,67 @@ def test_authority_chain_verdict_outputs_render_verifier_version() -> None:
     assert payload["reason_code"] == "authority_chain.leaf_subject_mismatch"
     assert payload["subjects"]
     assert all(subject["verifier_version"] == verifier_version() for subject in payload["subjects"])
+
+
+def test_authority_chain_child_carrying_parent_resources_is_supported() -> None:
+    export_document, trust_root = _two_edge_authority_export(
+        parent_resources={"customer": "cust-*", "project_id": "project_ci"},
+        child_resources={"customer": "cust-a", "project_id": "project_ci"},
+    )
+
+    claim = _adjudicate_permit_authority_chain_v1(
+        export_document=export_document,
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "AUTHORITY_CHAIN_SUPPORTED"
+
+
+@pytest.mark.parametrize(
+    "child_resources",
+    [
+        pytest.param({}, id="child-omits-every-parent-resource"),
+        pytest.param({"project_id": "project_ci"}, id="child-omits-one-parent-resource"),
+    ],
+)
+def test_authority_chain_child_omitting_parent_resource_is_disproved(
+    child_resources: dict[str, Any],
+) -> None:
+    export_document, trust_root = _two_edge_authority_export(
+        parent_resources={"customer": "cust-a", "project_id": "project_ci"},
+        child_resources=child_resources,
+    )
+
+    claim = _adjudicate_permit_authority_chain_v1(
+        export_document=export_document,
+        trust_root=trust_root,
+    )
+
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "authority_chain.broadened_resources"
+
+
+@pytest.mark.parametrize(
+    ("child", "parent", "expected"),
+    [
+        ({}, {}, True),
+        ({"customer": "cust-a"}, {"customer": "cust-a"}, True),
+        ({"customer": "cust-a"}, {"customer": "cust-*"}, True),
+        ({"customer": "cust-a*"}, {"customer": "cust-*"}, True),
+        ({}, {"customer": "cust-a"}, False),
+        ({"project_id": "p"}, {"customer": "cust-a", "project_id": "p"}, False),
+        ({"customer": "cust-*"}, {"customer": "cust-a"}, False),
+        ({"customer": "cust-b"}, {"customer": "cust-a"}, False),
+        ({"customer": "cust-a", "region": "eu"}, {"customer": "cust-a"}, False),
+    ],
+)
+def test_authority_resource_subset_requires_every_parent_key(
+    child: dict[str, str],
+    parent: dict[str, str],
+    expected: bool,
+) -> None:
+    assert _authority_resource_subset(child, parent) is expected
 
 
 # ---------------------------------------------------------------------------
