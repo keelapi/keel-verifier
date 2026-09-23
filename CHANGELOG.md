@@ -1,6 +1,11 @@
 # Changelog
 
-## 3.25.2
+## 3.26.0
+
+A minor release rather than a patch: the event walk now verifies a filtered
+export's continuity through its proof bridges, so a correctly bridged export
+that 3.25.1 reported as `disproved` now verifies. That changes a verdict, and
+consumers pinning `~=3.25` should not pick it up silently.
 
 ### Added
 
@@ -61,7 +66,7 @@
 ### Release integrity
 
 - Assign a new candidate identity to the additional packaged recipe and
-  allowlist bytes. Release publication requires the signed `v3.25.2` tag and
+  allowlist bytes. Release publication requires the signed `v3.26.0` tag and
   the release workflow's Sigstore signatures, TSA witnesses, GitHub assets,
   and exact PyPI upload. The capability and release workflow pin keel-permit
   v1.24.0 to merge commit
