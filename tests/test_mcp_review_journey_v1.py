@@ -8,6 +8,10 @@ from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from keel_verifier.canonical.permit_binding import (
+    canonical_resource_attributes_payload,
+    compute_canonical_binding_hash,
+)
 from keel_verifier.verifier import (
     _artifact_ref_digest_for_body,
     _bundle_canonical_json_bytes,
@@ -18,6 +22,9 @@ from keel_verifier.verifier import (
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TEST_EXPORT_KEY = Ed25519PrivateKey.from_private_bytes(b"\x22" * 32)
+TEST_BINDING_KEY = Ed25519PrivateKey.from_private_bytes(
+    base64.b64decode("+FoRjk9KN7/PZ6Mkmka2PUxDQrKNQieO32MDyeGCY/A=")
+)
 
 
 def _resign(bundle: dict) -> None:
@@ -65,6 +72,28 @@ def test_signed_review_execution_and_closure_verify(tmp_path: Path) -> None:
         "MCP_JOURNEY_EXECUTION_LINK",
         "MCP_JOURNEY_CLOSURE_SIGNATURE",
     }
+
+
+def test_replay_may_refresh_signed_trace_fact_without_changing_request(tmp_path: Path) -> None:
+    bundle = _bundle()
+    execution = bundle["body"]["execution_permit_bundle"]
+    decision = execution["body"]["permit_decision"]
+    attrs = decision["resource_attributes_json"]
+    attrs["permit_authorization_facts_v1"]["decision_trace_hash"] = "sha256:" + "a" * 64
+    canonical = decision["canonical_payload"]
+    canonical["resource_attributes_canonical_hash"] = canonical_resource_attributes_payload(
+        attrs
+    )
+    binding_hash = compute_canonical_binding_hash(canonical)
+    decision["binding_canonical_hash"] = binding_hash
+    decision["binding_signature"] = "ed25519:" + base64.b64encode(
+        TEST_BINDING_KEY.sign(binding_hash.encode("utf-8"))
+    ).decode("ascii")
+    _resign(execution)
+    _resign(bundle)
+    report = _verify(tmp_path, bundle)
+    assert report.ok, report.error
+    assert report.artifact["journey"]["state"] == "execution_recorded"
 
 
 def test_signed_outer_bundle_cannot_substitute_reviewed_permit(tmp_path: Path) -> None:

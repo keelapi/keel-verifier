@@ -14742,7 +14742,13 @@ def _adjudicate_mcp_review_journey_v1(
         and reviewed_facts.get("request_digest")
         == f"sha256:{execution_signed.get('final_request_hash')}"
         and isinstance(execution_attrs.get("permit_authorization_facts_v1"), dict)
-        and execution_attrs["permit_authorization_facts_v1"] == reviewed_facts,
+        and all(
+            isinstance(reviewed_facts.get(field), str)
+            and bool(reviewed_facts[field])
+            and reviewed_facts[field]
+            == execution_attrs["permit_authorization_facts_v1"].get(field)
+            for field in ("action", "fact_profile_id", "request_digest")
+        ),
         "MCP_JOURNEY_EXECUTION_LINK",
         "signed execution Permit cites the approved reviewed Permit and the same exact request",
         [

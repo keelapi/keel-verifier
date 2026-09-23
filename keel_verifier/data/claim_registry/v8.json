@@ -14,7 +14,7 @@
     {
       "name": "mcp.review_journey.v1",
       "assertion": "The export links a signed, approved reviewed MCP Permit to a distinct signed execution Permit for the same exact request, and where present verifies the execution Permit closure signature and request digest.",
-      "required_evidence": "Valid signed inner Permit bundles, trusted signed Permit decisions, the reviewed Permit's signed approval transition, the execution Permit's signed citation to the reviewed Permit ID, equal signed final request hashes, and, for a reported closure, a trusted signed closure payload whose Permit ID and request digest match the execution Permit.",
+      "required_evidence": "Valid signed inner Permit bundles, trusted signed Permit decisions, the reviewed Permit's signed approval transition, the execution Permit's signed citation to the reviewed Permit ID, matching signed action, fact profile, and exact request digest, and, for a reported closure, a trusted signed closure payload whose Permit ID and request digest match the execution Permit.",
       "does_not_establish": [
         "independent validity of the review hash or approval requirement hash",
         "absence of execution when no execution Permit is in the export",
