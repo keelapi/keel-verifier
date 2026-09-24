@@ -4085,16 +4085,15 @@ def _authority_set_subset(child: Any, parent: Any) -> bool:
 def _authority_resource_subset(child: Any, parent: Any) -> bool:
     if not isinstance(child, dict) or not isinstance(parent, dict):
         return False
-    # A resource key the edge does not carry is unrestricted, so a child that
-    # omits a key its parent restricts widens that dimension.
-    if any(key not in child for key in parent):
+    if any(not isinstance(value, str) for value in child.values()):
         return False
-    for key, child_value in child.items():
-        if not isinstance(child_value, str) or key not in parent:
+    # A resource key an edge does not carry is unrestricted. A child must keep
+    # every key its parent restricts, with an equal or narrower value; a key
+    # only the child carries narrows a dimension the parent left open.
+    for key, parent_value in parent.items():
+        if key not in child or not isinstance(parent_value, str):
             return False
-        parent_value = parent[key]
-        if not isinstance(parent_value, str):
-            return False
+        child_value = child[key]
         if parent_value.endswith("*"):
             if not child_value.startswith(parent_value[:-1]):
                 return False

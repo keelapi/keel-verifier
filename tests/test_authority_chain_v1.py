@@ -895,10 +895,28 @@ def test_authority_chain_verdict_outputs_render_verifier_version() -> None:
     assert all(subject["verifier_version"] == verifier_version() for subject in payload["subjects"])
 
 
-def test_authority_chain_child_carrying_parent_resources_is_supported() -> None:
+@pytest.mark.parametrize(
+    ("parent_resources", "child_resources"),
+    [
+        pytest.param(
+            {"customer": "cust-*", "project_id": "project_ci"},
+            {"customer": "cust-a", "project_id": "project_ci"},
+            id="child-narrows-a-parent-resource",
+        ),
+        pytest.param(
+            {"project_id": "project_ci"},
+            {"customer": "cust-a", "project_id": "project_ci"},
+            id="child-adds-a-resource-restriction",
+        ),
+    ],
+)
+def test_authority_chain_child_carrying_parent_resources_is_supported(
+    parent_resources: dict[str, Any],
+    child_resources: dict[str, Any],
+) -> None:
     export_document, trust_root = _two_edge_authority_export(
-        parent_resources={"customer": "cust-*", "project_id": "project_ci"},
-        child_resources={"customer": "cust-a", "project_id": "project_ci"},
+        parent_resources=parent_resources,
+        child_resources=child_resources,
     )
 
     claim = _adjudicate_permit_authority_chain_v1(
@@ -941,11 +959,15 @@ def test_authority_chain_child_omitting_parent_resource_is_disproved(
         ({"customer": "cust-a"}, {"customer": "cust-a"}, True),
         ({"customer": "cust-a"}, {"customer": "cust-*"}, True),
         ({"customer": "cust-a*"}, {"customer": "cust-*"}, True),
+        # A key only the child carries narrows a dimension the parent left open.
+        ({"customer": "cust-a"}, {}, True),
+        ({"customer": "cust-a", "region": "eu"}, {"customer": "cust-a"}, True),
         ({}, {"customer": "cust-a"}, False),
         ({"project_id": "p"}, {"customer": "cust-a", "project_id": "p"}, False),
         ({"customer": "cust-*"}, {"customer": "cust-a"}, False),
         ({"customer": "cust-b"}, {"customer": "cust-a"}, False),
-        ({"customer": "cust-a", "region": "eu"}, {"customer": "cust-a"}, False),
+        ({"customer": None}, {}, False),
+        ({"customer": "cust-a", "region": 7}, {"customer": "cust-a"}, False),
     ],
 )
 def test_authority_resource_subset_requires_every_parent_key(
