@@ -2,6 +2,20 @@
 
 ## Unreleased (3.27.0 candidate)
 
+- `permit.authority_chain.v1` attenuation changes two verdicts. Step D.12 now
+  reads a scope's `resources` as a restriction map: a key a scope does not
+  carry is unrestricted. A child edge must keep every resource key its parent
+  restricts, with an equal or narrower value, and a key only the child
+  carries narrows its authority. A child that omits a parent key was reported
+  `supported` and is now `disproved` with
+  `authority_chain.broadened_resources`. A child that adds a key was reported
+  `disproved` and is now `supported`. Keel's grant creation and Permit
+  issuance apply the same rule.
+- Step D.14 now requires a child edge to keep every bound its parent sets
+  among `max_recipients`, `max_item_amount_usd_micros`, `allow_domains`,
+  `deny_external_domains`, and `allowed_hours`. A child that omits one was
+  reported `supported` and is now `disproved` with
+  `authority_chain.constraint_not_stricter`.
 - Verify signed MCP review-to-execution journey bundles, including distinct
   reviewed and execution Permit decisions, the signed approval transition,
   exact request linkage, and the signed closure when one is recorded. The
