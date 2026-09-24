@@ -1,26 +1,52 @@
 # Changelog
 
-## Unreleased (3.27.0 candidate)
+## 3.27.0
 
-- `permit.authority_chain.v1` attenuation changes two verdicts. Step D.12 now
-  reads a scope's `resources` as a restriction map: a key a scope does not
-  carry is unrestricted. A child edge must keep every resource key its parent
-  restricts, with an equal or narrower value, and a key only the child
-  carries narrows its authority. A child that omits a parent key was reported
-  `supported` and is now `disproved` with
-  `authority_chain.broadened_resources`. A child that adds a key was reported
-  `disproved` and is now `supported`. Keel's grant creation and Permit
-  issuance apply the same rule.
-- Step D.14 now requires a child edge to keep every bound its parent sets
-  among `max_recipients`, `max_item_amount_usd_micros`, `allow_domains`,
-  `deny_external_domains`, and `allowed_hours`. A child that omits one was
-  reported `supported` and is now `disproved` with
-  `authority_chain.constraint_not_stricter`.
+A minor release that changes verdicts. `permit.authority_chain.v1`
+attenuation now applies two rules that 3.26.0 did not. Some chains that
+3.26.0 reported `supported` are now `disproved`, and one kind it reported
+`disproved` is now `supported`. Consumers pinning `~=3.26` should not pick
+this up silently.
+
+### Added
+
 - Verify signed MCP review-to-execution journey bundles, including distinct
   reviewed and execution Permit decisions, the signed approval transition,
   exact request linkage, and the signed closure when one is recorded. The
   `mcp.review_journey.v1` claim does not establish provider completion or an
   external effect.
+
+### Changed
+
+- Step D.12 now reads a scope's `resources` as a restriction map: a key a
+  scope does not carry is unrestricted. A child edge must keep every
+  resource key its parent restricts, with an equal or narrower value, and a
+  key only the child carries narrows its authority. A child that omits a
+  parent key was reported `supported` and is now `disproved` with
+  `authority_chain.broadened_resources`. A child that adds a key was
+  reported `disproved` and is now `supported`. Keel's grant creation and
+  Permit issuance apply the same rule.
+- Step D.14 now requires a child edge to keep every bound its parent sets
+  among `max_recipients`, `max_item_amount_usd_micros`, `allow_domains`,
+  `deny_external_domains`, and `allowed_hours`. A child that omits one was
+  reported `supported` and is now `disproved` with
+  `authority_chain.constraint_not_stricter`.
+
+### Unchanged
+
+- A chain whose child edges keep every parent resource key and bound, with
+  equal or narrower values, verifies as before. The other
+  `permit.authority_chain.v1` steps and the packaged semantics artifacts are
+  byte-identical to 3.26.0.
+
+### Release integrity
+
+- Assign a new candidate identity to the changed verifier bytes. Release
+  publication requires the `v3.27.0` tag and the release workflow's Sigstore
+  signatures, TSA witnesses, GitHub assets, and exact PyPI upload. The
+  capability and release workflow pin keel-permit v1.24.0 to merge commit
+  `e6c12a1c82bce85e1a906b031dbb30d61a9c2c26`; this source commit establishes
+  none of the verifier publication states.
 
 ## 3.26.0
 
