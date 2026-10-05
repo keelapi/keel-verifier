@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.27.1
+
+### Trust-material refresh
+
+- Refresh the three bundled DigiCert certificate-revocation lists and their
+  pinned hashes, and refresh the coupled public-CA timestamp receipt fixture.
+- The earliest bundled CRL deadline is 2026-10-15T00:00:00Z. The unchanged
+  seven-day release freshness gate requires publication before
+  2026-10-08T00:00:00Z; the unchanged GlobalSign CRLs set that limit.
+- Existing trust roots, verifier adjudication logic, historical semantics,
+  and freshness requirements are unchanged.
+
+### Release integrity
+
+- Assign the refreshed bundle the new 3.27.1 release identity. Publication
+  still requires the tagged release workflow and verification of the
+  published wheel against its signed release artifacts.
+
 ## 3.27.0
 
 A minor release that changes verdicts. `permit.authority_chain.v1`
