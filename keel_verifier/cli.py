@@ -448,6 +448,15 @@ def _build_parser() -> argparse.ArgumentParser:
             "Prints a warning and exits 0."
         ),
     )
+    p_export.add_argument(
+        "--trust-root",
+        help=(
+            "Local public-key manifest that pins the signer of a signed "
+            "--key-manifest (for example a proof pack's key_manifest.json) "
+            "instead of the bundled Keel trust root. Use it for a non-production "
+            "Keel instance whose export signing key you obtained out of band."
+        ),
+    )
     _add_common_trust_args(p_export)
     _add_key_manifest_args(p_export)
     p_export.set_defaults(func=lambda args: _cmd_export_cli(p_export, args))

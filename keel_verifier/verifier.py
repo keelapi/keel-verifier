@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import contextvars
 import gzip
 import hashlib
 import io
@@ -68,7 +69,7 @@ import tempfile
 import urllib.request
 import uuid
 import zipfile
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field, replace
 from importlib import resources
@@ -128,6 +129,25 @@ except ImportError:
 
 DEFAULT_TRUST_ROOT_PATH = Path(__file__).resolve().parent / "data" / "trust_root.json"
 CACHED_TRUST_ROOT_PATH = Path.home() / ".keel-verifier" / "trust-root.json"
+# A caller-supplied trust root (``export --trust-root``) that pins the signer of
+# a signed public-key manifest instead of the bundled Keel trust root, so a
+# proof pack from a non-production Keel instance can be verified with its own
+# complete key manifest.
+_SIGNED_KEY_MANIFEST_TRUST_ROOT: contextvars.ContextVar[str | None] = (
+    contextvars.ContextVar("signed_key_manifest_trust_root", default=None)
+)
+
+
+@contextlib.contextmanager
+def _signed_key_manifest_trust_root(source: str | None):
+    if not source:
+        yield
+        return
+    token = _SIGNED_KEY_MANIFEST_TRUST_ROOT.set(str(source))
+    try:
+        yield
+    finally:
+        _SIGNED_KEY_MANIFEST_TRUST_ROOT.reset(token)
 VOICE_ATTESTATION_ARTIFACT_SCHEMA = "keel.voice.attestation.phase_a"
 VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA = {
     1: "1.0.0",
@@ -580,6 +600,9 @@ WALK_CLOSURE_DIGEST_MISMATCH = "WALK_CLOSURE_DIGEST_MISMATCH"
 WALK_CLOSURE_DIGEST_MISSING = "WALK_CLOSURE_DIGEST_MISSING"
 WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH = "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH"
 WALK_UNKNOWN_CLOSURE_FORMAT = "WALK_UNKNOWN_CLOSURE_FORMAT"
+WALK_NO_CHAIN_ENTRIES = "WALK_NO_CHAIN_ENTRIES"
+CLOSURE_NO_CHAIN_ENTRIES = "CLOSURE_NO_CHAIN_ENTRIES"
+_NO_CHAIN_ENTRIES_MARKER = "bundle has no chain entries"
 WORKFLOW_EVIDENCE_SCHEMA_INVALID = "WORKFLOW_EVIDENCE_SCHEMA_INVALID"
 WORKFLOW_SIGNATURE_INVALID = "WORKFLOW_SIGNATURE_INVALID"
 WORKFLOW_AMENDMENT_ORDER_INVALID = "WORKFLOW_AMENDMENT_ORDER_INVALID"
@@ -2625,10 +2648,13 @@ def _verify_public_key_manifest_signature(
     if actual_hash != content_hash_value:
         raise ValueError("public key manifest content_hash does not match signed fields")
 
-    if str(Path(source)) == str(DEFAULT_TRUST_ROOT_PATH):
+    trust_root_source = _SIGNED_KEY_MANIFEST_TRUST_ROOT.get() or str(
+        DEFAULT_TRUST_ROOT_PATH
+    )
+    if str(Path(source)) == str(Path(trust_root_source)):
         trust_entries = _normalize_key_manifest_entries(body)
     else:
-        trust_entries = _load_key_manifest(str(DEFAULT_TRUST_ROOT_PATH))
+        trust_entries = _load_key_manifest(trust_root_source)
     signing_time = _parse_iso_or_none(body.get("generated_at"))
     public_key, error = _select_pinned_trust_key(
         trust_entries,
@@ -10308,6 +10334,7 @@ def _export_report(
     semantics: ResolvedSemantics | None = None,
     error: str | None = None,
     diagnostics: list[str] | None = None,
+    requested_claims: Collection[str] = (),
 ) -> VerificationReport:
     claims, ok, enforced_exit_code, error = _enforce_required_claims(
         claims=claims,
@@ -10319,9 +10346,29 @@ def _export_report(
         subject_id=artifact.get("manifest_path"),
         evidence=["manifest.claim_set"],
     )
+    if enforced_exit_code is not None:
+        exit_code = enforced_exit_code
+    # A claim the caller explicitly asked for (for example with --walk-events
+    # or --verify-closure) is part of what "ok" asserts: if it is required and
+    # not supported, the verification as a whole did not succeed.
+    unsupported_requested = sorted(
+        {
+            claim.name
+            for claim in claims
+            if claim.name in requested_claims
+            and claim.required
+            and claim.aggregate_verdict != verdict_value("supported")
+        }
+    )
+    if unsupported_requested:
+        ok = False
+        if exit_code == 0:
+            exit_code = 1
+        if error is None:
+            error = "requested claims not supported: " + ", ".join(unsupported_requested)
     return VerificationReport(
         ok=ok,
-        exit_code=enforced_exit_code if enforced_exit_code is not None else exit_code,
+        exit_code=exit_code,
         artifact=artifact,
         claims=claims,
         error=error,
@@ -13946,6 +13993,18 @@ def _walk_claim_from_output(
             evidence=evidence,
         )
 
+    if result == 0 and _NO_CHAIN_ENTRIES_MARKER in stdout:
+        # Nothing was walked: the evidence scope carries no chain entries. That
+        # is not a disproof, and it is not support either.
+        return _single_subject_claim(
+            "governance_chain.local_continuity.v1",
+            subject_type="governance_chain",
+            subject_id="chain_entries",
+            verdict="unverifiable_scope",
+            reason_code=WALK_NO_CHAIN_ENTRIES,
+            message=stdout.strip(),
+            evidence=["export.chain_entries", "export.records.chain_entries"],
+        )
     reason_code, message = _failure_from_output(stdout, stderr)
     verdict = (
         "unverifiable_scope"
@@ -14027,6 +14086,8 @@ def _closure_claims_from_output(
         return claims
 
     reason_code, message = _failure_from_output(stdout, stderr)
+    if result == 0 and _NO_CHAIN_ENTRIES_MARKER in stdout:
+        reason_code, message = CLOSURE_NO_CHAIN_ENTRIES, stdout.strip()
     if reason_code == WALK_CLOSURE_SIGNATURE_INVALID:
         claim_name = "closure.signature.v1"
         verdict = "disproved"
@@ -14845,6 +14906,11 @@ def _adjudicate_mcp_review_journey_v1(
 
 
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
+    with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+        return _verify_export_structured(args)
+
+
+def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
     manifest_arg = getattr(args, "manifest", None)
     manifest_path = Path(manifest_arg) if manifest_arg else None
@@ -16312,6 +16378,17 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 error=_failure_from_output(closure_stdout, closure_stderr)[1],
             )
 
+    explicitly_requested_claims: set[str] = set()
+    if should_walk_events:
+        explicitly_requested_claims.add("governance_chain.local_continuity.v1")
+    if should_verify_closure:
+        explicitly_requested_claims.update(
+            {
+                "closure.signature.v1",
+                "closure.digest_consistency.v1",
+                "closure.dispatch_binding.v1",
+            }
+        )
     return _export_report(
         ok=True,
         exit_code=0,
@@ -16319,6 +16396,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         claims=claims,
         semantics=semantics,
         diagnostics=diagnostics,
+        requested_claims=explicitly_requested_claims,
     )
 
 
@@ -16570,6 +16648,11 @@ def _human_report_session(
 
 
 def cmd_export(args: argparse.Namespace) -> int:
+    with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+        return _cmd_export(args)
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
     if getattr(args, "as_json", False):
         report = verify_export_structured(args)
         if report.ok and "artifact_ref" not in report.artifact:
@@ -16758,12 +16841,36 @@ def cmd_export(args: argparse.Namespace) -> int:
     )
     if workflow_result is not None:
         return workflow_result
+    # An explicitly requested walk or closure check that cannot be supported
+    # (no chain entries, nothing evaluable) fails the run, as in --json mode.
     if args.walk_events:
-        walk_result = _walk_export_events(export_data)
+        walk_result, walk_stdout, walk_stderr = _captured_check(
+            _walk_export_events, export_data
+        )
+        sys.stdout.write(walk_stdout)
+        sys.stderr.write(walk_stderr)
         if walk_result != 0:
             return walk_result
+        walk_claim = _walk_claim_from_output(
+            stdout=walk_stdout, stderr=walk_stderr, result=walk_result
+        )
+        if walk_claim.aggregate_verdict != verdict_value("supported"):
+            print(f"FAILED: {walk_claim.reason_code}: {walk_claim.message}", file=sys.stderr)
+            return 1
     if args.verify_closure:
-        return _verify_export_closures(export_data, args)
+        closure_result, closure_stdout, closure_stderr = _captured_check(
+            _verify_export_closures, export_data, args
+        )
+        sys.stdout.write(closure_stdout)
+        sys.stderr.write(closure_stderr)
+        if closure_result != 0:
+            return closure_result
+        for claim in _closure_claims_from_output(
+            stdout=closure_stdout, stderr=closure_stderr, result=closure_result
+        ):
+            if claim.required and claim.aggregate_verdict != verdict_value("supported"):
+                print(f"FAILED: {claim.reason_code}: {claim.message}", file=sys.stderr)
+                return 1
     return 0
 
 
