@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import rfc8785
 
 
-def append_root_approval(pack, private):
+def append_root_approval(pack, private, overrides=None):
     root = next(
         a
         for a in pack["artifacts"]
@@ -34,13 +34,15 @@ def append_root_approval(pack, private):
         "to_decision": "allow",
         "to_status": "attested",
     }
+    signed.update(overrides or {})
+    at = signed["decision_at"]
     digest = hashlib.sha256(
         json.dumps(signed, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     ).hexdigest()
     signed["signature"] = base64.b64encode(private.sign(digest.encode())).decode()
     payload = {
         "event_id": "gev_root_approval",
-        "event_type": "permit.challenge_approved",
+        "event_type": signed["event_type"],
         "permit_id": pack["root_permit_id"],
         "project_id": pack["project_id"],
         "occurred_at": at,

@@ -36,7 +36,17 @@ def test_approved_work_review_retains_challenge_and_verifies_exact_transition(tm
     ],
 )
 def test_approved_work_review_refuses_invalid_authority(tmp_path, version, defect):
-    pack, root = version._build_pack(tmp_path, reviewed_root=True)
+    other = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    overrides = {
+        "wrong_root": {"permit_id": other},
+        "wrong_project": {"project_id": other},
+        "wrong_actor": {"actor_id": other},
+        "rejected": {"event_type": "permit.challenge_rejected", "to_decision": "deny"},
+        "expired": {"decision_at": "2099-01-01T00:00:00Z"},
+    }.get(defect)
+    pack, root = version._build_pack(
+        tmp_path, reviewed_root=True, root_transition_overrides=overrides
+    )
     artifact = pack["artifacts"][-1]
     signed = artifact["payload"]["payload"]["challenge_transition_event"]
     if defect in ["missing", "unsigned_allow"]:

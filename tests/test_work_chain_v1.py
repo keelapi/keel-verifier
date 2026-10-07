@@ -225,6 +225,7 @@ def _build_pack(
     tmp_path: Path,
     *,
     reviewed_root: bool = False,
+    root_transition_overrides: dict[str, Any] | None = None,
     child_amount: int = 8_400,
     boundary_live: bool = True,
     sequence_gap: bool = False,
@@ -641,7 +642,7 @@ def _build_pack(
     }
     if reviewed_root:
         from work_review_fixture import append_root_approval
-        append_root_approval(pack, binding_private)
+        append_root_approval(pack, binding_private, root_transition_overrides)
     return pack, trust_root
 
 
