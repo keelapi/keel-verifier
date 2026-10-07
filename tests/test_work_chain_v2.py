@@ -147,6 +147,7 @@ def _permit_artifact(
     decision: str,
     issued_at: str,
     omit_canonical_issued_at: bool = False,
+    constraints: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     key_id = verifier._binding_key_id_from_public_key(public)
     canonical = permit_binding.canonical_binding_payload_v7(
@@ -160,7 +161,7 @@ def _permit_artifact(
         operation=action,
         action_name=action,
         request_fingerprint=request_hex,
-        constraints={},
+        constraints=constraints or {},
         routing=None,
         policy_id="concierge-policy",
         policy_version="1",
@@ -238,6 +239,7 @@ def _event_hash(event: dict[str, Any]) -> dict[str, Any]:
 def _build_pack(
     tmp_path: Path,
     *,
+    reviewed_root: bool = False,
     provider_verified: bool = False,
     revocation_kind: str | None = None,
     call_principal: str = PHONE,
@@ -502,8 +504,9 @@ def _build_pack(
             "permit_semantic_binding_v2": root_semantic,
         },
         request_hex="9" * 64,
-        decision="allow",
+        decision="challenge" if reviewed_root else "allow",
         issued_at=START,
+        constraints={"work": {"approval_requirement": {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999"}}} if reviewed_root else {},
     )
 
     authority_by_id = {item["authority_id"]: item for item in authorities}
@@ -1235,6 +1238,9 @@ def _build_pack(
     pack["scope_commitment_signature"]["signature"] = _signature(
         binding_private, scope_hash.removeprefix("sha256:")
     )
+    if reviewed_root:
+        from work_review_fixture import append_root_approval
+        append_root_approval(pack, binding_private)
     return pack, trust_root
 
 

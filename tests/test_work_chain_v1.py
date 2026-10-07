@@ -152,6 +152,7 @@ def _permit_artifact(
     attrs: dict[str, Any],
     request_fingerprint: str,
     decision: str = "allow",
+    constraints: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     key_id = verifier._binding_key_id_from_public_key(public_key)
     canonical = permit_binding.canonical_binding_payload_v6(
@@ -165,7 +166,7 @@ def _permit_artifact(
         operation=operation,
         action_name=action_name,
         request_fingerprint=request_fingerprint,
-        constraints={},
+        constraints=constraints or {},
         routing=None,
         policy_id="invoice-payment-policy",
         policy_version="7",
@@ -223,6 +224,7 @@ def _permit_artifact(
 def _build_pack(
     tmp_path: Path,
     *,
+    reviewed_root: bool = False,
     child_amount: int = 8_400,
     boundary_live: bool = True,
     sequence_gap: bool = False,
@@ -378,6 +380,8 @@ def _build_pack(
         operation="work.authorize",
         attrs=root_attrs,
         request_fingerprint="a" * 64,
+        decision="challenge" if reviewed_root else "allow",
+        constraints={"work": {"approval_requirement": {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999"}}} if reviewed_root else {},
     )
     work_binding = {
         "version": "keel.work_binding.v1",
@@ -635,6 +639,9 @@ def _build_pack(
         "signature": _signature(binding_private, scope_hash.removeprefix("sha256:")),
         "signed_at": CUTOFF,
     }
+    if reviewed_root:
+        from work_review_fixture import append_root_approval
+        append_root_approval(pack, binding_private)
     return pack, trust_root
 
 

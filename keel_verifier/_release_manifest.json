@@ -385,9 +385,9 @@
     "keel_verifier/self_check.py": "b9e98799b80947b11745e8a74a6d64161c0c4732b80a973ed0cefea95c06ab53",
     "keel_verifier/semantics.py": "14b7bf493650162d5ef522d7f4c184b3fe853891263ec8593774fbda740622ac",
     "keel_verifier/verdicts.py": "0621dca117cbaded2e9d3f60be5e4ce48c3910bdde1b120f50468a2b2494f12d",
-    "keel_verifier/verifier.py": "4a5bc3986443b1098b037c0f9de7b2af4f556351b1dca89c977cd4c341de75bd",
+    "keel_verifier/verifier.py": "912eaf913a4af2e2c31769b0d1e92d1597175e1ae8f81b1bb4a7282cb031ee13",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
-    "keel_verifier/work_chain.py": "23431a48b935701c6570ab55f8fd688fd10c6f05b8b31d47fe14acd67120796f",
-    "keel_verifier/work_chain_v2.py": "cf8d9c2ca67eb78c64b883d157e07feac116fefe7a1d7245430c601cef20a06c"
+    "keel_verifier/work_chain.py": "0ade08deda03cbc1c3f2bdae7b4ccde70ae8d44ec4a15ca92259c6ab5a408b58",
+    "keel_verifier/work_chain_v2.py": "1aceae81080b1109f7b55fee26a67304c3c02a2f0751be82ec37af059727f47b"
   }
 }

@@ -39,6 +39,7 @@ from keel_verifier.work_chain import (
     _signed_semantic_binding,
     _verify_manifest_signature,
     _verify_permit,
+    _verified_root_authority,
 )
 
 
@@ -614,7 +615,7 @@ def _authority_manifest_v2(
             or canonical.get("parent_permit_id") is not None
             or canonical.get("action_name") != "work.authorize"
             or canonical.get("subject_id") != package["verified_root_principal_id"]
-            or material.signed_decision != "allow"
+            or not _verified_root_authority(material, document=document, artifacts=artifacts, entries=entries)
         ):
             raise _Failure(
                 "disproved",

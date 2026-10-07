@@ -8932,6 +8932,56 @@ def _legacy_dispatch() -> SemanticsDispatch:
     return semantics.dispatch()
 
 
+def _verify_work_authority_end(context: dict[str, Any], args: argparse.Namespace) -> int | None:
+    """Authenticate authority termination separately from execution closure."""
+    entry = context["entry"]
+    signed = _entry_payload(entry).get("work_authority_ended_event")
+    fields = {"version", "project_id", "root_permit_id", "actor_id", "actor_kind",
+              "reason_code", "close_request_hash", "ended_at", "released_reservation_count",
+              "asserts_business_job_completed", "binding_key_id"}
+    if not isinstance(signed, dict) or set(signed) != fields | {"canonical_hash", "signature"}:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end signed fields missing or unknown")
+    root_id = signed.get("root_permit_id")
+    if (signed.get("version") != "keel.work_authority_ended.v1"
+        or signed.get("asserts_business_job_completed") is not False
+        or not isinstance(root_id, str) or not root_id
+        or root_id != context.get("record_permit_id")
+        or entry.get("chain_scope") != "project:" + str(signed.get("project_id"))
+        or (entry.get("project_id") is not None and signed.get("project_id") != entry["project_id"])
+        or (entry.get("actor_id") is not None and signed.get("actor_id") != entry["actor_id"])
+        or (entry.get("actor_type") is not None and signed.get("actor_kind") != entry["actor_type"])
+        or signed.get("actor_kind") not in {"user", "api_key", "service_account", "system"}
+        or signed.get("reason_code") not in {"customer_requested", "job_no_longer_authorized", "replaced"}
+        or not isinstance(signed.get("close_request_hash"), str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", signed["close_request_hash"]) is None
+        or not _is_nonbool_int(signed.get("released_reservation_count"))
+        or signed["released_reservation_count"] < 0):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end identity or lifecycle fields conflict")
+    try:
+        for field_name in ("project_id", "root_permit_id", "actor_id"):
+            uuid.UUID(signed[field_name])
+    except (ValueError, TypeError, AttributeError):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end identifiers are malformed")
+    ended_at = _parse_iso_or_none(signed.get("ended_at"))
+    event_at = _parse_iso_or_none(entry.get("occurred_at") or entry.get("created_at"))
+    if ended_at is None or event_at is None or ended_at > event_at:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end time conflicts with its governance event")
+    digest = _compute_canonical_binding_hash({key: signed[key] for key in fields})
+    if signed.get("canonical_hash") != digest:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end canonical hash mismatch")
+    key, _source, error = _resolve_trust_key(
+        artifact_pub=None, artifact_key_id=signed["binding_key_id"],
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE, expected_public_key=None,
+        public_key_url=None, key_manifest_source=_key_manifest_source_for_args(args),
+        signing_time=ended_at,
+    )
+    if error or key is None or _binding_key_id_from_public_key(key) != signed["binding_key_id"]:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end trusted signing key unavailable")
+    if not _verify_ed25519(key, digest.encode("utf-8"), str(signed.get("signature") or "")):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end signature invalid")
+    return None
+
+
 def _verify_export_closures(
     export_data: bytes,
     args: argparse.Namespace,
@@ -8954,6 +9004,7 @@ def _verify_export_closures(
     assert contexts is not None
 
     closures_checked = 0
+    authority_lifecycles_checked = 0
     digest_checks = 0
     dispatch_digest_checks = 0
     dispatch_digest_warnings = 0
@@ -8963,6 +9014,12 @@ def _verify_export_closures(
         if entry.get("event_type") != "permit.closed":
             continue
         payload = _entry_payload(entry)
+        if payload.get("closure_status") == "authority_ended":
+            failure = _verify_work_authority_end(context, args)
+            if failure is not None:
+                return failure
+            authority_lifecycles_checked += 1
+            continue
         binding_version = payload.get("binding_version")
         verifier = closure_verifiers.get(binding_version)
         if verifier is None:
@@ -8994,6 +9051,7 @@ def _verify_export_closures(
     print("VERIFY-CLOSURE: VERIFIED")
     print(f"  chain_scopes:        {len(chain_scopes)}")
     print(f"  closures_verified:   {closures_checked}")
+    print(f"  authority_lifecycles_verified: {authority_lifecycles_checked} (not execution closure or business completion)")
     print(f"  signature_checks:    {closures_checked} PASS")
     print(f"  digest_checks:       {digest_checks} PASS")
     if dispatch_digest_checks:

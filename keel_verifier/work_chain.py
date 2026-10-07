@@ -1115,6 +1115,80 @@ def _verify_permit(
     )
 
 
+def _verified_root_authority(
+    material: _PermitMaterial,
+    *,
+    document: dict[str, Any],
+    artifacts: dict[str, dict[str, Any]],
+    entries: list[dict[str, Any]],
+) -> bool:
+    """Keep the issued challenge immutable; authenticate the later approval."""
+    if material.signed_decision == "allow":
+        return True
+    if material.signed_decision != "challenge":
+        return False
+    from keel_verifier import verifier as core
+
+    canonical = material.canonical_payload
+    fields = {"event_type", "permit_id", "project_id", "decision_at", "actor_id",
+              "actor_kind", "from_decision", "from_status", "to_decision", "to_status"}
+    candidates: list[dict[str, Any]] = []
+    for reference in document.get("evidence_artifacts", []):
+        artifact = _resolve_reference(reference, artifacts, field="evidence_artifacts")
+        if artifact.get("artifact_type") != "governance_event":
+            continue
+        event = artifact.get("payload", {})
+        if event.get("permit_id") != canonical.get("permit_id"):
+            continue
+        if str(event.get("event_type", "")).startswith("permit.challenge_"):
+            candidates.append(event)
+    if len(candidates) != 1:
+        return False
+    event = candidates[0]
+    payload = event.get("payload", {})
+    signed = payload.get("challenge_transition_event")
+    if not isinstance(signed, dict) or set(signed) != fields | {"signature"}:
+        return False
+    if (event.get("event_type") != "permit.challenge_approved"
+        or signed.get("event_type") != event.get("event_type")
+        or signed.get("permit_id") != canonical.get("permit_id")
+        or signed.get("project_id") != canonical.get("project_id")
+        or event.get("project_id") != canonical.get("project_id")
+        or signed.get("from_decision") != "challenge"
+        or signed.get("from_status") != "awaiting_attestation"
+        or signed.get("to_decision") != "allow"
+        or signed.get("to_status") != "attested"
+        or not isinstance(signed.get("actor_id"), str) or not signed["actor_id"]
+        or signed.get("actor_kind") not in {"user", "api_key", "service_account", "system", "external_email_guest"}):
+        return False
+    decision_at = _parse_time(signed.get("decision_at"), field="root.approval.decision_at")
+    issued_at = _parse_time(canonical.get("issued_at"), field="root.issued_at")
+    expires_at = _parse_time(canonical.get("expires_at"), field="root.expires_at")
+    cutoff = _parse_time(document["declared_cutoff"]["recorded_through"], field="declared_cutoff.recorded_through")
+    if not issued_at <= decision_at <= cutoff or decision_at >= expires_at:
+        return False
+    if _parse_time(event.get("occurred_at"), field="root.approval.occurred_at") != decision_at:
+        return False
+    constraints = canonical.get("constraints")
+    work = constraints.get("work") if isinstance(constraints, dict) else None
+    requirement = work.get("approval_requirement") if isinstance(work, dict) else None
+    if not isinstance(requirement, dict) or requirement.get("type") != "user":
+        return False
+    if signed["actor_kind"] != "user" or signed["actor_id"] != requirement.get("user_id"):
+        return False
+    unsigned = {key: signed[key] for key in fields}
+    digest = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    if payload.get("signature_profile") != "keel.canonical_json.payload.v1" or payload.get("challenge_transition_canonical_hash") != digest:
+        return False
+    active = core._filter_by_active_window(entries, decision_at)
+    valid = [entry for entry in active if entry.get("purpose") == "permit_binding_signing"
+             and core._entry_not_terminal_at(entry, decision_at)
+             and isinstance(entry.get("public_key"), str)
+             and core._binding_key_id_from_public_key(entry["public_key"]) == entry.get("key_id")
+             and core._verify_ed25519(entry["public_key"], digest.encode("utf-8"), str(signed.get("signature") or ""))]
+    return len(valid) == 1
+
+
 def _authority_manifest(
     document: dict[str, Any],
     artifacts: dict[str, dict[str, Any]],
@@ -1134,7 +1208,7 @@ def _authority_manifest(
             or canonical.get("permit_chain_role") != "work_root"
             or canonical.get("parent_permit_id") is not None
             or canonical.get("action_name") != "work.authorize"
-            or material.signed_decision != "allow"
+            or not _verified_root_authority(material, document=document, artifacts=artifacts, entries=entries)
         ):
             raise _Failure(
                 "disproved",
