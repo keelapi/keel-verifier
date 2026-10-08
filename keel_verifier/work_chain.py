@@ -1121,11 +1121,14 @@ def _valid_root_approval_requirement(requirement: Any, actor_id: str, actor_kind
     common = {"type", "timeout_seconds", "min_approvals", "separation_of_duties",
               "delegated_approval", "external_workflow", "legacy_attestor"}
     targets = {"user": {"user_id"}, "org_role": {"role"},
-               "approver_group": {"group_id", "group_slug"}}
+               "approver_group": {"group_id", "group_slug"},
+               "team": {"team_id", "team_slug"},
+               "service_principal": {"service_principal_id"}}
     if not isinstance(requirement, dict) or requirement.get("type") not in targets:
         return False
     kind = requirement["type"]
-    if set(requirement) - common - targets[kind] or actor_kind != "user":
+    actor_kinds = {"user", "api_key"} if kind == "approver_group" else {"api_key"} if kind == "service_principal" else {"user"}
+    if set(requirement) - common - targets[kind] or actor_kind not in actor_kinds:
         return False
     for key in ("timeout_seconds", "min_approvals"):
         value = requirement.get(key, 1 if key == "min_approvals" else None)
@@ -1147,16 +1150,19 @@ def _valid_root_approval_requirement(requirement: Any, actor_id: str, actor_kind
         return False
     if kind == "user":
         return uuid_value(requirement.get("user_id")) and actor_id == requirement["user_id"]
+    if kind == "service_principal":
+        return uuid_value(requirement.get("service_principal_id")) and actor_id == requirement["service_principal_id"]
     if kind == "org_role":
         role = requirement.get("role")
         return isinstance(role, str) and 0 < len(role) <= 32 and bool(role.strip())
-    if "group_id" in requirement and not uuid_value(requirement["group_id"]):
+    id_field, slug_field = ("team_id", "team_slug") if kind == "team" else ("group_id", "group_slug")
+    if id_field in requirement and not uuid_value(requirement[id_field]):
         return False
-    if "group_slug" in requirement:
-        slug = requirement["group_slug"]
+    if slug_field in requirement:
+        slug = requirement[slug_field]
         if not isinstance(slug, str) or not 0 < len(slug) <= 128 or not slug.strip():
             return False
-    return "group_id" in requirement or "group_slug" in requirement
+    return id_field in requirement or slug_field in requirement
 
 
 def _verified_root_authority(

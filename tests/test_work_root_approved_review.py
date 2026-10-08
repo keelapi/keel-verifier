@@ -83,6 +83,13 @@ def test_approved_work_review_refuses_invalid_authority(tmp_path, version, defec
 
 
 _TYPED_REQUIREMENTS = [
+    {"type": "team", "team_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "timeout_seconds": 900},
+    {"type": "team", "team_slug": "finance-team", "timeout_seconds": 900},
+    {
+        "type": "service_principal",
+        "service_principal_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "timeout_seconds": 900,
+    },
     {"type": "org_role", "role": "owner", "timeout_seconds": 900},
     {
         "type": "approver_group",
@@ -103,8 +110,16 @@ _TYPED_REQUIREMENTS = [
 def test_work_review_typed_directory_authority_is_signed_writer_attestation(
     tmp_path, version, requirement
 ):
+    overrides = (
+        {"actor_kind": "api_key", "actor_id": requirement["service_principal_id"]}
+        if requirement["type"] == "service_principal"
+        else None
+    )
     pack, root = version._build_pack(
-        tmp_path, reviewed_root=True, root_approval_requirement=requirement
+        tmp_path,
+        reviewed_root=True,
+        root_approval_requirement=requirement,
+        root_transition_overrides=overrides,
     )
     report = verify_work_chain_pack(pack, trust_root=root)
     assert report.ok, report.to_dict()
@@ -158,12 +173,19 @@ def test_work_review_refuses_signed_malformed_typed_selector(tmp_path, version, 
 def test_work_review_typed_approval_refuses_validly_signed_cross_scope(
     tmp_path, version, requirement, field
 ):
-    value = "api_key" if field == "actor_kind" else "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    value = "system" if field == "actor_kind" else "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
     pack, root = version._build_pack(
         tmp_path,
         reviewed_root=True,
         root_approval_requirement=requirement,
-        root_transition_overrides={field: value},
+        root_transition_overrides={
+            **(
+                {"actor_kind": "api_key", "actor_id": requirement["service_principal_id"]}
+                if requirement["type"] == "service_principal"
+                else {}
+            ),
+            field: value,
+        },
     )
     assert not verify_work_chain_pack(pack, trust_root=root).ok
 
@@ -171,7 +193,9 @@ def test_work_review_typed_approval_refuses_validly_signed_cross_scope(
 @pytest.mark.parametrize("version", [v1, v2])
 def test_work_review_requirement_tampering_cannot_reuse_valid_approval(tmp_path, version):
     pack, root = version._build_pack(
-        tmp_path, reviewed_root=True, root_approval_requirement=_TYPED_REQUIREMENTS[0]
+        tmp_path,
+        reviewed_root=True,
+        root_approval_requirement=next(r for r in _TYPED_REQUIREMENTS if r["type"] == "org_role"),
     )
     artifact = next(
         a
@@ -185,4 +209,51 @@ def test_work_review_requirement_tampering_cannot_reuse_valid_approval(tmp_path,
         "sha256:" + hashlib.sha256(rfc8785.dumps(artifact["payload"])).hexdigest()
     )
     pack["root"]["permit_artifact"]["artifact_digest"] = artifact["artifact_digest"]
+    assert not verify_work_chain_pack(pack, trust_root=root).ok
+
+
+@pytest.mark.parametrize("version", [v1, v2])
+@pytest.mark.parametrize("kind", ["group_id", "group_slug"])
+def test_work_group_approval_supports_signed_dedicated_service_principal_actor(
+    tmp_path, version, kind
+):
+    requirement = {
+        "type": "approver_group",
+        kind: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" if kind == "group_id" else "finance",
+        "timeout_seconds": 900,
+    }
+    pack, root = version._build_pack(
+        tmp_path,
+        reviewed_root=True,
+        root_approval_requirement=requirement,
+        root_transition_overrides={"actor_kind": "api_key"},
+    )
+    assert verify_work_chain_pack(pack, trust_root=root).ok
+
+
+@pytest.mark.parametrize("version", [v1, v2])
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        {"type": "team", "timeout_seconds": 900},
+        {"type": "team", "team_id": "bad-id", "timeout_seconds": 900},
+        {"type": "team", "team_slug": None, "timeout_seconds": 900},
+        {"type": "service_principal", "timeout_seconds": 900},
+        {"type": "service_principal", "service_principal_id": "bad-id", "timeout_seconds": 900},
+        {
+            "type": "service_principal",
+            "service_principal_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "timeout_seconds": 900,
+        },
+    ],
+)
+def test_work_typed_approval_refuses_unconfigured_or_wrong_service_identity(
+    tmp_path, version, requirement
+):
+    pack, root = version._build_pack(
+        tmp_path,
+        reviewed_root=True,
+        root_approval_requirement=requirement,
+        root_transition_overrides={"actor_kind": "api_key"},
+    )
     assert not verify_work_chain_pack(pack, trust_root=root).ok
