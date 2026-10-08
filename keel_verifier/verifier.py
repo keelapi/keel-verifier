@@ -2858,13 +2858,21 @@ def _resolve_trust_key(
         if err is not None:
             return None, "", err
         assert pub is not None and entry is not None
+        # Only the wheel's known bundled root establishes production-root
+        # provenance here. An explicit or refreshed manifest can authenticate
+        # a signature without establishing that its anchor is Keel production.
+        manifest_label = "key manifest"
+        if not key_manifest_source.startswith(("http://", "https://")) and (
+            Path(key_manifest_source).resolve() == DEFAULT_TRUST_ROOT_PATH.resolve()
+        ):
+            manifest_label = "bundled Keel production trust root"
         return pub, (
-            f"key manifest ({key_manifest_source}) "
+            f"{manifest_label} ({key_manifest_source}) "
             f"key_id={entry.get('key_id')} status={entry.get('status')}"
         ), None
 
     if artifact_pub is not None:
-        return artifact_pub, "embedded", None
+        return artifact_pub, "self-attested (embedded public_key)", None
 
     return None, "", "no trust key available (artifact is unsigned)"
 

@@ -287,7 +287,7 @@
     "keel_verifier/data/permit_to_x/test_vectors/permit_to_work/v2/contract-vectors.json": "7a24044955ef78d10a8b1921afe1e083ecaca0ad886ed24c14da5d5e59a64afb",
     "keel_verifier/data/permit_to_x/test_vectors/telephony-call-outbound-v1.json": "ba7f193ddb2122bfefb94f98f132f33228a4713c406d219a19b822507e886620",
     "keel_verifier/data/permit_to_x/test_vectors/universal_verification/v1/corpus.json": "95b83d59a4c9c8adc48fa88309ebbb8aa34cfcd028d4d957782e5566f21a7c30",
-    "keel_verifier/data/report_presentation_v0.json": "f2d2729475e19c5d9c63be4c8c50e83f7e92ecda7a3daa870a38defdb3599b56",
+    "keel_verifier/data/report_presentation_v0.json": "560a3fb02d0d212d1d7b99c13cffd7fdc9574bdcac90408d102c15977d3ebb0d",
     "keel_verifier/data/schemas/permit-revoked-event.schema.json": "634b9e874456c0b9b589ead2708042f700e6400eab3e55b59622f09928fd24f1",
     "keel_verifier/data/semantics/budget/partition_ledger_v1.json": "ab76d2cbb6000283fbf91d6196a33ff60d74508cbea4aedbb0a6258c60aac0c8",
     "keel_verifier/data/semantics/checkpoint/composite_hash_v1.json": "68aafa26d6f1c8cf5ba83c7596209888d8e529d81f1a2c58f31e2fc41fc136de",
@@ -385,7 +385,7 @@
     "keel_verifier/self_check.py": "b9e98799b80947b11745e8a74a6d64161c0c4732b80a973ed0cefea95c06ab53",
     "keel_verifier/semantics.py": "14b7bf493650162d5ef522d7f4c184b3fe853891263ec8593774fbda740622ac",
     "keel_verifier/verdicts.py": "0621dca117cbaded2e9d3f60be5e4ce48c3910bdde1b120f50468a2b2494f12d",
-    "keel_verifier/verifier.py": "912eaf913a4af2e2c31769b0d1e92d1597175e1ae8f81b1bb4a7282cb031ee13",
+    "keel_verifier/verifier.py": "a4d65ea8e3b43cdef625bdf5379a5ef11274c2253d68cc56e9ad5ed16c009bc4",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "9a026a140a5f62dad1d2e395e79d627a1b26c888fee07ffb0c5cfe568d865bf7",
     "keel_verifier/work_chain_v2.py": "6c26048b6d1f15bba21e11cabe703f552a61653a29f302d81779f89b33241a3d"
