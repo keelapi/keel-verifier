@@ -4116,6 +4116,26 @@ def _authority_set_subset(child: Any, parent: Any) -> bool:
     return isinstance(child, list) and isinstance(parent, list) and set(child).issubset(set(parent))
 
 
+def _authority_canonical_action_verb(value: str) -> str:
+    # Existing issuance aliases only. Canonicalize comparisons, never the
+    # signed edge payload whose exact bytes establish its digest/signature.
+    normalized = value.strip().lower()
+    return {
+        "payment.execute": "payment_execute",
+        "mpp_payment": "payment_execute",
+    }.get(normalized, normalized)
+
+
+def _authority_action_verb_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, list) or not isinstance(parent, list) or any(
+        not isinstance(value, str) for value in [*child, *parent]
+    ):
+        return False
+    return {_authority_canonical_action_verb(value) for value in child}.issubset(
+        {_authority_canonical_action_verb(value) for value in parent}
+    )
+
+
 def _authority_resource_subset(child: Any, parent: Any) -> bool:
     if not isinstance(child, dict) or not isinstance(parent, dict):
         return False
@@ -4409,13 +4429,26 @@ def _adjudicate_permit_authority_chain_v1(
             message="authority_chain_digest does not match chain payload bytes",
             evidence=["permit.authority_chain_digest", "authority_chain.payload"],
         )
-    if chain_payload != _authority_chain_payload_for_edges(edges):
+    # Issuance binds the Permit's policy version in the chain digest. Each
+    # edge independently signs its grant policy version (which may be null).
+    # Never substitute that edge field for the already Permit-bound value.
+    chain_policy_version = chain_payload.get("policy_version")
+    expected_chain_payload = _authority_chain_payload_for_edges(edges)
+    expected_chain_payload["policy_version"] = chain_policy_version
+    if (
+        (chain_policy_version is not None and not isinstance(chain_policy_version, str))
+        or (
+            "policy_version" in permit
+            and permit["policy_version"] != chain_policy_version
+        )
+        or chain_payload != expected_chain_payload
+    ):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
             reason_code="authority_chain.chain_digest_mismatch",
-            message="authority_chain.payload does not match the ordered edge payloads",
-            evidence=["authority_chain.payload", "authority_edges"],
+            message="authority_chain.payload does not match the ordered edges and Permit-bound policy",
+            evidence=["authority_chain.payload", "authority_edges", "permit.policy_version"],
         )
 
     if chain_payload.get("leaf_principal_id") != permit.get("subject_id"):
@@ -4480,7 +4513,7 @@ def _adjudicate_permit_authority_chain_v1(
         previous = edges[index - 1]["payload"]
         parent_scope = previous["scope"]
         child_scope = payload["scope"]
-        if not _authority_set_subset(
+        if not _authority_action_verb_subset(
             child_scope.get("action_verbs"), parent_scope.get("action_verbs")
         ):
             return _authority_chain_claim(
@@ -4623,10 +4656,20 @@ def _adjudicate_permit_authority_chain_v1(
     requested_action = input_doc.get("requested_action")
     action_class_map = input_doc.get("action_class_map")
     requested_kind = requested_action.get("kind") if isinstance(requested_action, dict) else None
+    raw_requested_kind = requested_kind
+    if isinstance(requested_kind, str):
+        requested_kind = _authority_canonical_action_verb(requested_kind)
+    class_map_kind = requested_kind
+    if (
+        isinstance(action_class_map, dict)
+        and isinstance(class_map_kind, str)
+        and class_map_kind not in action_class_map
+    ):
+        class_map_kind = raw_requested_kind
     if (
         not isinstance(action_class_map, dict)
         or not isinstance(requested_kind, str)
-        or requested_kind not in action_class_map
+        or class_map_kind not in action_class_map
     ):
         return _authority_chain_claim(
             input_doc=input_doc,
@@ -4636,10 +4679,10 @@ def _adjudicate_permit_authority_chain_v1(
             evidence=["requested_action.kind", "action_class_map"],
         )
     leaf_scope = edges[-1]["payload"]["scope"]
-    requested_classes = action_class_map[requested_kind]
+    requested_classes = action_class_map[class_map_kind]
     if not _authority_set_subset(
         requested_classes, leaf_scope.get("action_classes")
-    ) or requested_kind not in leaf_scope.get("action_verbs", []):
+    ) or not _authority_action_verb_subset([requested_kind], leaf_scope.get("action_verbs")):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.action_outside_chain_scope"),
