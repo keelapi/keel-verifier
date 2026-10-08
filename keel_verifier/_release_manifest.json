@@ -282,7 +282,7 @@
     "keel_verifier/data/permit_to_x/test_vectors/enforcement_state/v1/corpus.json": "bb0d0f473901159c5da2ca55a86e00fc2f795bb76ab979d9898d12281aac502a",
     "keel_verifier/data/permit_to_x/test_vectors/permit_co_signature/v2/corpus.json": "85acd8a95a52232ff25de5d6a4f738cdab13ba88f5ce276098ed6790b358193a",
     "keel_verifier/data/permit_to_x/test_vectors/permit_human_artifact/v1/corpus.json": "d1ff60645328a48914d77444c9f2610469e0e4114490b98ce6376d3f88cb1e8e",
-    "keel_verifier/data/permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "15781c680dd05e230ad7cf98e6fa71c992b4894b552140a7a6a63ab6065e157e",
+    "keel_verifier/data/permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "7c3340993c695e7dc93e7e0942af1c5b34aa4204c286e4d9aef5355d0b145490",
     "keel_verifier/data/permit_to_x/test_vectors/permit_to_work/v2/authority-vectors.json": "5bddf591ffb932000df2647864097ebcfd9a88eb9dbb7a32ce65419670a632cf",
     "keel_verifier/data/permit_to_x/test_vectors/permit_to_work/v2/contract-vectors.json": "7a24044955ef78d10a8b1921afe1e083ecaca0ad886ed24c14da5d5e59a64afb",
     "keel_verifier/data/permit_to_x/test_vectors/telephony-call-outbound-v1.json": "ba7f193ddb2122bfefb94f98f132f33228a4713c406d219a19b822507e886620",
