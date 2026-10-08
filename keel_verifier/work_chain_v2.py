@@ -893,7 +893,10 @@ def _authority_manifest_v2(
                 subject_id=root_id,
                 verdict="supported",
                 code="WORK_AUTHORITY_MANIFEST_SUPPORTED",
-                message="signed Work request, package, authorities, pool, and delegations match",
+                message=("signed Work request, package, authorities, pool, and delegations match"
+                         + ("; typed approval eligibility is Keel writer authorization attestation, "
+                            "not independent directory membership or quorum proof"
+                            if material.signed_decision == "challenge" else "")),
                 evidence=("root.permit_artifact", "root.work_request", "root.work_package", "authorities"),
             ),
             {

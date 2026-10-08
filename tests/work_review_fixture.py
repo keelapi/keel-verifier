@@ -27,7 +27,9 @@ def append_root_approval(pack, private, overrides=None):
         "permit_id": pack["root_permit_id"],
         "project_id": pack["project_id"],
         "decision_at": at,
-        "actor_id": canonical["constraints"]["work"]["approval_requirement"]["user_id"],
+        "actor_id": canonical["constraints"]["work"]["approval_requirement"].get(
+            "user_id", "99999999-9999-4999-8999-999999999999"
+        ),
         "actor_kind": "user",
         "from_decision": "challenge",
         "from_status": "awaiting_attestation",

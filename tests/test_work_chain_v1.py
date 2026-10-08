@@ -226,6 +226,7 @@ def _build_pack(
     *,
     reviewed_root: bool = False,
     root_transition_overrides: dict[str, Any] | None = None,
+    root_approval_requirement: dict[str, Any] | None = None,
     child_amount: int = 8_400,
     boundary_live: bool = True,
     sequence_gap: bool = False,
@@ -382,7 +383,7 @@ def _build_pack(
         attrs=root_attrs,
         request_fingerprint="a" * 64,
         decision="challenge" if reviewed_root else "allow",
-        constraints={"work": {"approval_requirement": {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999"}}} if reviewed_root else {},
+        constraints={"work": {"approval_requirement": (root_approval_requirement if root_approval_requirement is not None else {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999", "timeout_seconds": 900})}} if reviewed_root else {},
     )
     work_binding = {
         "version": "keel.work_binding.v1",

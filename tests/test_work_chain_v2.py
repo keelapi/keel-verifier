@@ -241,6 +241,7 @@ def _build_pack(
     *,
     reviewed_root: bool = False,
     root_transition_overrides: dict[str, Any] | None = None,
+    root_approval_requirement: dict[str, Any] | None = None,
     provider_verified: bool = False,
     revocation_kind: str | None = None,
     call_principal: str = PHONE,
@@ -507,7 +508,7 @@ def _build_pack(
         request_hex="9" * 64,
         decision="challenge" if reviewed_root else "allow",
         issued_at=START,
-        constraints={"work": {"approval_requirement": {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999"}}} if reviewed_root else {},
+        constraints={"work": {"approval_requirement": (root_approval_requirement if root_approval_requirement is not None else {"type": "user", "user_id": "99999999-9999-4999-8999-999999999999", "timeout_seconds": 900})}} if reviewed_root else {},
     )
 
     authority_by_id = {item["authority_id"]: item for item in authorities}

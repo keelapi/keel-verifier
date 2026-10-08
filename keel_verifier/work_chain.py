@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 import hashlib
 from importlib import resources
@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 import re
 from typing import Any
+from uuid import UUID
 
 import jsonschema
 import rfc8785
@@ -1115,6 +1116,49 @@ def _verify_permit(
     )
 
 
+def _valid_root_approval_requirement(requirement: Any, actor_id: str, actor_kind: str) -> bool:
+    """Validate the signed selector; directory eligibility remains writer attestation."""
+    common = {"type", "timeout_seconds", "min_approvals", "separation_of_duties",
+              "delegated_approval", "external_workflow", "legacy_attestor"}
+    targets = {"user": {"user_id"}, "org_role": {"role"},
+               "approver_group": {"group_id", "group_slug"}}
+    if not isinstance(requirement, dict) or requirement.get("type") not in targets:
+        return False
+    kind = requirement["type"]
+    if set(requirement) - common - targets[kind] or actor_kind != "user":
+        return False
+    for key in ("timeout_seconds", "min_approvals"):
+        value = requirement.get(key, 1 if key == "min_approvals" else None)
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            return False
+    for key in ("separation_of_duties", "delegated_approval"):
+        if key in requirement and not isinstance(requirement[key], bool):
+            return False
+    if "external_workflow" in requirement and not isinstance(requirement["external_workflow"], dict):
+        return False
+    if "legacy_attestor" in requirement and not isinstance(requirement["legacy_attestor"], str):
+        return False
+    def uuid_value(value: Any) -> bool:
+        try:
+            return isinstance(value, str) and bool(UUID(value))
+        except (ValueError, TypeError, AttributeError):
+            return False
+    if not uuid_value(actor_id):
+        return False
+    if kind == "user":
+        return uuid_value(requirement.get("user_id")) and actor_id == requirement["user_id"]
+    if kind == "org_role":
+        role = requirement.get("role")
+        return isinstance(role, str) and 0 < len(role) <= 32 and bool(role.strip())
+    if "group_id" in requirement and not uuid_value(requirement["group_id"]):
+        return False
+    if "group_slug" in requirement:
+        slug = requirement["group_slug"]
+        if not isinstance(slug, str) or not 0 < len(slug) <= 128 or not slug.strip():
+            return False
+    return "group_id" in requirement or "group_slug" in requirement
+
+
 def _verified_root_authority(
     material: _PermitMaterial,
     *,
@@ -1172,9 +1216,9 @@ def _verified_root_authority(
     constraints = canonical.get("constraints")
     work = constraints.get("work") if isinstance(constraints, dict) else None
     requirement = work.get("approval_requirement") if isinstance(work, dict) else None
-    if not isinstance(requirement, dict) or requirement.get("type") != "user":
+    if not _valid_root_approval_requirement(requirement, signed["actor_id"], signed["actor_kind"]):
         return False
-    if signed["actor_kind"] != "user" or signed["actor_id"] != requirement.get("user_id"):
+    if decision_at >= issued_at + timedelta(seconds=requirement["timeout_seconds"]):
         return False
     unsigned = {key: signed[key] for key in fields}
     digest = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
@@ -1369,7 +1413,10 @@ def _authority_manifest(
                 subject_id=root_id,
                 verdict="supported",
                 code="WORK_AUTHORITY_MANIFEST_SUPPORTED",
-                message="signed Work authority manifest and exact authority population match",
+                message=("signed Work authority manifest and exact authority population match"
+                         + ("; typed approval eligibility is Keel writer authorization attestation, "
+                            "not independent directory membership or quorum proof"
+                            if material.signed_decision == "challenge" else "")),
                 evidence=("root.permit_artifact", "root.work_package", "authorities"),
             ),
             {
