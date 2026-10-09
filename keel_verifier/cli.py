@@ -43,6 +43,7 @@ from keel_verifier.work_chain import verify_work_chain_pack
 
 LEGACY_COMMANDS = {
     "export",
+    "authority-proof",
     "checkpoint",
     "monitor",
     "refresh-keys",

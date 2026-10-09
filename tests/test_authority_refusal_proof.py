@@ -19,7 +19,7 @@ from keel_verifier.authority_proof import (
     COMPOSITE_REFUSAL_CLAIM,
     adjudicate_authority_chain_proof_document,
 )
-from keel_verifier.cli import _build_parser
+from keel_verifier.cli import _build_parser, main
 
 FIXTURE = Path(__file__).parent / "fixtures" / "authority_refusal"
 
@@ -100,3 +100,11 @@ def test_cli_exposes_authority_proof():
     )
     assert args.cmd == "authority-proof"
     assert args.authority_keys == "k.json"
+
+
+def test_cli_main_routes_authority_proof(capsys):
+    """main() must not hand the subcommand to the legacy single-file parser."""
+    with pytest.raises(SystemExit) as raised:
+        main(["authority-proof", "--help"])
+    assert raised.value.code == 0
+    assert "--authority-keys" in capsys.readouterr().out
