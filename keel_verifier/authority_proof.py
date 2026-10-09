@@ -278,6 +278,10 @@ def adjudicate_authority_chain_proof_document(
     key.status signers). ``authority_trust_root`` holds the delegator-bound
     authority-edge signing keys, as published by GET /v1/authority/verifier-keys.
     """
+    if action_class_map is None and isinstance(authority_trust_root, dict):
+        published = authority_trust_root.get("action_class_map")
+        if isinstance(published, dict):
+            action_class_map = published
     packs = [
         pack
         for pack in document.get("authority_chain_proofs") or []
