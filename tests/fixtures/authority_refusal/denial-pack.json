@@ -1,0 +1,160 @@
+{
+ "authority_chain_proofs": [
+  {
+   "claim": "authority.edge_revocation.v1",
+   "edge_revoke_events": [
+    {
+     "action": "revoked",
+     "event_hash": "159676effdacadf7d9d82be3d41bfc1bd280b47e07a26305752efbd337ff98e4",
+     "key_id": "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a",
+     "key_scope": "authority_edge",
+     "signed_event": {
+      "account_id": "7ac79dce-e0a1-4f86-8de0-2b85985d739b",
+      "event_hash": "159676effdacadf7d9d82be3d41bfc1bd280b47e07a26305752efbd337ff98e4",
+      "event_type": "key.status.v1",
+      "key_id": "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a",
+      "key_scope": "authority_edge",
+      "revoked_at": "2026-10-09T20:27:39.505951+00:00",
+      "signature": "F/MaRmuVYcPFFs05qIrFTNTv/dJYaMTf9GEHU1HQ9gSqWfxBgSai/tMi+AEGvveNIg+6OtdlO08sf3RZ8XULCw==",
+      "signer": {
+       "algorithm": "ed25519",
+       "key_id": "e132ae07442325ed",
+       "purpose": "permit_binding_signing"
+      },
+      "status": "revoked"
+     },
+     "status": "revoked",
+     "status_at": "2026-10-09T20:27:39.505951+00:00"
+    }
+   ],
+   "note": "For a refusal, each recorded chain is expected to be disproved: a signed revocation of an in-chain edge is effective at or before the refusal Permit's signed issued_at."
+  }
+ ],
+ "authority_edges": [
+  {
+   "edge_digest": "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a",
+   "payload": {
+    "budget_partition": null,
+    "creation_policy": {
+     "max_children": 0,
+     "may_delegate": false,
+     "remaining_depth": 0
+    },
+    "delegate": {
+     "principal_id": "f75445b3-dc45-4947-bce1-0f4727361797",
+     "principal_type": "agent"
+    },
+    "delegator": {
+     "principal_id": "1a221daf-54b6-4368-af3f-fc6b6b1ffaaf",
+     "principal_type": "user"
+    },
+    "edge_id": "0abb504f-e9da-44e3-bdf4-554b9c3bc230",
+    "edge_version": "authority_edge.v1",
+    "org_id": "298f71b5-57b1-4c61-853b-2f2e1deb039f",
+    "parent_edge_digest": null,
+    "policy_version": null,
+    "project_id": "7ac79dce-e0a1-4f86-8de0-2b85985d739b",
+    "scope": {
+     "action_classes": [
+      "value_transfer"
+     ],
+     "action_verbs": [
+      "payment_execute"
+     ],
+     "constraints": {},
+     "data_classes": [],
+     "resources": {}
+    },
+    "signed_at": "2026-10-09T20:17:39.468306Z",
+    "signing_key": {
+     "custody_tier": "keel_custodied",
+     "key_id": "a692e68e40d839e47505d2441ec286387f653d641a3f07d38065e3de614d6ffd"
+    },
+    "validity": {
+     "not_after": "2026-11-08T20:27:39.468306Z",
+     "not_before": "2026-10-09T19:27:39.468306Z"
+    },
+    "workflow_root_id": null
+   },
+   "signature": "ed25519:URhbJiUwuDtIBVqkZ27wXFBE75WI9AhEZ+z1fVfHqYyrtBJT8epCiC4JoYS3yxX4tr+1ylkBcUo3Pc/9eZjzCw=="
+  }
+ ],
+ "binding_version": "v7",
+ "chain_proof_status": "assembled_denial",
+ "decision": "deny",
+ "leaf_principal_id": "f75445b3-dc45-4947-bce1-0f4727361797",
+ "permit_decision": {
+  "artifact_ref": {
+   "canonical_url": "https://api.keelapi.com/v1/permits/4e0f66b5-60bf-4125-8372-f9698224ca6a",
+   "digest": "sha256:922c97ba41e7cbc049711d1d058cf248396760d0b342a6c7dfefdc984ea26a8f",
+   "id": "4e0f66b5-60bf-4125-8372-f9698224ca6a",
+   "path": "/v1/permits/4e0f66b5-60bf-4125-8372-f9698224ca6a",
+   "region": "us-west-1",
+   "schema_version": "artifact_ref.v1",
+   "type": "decision_evidence",
+   "urn": "urn:x-keel:artifact:decision_evidence:4e0f66b5-60bf-4125-8372-f9698224ca6a"
+  },
+  "artifact_type": "permit_decision_binding",
+  "artifact_version": "permit.decision.v1",
+  "binding_canonical_hash": "907e28fdce2b136e8672587613269e6c8329b41f09a94b4be6d98abb96f23632",
+  "binding_issued_at": "2026-10-09T20:27:39.536721+00:00",
+  "binding_key_id": "e132ae07442325ed",
+  "binding_signature": "ed25519:k3Wpvfv57CXedTbBhUCcHt5PfwL3iKA76FFK0kOky9w8iAuP3Ha7IxsytWAf0oKs+9ukvLxaJoyyZ1O0Co9KCw==",
+  "binding_version": "v7",
+  "canonical_payload": {
+   "account_id": null,
+   "action_name": "mcp.tool.call",
+   "authority_chain_digest": null,
+   "authority_delta": null,
+   "binding_key_id": "e132ae07442325ed",
+   "binding_project_anchor_hash": null,
+   "binding_session_event_hash": null,
+   "binding_session_id": null,
+   "binding_version": "v7",
+   "constraints": null,
+   "decision": "deny",
+   "delegation_policy_hash": null,
+   "expires_at": "2026-10-09T21:27:39.536721+00:00",
+   "final_request_hash": null,
+   "inherits_from": null,
+   "is_dry_run": false,
+   "issued_at": "2026-10-09T20:27:39.536721+00:00",
+   "model": "stripe",
+   "operation": null,
+   "org_id": null,
+   "parent_permit_id": null,
+   "permit_chain_role": "session_root",
+   "permit_id": "4e0f66b5-60bf-4125-8372-f9698224ca6a",
+   "policy_id": "program:r1_07_authority_chain",
+   "policy_snapshot_hash": null,
+   "policy_version": "v1",
+   "project_id": "7ac79dce-e0a1-4f86-8de0-2b85985d739b",
+   "provider": "mcp",
+   "quota_reservation_id": null,
+   "reason": "agent.authority_chain_unresolvable",
+   "request_fingerprint": "7f235ca12f1ba32680d1800695bf20e6450634b4b284cbd132ef501a89eb14f4",
+   "resource_attributes_canonical_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+   "routing": null,
+   "spend_scope_hash": null,
+   "subject_id": "f75445b3-dc45-4947-bce1-0f4727361797",
+   "subject_type": "agent"
+  },
+  "expected_decision": "deny",
+  "resource_attributes_json": {}
+ },
+ "permit_id": "4e0f66b5-60bf-4125-8372-f9698224ca6a",
+ "reason": "agent.authority_chain_unresolvable",
+ "recorded_chains": [
+  {
+   "chain_complete": true,
+   "chain_edge_digests": [
+    "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a"
+   ],
+   "inactive_edge_digests": [
+    "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a"
+   ],
+   "leaf_edge_digest": "d7acce88e4abea41935aa4bd5e9698a78e036e3d62967fc7fc573a51c144324a"
+  }
+ ],
+ "resolution_time": "2026-10-09T20:27:39.536721+00:00"
+}

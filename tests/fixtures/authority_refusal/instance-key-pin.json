@@ -1,0 +1,38 @@
+{
+ "keys": [
+  {
+   "algorithm": "ed25519",
+   "compromise_reason": null,
+   "compromised_at": null,
+   "event_refs": [],
+   "issuer_key_id": null,
+   "key_id": "e132ae07442325ed",
+   "public_key": "ed25519:v79Nv5SieOh0LjXniJQlxwac+3bOY9U8kzxIGVrjxOM=",
+   "purpose": "permit_binding_signing",
+   "region": "us-west-1",
+   "revoked_at": null,
+   "status": "active",
+   "valid_from": null,
+   "valid_to": null
+  },
+  {
+   "algorithm": "ed25519",
+   "compromise_reason": null,
+   "compromised_at": null,
+   "event_refs": [],
+   "issuer_key_id": null,
+   "key_id": "e132ae07442325ed",
+   "public_key": "ed25519:v79Nv5SieOh0LjXniJQlxwac+3bOY9U8kzxIGVrjxOM=",
+   "purpose": "provider_fact_signing",
+   "region": "us-west-1",
+   "revoked_at": null,
+   "status": "active",
+   "valid_from": null,
+   "valid_to": null
+  }
+ ],
+ "provenance": {
+  "source": "tests/test_authority_chain_denial_proof_postgres.py build_key_manifest (local test instance)",
+  "note": "operator-pinned key list"
+ }
+}
