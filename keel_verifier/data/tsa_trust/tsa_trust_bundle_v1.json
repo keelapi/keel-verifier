@@ -37,31 +37,31 @@
     {
       "issuer": "CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1,O=DigiCert\\, Inc.,C=US",
       "kind": "crl",
-      "last_update": "2026-09-30T16:40:26Z",
-      "next_update": "2026-10-21T16:40:26Z",
+      "last_update": "2026-10-14T16:40:26Z",
+      "next_update": "2026-11-04T16:40:26Z",
       "path": "digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:dad76a58e4c37876cb80f531b3fb15053141ec05632e020db6dcc16cc58a3b63",
+      "sha256": "sha256:a7f0775fc6f6e1a71c96115b7af6f717c56c1fce48228e2e2d05a5af048457d4",
       "source_url": "http://crl3.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crl"
     },
     {
       "issuer": "CN=DigiCert Trusted Root G4,OU=www.digicert.com,O=DigiCert Inc,C=US",
       "kind": "crl",
-      "last_update": "2026-10-02T17:42:35Z",
-      "next_update": "2026-10-23T17:42:35Z",
+      "last_update": "2026-10-09T17:42:35Z",
+      "next_update": "2026-10-30T17:42:35Z",
       "path": "digicert/trusted_root_g4.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:e79b1651261c73a34572e8ddad0b8f2d549f0786d8a1e44054fac7fa65f4b648",
+      "sha256": "sha256:5357dd8293962f27f1894bd707617547b0096c91b2cf6cde7a0cecd488eb05b2",
       "source_url": "http://crl3.digicert.com/DigiCertTrustedRootG4.crl"
     },
     {
       "issuer": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US",
       "kind": "crl",
-      "last_update": "2026-10-01T23:47:20Z",
-      "next_update": "2026-10-22T23:47:20Z",
+      "last_update": "2026-10-08T23:47:20Z",
+      "next_update": "2026-10-29T23:47:20Z",
       "path": "digicert/assured_id_root_ca.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:50c4ae1d52c41a63ed768eaaccdfba5d8dd9d3c8b7504a780794f3aa57b4d5c7",
+      "sha256": "sha256:3262b798c2804012c5495b7a0e950d7074f57ddc323686a5c3b7efa8674fa6ea",
       "source_url": "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl"
     },
     {
@@ -128,11 +128,11 @@
       "source_url": "http://crl.globalsign.com/root-r6.crl"
     }
   ],
-  "generated_at": "2026-10-10T22:14:56Z",
+  "generated_at": "2026-10-15T02:07:42Z",
   "id": "keel.tsa_trust_bundle.v1",
   "validation": {
     "crl_refresh_guard": "CI must refresh the release-pinned TSA CRL snapshots before the earliest bundled CRL next_update enters the configured guard window.",
-    "crl_refresh_required_before": "2026-10-21T16:40:26Z",
+    "crl_refresh_required_before": "2026-10-29T23:47:20Z",
     "revocation_rule": "For each non-root certificate in the resolved chain, a bundled CRL issued by that certificate issuer must cover genTime; revocationDate or invalidityDate at or before genTime invalidates the TSA chain.",
     "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
     "timestamp_verification_time": "RFC3161 TSTInfo.genTime"
