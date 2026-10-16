@@ -1,5 +1,52 @@
 # Changelog
 
+## 3.28.0
+
+A minor release that changes results. An export verification that 3.27.x
+reported as `ok: true` with exit 0 can now fail. Consumers pinning `~=3.27`
+should not pick this up silently.
+
+### Fixed
+
+- A claim requested with `--walk-events` or `--verify-closure` is now part of
+  the result. If such a claim is required and not supported, `export` returns
+  `ok: false` and exit 1 in `--json`, report and `--raw` modes. 3.27.x added
+  `governance_chain.local_continuity.v1` or `closure.signature.v1` with a
+  failing verdict and still reported success, for example for an export
+  without chain entries or with no closed Permit to verify.
+- A walk or closure check over an export that carries no chain entries is
+  now `unverifiable_scope` with `WALK_NO_CHAIN_ENTRIES` or
+  `CLOSURE_NO_CHAIN_ENTRIES`. 3.27.x reported the walk as `disproved` with
+  the generic `VERIFICATION_FAILED`.
+
+### Added
+
+- `authority-proof EXPORT_FILE [MANIFEST]` verifies a `chain_proof_json`
+  authority-inventory export, then adjudicates each Permit's pack with the
+  released authority claims (`permit.authority_chain.v1`,
+  `authority.revocation_temporal.v1`, `authority.root_status_temporal.v1/v2`,
+  `authority.edge_revocation.v1`). Pass the project's authority-edge signing
+  keys with `--authority-keys` (from `GET /v1/authority/verifier-keys`) and,
+  for the chain claim, Keel's action-class map with `--action-class-map`.
+  A refusal pack (`assembled_denial`) gets the composite
+  `authority.refusal_after_edge_revocation`, derived only from released
+  checks: the signed deny Permit verifies, every recorded edge verifies and
+  links to the Permit's signed subject, and a signed revocation of an
+  in-chain edge took effect at or before the refusal's signed `issued_at`.
+  It is not a registry claim. Exit 1 when integrity fails or any claim is
+  `disproved`.
+- `export --trust-root FILE` pins the signer of a signed `--key-manifest`,
+  such as the complete key manifest a Keel proof pack carries, instead of
+  the bundled Keel trust root. Use it for a non-production Keel instance
+  whose export signing key you obtained out of band. Only that anchor
+  changes; every signature and content-hash check still runs.
+
+### Unchanged
+
+- Claims that were not requested, and manifest-pinned claim requirements,
+  are gated exactly as before. Packaged semantics artifacts, the bundled
+  trust root and the TSA trust material are byte-identical to 3.27.1.
+
 ## 3.27.1
 
 ### Trust-material refresh

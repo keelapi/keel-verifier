@@ -56,6 +56,7 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import contextvars
 import gzip
 import hashlib
 import io
@@ -68,7 +69,7 @@ import tempfile
 import urllib.request
 import uuid
 import zipfile
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import datetime, timezone
 from dataclasses import dataclass, field as dataclass_field, replace
 from importlib import resources
@@ -128,6 +129,25 @@ except ImportError:
 
 DEFAULT_TRUST_ROOT_PATH = Path(__file__).resolve().parent / "data" / "trust_root.json"
 CACHED_TRUST_ROOT_PATH = Path.home() / ".keel-verifier" / "trust-root.json"
+# A caller-supplied trust root (``export --trust-root``) that pins the signer of
+# a signed public-key manifest instead of the bundled Keel trust root, so a
+# proof pack from a non-production Keel instance can be verified with its own
+# complete key manifest.
+_SIGNED_KEY_MANIFEST_TRUST_ROOT: contextvars.ContextVar[str | None] = (
+    contextvars.ContextVar("signed_key_manifest_trust_root", default=None)
+)
+
+
+@contextlib.contextmanager
+def _signed_key_manifest_trust_root(source: str | None):
+    if not source:
+        yield
+        return
+    token = _SIGNED_KEY_MANIFEST_TRUST_ROOT.set(str(source))
+    try:
+        yield
+    finally:
+        _SIGNED_KEY_MANIFEST_TRUST_ROOT.reset(token)
 VOICE_ATTESTATION_ARTIFACT_SCHEMA = "keel.voice.attestation.phase_a"
 VOICE_ATTESTATION_ARTIFACT_VERSION_BY_SCHEMA = {
     1: "1.0.0",
@@ -580,6 +600,9 @@ WALK_CLOSURE_DIGEST_MISMATCH = "WALK_CLOSURE_DIGEST_MISMATCH"
 WALK_CLOSURE_DIGEST_MISSING = "WALK_CLOSURE_DIGEST_MISSING"
 WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH = "WALK_CLOSURE_DISPATCH_DIGEST_MISMATCH"
 WALK_UNKNOWN_CLOSURE_FORMAT = "WALK_UNKNOWN_CLOSURE_FORMAT"
+WALK_NO_CHAIN_ENTRIES = "WALK_NO_CHAIN_ENTRIES"
+CLOSURE_NO_CHAIN_ENTRIES = "CLOSURE_NO_CHAIN_ENTRIES"
+_NO_CHAIN_ENTRIES_MARKER = "bundle has no chain entries"
 WORKFLOW_EVIDENCE_SCHEMA_INVALID = "WORKFLOW_EVIDENCE_SCHEMA_INVALID"
 WORKFLOW_SIGNATURE_INVALID = "WORKFLOW_SIGNATURE_INVALID"
 WORKFLOW_AMENDMENT_ORDER_INVALID = "WORKFLOW_AMENDMENT_ORDER_INVALID"
@@ -2625,10 +2648,13 @@ def _verify_public_key_manifest_signature(
     if actual_hash != content_hash_value:
         raise ValueError("public key manifest content_hash does not match signed fields")
 
-    if str(Path(source)) == str(DEFAULT_TRUST_ROOT_PATH):
+    trust_root_source = _SIGNED_KEY_MANIFEST_TRUST_ROOT.get() or str(
+        DEFAULT_TRUST_ROOT_PATH
+    )
+    if str(Path(source)) == str(Path(trust_root_source)):
         trust_entries = _normalize_key_manifest_entries(body)
     else:
-        trust_entries = _load_key_manifest(str(DEFAULT_TRUST_ROOT_PATH))
+        trust_entries = _load_key_manifest(trust_root_source)
     signing_time = _parse_iso_or_none(body.get("generated_at"))
     public_key, error = _select_pinned_trust_key(
         trust_entries,
@@ -2832,13 +2858,21 @@ def _resolve_trust_key(
         if err is not None:
             return None, "", err
         assert pub is not None and entry is not None
+        # Only the wheel's known bundled root establishes production-root
+        # provenance here. An explicit or refreshed manifest can authenticate
+        # a signature without establishing that its anchor is Keel production.
+        manifest_label = "key manifest"
+        if not key_manifest_source.startswith(("http://", "https://")) and (
+            Path(key_manifest_source).resolve() == DEFAULT_TRUST_ROOT_PATH.resolve()
+        ):
+            manifest_label = "bundled Keel production trust root"
         return pub, (
-            f"key manifest ({key_manifest_source}) "
+            f"{manifest_label} ({key_manifest_source}) "
             f"key_id={entry.get('key_id')} status={entry.get('status')}"
         ), None
 
     if artifact_pub is not None:
-        return artifact_pub, "embedded", None
+        return artifact_pub, "self-attested (embedded public_key)", None
 
     return None, "", "no trust key available (artifact is unsigned)"
 
@@ -4082,6 +4116,26 @@ def _authority_set_subset(child: Any, parent: Any) -> bool:
     return isinstance(child, list) and isinstance(parent, list) and set(child).issubset(set(parent))
 
 
+def _authority_canonical_action_verb(value: str) -> str:
+    # Existing issuance aliases only. Canonicalize comparisons, never the
+    # signed edge payload whose exact bytes establish its digest/signature.
+    normalized = value.strip().lower()
+    return {
+        "payment.execute": "payment_execute",
+        "mpp_payment": "payment_execute",
+    }.get(normalized, normalized)
+
+
+def _authority_action_verb_subset(child: Any, parent: Any) -> bool:
+    if not isinstance(child, list) or not isinstance(parent, list) or any(
+        not isinstance(value, str) for value in [*child, *parent]
+    ):
+        return False
+    return {_authority_canonical_action_verb(value) for value in child}.issubset(
+        {_authority_canonical_action_verb(value) for value in parent}
+    )
+
+
 def _authority_resource_subset(child: Any, parent: Any) -> bool:
     if not isinstance(child, dict) or not isinstance(parent, dict):
         return False
@@ -4375,13 +4429,26 @@ def _adjudicate_permit_authority_chain_v1(
             message="authority_chain_digest does not match chain payload bytes",
             evidence=["permit.authority_chain_digest", "authority_chain.payload"],
         )
-    if chain_payload != _authority_chain_payload_for_edges(edges):
+    # Issuance binds the Permit's policy version in the chain digest. Each
+    # edge independently signs its grant policy version (which may be null).
+    # Never substitute that edge field for the already Permit-bound value.
+    chain_policy_version = chain_payload.get("policy_version")
+    expected_chain_payload = _authority_chain_payload_for_edges(edges)
+    expected_chain_payload["policy_version"] = chain_policy_version
+    if (
+        (chain_policy_version is not None and not isinstance(chain_policy_version, str))
+        or (
+            "policy_version" in permit
+            and permit["policy_version"] != chain_policy_version
+        )
+        or chain_payload != expected_chain_payload
+    ):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.chain_digest_mismatch"),
             reason_code="authority_chain.chain_digest_mismatch",
-            message="authority_chain.payload does not match the ordered edge payloads",
-            evidence=["authority_chain.payload", "authority_edges"],
+            message="authority_chain.payload does not match the ordered edges and Permit-bound policy",
+            evidence=["authority_chain.payload", "authority_edges", "permit.policy_version"],
         )
 
     if chain_payload.get("leaf_principal_id") != permit.get("subject_id"):
@@ -4446,7 +4513,7 @@ def _adjudicate_permit_authority_chain_v1(
         previous = edges[index - 1]["payload"]
         parent_scope = previous["scope"]
         child_scope = payload["scope"]
-        if not _authority_set_subset(
+        if not _authority_action_verb_subset(
             child_scope.get("action_verbs"), parent_scope.get("action_verbs")
         ):
             return _authority_chain_claim(
@@ -4589,10 +4656,20 @@ def _adjudicate_permit_authority_chain_v1(
     requested_action = input_doc.get("requested_action")
     action_class_map = input_doc.get("action_class_map")
     requested_kind = requested_action.get("kind") if isinstance(requested_action, dict) else None
+    raw_requested_kind = requested_kind
+    if isinstance(requested_kind, str):
+        requested_kind = _authority_canonical_action_verb(requested_kind)
+    class_map_kind = requested_kind
+    if (
+        isinstance(action_class_map, dict)
+        and isinstance(class_map_kind, str)
+        and class_map_kind not in action_class_map
+    ):
+        class_map_kind = raw_requested_kind
     if (
         not isinstance(action_class_map, dict)
         or not isinstance(requested_kind, str)
-        or requested_kind not in action_class_map
+        or class_map_kind not in action_class_map
     ):
         return _authority_chain_claim(
             input_doc=input_doc,
@@ -4602,10 +4679,10 @@ def _adjudicate_permit_authority_chain_v1(
             evidence=["requested_action.kind", "action_class_map"],
         )
     leaf_scope = edges[-1]["payload"]["scope"]
-    requested_classes = action_class_map[requested_kind]
+    requested_classes = action_class_map[class_map_kind]
     if not _authority_set_subset(
         requested_classes, leaf_scope.get("action_classes")
-    ) or requested_kind not in leaf_scope.get("action_verbs", []):
+    ) or not _authority_action_verb_subset([requested_kind], leaf_scope.get("action_verbs")):
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.action_outside_chain_scope"),
@@ -8906,6 +8983,56 @@ def _legacy_dispatch() -> SemanticsDispatch:
     return semantics.dispatch()
 
 
+def _verify_work_authority_end(context: dict[str, Any], args: argparse.Namespace) -> int | None:
+    """Authenticate authority termination separately from execution closure."""
+    entry = context["entry"]
+    signed = _entry_payload(entry).get("work_authority_ended_event")
+    fields = {"version", "project_id", "root_permit_id", "actor_id", "actor_kind",
+              "reason_code", "close_request_hash", "ended_at", "released_reservation_count",
+              "asserts_business_job_completed", "binding_key_id"}
+    if not isinstance(signed, dict) or set(signed) != fields | {"canonical_hash", "signature"}:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end signed fields missing or unknown")
+    root_id = signed.get("root_permit_id")
+    if (signed.get("version") != "keel.work_authority_ended.v1"
+        or signed.get("asserts_business_job_completed") is not False
+        or not isinstance(root_id, str) or not root_id
+        or root_id != context.get("record_permit_id")
+        or entry.get("chain_scope") != "project:" + str(signed.get("project_id"))
+        or (entry.get("project_id") is not None and signed.get("project_id") != entry["project_id"])
+        or (entry.get("actor_id") is not None and signed.get("actor_id") != entry["actor_id"])
+        or (entry.get("actor_type") is not None and signed.get("actor_kind") != entry["actor_type"])
+        or signed.get("actor_kind") not in {"user", "api_key", "service_account", "system"}
+        or signed.get("reason_code") not in {"customer_requested", "job_no_longer_authorized", "replaced"}
+        or not isinstance(signed.get("close_request_hash"), str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", signed["close_request_hash"]) is None
+        or not _is_nonbool_int(signed.get("released_reservation_count"))
+        or signed["released_reservation_count"] < 0):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end identity or lifecycle fields conflict")
+    try:
+        for field_name in ("project_id", "root_permit_id", "actor_id"):
+            uuid.UUID(signed[field_name])
+    except (ValueError, TypeError, AttributeError):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end identifiers are malformed")
+    ended_at = _parse_iso_or_none(signed.get("ended_at"))
+    event_at = _parse_iso_or_none(entry.get("occurred_at") or entry.get("created_at"))
+    if ended_at is None or event_at is None or ended_at > event_at:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end time conflicts with its governance event")
+    digest = _compute_canonical_binding_hash({key: signed[key] for key in fields})
+    if signed.get("canonical_hash") != digest:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end canonical hash mismatch")
+    key, _source, error = _resolve_trust_key(
+        artifact_pub=None, artifact_key_id=signed["binding_key_id"],
+        purpose=PERMIT_BINDING_SIGNING_PURPOSE, expected_public_key=None,
+        public_key_url=None, key_manifest_source=_key_manifest_source_for_args(args),
+        signing_time=ended_at,
+    )
+    if error or key is None or _binding_key_id_from_public_key(key) != signed["binding_key_id"]:
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end trusted signing key unavailable")
+    if not _verify_ed25519(key, digest.encode("utf-8"), str(signed.get("signature") or "")):
+        return _walk_fail(WALK_UNKNOWN_CLOSURE_FORMAT, "Work authority-end signature invalid")
+    return None
+
+
 def _verify_export_closures(
     export_data: bytes,
     args: argparse.Namespace,
@@ -8928,6 +9055,7 @@ def _verify_export_closures(
     assert contexts is not None
 
     closures_checked = 0
+    authority_lifecycles_checked = 0
     digest_checks = 0
     dispatch_digest_checks = 0
     dispatch_digest_warnings = 0
@@ -8937,6 +9065,12 @@ def _verify_export_closures(
         if entry.get("event_type") != "permit.closed":
             continue
         payload = _entry_payload(entry)
+        if payload.get("closure_status") == "authority_ended":
+            failure = _verify_work_authority_end(context, args)
+            if failure is not None:
+                return failure
+            authority_lifecycles_checked += 1
+            continue
         binding_version = payload.get("binding_version")
         verifier = closure_verifiers.get(binding_version)
         if verifier is None:
@@ -8968,6 +9102,7 @@ def _verify_export_closures(
     print("VERIFY-CLOSURE: VERIFIED")
     print(f"  chain_scopes:        {len(chain_scopes)}")
     print(f"  closures_verified:   {closures_checked}")
+    print(f"  authority_lifecycles_verified: {authority_lifecycles_checked} (not execution closure or business completion)")
     print(f"  signature_checks:    {closures_checked} PASS")
     print(f"  digest_checks:       {digest_checks} PASS")
     if dispatch_digest_checks:
@@ -10308,6 +10443,7 @@ def _export_report(
     semantics: ResolvedSemantics | None = None,
     error: str | None = None,
     diagnostics: list[str] | None = None,
+    requested_claims: Collection[str] = (),
 ) -> VerificationReport:
     claims, ok, enforced_exit_code, error = _enforce_required_claims(
         claims=claims,
@@ -10319,9 +10455,29 @@ def _export_report(
         subject_id=artifact.get("manifest_path"),
         evidence=["manifest.claim_set"],
     )
+    if enforced_exit_code is not None:
+        exit_code = enforced_exit_code
+    # A claim the caller explicitly asked for (for example with --walk-events
+    # or --verify-closure) is part of what "ok" asserts: if it is required and
+    # not supported, the verification as a whole did not succeed.
+    unsupported_requested = sorted(
+        {
+            claim.name
+            for claim in claims
+            if claim.name in requested_claims
+            and claim.required
+            and claim.aggregate_verdict != verdict_value("supported")
+        }
+    )
+    if unsupported_requested:
+        ok = False
+        if exit_code == 0:
+            exit_code = 1
+        if error is None:
+            error = "requested claims not supported: " + ", ".join(unsupported_requested)
     return VerificationReport(
         ok=ok,
-        exit_code=enforced_exit_code if enforced_exit_code is not None else exit_code,
+        exit_code=exit_code,
         artifact=artifact,
         claims=claims,
         error=error,
@@ -13946,6 +14102,18 @@ def _walk_claim_from_output(
             evidence=evidence,
         )
 
+    if result == 0 and _NO_CHAIN_ENTRIES_MARKER in stdout:
+        # Nothing was walked: the evidence scope carries no chain entries. That
+        # is not a disproof, and it is not support either.
+        return _single_subject_claim(
+            "governance_chain.local_continuity.v1",
+            subject_type="governance_chain",
+            subject_id="chain_entries",
+            verdict="unverifiable_scope",
+            reason_code=WALK_NO_CHAIN_ENTRIES,
+            message=stdout.strip(),
+            evidence=["export.chain_entries", "export.records.chain_entries"],
+        )
     reason_code, message = _failure_from_output(stdout, stderr)
     verdict = (
         "unverifiable_scope"
@@ -14027,6 +14195,8 @@ def _closure_claims_from_output(
         return claims
 
     reason_code, message = _failure_from_output(stdout, stderr)
+    if result == 0 and _NO_CHAIN_ENTRIES_MARKER in stdout:
+        reason_code, message = CLOSURE_NO_CHAIN_ENTRIES, stdout.strip()
     if reason_code == WALK_CLOSURE_SIGNATURE_INVALID:
         claim_name = "closure.signature.v1"
         verdict = "disproved"
@@ -14845,6 +15015,11 @@ def _adjudicate_mcp_review_journey_v1(
 
 
 def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
+    with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+        return _verify_export_structured(args)
+
+
+def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
     export_path = Path(args.export_file)
     manifest_arg = getattr(args, "manifest", None)
     manifest_path = Path(manifest_arg) if manifest_arg else None
@@ -16312,6 +16487,17 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 error=_failure_from_output(closure_stdout, closure_stderr)[1],
             )
 
+    explicitly_requested_claims: set[str] = set()
+    if should_walk_events:
+        explicitly_requested_claims.add("governance_chain.local_continuity.v1")
+    if should_verify_closure:
+        explicitly_requested_claims.update(
+            {
+                "closure.signature.v1",
+                "closure.digest_consistency.v1",
+                "closure.dispatch_binding.v1",
+            }
+        )
     return _export_report(
         ok=True,
         exit_code=0,
@@ -16319,6 +16505,7 @@ def verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         claims=claims,
         semantics=semantics,
         diagnostics=diagnostics,
+        requested_claims=explicitly_requested_claims,
     )
 
 
@@ -16570,6 +16757,11 @@ def _human_report_session(
 
 
 def cmd_export(args: argparse.Namespace) -> int:
+    with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+        return _cmd_export(args)
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
     if getattr(args, "as_json", False):
         report = verify_export_structured(args)
         if report.ok and "artifact_ref" not in report.artifact:
@@ -16758,12 +16950,36 @@ def cmd_export(args: argparse.Namespace) -> int:
     )
     if workflow_result is not None:
         return workflow_result
+    # An explicitly requested walk or closure check that cannot be supported
+    # (no chain entries, nothing evaluable) fails the run, as in --json mode.
     if args.walk_events:
-        walk_result = _walk_export_events(export_data)
+        walk_result, walk_stdout, walk_stderr = _captured_check(
+            _walk_export_events, export_data
+        )
+        sys.stdout.write(walk_stdout)
+        sys.stderr.write(walk_stderr)
         if walk_result != 0:
             return walk_result
+        walk_claim = _walk_claim_from_output(
+            stdout=walk_stdout, stderr=walk_stderr, result=walk_result
+        )
+        if walk_claim.aggregate_verdict != verdict_value("supported"):
+            print(f"FAILED: {walk_claim.reason_code}: {walk_claim.message}", file=sys.stderr)
+            return 1
     if args.verify_closure:
-        return _verify_export_closures(export_data, args)
+        closure_result, closure_stdout, closure_stderr = _captured_check(
+            _verify_export_closures, export_data, args
+        )
+        sys.stdout.write(closure_stdout)
+        sys.stderr.write(closure_stderr)
+        if closure_result != 0:
+            return closure_result
+        for claim in _closure_claims_from_output(
+            stdout=closure_stdout, stderr=closure_stderr, result=closure_result
+        ):
+            if claim.required and claim.aggregate_verdict != verdict_value("supported"):
+                print(f"FAILED: {claim.reason_code}: {claim.message}", file=sys.stderr)
+                return 1
     return 0
 
 
@@ -16930,7 +17146,7 @@ TSA_TRUST_BUNDLE_V1_PATH = (
     / "tsa_trust_bundle_v1.json"
 )
 TSA_TRUST_BUNDLE_V1_HASH = (
-    "sha256:7476297f7f7f84b8fb32d76e33d8381ef248d71c7a5a872430cd454d58e090f5"
+    "sha256:684ee8ad29a8d90a1214a65685b3bdd6da84fb9247d7211c77d8fe671fd7bc5e"
 )
 
 

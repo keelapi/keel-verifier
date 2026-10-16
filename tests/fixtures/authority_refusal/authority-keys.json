@@ -1,0 +1,17 @@
+{
+ "keys": [
+  {
+   "algorithm": "ed25519",
+   "compromised_at": null,
+   "custody_tier": "keel_custodied",
+   "key_id": "a692e68e40d839e47505d2441ec286387f653d641a3f07d38065e3de614d6ffd",
+   "public_key_bytes": "ed25519:v79Nv5SieOh0LjXniJQlxwac+3bOY9U8kzxIGVrjxOM=",
+   "revoked_at": null,
+   "signer_id": "1a221daf-54b6-4368-af3f-fc6b6b1ffaaf",
+   "signer_role": "authority_delegator",
+   "valid_from": "2026-10-09T20:17:39.468306Z",
+   "valid_until": null
+  }
+ ],
+ "project_id": "7ac79dce-e0a1-4f86-8de0-2b85985d739b"
+}

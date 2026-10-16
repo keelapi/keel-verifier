@@ -23,6 +23,7 @@ from keel_verifier.verifier import (
     REFRESH_KEYS_SOURCES,
     VerifyResult,
     _load_json_evidence,
+    _signed_key_manifest_trust_root,
     _emit_legacy_artifact_ref_warning_for_path,
     _human_report_session,
     _key_manifest_source_for_args,
@@ -42,6 +43,7 @@ from keel_verifier.work_chain import verify_work_chain_pack
 
 LEGACY_COMMANDS = {
     "export",
+    "authority-proof",
     "checkpoint",
     "monitor",
     "refresh-keys",
@@ -132,6 +134,82 @@ def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -
     if str(args.export_file).lower().endswith(".keelpermit"):
         return _cmd_permit_package(args)
     return cmd_export(args)
+
+
+def _cmd_authority_proof(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Integrity first, then per-pack authority claims.
+
+    Exit 0 only when the export verifies and no adjudicated claim is
+    disproved; a disproved claim or an integrity failure exits 1.
+    """
+
+    from keel_verifier.authority_proof import adjudicate_authority_chain_proof_document
+
+    try:
+        _public_key_alias(args)
+    except argparse.ArgumentTypeError as exc:
+        parser.error(str(exc))
+    export_file = args.export_file_flag or args.export_file_pos
+    manifest = args.manifest_flag or args.manifest_pos
+    if not export_file:
+        parser.error("authority-proof requires EXPORT_FILE or --export-file")
+    nested = _build_parser().parse_args(["export", str(export_file), "--json"])
+    for name, value in vars(args).items():
+        if name not in {"func", "cmd"} and hasattr(nested, name):
+            setattr(nested, name, value)
+    nested.export_file = str(export_file)
+    nested.manifest = manifest
+    with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+        report = verify_export_structured(nested)
+        integrity = report.to_dict()
+        result: dict = {"integrity_ok": bool(report.ok), "authority_proof": None}
+        if report.ok:
+            try:
+                document = json.loads(Path(export_file).read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                print(f"FAILED: export is not a JSON document: {exc}", file=sys.stderr)
+                return 1
+            if document.get("schema") != "keel.authority_inventory_chain_proof_export/v1":
+                print(
+                    "FAILED: not a chain_proof_json authority-inventory export",
+                    file=sys.stderr,
+                )
+                return 1
+            action_class_map = None
+            if args.action_class_map:
+                action_class_map = json.loads(
+                    Path(args.action_class_map).read_text(encoding="utf-8")
+                )
+            result["authority_proof"] = adjudicate_authority_chain_proof_document(
+                document,
+                key_manifest_source=_key_manifest_source_for_args(nested),
+                action_class_map=action_class_map,
+                authority_trust_root=(
+                    json.loads(Path(args.authority_keys).read_text(encoding="utf-8"))
+                    if args.authority_keys
+                    else None
+                ),
+                permit_id=args.permit_id,
+            )
+    result["integrity"] = {
+        key: integrity.get(key) for key in ("ok", "exit_code", "status", "errors") if key in integrity
+    }
+    disproved = any(
+        claim.get("verdict") == "disproved"
+        for pack in (result["authority_proof"] or {}).get("packs", [])
+        for claim in pack["claims"]
+    )
+    if args.as_json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print("Export integrity: " + ("VERIFIED" if report.ok else "FAILED"))
+        for pack in (result["authority_proof"] or {}).get("packs", []):
+            print(f"Permit {pack['permit_id']} [{pack['chain_proof_status']}]")
+            for claim in pack["claims"]:
+                print(f"  {claim['claim']}: {claim['verdict']}")
+    if not report.ok or disproved:
+        return 1
+    return 0
 
 
 def _cmd_permit_package(args: argparse.Namespace) -> int:
@@ -448,9 +526,50 @@ def _build_parser() -> argparse.ArgumentParser:
             "Prints a warning and exits 0."
         ),
     )
+    p_export.add_argument(
+        "--trust-root",
+        help=(
+            "Local public-key manifest that pins the signer of a signed "
+            "--key-manifest (for example a proof pack's key_manifest.json) "
+            "instead of the bundled Keel trust root. Use it for a non-production "
+            "Keel instance whose export signing key you obtained out of band."
+        ),
+    )
     _add_common_trust_args(p_export)
     _add_key_manifest_args(p_export)
     p_export.set_defaults(func=lambda args: _cmd_export_cli(p_export, args))
+
+    p_authority = sub.add_parser(
+        "authority-proof",
+        help=(
+            "Verify a chain_proof_json authority-inventory export, then "
+            "adjudicate each Permit's authority-chain pack."
+        ),
+    )
+    p_authority.add_argument("export_file_pos", nargs="?", metavar="EXPORT_FILE")
+    p_authority.add_argument("manifest_pos", nargs="?", metavar="MANIFEST")
+    p_authority.add_argument("--export-file", dest="export_file_flag")
+    p_authority.add_argument("--manifest", dest="manifest_flag")
+    p_authority.add_argument("--permit-id", help="Adjudicate only this Permit's pack.")
+    p_authority.add_argument(
+        "--action-class-map",
+        help=(
+            "JSON file of Keel's released action-kind to action-class map. "
+            "permit.authority_chain.v1 needs it; packs do not embed it."
+        ),
+    )
+    p_authority.add_argument("--trust-root")
+    p_authority.add_argument(
+        "--authority-keys",
+        help=(
+            "Authority-edge signing keys (GET /v1/authority/verifier-keys). "
+            "Edge signatures are checked against these delegator-bound keys."
+        ),
+    )
+    p_authority.add_argument("--json", action="store_true", dest="as_json")
+    _add_common_trust_args(p_authority)
+    _add_key_manifest_args(p_authority)
+    p_authority.set_defaults(func=lambda args: _cmd_authority_proof(p_authority, args))
 
     p_cp = sub.add_parser("checkpoint", help="Verify an integrity checkpoint JSON file.")
     p_cp.add_argument("checkpoint_file_pos", nargs="?", metavar="CHECKPOINT_FILE")
