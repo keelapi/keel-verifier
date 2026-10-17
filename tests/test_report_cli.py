@@ -93,4 +93,5 @@ def test_report_is_permit_shaped_for_a_real_permit_fixture() -> None:
     assert "Model: gpt-5" in out
     assert "✓ Operator approval verified" in out
     assert "Operator approval: insufficient evidence" not in out
-    assert "Trust mode: Keel production trust root" in out
+    assert "Trust mode: Pinned key" in out
+    assert "Keel production trust root" not in out

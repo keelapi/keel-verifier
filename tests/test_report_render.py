@@ -484,7 +484,7 @@ def test_tampered_decision_is_tampered_not_invalid() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.decision.v1", "disproved"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Evidence:  TAMPERED" in out
@@ -505,7 +505,7 @@ def test_authentic_evidence_of_violation() -> None:
             _claim("permit.revoked.v1", "supported"),
             _claim("permit.dispatch_absence_after_revocation.v1", "disproved"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Evidence:  VERIFIED" in out
@@ -519,7 +519,7 @@ def test_partial_coverage_warns_and_suggests_upgrade() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.decision.v1", "unverifiable_scope"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Evidence:  VERIFIED — partial coverage ⚠" in out
@@ -532,7 +532,7 @@ def test_incomplete_required_evidence() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.decision.v1", "insufficient_evidence"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Evidence:  INCOMPLETE" in out
@@ -614,7 +614,7 @@ def test_checkpoint_uses_audit_checkpoint_title_and_no_finding() -> None:
         [_claim("checkpoint.signature.v1", "supported")],
         artifact={
             "kind": "checkpoint",
-            "trust_source": "embedded",
+            "trust_source": "bundled Keel production trust root (test fixture)",
             "checkpoint_id": "ckpt_123",
             "composite_hash": "sha256:abc",
         },
@@ -702,7 +702,7 @@ def test_every_assertion_line_carries_known_provenance(presentation: dict) -> No
             "kind": "export",
             "decision": "allow",
             "permit_id": "pmt_1",
-            "trust_source": "embedded",
+            "trust_source": "bundled Keel production trust root (test fixture)",
         },
     )
     lines = build_report_lines(report, presentation=presentation)
@@ -723,11 +723,11 @@ def test_output_never_uses_forbidden_wording(presentation: dict) -> None:
                 _claim("permit.decision.v1", "supported"),
                 _claim("closure.dispatch_binding.v1", "supported"),
             ],
-            artifact={"kind": "export", "decision": "allow", "trust_source": "embedded"},
+            artifact={"kind": "export", "decision": "allow", "trust_source": "bundled Keel production trust root (test fixture)"},
         ),
         _report(
             [_claim("permit.decision.v1", "disproved")],
-            artifact={"kind": "export", "trust_source": "embedded"},
+            artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
         ),
     ]
     for report in reports:
@@ -769,7 +769,7 @@ def test_permit_identity_and_authorized_action_from_permit_block() -> None:
     assert "Provider: openai" in out
     assert "Model: gpt-5" in out
     # trust_source carried from export verification -> resolved trust mode.
-    assert "Trust mode: Keel production trust root" in out
+    assert "Trust mode: Pinned key" in out
     assert "Finding:   Permit decision ALLOW." in out
 
 
@@ -781,7 +781,7 @@ def test_operator_approval_family_collapses_to_one_line() -> None:
             _claim("permit.operator_approval.v1", "supported"),
             _claim("permit.operator_approval.v2", "insufficient_evidence"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "✓ Operator approval verified" in out
@@ -795,7 +795,7 @@ def test_evidence_coverage_lists_present_and_absent() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.operator_approval.v1", "supported"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Evidence coverage" in out
@@ -819,7 +819,7 @@ def test_co_signature_coverage_never_renders_as_a_human_finding() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.co_signature.v2", "supported"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Human co-signature" not in out
@@ -838,7 +838,7 @@ def test_co_signature_caveat_is_absent_when_the_claim_is_out_of_scope() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.operator_approval.v1", "supported"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Co-signer key assertion: not provided" in out
@@ -853,7 +853,7 @@ def test_co_signature_caveat_also_renders_on_a_failed_assertion() -> None:
             _claim("export.integrity.v1", "supported"),
             _claim("permit.co_signature.v1", "disproved"),
         ],
-        artifact={"kind": "export", "trust_source": "embedded"},
+        artifact={"kind": "export", "trust_source": "bundled Keel production trust root (test fixture)"},
     )
     out = render_human(report)
     assert "Human co-signature" not in out

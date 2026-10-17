@@ -39,6 +39,7 @@ from keel_verifier.work_chain import (
     _signed_semantic_binding,
     _verify_manifest_signature,
     _verify_permit,
+    _verified_root_authority,
 )
 
 
@@ -614,7 +615,7 @@ def _authority_manifest_v2(
             or canonical.get("parent_permit_id") is not None
             or canonical.get("action_name") != "work.authorize"
             or canonical.get("subject_id") != package["verified_root_principal_id"]
-            or material.signed_decision != "allow"
+            or not _verified_root_authority(material, document=document, artifacts=artifacts, entries=entries)
         ):
             raise _Failure(
                 "disproved",
@@ -892,7 +893,10 @@ def _authority_manifest_v2(
                 subject_id=root_id,
                 verdict="supported",
                 code="WORK_AUTHORITY_MANIFEST_SUPPORTED",
-                message="signed Work request, package, authorities, pool, and delegations match",
+                message=("signed Work request, package, authorities, pool, and delegations match"
+                         + ("; typed approval eligibility is Keel writer authorization attestation, "
+                            "not independent directory membership or quorum proof"
+                            if material.signed_decision == "challenge" else "")),
                 evidence=("root.permit_artifact", "root.work_request", "root.work_package", "authorities"),
             ),
             {

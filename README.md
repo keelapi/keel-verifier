@@ -226,31 +226,50 @@ local installed copy separately.
 
 ## Obtaining a Signed Export
 
-Request an audit export from the Keel compliance export API and include chain entries when you want full lifecycle walking:
+Full compliance exports require a Production or Enterprise project. The API key
+selects the project; the request body does not accept `project_id`. Request a full
+audit export with chain entries when you want lifecycle walking:
 
 ```bash
 curl -sS -X POST "https://api.keelapi.com/v1/compliance/exports?include_chain_entries=true" \
   -H "Authorization: Bearer $KEEL_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"project_id":"<project_uuid>","format":"json"}'
+  -d '{"export_type":"full_audit","format":"json"}'
 ```
 
-Download both artifacts returned by the export workflow:
+The API returns HTTP 202 with an `export_id` and `status="queued"`. Poll
+`GET /v1/compliance/exports/{export_id}` with the same API key until the status is
+`completed`. A failed job reports `error_message`; it has no verifiable completed
+export. Download `GET /v1/compliance/exports/{export_id}/proof-pack` and extract
+the ZIP into one directory. Keep all included artifacts together:
 
 - the export payload, for example `export.json`
 - the signed manifest, for example `manifest.json`
+- the signed public-key manifest, `key_manifest.json`
+- referenced checkpoint and scope-state sidecars, when included
 
 Then run:
 
 ```bash
-keel-verify export export.json manifest.json --walk-events --verify-closure
+keel-verify export export.json manifest.json \
+  --key-manifest key_manifest.json --offline --walk-events --verify-closure
 ```
 
 The explicit flag form is also supported:
 
 ```bash
-keel-verify export --export-file export.json --manifest manifest.json --walk-events --verify-closure
+keel-verify export --export-file export.json --manifest manifest.json \
+  --key-manifest key_manifest.json --offline --walk-events --verify-closure
 ```
+
+The signed key manifest must authenticate under the bundled or independently
+pinned trust root. For a non-production instance, add
+`--trust-root instance-root.json`, where the local JSON key manifest pins the
+instance's export-signing public key obtained out of band. Do not create a trusted
+root from the evidence pack itself. A per-Permit `permit_audit_bundle` verifies
+its declared signature/decision claims; it is not a full audit export for chain
+or closure walking. Verification proves the supported signed evidence claims,
+not an external effect.
 
 Export manifests must be signed by default. Legacy unsigned manifests fail closed
 after the content-hash check. Use `--allow-unsigned` only for archaeology or
@@ -317,6 +336,8 @@ bindings, signed export-scope checkpoints, lifecycle ordering, and the payment
 authority comparator. Human output separates authorization from dispatch,
 external outcome, settlement, and unestablished facts. Use `--json` for the
 stable machine verdict; presentation labels never alter claims or exit status.
+
+An approved Work root keeps its original signed REVIEW decision. Verification requires the separately signed approval transition for that same root, project, request-bound Permit and designated approver; an unsigned `allow` projection cannot establish approval. Typed organization-role, team and approver-group eligibility is Keel’s signed authorization attestation for the immutable root requirement; the pack does not independently prove directory membership or the underlying approval quorum. Exact user and service-principal selectors also require the signed actor to match that user or dedicated approval credential. In ordinary audit exports, a signed Work authority-end event is checked as authority lifecycle evidence. It is counted separately from execution closures and never establishes provider execution or business completion. An export containing only authority-end events cannot satisfy a requested execution-closure claim.
 
 When a pack does not embed its signed public-key manifest, provide one with
 `--trust-root` (or the compatibility alias `--key-manifest`). Work evidence is

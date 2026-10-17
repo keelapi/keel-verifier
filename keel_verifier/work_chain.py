@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 import hashlib
 from importlib import resources
@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 import re
 from typing import Any
+from uuid import UUID
 
 import jsonschema
 import rfc8785
@@ -1115,6 +1116,129 @@ def _verify_permit(
     )
 
 
+def _valid_root_approval_requirement(requirement: Any, actor_id: str, actor_kind: str) -> bool:
+    """Validate the signed selector; directory eligibility remains writer attestation."""
+    common = {"type", "timeout_seconds", "min_approvals", "separation_of_duties",
+              "delegated_approval", "external_workflow", "legacy_attestor"}
+    targets = {"user": {"user_id"}, "org_role": {"role"},
+               "approver_group": {"group_id", "group_slug"},
+               "team": {"team_id", "team_slug"},
+               "service_principal": {"service_principal_id"}}
+    if not isinstance(requirement, dict) or requirement.get("type") not in targets:
+        return False
+    kind = requirement["type"]
+    actor_kinds = {"user", "api_key"} if kind == "approver_group" else {"api_key"} if kind == "service_principal" else {"user"}
+    if set(requirement) - common - targets[kind] or actor_kind not in actor_kinds:
+        return False
+    for key in ("timeout_seconds", "min_approvals"):
+        value = requirement.get(key, 1 if key == "min_approvals" else None)
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            return False
+    for key in ("separation_of_duties", "delegated_approval"):
+        if key in requirement and not isinstance(requirement[key], bool):
+            return False
+    if "external_workflow" in requirement and not isinstance(requirement["external_workflow"], dict):
+        return False
+    if "legacy_attestor" in requirement and not isinstance(requirement["legacy_attestor"], str):
+        return False
+    def uuid_value(value: Any) -> bool:
+        try:
+            return isinstance(value, str) and bool(UUID(value))
+        except (ValueError, TypeError, AttributeError):
+            return False
+    if not uuid_value(actor_id):
+        return False
+    if kind == "user":
+        return uuid_value(requirement.get("user_id")) and actor_id == requirement["user_id"]
+    if kind == "service_principal":
+        return uuid_value(requirement.get("service_principal_id")) and actor_id == requirement["service_principal_id"]
+    if kind == "org_role":
+        role = requirement.get("role")
+        return isinstance(role, str) and 0 < len(role) <= 32 and bool(role.strip())
+    id_field, slug_field = ("team_id", "team_slug") if kind == "team" else ("group_id", "group_slug")
+    if id_field in requirement and not uuid_value(requirement[id_field]):
+        return False
+    if slug_field in requirement:
+        slug = requirement[slug_field]
+        if not isinstance(slug, str) or not 0 < len(slug) <= 128 or not slug.strip():
+            return False
+    return id_field in requirement or slug_field in requirement
+
+
+def _verified_root_authority(
+    material: _PermitMaterial,
+    *,
+    document: dict[str, Any],
+    artifacts: dict[str, dict[str, Any]],
+    entries: list[dict[str, Any]],
+) -> bool:
+    """Keep the issued challenge immutable; authenticate the later approval."""
+    if material.signed_decision == "allow":
+        return True
+    if material.signed_decision != "challenge":
+        return False
+    from keel_verifier import verifier as core
+
+    canonical = material.canonical_payload
+    fields = {"event_type", "permit_id", "project_id", "decision_at", "actor_id",
+              "actor_kind", "from_decision", "from_status", "to_decision", "to_status"}
+    candidates: list[dict[str, Any]] = []
+    for reference in document.get("evidence_artifacts", []):
+        artifact = _resolve_reference(reference, artifacts, field="evidence_artifacts")
+        if artifact.get("artifact_type") != "governance_event":
+            continue
+        event = artifact.get("payload", {})
+        if event.get("permit_id") != canonical.get("permit_id"):
+            continue
+        if str(event.get("event_type", "")).startswith("permit.challenge_"):
+            candidates.append(event)
+    if len(candidates) != 1:
+        return False
+    event = candidates[0]
+    payload = event.get("payload", {})
+    signed = payload.get("challenge_transition_event")
+    if not isinstance(signed, dict) or set(signed) != fields | {"signature"}:
+        return False
+    if (event.get("event_type") != "permit.challenge_approved"
+        or signed.get("event_type") != event.get("event_type")
+        or signed.get("permit_id") != canonical.get("permit_id")
+        or signed.get("project_id") != canonical.get("project_id")
+        or event.get("project_id") != canonical.get("project_id")
+        or signed.get("from_decision") != "challenge"
+        or signed.get("from_status") != "awaiting_attestation"
+        or signed.get("to_decision") != "allow"
+        or signed.get("to_status") != "attested"
+        or not isinstance(signed.get("actor_id"), str) or not signed["actor_id"]
+        or signed.get("actor_kind") not in {"user", "api_key", "service_account", "system", "external_email_guest"}):
+        return False
+    decision_at = _parse_time(signed.get("decision_at"), field="root.approval.decision_at")
+    issued_at = _parse_time(canonical.get("issued_at"), field="root.issued_at")
+    expires_at = _parse_time(canonical.get("expires_at"), field="root.expires_at")
+    cutoff = _parse_time(document["declared_cutoff"]["recorded_through"], field="declared_cutoff.recorded_through")
+    if not issued_at <= decision_at <= cutoff or decision_at >= expires_at:
+        return False
+    if _parse_time(event.get("occurred_at"), field="root.approval.occurred_at") != decision_at:
+        return False
+    constraints = canonical.get("constraints")
+    work = constraints.get("work") if isinstance(constraints, dict) else None
+    requirement = work.get("approval_requirement") if isinstance(work, dict) else None
+    if not _valid_root_approval_requirement(requirement, signed["actor_id"], signed["actor_kind"]):
+        return False
+    if decision_at >= issued_at + timedelta(seconds=requirement["timeout_seconds"]):
+        return False
+    unsigned = {key: signed[key] for key in fields}
+    digest = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    if payload.get("signature_profile") != "keel.canonical_json.payload.v1" or payload.get("challenge_transition_canonical_hash") != digest:
+        return False
+    active = core._filter_by_active_window(entries, decision_at)
+    valid = [entry for entry in active if entry.get("purpose") == "permit_binding_signing"
+             and core._entry_not_terminal_at(entry, decision_at)
+             and isinstance(entry.get("public_key"), str)
+             and core._binding_key_id_from_public_key(entry["public_key"]) == entry.get("key_id")
+             and core._verify_ed25519(entry["public_key"], digest.encode("utf-8"), str(signed.get("signature") or ""))]
+    return len(valid) == 1
+
+
 def _authority_manifest(
     document: dict[str, Any],
     artifacts: dict[str, dict[str, Any]],
@@ -1134,7 +1258,7 @@ def _authority_manifest(
             or canonical.get("permit_chain_role") != "work_root"
             or canonical.get("parent_permit_id") is not None
             or canonical.get("action_name") != "work.authorize"
-            or material.signed_decision != "allow"
+            or not _verified_root_authority(material, document=document, artifacts=artifacts, entries=entries)
         ):
             raise _Failure(
                 "disproved",
@@ -1295,7 +1419,10 @@ def _authority_manifest(
                 subject_id=root_id,
                 verdict="supported",
                 code="WORK_AUTHORITY_MANIFEST_SUPPORTED",
-                message="signed Work authority manifest and exact authority population match",
+                message=("signed Work authority manifest and exact authority population match"
+                         + ("; typed approval eligibility is Keel writer authorization attestation, "
+                            "not independent directory membership or quorum proof"
+                            if material.signed_decision == "challenge" else "")),
                 evidence=("root.permit_artifact", "root.work_package", "authorities"),
             ),
             {

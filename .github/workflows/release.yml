@@ -45,6 +45,28 @@ jobs:
           print(f"keel-permit v1.24.0 resolved to {actual}, expected {expected}",
           file=sys.stderr) or 1)'
 
+      # The published v1.24.0 contract remains immutable. The coordinated
+      # candidate's qualification corpus is a separate, exact source dependency;
+      # publish this reviewed source commit before authorizing verifier release.
+      - name: Checkout coordinated Permit qualification corpus
+        uses: actions/checkout@v6
+        with:
+          repository: keelapi/keel-permit
+          path: keel-permit-corpus
+          ref: 78f67030a81d202b5e10dcc56dd1e7ce683dba80
+          persist-credentials: false
+
+      - name: Verify qualification corpus commit
+        run: >-
+          python -c
+          'import subprocess, sys;
+          expected = "78f67030a81d202b5e10dcc56dd1e7ce683dba80";
+          actual = subprocess.check_output(
+          ["git", "-C", "keel-permit-corpus", "rev-parse", "HEAD"], text=True).strip();
+          sys.exit(0 if actual == expected else
+          print(f"qualification corpus resolved to {actual}, expected {expected}",
+          file=sys.stderr) or 1)'
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -61,7 +83,16 @@ jobs:
         run: python scripts/check_release_trust_root.py --source github
 
       - name: Gate historical compatibility corpus
+        env:
+          KEEL_PERMIT_PTX_ROOT: ${{ github.workspace }}/keel-permit-corpus
         run: python scripts/check_historical_compatibility_corpus.py --run
+
+      - name: Gate coordinated Permit-to-X corpus parity
+        env:
+          KEEL_PERMIT_PTX_ROOT: ${{ github.workspace }}/keel-permit-corpus
+        run: >-
+          python -m pytest -q
+          tests/test_work_chain_report_codes.py::test_vendored_permit_to_x_artifacts_match_canonical_source
 
       - name: Generate embedded release manifest
         run: python scripts/generate_release_manifest.py embedded --tag "${GITHUB_REF_NAME}"
