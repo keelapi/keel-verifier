@@ -47,21 +47,21 @@
     {
       "issuer": "CN=DigiCert Trusted Root G4,OU=www.digicert.com,O=DigiCert Inc,C=US",
       "kind": "crl",
-      "last_update": "2026-10-16T17:42:35Z",
-      "next_update": "2026-11-06T17:42:35Z",
+      "last_update": "2026-10-23T17:42:35Z",
+      "next_update": "2026-11-13T17:42:35Z",
       "path": "digicert/trusted_root_g4.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:2fee5d053a9b9a3581890db5ccfdcf8f99564effa4b3d0a24882f85fc08b8690",
+      "sha256": "sha256:5a10f053000f45b5d97906b1a51730986b8aa0f11374aefafd2a279628b9de8e",
       "source_url": "http://crl3.digicert.com/DigiCertTrustedRootG4.crl"
     },
     {
       "issuer": "CN=DigiCert Assured ID Root CA,OU=www.digicert.com,O=DigiCert Inc,C=US",
       "kind": "crl",
-      "last_update": "2026-10-15T23:47:20Z",
-      "next_update": "2026-11-05T23:47:20Z",
+      "last_update": "2026-10-22T23:47:20Z",
+      "next_update": "2026-11-12T23:47:20Z",
       "path": "digicert/assured_id_root_ca.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:da51f7219bf590d342a1db44bfa895f94920ce3385ae597b2dd358b027f365b8",
+      "sha256": "sha256:7fd9ea6d1d019b34d8057ff55fbd231f0ff7061a061acc3acb2712274a556288",
       "source_url": "http://crl3.digicert.com/DigiCertAssuredIDRootCA.crl"
     },
     {
@@ -128,11 +128,11 @@
       "source_url": "http://crl.globalsign.com/root-r6.crl"
     }
   ],
-  "generated_at": "2026-10-22T05:33:20Z",
+  "generated_at": "2026-10-27T17:26:45Z",
   "id": "keel.tsa_trust_bundle.v1",
   "validation": {
     "crl_refresh_guard": "CI must refresh the release-pinned TSA CRL snapshots before the earliest bundled CRL next_update enters the configured guard window.",
-    "crl_refresh_required_before": "2026-11-05T23:47:20Z",
+    "crl_refresh_required_before": "2026-11-11T16:40:26Z",
     "revocation_rule": "For each non-root certificate in the resolved chain, a bundled CRL issued by that certificate issuer must cover genTime; revocationDate or invalidityDate at or before genTime invalidates the TSA chain.",
     "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
     "timestamp_verification_time": "RFC3161 TSTInfo.genTime"
