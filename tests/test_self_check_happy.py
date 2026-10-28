@@ -144,9 +144,9 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
     requested_urls: list[str] = []
     manifest = self_check.load_embedded_manifest("wheel")
 
-    assert manifest["version_tag"] == "v3.28.1"
+    assert manifest["version_tag"] == "v3.28.2"
     assert all(
-        all(prior not in manifest[field] for prior in ("v3.26.0", "v3.27.0", "v3.27.1", "v3.28.0"))
+        all(prior not in manifest[field] for prior in ("v3.26.0", "v3.27.0", "v3.27.1", "v3.28.0", "v3.28.1"))
         for field in (
             "expected_signing_identity",
             "release_manifest_url",
@@ -170,7 +170,7 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
         requested_urls.append(url)
         raise self_check.SelfCheckError(
             "SELF_CHECK_FETCH_FAILED",
-            "3.28.1 signed release artifacts do not exist",
+            "3.28.2 signed release artifacts do not exist",
         )
 
     monkeypatch.setattr(self_check, "fetch_signed_manifest", unavailable)
@@ -189,7 +189,8 @@ def test_unpublished_candidate_never_falls_back_to_prior_release(
     assert result.stages[-1].name == "fetch"
     assert result.stages[-1].code == "SELF_CHECK_FETCH_FAILED"
     assert requested_urls == [manifest["release_manifest_url"]]
-    assert "/v3.28.1/" in requested_urls[0]
+    assert "/v3.28.2/" in requested_urls[0]
+    assert "/v3.28.1/" not in requested_urls[0]
     assert "/v3.28.0/" not in requested_urls[0]
     assert "/v3.27.1/" not in requested_urls[0]
     assert "/v3.27.0/" not in requested_urls[0]

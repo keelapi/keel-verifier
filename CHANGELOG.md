@@ -1,5 +1,36 @@
 # Changelog
 
+## 3.28.2
+
+### Trust-material refresh
+
+- Refresh the bundled DigiCert Trusted Root G4 and DigiCert Assured ID Root
+  CA certificate-revocation lists and their pinned hashes, and refresh the
+  coupled public-CA timestamp receipt fixture. DigiCert has not reissued the
+  Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1 CRL, so that snapshot is
+  unchanged.
+- A TSA timestamp is validated only when every CRL in its chain covers its
+  genTime. Each release therefore covers a moving window of DigiCert
+  timestamps:
+  - 3.28.1: 2026-10-21T16:40:26Z to 2026-11-05T23:47:20Z.
+  - 3.28.2: 2026-10-23T17:42:35Z to 2026-11-11T16:40:26Z.
+
+  Outside its window a release reports the DigiCert timestamp as
+  `not_validated_revocation_snapshot_stale`. A DigiCert timestamp from before
+  2026-10-23T17:42:35Z still validates with 3.28.1. GlobalSign coverage is
+  unchanged (2026-10-07T00:00:00Z to 2027-01-15T00:00:00Z).
+- The 3.28.2 deadline is set by the unchanged DigiCert Trusted G4
+  TimeStamping RSA4096 SHA256 2025 CA1 CRL. The unchanged seven-day release
+  freshness gate requires the next refresh before 2026-11-04T16:40:26Z.
+- Existing trust roots, verifier adjudication logic, historical semantics,
+  and freshness requirements are unchanged.
+
+### Release integrity
+
+- Assign the refreshed bundle the new 3.28.2 release identity. Publication
+  still requires the tagged release workflow and verification of the
+  published wheel against its signed release artifacts.
+
 ## 3.28.1
 
 ### Trust-material refresh
