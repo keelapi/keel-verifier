@@ -60,8 +60,18 @@ Keel evidence bundle v1 is intentionally one file, one command, no network.
 When a file has `schema_version=keel.evidence_bundle/v1`, the verifier reads
 the embedded `body` and `signature_envelope`, validates `artifact_ref.v1`,
 recomputes `signature_envelope.content_hash` over canonical `body`, verifies
-the Ed25519 signature with the bundled public key, and checks RFC 3161 TSA
-receipt imprints against the bundled anchor when receipts are present.
+the Ed25519 signature, and checks RFC 3161 TSA receipt imprints against the
+bundled anchor when receipts are present.
+
+The envelope's embedded `public_key` is only a claim about who signed. Since
+3.29.0 the verifier resolves the signer through the trust root (purpose
+`export_signing`, matched by `signature_envelope.public_key_id`) and requires
+the embedded key to equal it. A bundle signed by any other key exits non-zero:
+`BUNDLE_SIGNER_UNTRUSTED` when the trust root has no matching key, and
+`BUNDLE_SIGNER_KEY_MISMATCH` when the key id names a trusted key but the
+embedded key differs. Bundles from a non-production Keel instance need
+`--key-manifest` or `--trust-root`; `--self-attested` checks internal
+consistency only and reports itself as such.
 
 ```bash
 keel-verify export evidence_bundle.json
@@ -447,7 +457,7 @@ Trust sources, strongest first:
 | Key manifest URL | `--key-manifest-url URL` | Explicit network fetch. |
 | Cached manifest | none (set up via `keel-verify refresh-keys`) | Default once cache exists. Lives at `~/.keel-verifier/trust-root.json`. |
 | Bundled trust root | none | Always-present floor. No phone-home. |
-| Self-attested | `--self-attested` | Development/sample mode only. |
+| Self-attested | `--self-attested` | Development/sample mode only. Does not prove Keel signed the artifact. |
 
 `--public-key-url` is also supported for checkpoint verification against the single live checkpoint public-key endpoint.
 

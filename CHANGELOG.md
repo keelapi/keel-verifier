@@ -1,5 +1,63 @@
 # Changelog
 
+## 3.29.0
+
+### Security: authenticate the evidence-bundle signer
+
+- Self-attesting evidence bundles (`keel.evidence_bundle/v1` and `/v2`) are now
+  authenticated against the trust root. Versions 3.4.0 through 3.28.2 verified
+  the envelope signature against the bundle's own embedded `public_key` and
+  never compared that key to a trusted one, so a bundle signed by any key
+  could report as verified. Inner Permit-binding, review, closure, and
+  checkpoint signatures were already resolved through the trust root and are
+  unchanged.
+- The envelope signer is resolved with purpose `export_signing` from the same
+  sources as every other trust decision (`--expected-public-key`,
+  `--key-manifest[-url]`, `--trust-root`, the cached manifest, then the bundled
+  root). The embedded key must equal the resolved key:
+  - `BUNDLE_SIGNER_UNTRUSTED` (`insufficient_evidence`, exit 1): no trusted
+    key matches the envelope's `public_key_id`. The human report shows
+    `UNTRUSTED SIGNER`.
+  - `BUNDLE_SIGNER_KEY_MISMATCH` (`disproved`, exit 1): the key id names a
+    trusted key but the embedded key differs.
+- The rule applies to single-file `export` (structured, `--json`, `--raw`, and
+  bare-path invocation), to the reviewed and execution bundles nested in
+  `keel.mcp_review_journey/v1`, and to the checkpoint bundle wrapper.
+- Reports now record the envelope's `trust_source`, so the human report's
+  trust mode names the trust root that authenticated the bundle instead of
+  `(not determined)`.
+- `--self-attested` keeps the integrity-only check and labels it: the claim
+  message, a warning diagnostic, and the human report state that the signer
+  was not authenticated.
+
+### Trust-material refresh
+
+- Refresh the three bundled DigiCert certificate-revocation lists (Trusted G4
+  TimeStamping RSA4096 SHA256 2025 CA1, Trusted Root G4, Assured ID Root CA)
+  and their pinned hashes, and refresh the coupled public-CA timestamp
+  receipt fixture.
+- 3.29.0 validates DigiCert timestamps from 2026-10-30T17:42:35Z to
+  2026-11-18T16:40:26Z. A DigiCert timestamp from before 2026-10-30T17:42:35Z
+  still validates with 3.28.2 or 3.28.1. GlobalSign coverage is unchanged
+  (2026-10-07T00:00:00Z to 2027-01-15T00:00:00Z).
+- The seven-day release freshness gate requires the next refresh before
+  2026-11-11T16:40:26Z.
+
+### Upgrade notes
+
+- This is a stricter verdict. Bundles produced by Keel production verify
+  unchanged against the bundled root. Bundles from staging, demo, or local
+  Keel instances, or signed with ad hoc keys, now need `--key-manifest` or
+  `--trust-root` for that instance (or `--self-attested` for an
+  integrity-only check).
+- After an export-signing key rotation, run `keel-verify refresh-keys` or
+  upgrade so the new key is in the trust root.
+- Test fixtures that signed bundles with generated keys now pin those keys.
+  The historical-compatibility corpus pins for `tests/test_self_attesting_bundle.py`
+  and `tests/test_permit_exact.py` were updated accordingly; production
+  public bundles were added under `tests/fixtures/production_bundles/` as
+  must-pass cases.
+
 ## 3.28.2
 
 ### Trust-material refresh
