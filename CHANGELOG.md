@@ -50,10 +50,6 @@
   Keel instances, or signed with ad hoc keys, now need `--key-manifest` or
   `--trust-root` for that instance (or `--self-attested` for an
   integrity-only check).
-- The bundled root lists Keel's production export-signing key as valid from
-  2026-04-27T02:03:12Z, when key history began. A bundle whose `generated_at`
-  is earlier reports `BUNDLE_SIGNER_UNTRUSTED`; verify it with
-  `--expected-public-key` or `--self-attested`.
 - After an export-signing key rotation, run `keel-verify refresh-keys` or
   upgrade so the new key is in the trust root.
 - Test fixtures that signed bundles with generated keys now pin those keys.

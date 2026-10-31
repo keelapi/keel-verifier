@@ -19164,10 +19164,14 @@ def _verify_checkpoint_core(
             _bundle_context,
         ) = _verify_self_attesting_bundle_payload(
             body,
+            # expected_public_key / public_key_url pin the inner
+            # integrity_checkpoint signer; the wrapper is signed by
+            # export_signing, so it resolves from the key manifest.
             signer_trust=BundleSignerTrust(
-                expected_public_key=expected_public_key,
-                public_key_url=public_key_url,
-                key_manifest_source=key_manifest_source,
+                key_manifest_source=(
+                    key_manifest_source
+                    or (None if self_attested else _pinned_key_manifest_source())
+                ),
                 self_attested=self_attested,
             ),
             artifact_id=path.name,

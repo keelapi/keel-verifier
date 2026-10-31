@@ -481,6 +481,25 @@ def test_checkpoint_wrapper_signed_by_trusted_key_verifies(tmp_path: Path) -> No
     assert "EVIDENCE_BUNDLE_SUPPORTED" in {claim.reason_code for claim in result.claims}
 
 
+def test_checkpoint_pin_does_not_pin_the_wrapper_signer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkpoint_key = _keypair()
+    _, checkpoint_public, _ = checkpoint_key
+    wrapper_key = _keypair()
+    _, wrapper_public, wrapper_key_id = wrapper_key
+    cached = _manifest(tmp_path, ("export_signing", wrapper_key_id, wrapper_public))
+    monkeypatch.setattr(verifier, "CACHED_TRUST_ROOT_PATH", cached)
+    path = _checkpoint_bundle(tmp_path, wrapper_key=wrapper_key, checkpoint_key=checkpoint_key)
+
+    result = verifier.verify_checkpoint(
+        path, expected_public_key="ed25519:" + checkpoint_public, check_tsa=False
+    )
+
+    assert result.ok is True, result.error
+    assert "EVIDENCE_BUNDLE_SUPPORTED" in {claim.reason_code for claim in result.claims}
+
+
 # ── --self-attested keeps the integrity-only check, labelled as such ───────
 
 
