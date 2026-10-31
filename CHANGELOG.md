@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.29.1
+
+### Security hardening
+
+- The evidence-bundle signer check now refuses a trust-root entry that is
+  revoked or compromised at the bundle's `generated_at`, the rule pinned
+  Permit keys already follow. 3.29.0 matched the envelope's `public_key_id`
+  in the trust root without checking that entry's status. The bundle reports
+  `BUNDLE_SIGNER_UNTRUSTED` and the message names the key's status.
+- No Keel production key is revoked or compromised, so production bundles
+  verify unchanged. Bundles that carry a `public_key_id` are still matched
+  without a validity-window check, and the legacy split-file export path is
+  unchanged.
+
 ## 3.29.0
 
 ### Security: authenticate the evidence-bundle signer
