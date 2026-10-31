@@ -77,13 +77,16 @@ def _export_args(
     manifest: Path | None = None,
     as_json: bool = True,
     as_raw: bool = False,
+    trusted_key: str | None = None,
 ) -> argparse.Namespace:
+    # Bundle envelopes are authenticated against a trusted key, so tests that
+    # sign with a generated key must pin it explicitly.
     return argparse.Namespace(
         export_file=str(path),
         manifest=str(manifest) if manifest is not None else None,
         as_json=as_json,
         as_raw=as_raw,
-        expected_public_key=None,
+        expected_public_key=f"ed25519:{trusted_key}" if trusted_key else None,
         key_manifest=None,
         key_manifest_url=None,
         self_attested=False,
@@ -228,7 +231,7 @@ def test_export_command_accepts_single_file_self_attesting_bundle(tmp_path: Path
     }
     path = _write(tmp_path / "export_bundle.json", _bundle(body, private_key, public_key, key_id))
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is True
     assert report.error is None
@@ -275,7 +278,7 @@ def test_export_command_accepts_self_attesting_bundle_without_anchor(
         _fail_tsa_check,
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is True
     assert report.error is None
@@ -284,7 +287,7 @@ def test_export_command_accepts_self_attesting_bundle_without_anchor(
     assert any("no anchor" in item for item in report.diagnostics)
     assert any("skipping TSA imprint verification" in item for item in report.diagnostics)
 
-    assert cmd_export(_export_args(path, as_json=False, as_raw=True)) == 0
+    assert cmd_export(_export_args(path, as_json=False, as_raw=True, trusted_key=public_key)) == 0
     captured = capsys.readouterr()
     assert "no anchor" in captured.err
     assert "VERIFIED" in captured.out
@@ -297,7 +300,7 @@ def test_quota_reservation_linkage_unanchored_uses_weak_grade(tmp_path: Path) ->
         _bundle(_ledger_body(anchored=False), private_key, public_key, key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
     claim = _claim(report, "quota.reservation_linkage.v1")
     payload = report.to_dict()
 
@@ -316,7 +319,7 @@ def test_quota_reservation_linkage_anchored_uses_keel_attested_unsigned(
         _bundle(_ledger_body(anchored=True), private_key, public_key, key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
     claim = _claim(report, "quota.reservation_linkage.v1")
 
     assert report.ok is True
@@ -337,7 +340,7 @@ def test_quota_reservation_linkage_inserted_anchor_without_resign_fails(
     }
     path = _write(tmp_path / "tampered_anchor_bundle.json", bundle)
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is False
     assert report.error is not None
@@ -384,7 +387,7 @@ def test_quota_reservation_linkage_signed_identity_outranks_anchor(
         _bundle(body, bundle_key, bundle_public_key, bundle_key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=bundle_public_key))
     claim = _claim(report, "quota.reservation_linkage.v1")
 
     assert report.ok is True
@@ -432,7 +435,7 @@ def test_quota_reservation_linkage_signed_unsigned_conflict_is_disproved(
         _bundle(body, bundle_key, bundle_public_key, bundle_key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=bundle_public_key))
     claim = _claim(report, "quota.reservation_linkage.v1")
 
     assert report.ok is True
@@ -448,7 +451,7 @@ def test_quota_reservation_linkage_minimum_grade_fails_unanchored(
         tmp_path / "unanchored_min_grade_bundle.json",
         _bundle(_ledger_body(anchored=False), private_key, public_key, key_id),
     )
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
     semantics = ResolvedSemantics(
         mode="pinned",
         profile_id=None,
@@ -501,7 +504,7 @@ def test_budget_partition_ledger_replays_cap_lifecycle(tmp_path: Path) -> None:
         _bundle(body, private_key, public_key, key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
     claim = _claim(report, "budget.partition_ledger.v1")
 
     assert report.ok is True
@@ -526,7 +529,7 @@ def test_budget_partition_ledger_negative_cap_is_disproved(tmp_path: Path) -> No
         _bundle(body, private_key, public_key, key_id),
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
     claim = _claim(report, "budget.partition_ledger.v1")
 
     assert report.ok is True
@@ -546,7 +549,7 @@ def test_bundle_content_hash_mismatch_fails_clearly(tmp_path: Path) -> None:
     bundle["signature_envelope"]["content_hash"] = "sha256:" + "0" * 64
     path = _write(tmp_path / "tampered_bundle.json", bundle)
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is False
     assert "content_hash mismatch" in str(report.error)
@@ -568,7 +571,7 @@ def test_bundle_signature_mismatch_fails_clearly(tmp_path: Path) -> None:
     ).decode("ascii")
     path = _write(tmp_path / "bad_signature_bundle.json", bundle)
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is False
     assert report.error == "bundle signature verification failed"
@@ -627,7 +630,7 @@ def test_export_command_accepts_voice_chain_head_timestamp_bundle(
         bundle,
     )
 
-    report = verify_export_structured(_export_args(path))
+    report = verify_export_structured(_export_args(path, trusted_key=public_key))
 
     assert report.ok is True
     assert report.error is None

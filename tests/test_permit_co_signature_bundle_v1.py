@@ -267,9 +267,11 @@ def _key_manifest(
 def _wrap_bundle(
     body: dict[str, Any],
     *,
+    envelope_private: Ed25519PrivateKey,
+    envelope_key_id: str,
     schema_version: str = "keel.evidence_bundle/v2",
 ) -> dict[str, Any]:
-    """Wrap a body in a self-attesting container with a throwaway envelope key.
+    """Wrap a body in a self-attesting container signed by the export key.
 
     Co-signature bundles ship as v2 so that a verifier which cannot adjudicate
     the body profile refuses the file instead of reporting the envelope alone.
@@ -285,7 +287,6 @@ def _wrap_bundle(
         ),
     }
     content_hash = verifier._content_hash(verifier._bundle_canonical_json_bytes(body))
-    envelope_private = Ed25519PrivateKey.from_private_bytes(b"\x07" * 32)
     return {
         "schema_version": schema_version,
         "body": body,
@@ -294,7 +295,7 @@ def _wrap_bundle(
             "signature": base64.b64encode(
                 envelope_private.sign(content_hash.encode("utf-8"))
             ).decode("ascii"),
-            "public_key_id": "test-envelope-key",
+            "public_key_id": envelope_key_id,
             "public_key": base64.b64encode(
                 envelope_private.public_key().public_bytes(
                     Encoding.Raw, PublicFormat.Raw
@@ -429,8 +430,21 @@ class Pack:
             }
         return body
 
+    def wrap(
+        self,
+        body: dict[str, Any],
+        *,
+        schema_version: str = "keel.evidence_bundle/v2",
+    ) -> dict[str, Any]:
+        return _wrap_bundle(
+            body,
+            envelope_private=self.export_private,
+            envelope_key_id=self.export_key_id,
+            schema_version=schema_version,
+        )
+
     def report(self, body: dict[str, Any]) -> Any:
-        path = _write_json(self.tmp_path / "bundle.json", _wrap_bundle(body))
+        path = _write_json(self.tmp_path / "bundle.json", self.wrap(body))
         return verifier.verify_export_structured(
             _bundle_args(path, self.trust_root)
         )
@@ -841,7 +855,7 @@ def test_co_signature_evidence_without_declared_profile_fails_closed(
 
 def test_envelope_tamper_after_signing_fails(pack: Pack) -> None:
     """Re-signing is required to alter the body; a raw edit must not verify."""
-    bundle = _wrap_bundle(pack.body())
+    bundle = pack.wrap(pack.body())
     bundle["body"]["permit_id"] = OTHER_PERMIT_ID
     path = _write_json(pack.tmp_path / "tampered.json", bundle)
 
@@ -864,7 +878,7 @@ def test_v1_container_still_verifies_for_existing_artifacts(pack: Pack) -> None:
     }
     path = _write_json(
         pack.tmp_path / "legacy-v1.json",
-        _wrap_bundle(body, schema_version="keel.evidence_bundle/v1"),
+        pack.wrap(body, schema_version="keel.evidence_bundle/v1"),
     )
 
     report = verifier.verify_export_structured(_bundle_args(path, pack.trust_root))
@@ -884,7 +898,7 @@ def test_v2_container_with_unadjudicable_profile_fails_closed(pack: Pack) -> Non
     }
     path = _write_json(
         pack.tmp_path / "future-v2.json",
-        _wrap_bundle(body, schema_version="keel.evidence_bundle/v2"),
+        pack.wrap(body, schema_version="keel.evidence_bundle/v2"),
     )
 
     report = verifier.verify_export_structured(_bundle_args(path, pack.trust_root))
@@ -898,7 +912,7 @@ def test_v2_container_with_unadjudicable_profile_fails_closed(pack: Pack) -> Non
 def test_unknown_container_version_fails_closed(pack: Pack) -> None:
     path = _write_json(
         pack.tmp_path / "future-v3.json",
-        _wrap_bundle(pack.body(), schema_version="keel.evidence_bundle/v3"),
+        pack.wrap(pack.body(), schema_version="keel.evidence_bundle/v3"),
     )
 
     report = verifier.verify_export_structured(_bundle_args(path, pack.trust_root))

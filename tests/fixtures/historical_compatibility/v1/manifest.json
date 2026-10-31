@@ -21,7 +21,7 @@
       "artifacts": [
         {
           "path": "tests/test_self_attesting_bundle.py",
-          "sha256": "248f75865f091575b5fe83d8a3ea4b7bf86392a40f980b5adb15c492f1c61f5c"
+          "sha256": "01d2a8cde0451398c254975e8d23749147788b8c16ff93e976b847323338cba7"
         }
       ],
       "pytest_nodeids": [
@@ -98,7 +98,7 @@
       "artifacts": [
         {
           "path": "tests/test_permit_exact.py",
-          "sha256": "53c8a3318f9bca44c84b94cf85d539d8c0fabeda6098129116e69fd8cc316872"
+          "sha256": "81d457aa982ede166431ca68a4bedffbe40407922b9eff89fc13d83aee2c2cc9"
         }
       ],
       "pytest_nodeids": [

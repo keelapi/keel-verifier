@@ -293,7 +293,16 @@ def _signed_exact_bundle_case(
                         "status": "active",
                         "valid_from": "2026-01-01T00:00:00Z",
                         "valid_to": None,
-                    }
+                    },
+                    {
+                        "key_id": verifier._public_key_fingerprint(export_public),
+                        "algorithm": "ed25519",
+                        "public_key": "ed25519:" + export_public,
+                        "purpose": "export_signing",
+                        "status": "active",
+                        "valid_from": "2026-01-01T00:00:00Z",
+                        "valid_to": None,
+                    },
                 ]
             },
             sort_keys=True,

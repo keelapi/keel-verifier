@@ -77,7 +77,7 @@
     {"id": "keel_root", "label": "Keel production trust root", "trusted": true, "trust_source_strings": ["bundled Keel production trust root"]},
     {"id": "pinned", "label": "Pinned key", "trusted": true, "trust_source_strings": ["user-supplied", "fetched from", "key manifest", "pinned expected public key", "embedded signed key manifest anchored to pinned trust root"]},
     {"id": "self_attested", "label": "Self-attested (embedded key only)", "trusted": false, "trust_source_strings": ["self-attested (embedded public_key)", "embedded"], "warning": "Proves internal consistency only. Does not prove Keel signed this artifact."},
-    {"id": "untrusted_signer", "label": "Untrusted signer", "trusted": false, "trust_source_strings": [], "warning": "Signature math is valid, but the signing key is not anchored to any accepted trust root."}
+    {"id": "untrusted_signer", "label": "Untrusted signer", "trusted": false, "trust_source_strings": ["untrusted signer"], "warning": "Signature math is valid, but the signing key is not anchored to any accepted trust root."}
   ],
   "session_lines": [
     {"id": "verifier_version", "label": "Verifier", "provenance": "SESSION_VALUE"},

@@ -1,0 +1,945 @@
+{
+  "body": {
+    "artifact_ref": {
+      "canonical_url": "https://api.keelapi.com/v1/permits/a66f7f81-e371-4512-94f7-36ab51311d75/bundle?profile=permit-exact.v4",
+      "digest": "sha256:25101a6498d9734edf27e3a7652e6c7af3dcc817c94e31087e492896f60dac37",
+      "id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+      "path": "/v1/permits/a66f7f81-e371-4512-94f7-36ab51311d75/bundle?profile=permit-exact.v4",
+      "region": "us-west-1",
+      "schema_version": "artifact_ref.v1",
+      "type": "decision_evidence",
+      "urn": "urn:x-keel:artifact:decision_evidence:a66f7f81-e371-4512-94f7-36ab51311d75"
+    },
+    "authorization_facts": {
+      "action": "cloud.machine.restart",
+      "app_reference_commitment": {
+        "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+      "connector_identity": "fly",
+      "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+      "enforcement_mode": "enforced_in_path",
+      "environment": "dedicated_demo",
+      "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+      "idempotency_digest": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e",
+      "machine_config_digest": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418",
+      "machine_reference_commitment": {
+        "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "machine_region": "sjc",
+      "machine_state": "started",
+      "max_uses": 1,
+      "operation": "call.tools",
+      "preflight_expires_at": "2026-08-21T20:30:04Z",
+      "preflight_observed_at": "2026-08-21T20:26:04Z",
+      "preflight_snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+      "provider_api_version": "fly-machines-api-v1",
+      "provider_environment": "dedicated_demo",
+      "provider_instance_reference_commitment": {
+        "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "request_digest": "sha256:5af763cf76682ea6c1912bf16007a36d27965b9e1044ec846bf7e2ed18d920b3",
+      "target_is_dedicated_demo": true,
+      "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+      "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+      "version": "keel.goal3a_portfolio_exact_facts.v1"
+    },
+    "bounded_use_transitions": [],
+    "contract_pins": {
+      "authorization_facts_schema": {
+        "artifact_id": "keel.permit.cloud_machine_restart_exact.v1.schema",
+        "media_type": "application/json",
+        "sha256": "sha256:c4533ba6989f29ccf388f760f7897a432cc7e495f289e9c1d9aa9eff4ffb690b",
+        "version": "draft-2020-12"
+      },
+      "claim_registry": {
+        "artifact_id": "keel.verifier_claim_registry.v2",
+        "media_type": "application/json",
+        "sha256": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+        "version": "verifier-claims.v2"
+      },
+      "fact_profile_entry_digest": "sha256:e5210223bda1db2e4cd30916a3cda6bb76f5831aa21a9c0fb0ae204a968e896f",
+      "fact_profile_registry": {
+        "artifact_id": "keel.permit.fact_profile_registry",
+        "media_type": "application/json",
+        "sha256": "sha256:3b07874af30026e1dbb8f308c596743e75468e83a342b8e6411c3cde46634ab2",
+        "version": "keel.fact_profile_registry.v16"
+      },
+      "provider_receipt_semantics": {
+        "artifact_id": "keel.provider.receipt_state.v1",
+        "media_type": "application/json",
+        "sha256": "sha256:9fb425c075b853295be0af0fefd80508a2cf2f78901872b76f5aba14bebdaa26",
+        "version": "1"
+      },
+      "semantic_selector_entry_digest": "sha256:593c4636f7d07007d43bb99696715dad0cf227fc70d4a6bb2ba7776c96534b09",
+      "semantic_selector_registry": {
+        "artifact_id": "keel.permit.semantic_selector_registry",
+        "media_type": "application/json",
+        "sha256": "sha256:e88388b90b171beff08bc75d6eef724319823db1fa399f750fea7e23dccd0acb",
+        "version": "keel.semantic_selector_registry.v18"
+      },
+      "universal_semantics": {
+        "artifact_id": "keel.permit.universal_verification.v1",
+        "media_type": "application/json",
+        "sha256": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+        "version": "v1"
+      }
+    },
+    "decision_state": {
+      "decision": "allow",
+      "status": "attested"
+    },
+    "declared_claims": [
+      "permit.decision.v1",
+      "permit.type.v1",
+      "permit.exact_target.v1",
+      "permit.material_request.v1",
+      "permit.review_transition.v1"
+    ],
+    "does_not_establish": [
+      "dispatch occurred",
+      "Permit validity or revocation state at dispatch",
+      "bounded or single use at dispatch",
+      "replay prevention at dispatch",
+      "provider acceptance or completion",
+      "external real-world outcome"
+    ],
+    "enforcement_evidence": null,
+    "generated_at": "2026-08-21T21:32:09.410656+00:00",
+    "permit_decision": {
+      "artifact_ref": {
+        "canonical_url": "https://api.keelapi.com/v1/permits/a66f7f81-e371-4512-94f7-36ab51311d75",
+        "digest": "sha256:bcb334be8145434c6d65050f8ec8dae10687043a947436f936c7962558bc7a14",
+        "id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+        "path": "/v1/permits/a66f7f81-e371-4512-94f7-36ab51311d75",
+        "region": "us-west-1",
+        "schema_version": "artifact_ref.v1",
+        "type": "decision_evidence",
+        "urn": "urn:x-keel:artifact:decision_evidence:a66f7f81-e371-4512-94f7-36ab51311d75"
+      },
+      "artifact_type": "permit_decision_binding",
+      "artifact_version": "permit.decision.v1",
+      "binding_canonical_hash": "52ca7da3825c2b596971603154851c5d54d5ad87102e5b7c1d62bcf3c7d501de",
+      "binding_issued_at": "2026-08-21T20:26:06.875563+00:00",
+      "binding_key_id": "157c11203f46bfdc",
+      "binding_signature": "ed25519:GmbiMk3qqUSH40M0/HVQ6YCXVszZkV0UMW3iwEOF6v/zizbLbq+cVdi6GOtTpaFPxGcTICeR0ww5t9EDJlklAw==",
+      "binding_version": "v7",
+      "canonical_payload": {
+        "account_id": null,
+        "action_name": "cloud.machine.restart",
+        "authority_chain_digest": null,
+        "authority_delta": null,
+        "binding_key_id": "157c11203f46bfdc",
+        "binding_project_anchor_hash": null,
+        "binding_session_event_hash": null,
+        "binding_session_id": null,
+        "binding_version": "v7",
+        "constraints": {},
+        "decision": "challenge",
+        "delegation_policy_hash": null,
+        "expires_at": "2026-08-21T21:26:06.875563+00:00",
+        "final_request_hash": null,
+        "inherits_from": null,
+        "is_dry_run": false,
+        "issued_at": "2026-08-21T20:26:06.875563+00:00",
+        "model": "cloud-ops",
+        "operation": "call.tools",
+        "org_id": null,
+        "parent_permit_id": null,
+        "permit_chain_role": "session_root",
+        "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+        "policy_id": "platform_safety_floor",
+        "policy_snapshot_hash": "100a6a7fa0e4c00349b13a976bcca533842081ccb437341016def5e7a95e81cb",
+        "policy_version": "1",
+        "project_id": "d1503f92-bb36-4bc0-9a13-6c2bcaedeeaa",
+        "provider": "mcp",
+        "quota_reservation_id": null,
+        "reason": "platform_safety_floor.high_impact_review",
+        "request_fingerprint": "a886d178b899b4d9d2a181c3a72189759fa52c1389aff441675244424e990a84",
+        "resource_attributes_canonical_hash": "88c74680a17006b0aa38c3ffd5441b7f93dc6b1d301240e97894fe7ea79d701e",
+        "routing": {
+          "fallback_chain": [],
+          "fallback_occurred": false,
+          "reason_code": "explicit_request",
+          "reason_metadata": {
+            "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+            "mcp_decision_id": "b9f447d2-8779-4c6e-b168-4e3e6b17c966",
+            "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+            "proxy_request_id": "5046f240-1f40-470e-bd47-1e52034a9b81"
+          },
+          "requested_model": "cloud-ops",
+          "requested_provider": "mcp",
+          "selected_model": "cloud-ops",
+          "selected_provider": "mcp"
+        },
+        "spend_scope_hash": null,
+        "subject_id": "df277bd2-2fbe-4fc0-b7a3-cab4b1c8a4b3",
+        "subject_type": "agent"
+      },
+      "expected_decision": "challenge",
+      "resource_attributes_json": {
+        "asset_summary": {
+          "mcp": {
+            "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+            "connector_contract_version": "keel.connector.execution.v1",
+            "connector_identity": "fly",
+            "connector_version": "keel-fly-dedicated-demo-2.0.0",
+            "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+            "fact_provenance": {
+              "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+              "fact_sources": {
+                "action_access_level": "keel.action_access_registry",
+                "action_risk_tags": "keel.action_access_registry",
+                "app_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "connector_identity": "mcp_server.connector_identity",
+                "connector_version": "mcp_tool_contracts.connector_version",
+                "environment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "idempotency_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "machine_config_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "machine_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "machine_region": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "machine_state": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "max_uses": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "preflight_expires_at": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "preflight_observed_at": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "preflight_snapshot_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "provider_api_version": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "provider_environment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "provider_instance_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "target_is_dedicated_demo": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                "tool_arguments_hash": "keel.normalized_tool_arguments",
+                "tool_name": "mcp.tools/list.name",
+                "tool_schema_hash": "mcp.tools/list.inputSchema"
+              },
+              "kind": "keel.mcp.fact-provenance.v1",
+              "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+              "preflight_verification": {
+                "snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+                "verified_at": "2026-08-21T20:26:06.577521+00:00",
+                "version": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1"
+              },
+              "schema_source": "mcp.tools/list",
+              "tool_contract_id": "7748159c-a24e-40d3-bacd-3276331deddb",
+              "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+              "verified_at": "2026-08-21T20:21:58.207060+00:00"
+            },
+            "mcp_decision_id": "b9f447d2-8779-4c6e-b168-4e3e6b17c966",
+            "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+            "normalized_tool_arguments_hash_version": "mcp_tool_arguments_sha256_v1",
+            "requested_action": "cloud.machine.restart",
+            "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+            "server_slug": "cloud-ops",
+            "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+            "tool_name": "cloud.machine.restart",
+            "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+            "transport": "streamable_http",
+            "trusted_facts": {
+              "action_access_level": "admin",
+              "action_risk_tags": [
+                "egress_external"
+              ],
+              "app_reference_commitment": {
+                "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "connector_identity": "fly",
+              "connector_version": "keel-fly-dedicated-demo-2.0.0",
+              "environment": "dedicated_demo",
+              "idempotency_digest": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e",
+              "machine_config_digest": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418",
+              "machine_reference_commitment": {
+                "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "machine_region": "sjc",
+              "machine_state": "started",
+              "max_uses": 1,
+              "preflight_expires_at": "2026-08-21T20:30:04Z",
+              "preflight_observed_at": "2026-08-21T20:26:04Z",
+              "preflight_snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+              "provider_api_version": "fly-machines-api-v1",
+              "provider_environment": "dedicated_demo",
+              "provider_instance_reference_commitment": {
+                "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "target_is_dedicated_demo": true,
+              "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+              "tool_name": "cloud.machine.restart",
+              "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0"
+            }
+          }
+        },
+        "callback_url": null,
+        "connector_type": "mcp_registry",
+        "estimated_input_tokens": 0,
+        "estimated_output_tokens": 0,
+        "execution_mode": "sync",
+        "generate_text_exact_candidate_v1": null,
+        "image_request": null,
+        "inputs": [],
+        "max_output_tokens_requested": null,
+        "modality": "text",
+        "model": "cloud-ops",
+        "mpp_dispatch_digest": null,
+        "operation": "call.tools",
+        "payment_classification_v1": null,
+        "permit_authorization_facts_v1": {
+          "action": "cloud.machine.restart",
+          "app_reference_commitment": {
+            "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+          "connector_identity": "fly",
+          "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+          "enforcement_mode": "enforced_in_path",
+          "environment": "dedicated_demo",
+          "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+          "idempotency_digest": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e",
+          "machine_config_digest": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418",
+          "machine_reference_commitment": {
+            "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "machine_region": "sjc",
+          "machine_state": "started",
+          "max_uses": 1,
+          "operation": "call.tools",
+          "preflight_expires_at": "2026-08-21T20:30:04Z",
+          "preflight_observed_at": "2026-08-21T20:26:04Z",
+          "preflight_snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+          "provider_api_version": "fly-machines-api-v1",
+          "provider_environment": "dedicated_demo",
+          "provider_instance_reference_commitment": {
+            "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "request_digest": "sha256:5af763cf76682ea6c1912bf16007a36d27965b9e1044ec846bf7e2ed18d920b3",
+          "target_is_dedicated_demo": true,
+          "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+          "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+          "version": "keel.goal3a_portfolio_exact_facts.v1"
+        },
+        "permit_semantic_binding_v2": {
+          "action_name": "cloud.machine.restart",
+          "authorization_facts_canonicalization": "rfc8785",
+          "authorization_facts_digest": "sha256:636920b5cb7f83e3593f5284c675de491388014ed2bee9d5105b4dc605d20583",
+          "authorization_facts_schema_digest": "sha256:c4533ba6989f29ccf388f760f7897a432cc7e495f289e9c1d9aa9eff4ffb690b",
+          "chain_role": "session_root",
+          "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+          "claim_registry_version": "verifier-claims.v2",
+          "derived_at": "2026-08-21T20:26:06.875563Z",
+          "fact_profile_entry_digest": "sha256:e5210223bda1db2e4cd30916a3cda6bb76f5831aa21a9c0fb0ae204a968e896f",
+          "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+          "fact_profile_registry_digest": "sha256:3b07874af30026e1dbb8f308c596743e75468e83a342b8e6411c3cde46634ab2",
+          "fact_profile_registry_version": "keel.fact_profile_registry.v16",
+          "governed_surface": "mcp_tool",
+          "non_authorizing_presentation_profile_id": "cloud_machine_restart.r1",
+          "operation": "call.tools",
+          "selector_entry_digest": "sha256:593c4636f7d07007d43bb99696715dad0cf227fc70d4a6bb2ba7776c96534b09",
+          "selector_registry_digest": "sha256:e88388b90b171beff08bc75d6eef724319823db1fa399f750fea7e23dccd0acb",
+          "selector_registry_version": "keel.semantic_selector_registry.v18",
+          "semantic_id": "keel.action.cloud_machine_restart.v1",
+          "trusted_source_kind": "action_verb_execute",
+          "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+          "universal_semantics_id": "keel.permit.universal_verification.v1",
+          "version": "keel.permit_semantic_binding.v2"
+        },
+        "prompt_content_hash": null,
+        "provider": "mcp",
+        "resource_id": "mcp_tool_call:07c3a07f-cd20-4c93-a302-89dc7115d389:cloud.machine.restart",
+        "resource_type": "mcp_tool_call",
+        "routing": null,
+        "work_binding_v1": null,
+        "work_binding_v2": null,
+        "work_resource_digest": null
+      }
+    },
+    "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+    "permit_receipt": {
+      "action": {
+        "action_name": "cloud.machine.restart",
+        "resource_attributes_json": {
+          "asset_summary": {
+            "mcp": {
+              "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+              "connector_contract_version": "keel.connector.execution.v1",
+              "connector_identity": "fly",
+              "connector_version": "keel-fly-dedicated-demo-2.0.0",
+              "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+              "fact_provenance": {
+                "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+                "fact_sources": {
+                  "action_access_level": "keel.action_access_registry",
+                  "action_risk_tags": "keel.action_access_registry",
+                  "app_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "connector_identity": "mcp_server.connector_identity",
+                  "connector_version": "mcp_tool_contracts.connector_version",
+                  "environment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "idempotency_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "machine_config_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "machine_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "machine_region": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "machine_state": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "max_uses": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "preflight_expires_at": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "preflight_observed_at": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "preflight_snapshot_digest": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "provider_api_version": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "provider_environment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "provider_instance_reference_commitment": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "target_is_dedicated_demo": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1",
+                  "tool_arguments_hash": "keel.normalized_tool_arguments",
+                  "tool_name": "mcp.tools/list.name",
+                  "tool_schema_hash": "mcp.tools/list.inputSchema"
+                },
+                "kind": "keel.mcp.fact-provenance.v1",
+                "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+                "preflight_verification": {
+                  "snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+                  "verified_at": "2026-08-21T20:26:06.577521+00:00",
+                  "version": "mcp.gateway_goal3a_portfolio_preflight_hmac.v1"
+                },
+                "schema_source": "mcp.tools/list",
+                "tool_contract_id": "7748159c-a24e-40d3-bacd-3276331deddb",
+                "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+                "verified_at": "2026-08-21T20:21:58.207060+00:00"
+              },
+              "mcp_decision_id": "b9f447d2-8779-4c6e-b168-4e3e6b17c966",
+              "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+              "normalized_tool_arguments_hash_version": "mcp_tool_arguments_sha256_v1",
+              "requested_action": "cloud.machine.restart",
+              "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+              "server_slug": "cloud-ops",
+              "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+              "tool_name": "cloud.machine.restart",
+              "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+              "transport": "streamable_http",
+              "trusted_facts": {
+                "action_access_level": "admin",
+                "action_risk_tags": [
+                  "egress_external"
+                ],
+                "app_reference_commitment": {
+                  "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "connector_identity": "fly",
+                "connector_version": "keel-fly-dedicated-demo-2.0.0",
+                "environment": "dedicated_demo",
+                "idempotency_digest": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e",
+                "machine_config_digest": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418",
+                "machine_reference_commitment": {
+                  "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "machine_region": "sjc",
+                "machine_state": "started",
+                "max_uses": 1,
+                "preflight_expires_at": "2026-08-21T20:30:04Z",
+                "preflight_observed_at": "2026-08-21T20:26:04Z",
+                "preflight_snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+                "provider_api_version": "fly-machines-api-v1",
+                "provider_environment": "dedicated_demo",
+                "provider_instance_reference_commitment": {
+                  "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "target_is_dedicated_demo": true,
+                "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+                "tool_name": "cloud.machine.restart",
+                "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0"
+              }
+            }
+          },
+          "callback_url": null,
+          "connector_type": "mcp_registry",
+          "estimated_input_tokens": 0,
+          "estimated_output_tokens": 0,
+          "execution_mode": "sync",
+          "generate_text_exact_candidate_v1": null,
+          "image_request": null,
+          "inputs": [],
+          "max_output_tokens_requested": null,
+          "modality": "text",
+          "model": "cloud-ops",
+          "mpp_dispatch_digest": null,
+          "operation": "call.tools",
+          "payment_classification_v1": null,
+          "permit_authorization_facts_v1": {
+            "action": "cloud.machine.restart",
+            "app_reference_commitment": {
+              "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "connector_contract_hash": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e",
+            "connector_identity": "fly",
+            "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+            "enforcement_mode": "enforced_in_path",
+            "environment": "dedicated_demo",
+            "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+            "idempotency_digest": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e",
+            "machine_config_digest": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418",
+            "machine_reference_commitment": {
+              "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "machine_region": "sjc",
+            "machine_state": "started",
+            "max_uses": 1,
+            "operation": "call.tools",
+            "preflight_expires_at": "2026-08-21T20:30:04Z",
+            "preflight_observed_at": "2026-08-21T20:26:04Z",
+            "preflight_snapshot_digest": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b",
+            "provider_api_version": "fly-machines-api-v1",
+            "provider_environment": "dedicated_demo",
+            "provider_instance_reference_commitment": {
+              "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "request_digest": "sha256:5af763cf76682ea6c1912bf16007a36d27965b9e1044ec846bf7e2ed18d920b3",
+            "target_is_dedicated_demo": true,
+            "tool_arguments_hash": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec",
+            "tool_schema_hash": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0",
+            "version": "keel.goal3a_portfolio_exact_facts.v1"
+          },
+          "permit_semantic_binding_v2": {
+            "action_name": "cloud.machine.restart",
+            "authorization_facts_canonicalization": "rfc8785",
+            "authorization_facts_digest": "sha256:636920b5cb7f83e3593f5284c675de491388014ed2bee9d5105b4dc605d20583",
+            "authorization_facts_schema_digest": "sha256:c4533ba6989f29ccf388f760f7897a432cc7e495f289e9c1d9aa9eff4ffb690b",
+            "chain_role": "session_root",
+            "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+            "claim_registry_version": "verifier-claims.v2",
+            "derived_at": "2026-08-21T20:26:06.875563Z",
+            "fact_profile_entry_digest": "sha256:e5210223bda1db2e4cd30916a3cda6bb76f5831aa21a9c0fb0ae204a968e896f",
+            "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+            "fact_profile_registry_digest": "sha256:3b07874af30026e1dbb8f308c596743e75468e83a342b8e6411c3cde46634ab2",
+            "fact_profile_registry_version": "keel.fact_profile_registry.v16",
+            "governed_surface": "mcp_tool",
+            "non_authorizing_presentation_profile_id": "cloud_machine_restart.r1",
+            "operation": "call.tools",
+            "selector_entry_digest": "sha256:593c4636f7d07007d43bb99696715dad0cf227fc70d4a6bb2ba7776c96534b09",
+            "selector_registry_digest": "sha256:e88388b90b171beff08bc75d6eef724319823db1fa399f750fea7e23dccd0acb",
+            "selector_registry_version": "keel.semantic_selector_registry.v18",
+            "semantic_id": "keel.action.cloud_machine_restart.v1",
+            "trusted_source_kind": "action_verb_execute",
+            "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+            "universal_semantics_id": "keel.permit.universal_verification.v1",
+            "version": "keel.permit_semantic_binding.v2"
+          },
+          "prompt_content_hash": null,
+          "provider": "mcp",
+          "resource_id": "mcp_tool_call:07c3a07f-cd20-4c93-a302-89dc7115d389:cloud.machine.restart",
+          "resource_type": "mcp_tool_call",
+          "routing": null,
+          "work_binding_v1": null,
+          "work_binding_v2": null,
+          "work_resource_digest": null
+        },
+        "resource_inputs_json": null,
+        "resource_modality": "text",
+        "resource_model": "cloud-ops",
+        "resource_operation": "call.tools",
+        "resource_provider": "mcp"
+      },
+      "action_access": {
+        "classifier_schema_version": 1,
+        "confidence": "high",
+        "connector_identity": "fly",
+        "declared_intent": null,
+        "intent_mismatch": false,
+        "level": "admin",
+        "map_version": "2026-08-21.1",
+        "proof_scope": "classifier_result_and_registry_identity_only; does_not_prove_business_authorization_or_action_correctness",
+        "proof_tier": "receipt",
+        "registry_hash": "sha256:4b953cae781d424ece32f53b968d24230541a834bdbc4131ce0b5285eaf8859d",
+        "risk_tags": [
+          "egress_external"
+        ],
+        "source": "keel_curated_connector_map",
+        "unknown_reason": null
+      },
+      "actor": {
+        "actor_ref": null,
+        "identity": null,
+        "initiated_by_credential_id": "3eb1d73f-ef1c-45da-a71c-88c2b2ab7059",
+        "initiated_by_principal_id": "70916c30-15d1-4c22-8c14-84b5e122fda3",
+        "initiated_by_principal_subject": "user:70916c30-15d1-4c22-8c14-84b5e122fda3",
+        "initiated_by_principal_type": "user",
+        "session_id": null,
+        "subject_id": "df277bd2-2fbe-4fc0-b7a3-cab4b1c8a4b3",
+        "subject_type": "agent"
+      },
+      "cost": {
+        "actual_cost_usd_micros": null,
+        "actual_input_tokens": null,
+        "actual_output_tokens": null,
+        "actual_total_tokens": null,
+        "actual_usage_json": null,
+        "estimated_input_tokens": 0,
+        "estimated_output_tokens": 0,
+        "latest_usage_ledger": {
+          "actual_input_tokens": null,
+          "actual_output_tokens": null,
+          "budget_envelope_id": null,
+          "cost_usd": null,
+          "created_at": "2026-08-21T20:26:07.507742Z",
+          "currency": "USD",
+          "decision": "deny",
+          "error_code": "platform_safety_floor.high_impact_review",
+          "error_message": null,
+          "estimated_final": false,
+          "estimated_input_tokens": 0,
+          "estimated_output_tokens": 0,
+          "http_status": 403,
+          "id": "ac4fde48-b34f-417a-b42d-64b94533176e",
+          "idempotency_key": "slack-ops-3a5e931951434c2a96676ae5f5e73bfe",
+          "metadata_json": {
+            "keel_runtime_latency_ms": {
+              "pipeline_stage_ms": {
+                "auth": 0,
+                "constraint_enforcement": 0,
+                "dispatch": 0,
+                "emit": 46,
+                "firewall": 0,
+                "ledger": 9,
+                "mcp_call_shadow_enforcement": 0,
+                "mcp_pre_dispatch": 0,
+                "normalize": 0,
+                "permit_request": 0,
+                "reconcile": 0,
+                "response": 0,
+                "routing": 558
+              }
+            }
+          },
+          "model": "cloud-ops",
+          "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+          "project_id": "d1503f92-bb36-4bc0-9a13-6c2bcaedeeaa",
+          "provider": "mcp",
+          "request_id": "01M0K01477Z9TASEWJCW4DEKGT",
+          "served_from_cache": false,
+          "status": "denied"
+        },
+        "max_output_tokens_requested": null,
+        "usage_log": null,
+        "usage_reported_at": null,
+        "usage_source": null,
+        "usage_verification_method": null,
+        "usage_verification_status": null,
+        "usage_verification_updated_at": null
+      },
+      "decision": {
+        "created_at": "2026-08-21T20:26:06.875563Z",
+        "decision": "allow",
+        "reason": "policy.explicit_match_candidate",
+        "status": "attested"
+      },
+      "dispatch_target": {
+        "connector_display_name": null,
+        "connector_id": null,
+        "connector_type": null,
+        "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+        "operation": "call.tools",
+        "requested_model": "cloud-ops",
+        "requested_provider": "mcp",
+        "routing": {
+          "decided_at": "2026-08-21T20:26:06.769525Z",
+          "decision_id": "01M0K014HHM7B49HC4E71NRMT0",
+          "estimated_cost_usd_micros": null,
+          "fallback_chain": [],
+          "fallback_occurred": false,
+          "latency_target_ms": null,
+          "policy_id": null,
+          "policy_version": null,
+          "priority": null,
+          "reason_code": "explicit_request",
+          "reason_metadata": {
+            "decision_trace_hash": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52",
+            "mcp_decision_id": "b9f447d2-8779-4c6e-b168-4e3e6b17c966",
+            "mcp_server_id": "07c3a07f-cd20-4c93-a302-89dc7115d389",
+            "proxy_request_id": "5046f240-1f40-470e-bd47-1e52034a9b81"
+          },
+          "requested_model": "cloud-ops",
+          "requested_provider": "mcp",
+          "selected_model": "cloud-ops",
+          "selected_provider": "mcp",
+          "task_type": null
+        },
+        "selected_model": "cloud-ops",
+        "selected_provider": "mcp"
+      },
+      "format": "json",
+      "generated_at": "2026-08-21T21:32:09.283316Z",
+      "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+      "policy": {
+        "authorizer_input_hash": null,
+        "decision_input_policy_snapshot_hash": "418a3b19572ac255be1a6a04e6e87c326affe058041c0719b1cb98425228d50b",
+        "decision_input_policy_snapshot_id": "psnap_01m0k014kgtcmxqtmf259402bg",
+        "issued_policy_snapshot_hash": "100a6a7fa0e4c00349b13a976bcca533842081ccb437341016def5e7a95e81cb",
+        "policy_id": "platform_safety_floor",
+        "policy_snapshot_hash": "418a3b19572ac255be1a6a04e6e87c326affe058041c0719b1cb98425228d50b",
+        "policy_version": "1"
+      },
+      "project_id": "d1503f92-bb36-4bc0-9a13-6c2bcaedeeaa",
+      "provider_attestation_receipts": [],
+      "receipt_type": "permit_receipt",
+      "request_hashes": {
+        "binding_canonical_hash": "52ca7da3825c2b596971603154851c5d54d5ad87102e5b7c1d62bcf3c7d501de",
+        "binding_request_canonical_version": "v5",
+        "binding_request_hash": null,
+        "closure_canonical_hash": null,
+        "request_fingerprint": "a886d178b899b4d9d2a181c3a72189759fa52c1389aff441675244424e990a84",
+        "resource_attributes_canonical_hash": "88c74680a17006b0aa38c3ffd5441b7f93dc6b1d301240e97894fe7ea79d701e"
+      },
+      "result_digests": {
+        "bound_execution_record_hashes": [],
+        "client_response_digest_v1": null,
+        "closure_canonical_hash": null,
+        "closure_status": null,
+        "dispatch_request_digest_v1": null,
+        "provider_attestation_digests": [],
+        "provider_receipt_fingerprints": [],
+        "provider_response_digest_v1": null
+      },
+      "schema_version": 1,
+      "signatures": {
+        "audit_attestation": null,
+        "binding_key_id": "157c11203f46bfdc",
+        "binding_signature": "ed25519:GmbiMk3qqUSH40M0/HVQ6YCXVszZkV0UMW3iwEOF6v/zizbLbq+cVdi6GOtTpaFPxGcTICeR0ww5t9EDJlklAw==",
+        "binding_signatures": [
+          {
+            "algorithm": "ed25519",
+            "key_id": "157c11203f46bfdc",
+            "signature": "ed25519:GmbiMk3qqUSH40M0/HVQ6YCXVszZkV0UMW3iwEOF6v/zizbLbq+cVdi6GOtTpaFPxGcTICeR0ww5t9EDJlklAw==",
+            "signed_at": "2026-08-21T20:26:06.875563+00:00"
+          }
+        ],
+        "binding_version": "v7",
+        "closure_signature_b64": null,
+        "closure_signatures": [],
+        "counter_signature": null,
+        "operator_approval": null,
+        "revocation_signature": null
+      },
+      "timestamps": {
+        "binding_expires_at": "2026-08-21T21:26:06.875563Z",
+        "binding_issued_at": "2026-08-21T20:26:06.875563Z",
+        "closure_signed_at": null,
+        "expires_at": "2026-08-22T02:26:16.486360Z",
+        "first_dispatch_at": null,
+        "permit_created_at": "2026-08-21T20:26:06.875563Z",
+        "revoked_at": null,
+        "usage_reported_at": null
+      },
+      "verification_status": {
+        "basis": "caller_reported_usage",
+        "caller_reported": true,
+        "caveats": [
+          "Caller-reported usage is not cryptographic proof of provider execution."
+        ],
+        "independently_verifiable": false,
+        "missing": [
+          "dispatch_request_digest_v1",
+          "provider_response_digest_v1",
+          "client_response_digest_v1",
+          "closure_status",
+          "closure_canonical_hash",
+          "closure_signature",
+          "closure_signed_at"
+        ],
+        "status": "caller_report_unverified",
+        "summary": "Permit-first usage and cost were caller-reported; no signed governed-execution closure is present."
+      }
+    },
+    "profile": "keel.permit_exact/v4",
+    "profile_version": 4,
+    "project_id": "d1503f92-bb36-4bc0-9a13-6c2bcaedeeaa",
+    "provider_receipts": [],
+    "review_transition": {
+      "canonical_hash": "6bfb0e94029c25a351b2d1c2bc9f2f6082584fc72b928747d0c4df9e13569f18",
+      "signed_event": {
+        "actor_id": "70916c30-15d1-4c22-8c14-84b5e122fda3",
+        "actor_kind": "user",
+        "decision_at": "2026-08-21T20:26:16.486360+00:00",
+        "event_type": "permit.challenge_approved",
+        "from_decision": "challenge",
+        "from_status": "awaiting_attestation",
+        "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+        "project_id": "d1503f92-bb36-4bc0-9a13-6c2bcaedeeaa",
+        "signature": "giYIvS5SBzPkuBDtkiWXkPcZKH0ncgfktopJwlqJXX+ePcnQQFKTnie09mDrg2h+qY38UurK4JtkIPMdDI7QDg==",
+        "to_decision": "allow",
+        "to_status": "attested"
+      },
+      "status": "present"
+    },
+    "scope_evidence": [],
+    "selective_disclosures": [
+      {
+        "audience": "authorized",
+        "disclosed_at": "2026-08-21T21:32:09.382023+00:00",
+        "disclosure_id": "disclosure_a66f7f81-e371-4512-94f7-36ab51311d75_authorized",
+        "expires_at": null,
+        "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+        "fields": [
+          {
+            "disposition": "cleartext",
+            "path": "/connector_identity",
+            "value": "fly"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/connector_contract_hash",
+            "value": "db3180b14b4b1632bc35274df2d9158d7f95e175d9e333bf83eda67dcd438d0e"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/tool_schema_hash",
+            "value": "a19e5e29288fc2dd3eb2cd38332620e259b3d81e39020aa11b49e4a14b45cfb0"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/decision_trace_hash",
+            "value": "471cfc745c9025de8883905a2be4c4f6879b59f53c4b0e21600f56b826370c52"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/tool_arguments_hash",
+            "value": "769962a5f9e360a84d3b3d15846da6b3961d2aea6460040668c1502ebc048cec"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/request_digest",
+            "value": "sha256:5af763cf76682ea6c1912bf16007a36d27965b9e1044ec846bf7e2ed18d920b3"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/provider_environment",
+            "value": "dedicated_demo"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/provider_api_version",
+            "value": "fly-machines-api-v1"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/preflight_observed_at",
+            "value": "2026-08-21T20:26:04Z"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/preflight_expires_at",
+            "value": "2026-08-21T20:30:04Z"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/preflight_snapshot_digest",
+            "value": "sha256:f4d5b8795fed99e024dbd78ecca75d48fec14954ba3008c5ed8d06526a682a6b"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/idempotency_digest",
+            "value": "sha256:f8f8878e59ae60339369ce89f63d061202905f3a3356f6b538d480e956232f1e"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/max_uses",
+            "value": 1
+          },
+          {
+            "commitment": {
+              "digest": "sha256:04266192a85e8fcf8da641bbf6d40c7d6e51768f998e56248a20241e36a93b08",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "disposition": "commitment",
+            "path": "/provider_instance_reference_commitment"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/target_is_dedicated_demo",
+            "value": true
+          },
+          {
+            "commitment": {
+              "digest": "sha256:59a7fde8a04d012fe50de91575a262e15929c1aa067c29d3cb00a8274013159c",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "disposition": "commitment",
+            "path": "/app_reference_commitment"
+          },
+          {
+            "commitment": {
+              "digest": "sha256:ab80413e31aec14baf53596075dd01236b8d28b6f40d941b62036a5a41875fbb",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "disposition": "commitment",
+            "path": "/machine_reference_commitment"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/environment",
+            "value": "dedicated_demo"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/machine_state",
+            "value": "started"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/machine_region",
+            "value": "sjc"
+          },
+          {
+            "disposition": "cleartext",
+            "path": "/machine_config_digest",
+            "value": "sha256:a8a6c1c88c5f80602d2708c97b18b7aa6396c6ed0226fb51550d9483187c4418"
+          }
+        ],
+        "permit_id": "a66f7f81-e371-4512-94f7-36ab51311d75",
+        "reason": "Authorized exact-Permit evidence projection",
+        "version": "keel.permit_selective_disclosure.v1"
+      }
+    ],
+    "semantic_binding": {
+      "action_name": "cloud.machine.restart",
+      "authorization_facts_canonicalization": "rfc8785",
+      "authorization_facts_digest": "sha256:636920b5cb7f83e3593f5284c675de491388014ed2bee9d5105b4dc605d20583",
+      "authorization_facts_schema_digest": "sha256:c4533ba6989f29ccf388f760f7897a432cc7e495f289e9c1d9aa9eff4ffb690b",
+      "chain_role": "session_root",
+      "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+      "claim_registry_version": "verifier-claims.v2",
+      "derived_at": "2026-08-21T20:26:06.875563Z",
+      "fact_profile_entry_digest": "sha256:e5210223bda1db2e4cd30916a3cda6bb76f5831aa21a9c0fb0ae204a968e896f",
+      "fact_profile_id": "keel.facts.cloud_machine_restart_exact.v1",
+      "fact_profile_registry_digest": "sha256:3b07874af30026e1dbb8f308c596743e75468e83a342b8e6411c3cde46634ab2",
+      "fact_profile_registry_version": "keel.fact_profile_registry.v16",
+      "governed_surface": "mcp_tool",
+      "non_authorizing_presentation_profile_id": "cloud_machine_restart.r1",
+      "operation": "call.tools",
+      "selector_entry_digest": "sha256:593c4636f7d07007d43bb99696715dad0cf227fc70d4a6bb2ba7776c96534b09",
+      "selector_registry_digest": "sha256:e88388b90b171beff08bc75d6eef724319823db1fa399f750fea7e23dccd0acb",
+      "selector_registry_version": "keel.semantic_selector_registry.v18",
+      "semantic_id": "keel.action.cloud_machine_restart.v1",
+      "trusted_source_kind": "action_verb_execute",
+      "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+      "universal_semantics_id": "keel.permit.universal_verification.v1",
+      "version": "keel.permit_semantic_binding.v2"
+    }
+  },
+  "schema_version": "keel.evidence_bundle/v1",
+  "signature_envelope": {
+    "content_hash": "sha256:f808c0fc3a1825b877553b96e5fea853c651a05cd544282bdecc3b69c0cbce12",
+    "public_key": "3Q1q4PSVcceZe76dsjxcqTHOpvpP/KN/zhSH4QdtE7o=",
+    "public_key_id": "sha256:341fe2190d167abc491db6d041da0677",
+    "signature": "e03V8u1kGJzu6iHDGzHYCfmmnNYdE+r5gNau0lzSGCjDjzBdYWl7AOSGyJDqNAkL1XFOtS0PobfFLutE3j24Cw==",
+    "tsa_attempts": [],
+    "tsa_receipts": []
+  }
+}

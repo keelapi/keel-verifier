@@ -215,6 +215,30 @@ class BundleTrustContext:
     tsa_receipts_present: bool
     tsa_imprint_status: str
     artifact_ref_digest_valid: bool
+    signer_trust_source: str = ""
+
+
+UNTRUSTED_BUNDLE_SIGNER_TRUST_SOURCE = (
+    "untrusted signer (embedded public_key is not anchored to a trusted key)"
+)
+
+
+def _bundle_signer_untrusted(claims: Collection[ClaimVerdict]) -> bool:
+    return any(claim.reason_code == "BUNDLE_SIGNER_UNTRUSTED" for claim in claims)
+
+
+@dataclass(frozen=True)
+class BundleSignerTrust:
+    """Trust inputs that authenticate a self-attesting bundle's outer signer.
+
+    The envelope's embedded ``public_key`` is accepted only when it equals the
+    key resolved from one of these sources, or when ``self_attested`` is set.
+    """
+
+    expected_public_key: str | None = None
+    public_key_url: str | None = None
+    key_manifest_source: str | None = None
+    self_attested: bool = False
 
 
 def _content_hash(data: bytes) -> str:
@@ -1346,9 +1370,18 @@ def _self_attesting_bundle_claim(
     )
 
 
+def _bundle_signer_trust_for_args(args: argparse.Namespace) -> BundleSignerTrust:
+    return BundleSignerTrust(
+        expected_public_key=getattr(args, "expected_public_key", None),
+        key_manifest_source=_key_manifest_source_for_args(args),
+        self_attested=bool(getattr(args, "self_attested", False)),
+    )
+
+
 def _verify_self_attesting_bundle_payload(
     bundle: Mapping[str, Any],
     *,
+    signer_trust: BundleSignerTrust,
     artifact_id: str | None = None,
     check_tsa: bool = True,
 ) -> tuple[
@@ -1508,6 +1541,65 @@ def _verify_self_attesting_bundle_payload(
             None,
         )
 
+    # A valid signature under the embedded key only says who claims to have
+    # signed. Resolve the signer through the trust root (export_signing
+    # signs every bundle envelope) so a re-signed or fabricated bundle
+    # cannot verify.
+    key_id = envelope.get("public_key_id")
+    trusted_pub, trust_source, trust_error = _resolve_trust_key(
+        artifact_pub=public_key if signer_trust.self_attested else None,
+        artifact_key_id=key_id if isinstance(key_id, str) and key_id else None,
+        purpose="export_signing",
+        expected_public_key=signer_trust.expected_public_key,
+        public_key_url=signer_trust.public_key_url,
+        key_manifest_source=signer_trust.key_manifest_source,
+        signing_time=_parse_iso_or_none(body.get("generated_at")),
+    )
+    if trust_error is not None or trusted_pub is None:
+        message = (
+            "bundle signer is not anchored to a trusted key: "
+            f"{trust_error or 'could not resolve trust root'}. "
+            "Pass --key-manifest or --trust-root for a non-production Keel "
+            "instance, or --self-attested to check internal consistency only."
+        )
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="signature_envelope",
+                    subject_id=str(key_id or artifact_id or ""),
+                    verdict="insufficient_evidence",
+                    reason_code="BUNDLE_SIGNER_UNTRUSTED",
+                    message=message,
+                )
+            ],
+            diagnostics,
+            None,
+        )
+    if public_key.removeprefix("ed25519:") != trusted_pub.removeprefix("ed25519:"):
+        message = (
+            "bundle signature_envelope public_key does not match the trusted key "
+            f"({trust_source})"
+        )
+        return (
+            False,
+            message,
+            body,
+            [
+                _self_attesting_bundle_claim(
+                    subject_type="signature_envelope",
+                    subject_id=str(key_id or artifact_id or ""),
+                    verdict="disproved",
+                    reason_code="BUNDLE_SIGNER_KEY_MISMATCH",
+                    message=message,
+                )
+            ],
+            diagnostics,
+            None,
+        )
+
     receipts = envelope.get("tsa_receipts")
     receipt_list = (
         [r for r in receipts if isinstance(r, dict)] if isinstance(receipts, list) else []
@@ -1588,7 +1680,24 @@ def _verify_self_attesting_bundle_payload(
         tsa_receipts_present=bool(receipt_list),
         tsa_imprint_status=tsa_imprint_status,
         artifact_ref_digest_valid=True,
+        signer_trust_source=trust_source,
     )
+    if trust_source.startswith("self-attested"):
+        diagnostics.append(
+            "WARNING: bundle signer checked against its own embedded public_key "
+            "(--self-attested); this proves internal consistency only and does "
+            "not prove Keel signed the bundle"
+        )
+        message = (
+            "self-attesting bundle content hash, signature, artifact_ref, and "
+            "available TSA receipt checks completed against the embedded "
+            "public_key only (self-attested; signer not authenticated)"
+        )
+    else:
+        message = (
+            "self-attesting bundle content hash, signature, artifact_ref, "
+            f"and available TSA receipt checks completed; signer: {trust_source}"
+        )
 
     return (
         True,
@@ -1600,10 +1709,7 @@ def _verify_self_attesting_bundle_payload(
                 subject_id=str(artifact_ref.get("id") or artifact_id or ""),
                 verdict="supported",
                 reason_code="EVIDENCE_BUNDLE_SUPPORTED",
-                message=(
-                    "self-attesting bundle content hash, signature, artifact_ref, "
-                    "and available TSA receipt checks completed"
-                ),
+                message=message,
             )
         ],
         diagnostics,
@@ -14785,7 +14891,10 @@ def _adjudicate_mcp_review_journey_v1(
             check(False, "MCP_JOURNEY_BUNDLE_MISSING", f"{name} is missing", [name])
             return None
         ok, error, inner, _, _, _ = _verify_self_attesting_bundle_payload(
-            value, artifact_id=name, check_tsa=True
+            value,
+            signer_trust=_bundle_signer_trust_for_args(args),
+            artifact_id=name,
+            check_tsa=True,
         )
         if not ok or not isinstance(inner, dict) or inner.get("profile") != "keel.permit_exact/v4":
             check(
@@ -15075,9 +15184,14 @@ def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
             bundle_context,
         ) = _verify_self_attesting_bundle_payload(
             bundle,
+            signer_trust=_bundle_signer_trust_for_args(args),
             artifact_id=export_path.name,
             check_tsa=True,
         )
+        if bundle_context is not None and bundle_context.signer_trust_source:
+            artifact["trust_source"] = bundle_context.signer_trust_source
+        elif _bundle_signer_untrusted(claims):
+            artifact["trust_source"] = UNTRUSTED_BUNDLE_SIGNER_TRUST_SOURCE
         if body is not None:
             artifact["body_schema"] = body.get("schema")
             artifact["artifact_ref"] = body.get("artifact_ref")
@@ -16814,9 +16928,10 @@ def _cmd_export(args: argparse.Namespace) -> int:
             body,
             claims,
             diagnostics,
-            _bundle_context,
+            bundle_context,
         ) = _verify_self_attesting_bundle_payload(
             bundle,
+            signer_trust=_bundle_signer_trust_for_args(args),
             artifact_id=export_path.name,
             check_tsa=True,
         )
@@ -16837,6 +16952,8 @@ def _cmd_export(args: argparse.Namespace) -> int:
         print(f"  Content hash: {envelope.get('content_hash')}")
         print(f"  Public key:   {envelope.get('public_key')}")
         print(f"  Key id:       {envelope.get('public_key_id')}")
+        if bundle_context is not None:
+            print(f"  Trust source: {bundle_context.signer_trust_source}")
         print(f"  Checks:       {', '.join(claim.reason_code for claim in claims)}")
         return 0
     if not manifest_path.exists():
@@ -19047,11 +19164,19 @@ def _verify_checkpoint_core(
             _bundle_context,
         ) = _verify_self_attesting_bundle_payload(
             body,
+            signer_trust=BundleSignerTrust(
+                expected_public_key=expected_public_key,
+                public_key_url=public_key_url,
+                key_manifest_source=key_manifest_source,
+                self_attested=self_attested,
+            ),
             artifact_id=path.name,
             check_tsa=check_tsa,
         )
         bundle_claims = claims
         bundle_diagnostics = diagnostics
+        if _bundle_signer_untrusted(claims):
+            artifact["trust_source"] = UNTRUSTED_BUNDLE_SIGNER_TRUST_SOURCE
         if not ok or bundle_body is None:
             return VerifyResult(
                 ok=False,
