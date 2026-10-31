@@ -344,6 +344,57 @@ def test_trusted_key_under_unknown_key_id_fails(tmp_path: Path) -> None:
     _assert_untrusted(verifier.verify_export_structured(_args(path, key_manifest=manifest)))
 
 
+# ── a trusted key the manifest marks revoked or compromised ────────────────
+
+
+@pytest.mark.parametrize(
+    ("status", "revoked_at", "compromised_at", "ok"),
+    [
+        pytest.param("active", None, None, True, id="active"),
+        pytest.param("revoked", "2026-10-30T11:00:00Z", None, False, id="revoked-before-signing"),
+        pytest.param("compromised", None, "2026-10-01T00:00:00Z", False, id="compromised"),
+    ],
+)
+def test_bundle_signer_key_status_is_enforced(
+    tmp_path: Path,
+    status: str,
+    revoked_at: str | None,
+    compromised_at: str | None,
+    ok: bool,
+) -> None:
+    private_key, public_key, key_id = _keypair()
+    manifest = _write(
+        tmp_path,
+        "status-trust-root.json",
+        {
+            "keys": [
+                {
+                    "key_id": key_id,
+                    "algorithm": "ed25519",
+                    "public_key": "ed25519:" + public_key,
+                    "purpose": "export_signing",
+                    "status": status,
+                    "valid_from": "2026-01-01T00:00:00Z",
+                    "valid_to": None,
+                    "revoked_at": revoked_at,
+                    "compromised_at": compromised_at,
+                }
+            ]
+        },
+    )
+    path = _write(
+        tmp_path, "export.json", _sign(_compliance_export(), private_key, public_key, key_id)
+    )
+
+    report = verifier.verify_export_structured(_args(path, key_manifest=manifest))
+
+    if ok:
+        assert report.ok is True, report.to_dict().get("error")
+    else:
+        _assert_untrusted(report)
+        assert status in _envelope_claim(report)["message"]
+
+
 # ── MCP review journeys: outer and nested envelopes ────────────────────────
 
 

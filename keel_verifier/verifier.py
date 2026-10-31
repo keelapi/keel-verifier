@@ -1554,6 +1554,7 @@ def _verify_self_attesting_bundle_payload(
         public_key_url=signer_trust.public_key_url,
         key_manifest_source=signer_trust.key_manifest_source,
         signing_time=_parse_iso_or_none(body.get("generated_at")),
+        reject_terminal_keys=True,
     )
     if trust_error is not None or trusted_pub is None:
         message = (
@@ -2926,6 +2927,7 @@ def _resolve_trust_key(
     public_key_url: str | None,
     key_manifest_source: str | None,
     signing_time: datetime | None = None,
+    reject_terminal_keys: bool = False,
 ) -> tuple[str | None, str, str | None]:
     """Resolve which public key to trust for verifying an artifact.
 
@@ -2935,6 +2937,9 @@ def _resolve_trust_key(
     ``signing_time`` (parsed from the artifact) lets the manifest path
     filter retired candidates by their active window. None falls back to
     the legacy single-candidate rule.
+
+    ``reject_terminal_keys`` refuses a manifest entry that is revoked or
+    compromised at ``signing_time`` (the rule pinned Permit keys follow).
     """
     if expected_public_key is not None:
         return expected_public_key, "user-supplied", None
@@ -2964,6 +2969,11 @@ def _resolve_trust_key(
         if err is not None:
             return None, "", err
         assert pub is not None and entry is not None
+        if reject_terminal_keys and not _entry_not_terminal_at(entry, signing_time):
+            return None, "", (
+                f"key_id {entry.get('key_id')!r} is {entry.get('status')} in the key "
+                f"manifest for purpose={purpose!r}"
+            )
         # Only the wheel's known bundled root establishes production-root
         # provenance here. An explicit or refreshed manifest can authenticate
         # a signature without establishing that its anchor is Keel production.
