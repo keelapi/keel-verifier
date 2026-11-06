@@ -167,14 +167,23 @@ current schema v3 hash-only format (`artifact_version=1.2.0`,
 `payload_materialization=hash_only`):
 
 ```bash
-python -m keel_verifier sample/voice_session_export.json
-python -m keel_verifier sample/voice_session_export_v3.json
+python -m keel_verifier sample/voice_session_export.json --self-attested --no-tsa
+python -m keel_verifier sample/voice_session_export_v3.json --self-attested --no-tsa
 ```
 
 For these artifacts, the verifier checks the session chain's per-event hash
 linkage, the Ed25519 signature over canonical artifact bytes, the embedded
-RFC 3161 timestamp receipt's MessageImprint against the project chain head,
-and the locked policy snapshot hash. Legacy checkpoint artifacts continue to
+RFC 3161 timestamp receipt against the project chain head (including CMS
+signature, certificate chain, timestamping purpose, time, and release-pinned
+revocation checks), and the locked policy snapshot hash. Issuer keys must resolve
+through the cached or bundled trust manifest, or an explicit `--public-key` or
+`--public-key-url`. Manifest keys must be valid at the signed `issued_at` and
+must not be revoked or compromised.
+
+The synthetic samples above demonstrate internal consistency only and report
+`SELF-ATTESTED (UNTRUSTED)`. Their timestamps are synthetic, so the examples
+explicitly skip TSA validation. Normal verification rejects these samples.
+`--no-tsa` always leaves timestamp authenticity unverified. Legacy checkpoint artifacts continue to
 use the existing checkpoint verification path.
 
 `keel-verify self-check` verifies the installed wheel form of `keel-verifier`
