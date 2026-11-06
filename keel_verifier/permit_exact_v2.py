@@ -156,6 +156,8 @@ class PermitExactV2Result:
     authorized_action: str | None
     verifier_safe_facts: dict[str, Any] = field(default_factory=dict)
     claims: tuple[ExactClaimAssessment, ...] = field(default_factory=tuple)
+    decision: str | None = None
+    status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -2639,6 +2641,7 @@ def adjudicate_permit_exact_v2_body(
     body: Mapping[str, Any],
     *,
     decision_verdict: str,
+    review_transition_verdict: str = "insufficient_evidence",
     signed_artifact_verifier: SignedArtifactVerifier | None = None,
     revocation_scope_faithful: bool = False,
     effective_revocation_at: datetime | None = None,
@@ -2653,6 +2656,12 @@ def adjudicate_permit_exact_v2_body(
         if isinstance(declared_raw, list)
         else []
     )
+    # The baseline exact authorization checks cannot be selected away by the
+    # producer. Dispatch and provider claims remain separate, optional assertions:
+    # an approval pack may legitimately contain no dispatch evidence yet.
+    for name in ("permit.type.v1", "permit.exact_target.v1", "permit.material_request.v1"):
+        if name not in declared:
+            declared.append(name)
     permit_id = str(body.get("permit_id") or "")
     project_id = str(body.get("project_id") or "")
     assessments: dict[str, ExactClaimAssessment] = {}
@@ -2703,6 +2712,56 @@ def adjudicate_permit_exact_v2_body(
                 f"exact pack v2 schema validation failed: {exc.message}",
             )
         )
+
+    decision = body.get("permit_decision", {})
+    canonical_payload = decision.get("canonical_payload", {})
+    if not isinstance(canonical_payload, Mapping):
+        return fail_all(_AdjudicationError(
+            "insufficient_evidence",
+            "PERMIT_EXACT_SIGNED_DECISION_EVIDENCE_MISSING",
+            "signed Permit decision payload is missing",
+        ))
+    state = body["decision_state"]
+    transition = body["review_transition"]
+    initial_decision = canonical_payload.get("decision")
+    final_decision = initial_decision
+    # The canonical decision has no lifecycle-status field. Only a verified
+    # transition can authenticate that label; do not project a producer label
+    # into the verified summary for an untransitioned decision.
+    final_status = None
+    identity_ok = (
+        canonical_payload.get("permit_id") == permit_id
+        and canonical_payload.get("project_id") == project_id
+    )
+    transition_status = transition.get("status")
+    if transition_status == "present":
+        event = transition.get("signed_event")
+        linked = isinstance(event, Mapping) and all((
+            event.get("permit_id") == permit_id,
+            event.get("project_id") == project_id,
+            event.get("from_decision") == initial_decision,
+            event.get("to_decision") == state["decision"],
+            event.get("to_status") == state["status"],
+        ))
+        if review_transition_verdict != "supported" or not linked:
+            return fail_all(_AdjudicationError(
+                "disproved" if not linked or review_transition_verdict == "disproved"
+                else "insufficient_evidence",
+                "PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED",
+                "final state requires a verified review transition linked to this signed Permit",
+            ))
+        final_decision = event["to_decision"]
+        final_status = event["to_status"]
+    if (
+        not identity_ok
+        or transition_status not in ("present", "not_present")
+        or final_decision != state["decision"]
+    ):
+        return fail_all(_AdjudicationError(
+            "disproved",
+            "PERMIT_EXACT_FINAL_STATE_MISMATCH",
+            "final state must match the signed Permit decision or its linked verified transition",
+        ))
 
     binding = body.get("semantic_binding")
     facts = body.get("authorization_facts")
@@ -3412,6 +3471,8 @@ def adjudicate_permit_exact_v2_body(
         authorized_action=authorized_action,
         verifier_safe_facts=_verifier_safe_facts(contracts.fact_profile, facts),
         claims=tuple(assessments[name] for name in declared if name in assessments),
+        decision=final_decision,
+        status=final_status,
     )
 
 

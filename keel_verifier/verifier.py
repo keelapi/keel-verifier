@@ -14703,9 +14703,17 @@ def _adjudicate_permit_exact_v2(
 
     from keel_verifier.permit_exact_v2 import adjudicate_permit_exact_v2_body
 
+    transition = body.get("review_transition")
+    transition_verdict = "insufficient_evidence"
+    if isinstance(transition, dict) and transition.get("status") == "present":
+        transition_verdict = _adjudicate_permit_review_transition_v1(
+            export_document=body,
+            key_manifest_source=key_manifest_source,
+        ).aggregate_verdict
     result = adjudicate_permit_exact_v2_body(
         body,
         decision_verdict=decision_claim.aggregate_verdict,
+        review_transition_verdict=transition_verdict,
         signed_artifact_verifier=lambda artifact, purpose, signed_at_field: (
             _verify_permit_exact_v2_signed_artifact(
                 artifact,
@@ -14760,16 +14768,8 @@ def _adjudicate_permit_exact_v2(
                 else None
             ),
             "authorization_facts": dict(result.verifier_safe_facts),
-            "decision": (
-                body.get("decision_state", {}).get("decision")
-                if isinstance(body.get("decision_state"), Mapping)
-                else None
-            ),
-            "status": (
-                body.get("decision_state", {}).get("status")
-                if isinstance(body.get("decision_state"), Mapping)
-                else None
-            ),
+            "decision": result.decision,
+            "status": result.status,
             "issued_at": (
                 body.get("permit_decision", {})
                 .get("canonical_payload", {})
