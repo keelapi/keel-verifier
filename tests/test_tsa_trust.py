@@ -1288,6 +1288,57 @@ def test_release_pinned_revocation_invalidity_before_gentime_fails(
     assert "revoked or invalid" in str(error)
 
 
+@pytest.mark.parametrize("provider", ["digicert", "globalsign"])
+def test_release_pinned_revocation_real_crl_boundaries_bundle_window(
+    provider: str,
+) -> None:
+    """The shipped bundle covers exactly [latest lastUpdate, earliest nextUpdate).
+
+    The window comes from the bundle manifest's CRL entries for the provider,
+    not from the verifier's own chain building, so a revocation check that
+    skipped an issuer's CRL fails here. It is derived rather than hardcoded so
+    it keeps holding across scheduled CRL refreshes.
+    """
+    fixtures = json.loads(
+        (REPO_ROOT / "tests" / "fixtures" / "tsa" / "public_ca_receipts_v1.json")
+        .read_text(encoding="utf-8")
+    )
+    receipt = next(item for item in fixtures["receipts"] if item["provider"] == provider)
+    bundle = verifier._load_tsa_trust_bundle()
+    assert bundle["ok"] is True
+
+    def parse_z(value: str) -> datetime:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    provider_crls = [
+        entry
+        for entry in bundle["manifest"]["files"]
+        if entry["kind"] == "crl" and entry["provider"] == provider
+    ]
+    assert len(provider_crls) >= 2
+    window_start = max(parse_z(entry["last_update"]) for entry in provider_crls)
+    window_end = min(parse_z(entry["next_update"]) for entry in provider_crls)
+
+    details = verifier._extract_rfc3161_token_details(receipt["receipt_b64"])
+    assert window_start <= details["gen_time"] < window_end
+
+    def check(gen_time: datetime) -> tuple[bool, str | None, str | None]:
+        # Copy the extracted details so the signed receipt is never altered.
+        return verifier._check_release_pinned_revocation(
+            details={**details, "gen_time": gen_time},
+            bundle=bundle,
+        )
+
+    one_second = timedelta(seconds=1)
+    assert check(window_start) == (True, None, None)
+    assert check(window_end - one_second) == (True, None, None)
+    for outside in (window_start - one_second, window_end):
+        ok, reason_code, error = check(outside)
+        assert ok is False
+        assert reason_code == "not_validated_revocation_snapshot_stale"
+        assert "does not cover" in str(error)
+
+
 def test_checkpoint_tsa_trust_malformed_receipt_uses_imprint_failure_path(
     tmp_path: Path,
     run_cli,
