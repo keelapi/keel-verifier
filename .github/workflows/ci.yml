@@ -21,12 +21,12 @@ jobs:
     env:
       KEEL_TSA_REQUIRE_OPENSSL3: "1"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           path: keel-verifier
           persist-credentials: false
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: keelapi/keel-permit
           path: keel-permit
@@ -34,7 +34,7 @@ jobs:
           # TODO: re-enable KEEL_REQUIRE_GOLDEN_CORPUS once cat-09 lands on
           # keel-permit main; origin/main currently publishes cat-01/02/08 only.
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip

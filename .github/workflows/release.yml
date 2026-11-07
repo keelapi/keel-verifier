@@ -15,7 +15,7 @@ jobs:
     name: Build and sign release artifacts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
@@ -28,7 +28,7 @@ jobs:
           print(f"invalid release tag: {tag!r}", file=sys.stderr) or 1)'
 
       - name: Checkout released Permit contract
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: keelapi/keel-permit
           path: keel-permit
@@ -49,7 +49,7 @@ jobs:
       # candidate's qualification corpus is a separate, exact source dependency;
       # publish this reviewed source commit before authorizing verifier release.
       - name: Checkout coordinated Permit qualification corpus
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: keelapi/keel-permit
           path: keel-permit-corpus
@@ -67,7 +67,7 @@ jobs:
           print(f"qualification corpus resolved to {actual}, expected {expected}",
           file=sys.stderr) or 1)'
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
           cache: pip
@@ -106,7 +106,7 @@ jobs:
       - name: Generate CycloneDX SBOM
         run: cyclonedx-py environment --output-format JSON --output-file sbom.cyclonedx.json
 
-      - uses: sigstore/cosign-installer@v3
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Capture cosign version
         run: |
@@ -153,7 +153,7 @@ jobs:
         run: python scripts/generate_tsa_witness.py --manifest manifest.json --output manifest.json.tsa.json
 
       - name: Upload release artifacts
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           fail_on_unmatched_files: true
           generate_release_notes: true
@@ -190,4 +190,4 @@ jobs:
             --dir dist
 
       - name: Publish distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1 (branch head, = v1.14.3)

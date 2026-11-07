@@ -82,16 +82,29 @@ The release workflow pins the build lane rather than claiming byte-for-byte repr
 builds:
 
 - GitHub runner: `ubuntu-latest`
-- Checkout action: `actions/checkout@v6` with full history
-- Python action: `actions/setup-python@v6`
+- Checkout action: `actions/checkout` v6, pinned to commit
+  `d23441a48e516b6c34aea4fa41551a30e30af803`, with full history
+- Python action: `actions/setup-python` v6, pinned to commit
+  `ece7cb06caefa5fff74198d8649806c4678c61a1`
 - Release Python: `3.12`
 - Build backend: `setuptools.build_meta` from `pyproject.toml`
 - Build backend requirement: `setuptools>=68`
 - Release tools installed in CI: `build`, `twine`, `cyclonedx-bom`
-- Cosign installer: `sigstore/cosign-installer@v3`
+- Cosign installer: `sigstore/cosign-installer` v3, pinned to commit
+  `398d4b0eeef1380460a10c8013a76f728fb906ac`
+- Release upload: `softprops/action-gh-release` v2, pinned to commit
+  `3bb12739c298aeb8a4eeaf626c5b8d85266b0e65`
+- PyPI publish: `pypa/gh-action-pypi-publish` `release/v1`, pinned to commit
+  `7245906fb61fa33a13554f9d5fb856fe61758086` (the branch head when pinned, tagged v1.14.3)
 
 The signed `manifest.json` records the observed Python version, cosign version, runner,
 and build backend for the release.
+
+Every `uses:` in `.github/workflows/` names a full 40-character commit SHA with the
+tag it was resolved from in a trailing comment. A tag can be moved after review; a
+commit cannot. To update an action, resolve the new tag with
+`gh api repos/<owner>/<repo>/git/ref/tags/<tag>` (dereference annotated tags through
+`git/tags/<sha>`), then replace both the SHA and the comment.
 
 ## Verifying a Keel verifier release
 
