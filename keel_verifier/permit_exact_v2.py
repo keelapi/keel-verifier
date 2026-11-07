@@ -2734,6 +2734,7 @@ def adjudicate_permit_exact_v2_body(
         and canonical_payload.get("project_id") == project_id
     )
     transition_status = transition.get("status")
+    approval_at: datetime | None = None
     if transition_status == "present":
         event = transition.get("signed_event")
         linked = isinstance(event, Mapping) and all((
@@ -2742,6 +2743,11 @@ def adjudicate_permit_exact_v2_body(
             event.get("from_decision") == initial_decision,
             event.get("to_decision") == state["decision"],
             event.get("to_status") == state["status"],
+            event.get("event_type") == "permit.challenge_approved",
+            event.get("from_decision") == "challenge",
+            event.get("from_status") == "awaiting_attestation",
+            event.get("to_decision") == "allow",
+            event.get("to_status") == "attested",
         ))
         if review_transition_verdict != "supported" or not linked:
             return fail_all(_AdjudicationError(
@@ -2749,6 +2755,13 @@ def adjudicate_permit_exact_v2_body(
                 else "insufficient_evidence",
                 "PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED",
                 "final state requires a verified review transition linked to this signed Permit",
+            ))
+        approval_at = _parse_time(event.get("decision_at"))
+        issuance_at = _parse_time(canonical_payload.get("issued_at"))
+        if approval_at is None or issuance_at is None or approval_at < issuance_at:
+            return fail_all(_AdjudicationError(
+                "disproved", "PERMIT_EXACT_REVIEW_TRANSITION_TIME_INVALID",
+                "approval requires a signed decision_at at or after Permit issuance",
             ))
         final_decision = event["to_decision"]
         final_status = event["to_status"]
@@ -3095,6 +3108,12 @@ def adjudicate_permit_exact_v2_body(
             "PERMIT_DISPATCH_INSTANT_UNTRUSTED",
             "a trusted dispatch instant and signed Permit validity window are required",
         )
+    elif approval_at is not None and approval_at > dispatch_at:
+        assessments["permit.valid_at_dispatch.v1"] = _assessment(
+            "permit.valid_at_dispatch.v1", "disproved",
+            "PERMIT_APPROVAL_AFTER_DISPATCH",
+            "the signed approval occurred after the trusted dispatch instant",
+        )
     elif not (issued_at <= dispatch_at < expires_at):
         assessments["permit.valid_at_dispatch.v1"] = _assessment(
             "permit.valid_at_dispatch.v1",
@@ -3245,6 +3264,8 @@ def adjudicate_permit_exact_v2_body(
                         expected_decision = "review"
                     if not active:
                         boundary_reason = "certification was not active at dispatch"
+                    elif approval_at is not None and approval_at > boundary_time:
+                        boundary_reason = "signed approval occurred after dispatch"
                     elif runtime_proof.get("gate_result") != expected_decision:
                         boundary_reason = "runtime gate result does not match decision"
                     else:

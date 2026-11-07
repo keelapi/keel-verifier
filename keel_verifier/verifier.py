@@ -8235,15 +8235,18 @@ def _adjudicate_permit_review_transition_v1(
 
     key_id = canonical_payload.get("binding_key_id")
     signing_time = _parse_iso_or_none(signed_event.get("decision_at"))
-    trusted_pub, _trust_source, err = _resolve_trust_key(
-        artifact_pub=None,
-        artifact_key_id=str(key_id or ""),
-        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
-        expected_public_key=None,
-        public_key_url=None,
-        key_manifest_source=key_manifest_source,
-        signing_time=signing_time,
-    )
+    trusted_pub = None
+    err = "review transition requires a binding key and valid decision_at"
+    if key_manifest_source is not None and isinstance(key_id, str) and signing_time is not None:
+        try:
+            trusted_pub, err = _select_pinned_trust_key(
+                _load_key_manifest(key_manifest_source),
+                key_id=key_id,
+                purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+                signing_time=signing_time,
+            )
+        except Exception as exc:
+            err = f"could not load review transition trust root: {exc}"
     if err is not None or trusted_pub is None:
         return _permit_claim(
             PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
@@ -18489,7 +18492,10 @@ def _verify_voice_attestation_signature(
             )
         if error is not None or trusted_key is None:
             continue
-        if embedded_key is not None and embedded_key != trusted_key:
+        if embedded_key is not None and (
+            not isinstance(embedded_key, str)
+            or embedded_key.removeprefix("ed25519:") != trusted_key.removeprefix("ed25519:")
+        ):
             continue
         if _verify_ed25519(trusted_key, canonical, signature):
             return {

@@ -20,7 +20,7 @@ from test_permit_exact_v2 import _body
 
 def _case(tmp_path, *, version=2, initial="allow", final="allow",
           transition=False, event_changes=None, bad_signature=False,
-          declared=None, body_changes=None):
+          declared=None, body_changes=None, binding_changes=None):
     body = _body()
     body.update(profile=f"keel.permit_exact/v{version}", profile_version=version)
     body["declared_claims"] = declared or [
@@ -45,10 +45,10 @@ def _case(tmp_path, *, version=2, initial="allow", final="allow",
     body["decision_state"] = {"decision": final, "status": "attested"}
     if transition:
         event = {
-            "event_type": "permit.review.approved", "permit_id": body["permit_id"],
+            "event_type": "permit.challenge_approved", "permit_id": body["permit_id"],
             "project_id": body["project_id"], "decision_at": "2026-07-30T12:05:00Z",
             "actor_id": "reviewer", "actor_kind": "user",
-            "from_decision": initial, "from_status": "pending_review",
+            "from_decision": initial, "from_status": "awaiting_attestation",
             "to_decision": final, "to_status": "attested",
         }
         event.update(event_changes or {})
@@ -68,6 +68,10 @@ def _case(tmp_path, *, version=2, initial="allow", final="allow",
         ("permit_binding_signing", binding_id, binding_public),
         ("export_signing", export_id, export_public),
     )
+    if binding_changes:
+        manifest = json.loads(trust.read_text())
+        manifest["keys"][0].update(binding_changes)
+        trust.write_text(json.dumps(manifest))
     bundle = _new_bundle(body, artifact_type="permit_exact", artifact_id="final-state")
     path = _write(tmp_path, "exact.json", _sign(bundle, export_private, export_public, export_id))
     return verifier.verify_export_structured(_args(path, key_manifest=trust))
@@ -136,3 +140,57 @@ def test_alternate_unsigned_identity_or_transition_state_fails(tmp_path, changes
     report = _case(tmp_path, body_changes=copy.deepcopy(changes))
     assert not report.ok
     assert "permit" not in report.artifact
+
+
+@pytest.mark.parametrize("changes", [
+    {"from_status": "pending_review"}, {"from_status": "revoked"},
+    {"event_type": "permit.review.approved"},
+])
+@pytest.mark.parametrize("version", [2, 3, 4])
+def test_review_approval_requires_released_transition(tmp_path, changes, version):
+    report = _case(tmp_path, version=version, initial="challenge", transition=True, event_changes=changes)
+    assert not report.ok
+    assert "permit" not in report.artifact
+
+
+@pytest.mark.parametrize("changes", [
+    {"valid_to": "2026-07-30T12:04:59Z", "status": "retired"},
+    {"valid_from": "2026-07-30T12:05:01Z"},
+    {"status": "revoked"}, {"status": "compromised"},
+])
+@pytest.mark.parametrize("version", [2, 3, 4])
+def test_review_key_must_be_active_at_approval(tmp_path, changes, version):
+    report = _case(tmp_path, version=version, initial="challenge", transition=True, binding_changes=changes)
+    assert not report.ok
+    assert "permit" not in report.artifact
+
+
+@pytest.mark.parametrize("decision_at,expected", [
+    ("2026-07-30T12:09:59Z", "supported"),
+    ("2026-07-30T12:10:00Z", "supported"),
+    ("2026-07-30T12:10:01Z", "disproved"),
+    ("not-a-time", "disproved"),
+])
+def test_review_approval_cannot_retroactively_authorize_dispatch(decision_at, expected):
+    from keel_verifier.permit_exact_v2 import adjudicate_permit_exact_v2_body
+    from test_permit_exact_v2 import _v3_work_body
+    body = _v3_work_body()
+    body["declared_claims"] = list(dict.fromkeys([
+        *body["declared_claims"],
+        "permit.enforced_at_certified_boundary.v1", "permit.valid_at_dispatch.v1",
+    ]))
+    body["permit_decision"]["canonical_payload"]["decision"] = "challenge"
+    body["decision_state"] = {"decision": "allow", "status": "attested"}
+    body["review_transition"] = {"status": "present", "signed_event": {
+        "event_type": "permit.challenge_approved", "permit_id": body["permit_id"],
+        "project_id": body["project_id"], "decision_at": decision_at,
+        "from_decision": "challenge", "from_status": "awaiting_attestation",
+        "to_decision": "allow", "to_status": "attested",
+    }}
+    result = adjudicate_permit_exact_v2_body(
+        body, decision_verdict="supported", review_transition_verdict="supported",
+        signed_artifact_verifier=lambda *_: (True, None),
+    )
+    claims = {c.name: c for c in result.claims}
+    assert claims["permit.enforced_at_certified_boundary.v1"].verdict == expected
+    assert claims["permit.valid_at_dispatch.v1"].verdict == expected

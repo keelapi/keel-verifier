@@ -227,3 +227,13 @@ def test_tsa_other_receipt_copy_cannot_bypass_binding():
     result = verifier.verify_attestation_artifact(artifact, public_key=public)
     assert result["verdict"] == "fail"
     assert any("project_chain_head" in c.get("reason", "") for c in result["failed_checks"])
+
+
+@pytest.mark.parametrize("embedded_prefix,trusted_prefix", [(True, False), (False, True)])
+def test_equivalent_voice_key_encodings(tmp_path, embedded_prefix, trusted_prefix):
+    private, public, key_id = keypair()
+    artifact = _resign(json.loads(VOICE_SAMPLE.read_text()), private, public, key_id)
+    artifact["signatures"][0]["public_key"] = public if embedded_prefix else public.removeprefix("ed25519:")
+    trusted = public if trusted_prefix else public.removeprefix("ed25519:")
+    path = write_json(tmp_path / "voice.json", artifact)
+    assert verifier.verify(path, public_key=trusted, check_tsa=False).ok
