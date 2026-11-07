@@ -1,5 +1,36 @@
 # Changelog
 
+## 3.30.1
+
+### Trust-material refresh
+
+- Refresh the three bundled DigiCert certificate-revocation lists (Trusted G4
+  TimeStamping RSA4096 SHA256 2025 CA1, Trusted Root G4, Assured ID Root CA)
+  and their pinned hashes, and refresh the coupled public-CA timestamp
+  receipt fixture. No certificate was newly revoked. GlobalSign CRLs are
+  unchanged.
+- A TSA timestamp is validated only when every CRL in its chain covers its
+  genTime. Each release therefore covers a moving window of DigiCert
+  timestamps:
+  - 3.29.0, 3.29.1 and 3.30.0: 2026-10-30T17:42:35Z to 2026-11-18T16:40:26Z.
+  - 3.30.1: 2026-11-06T17:42:35Z to 2026-11-25T16:40:26Z.
+
+  Outside its window a release reports the DigiCert timestamp as
+  `not_validated_revocation_snapshot_stale`. A DigiCert timestamp from
+  2026-10-30T17:42:35Z to before 2026-11-06T17:42:35Z still validates with
+  3.30.0. GlobalSign coverage is unchanged (2026-10-07T00:00:00Z to
+  2027-01-15T00:00:00Z).
+- The seven-day release freshness gate requires the next refresh before
+  2026-11-18T16:40:26Z.
+- Existing trust roots, verifier adjudication logic, historical semantics,
+  and freshness requirements are unchanged.
+
+### Release integrity
+
+- Assign the refreshed bundle the new 3.30.1 release identity. Publication
+  still requires the tagged release workflow and verification of the
+  published wheel against its signed release artifacts.
+
 ## 3.30.0
 
 This release contains three security fixes from #119. Each one makes a
