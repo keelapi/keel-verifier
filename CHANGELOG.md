@@ -36,19 +36,30 @@ artifacts]**.
 
 ### Security: approval lifecycle is enforced before dispatch
 
-- **[can reject previously accepted artifacts]** A review transition is
-  accepted only as the released approval: `event_type`
-  `permit.challenge_approved`, from `challenge` / `awaiting_attestation` to
-  `allow` / `attested`. Any other transition fails with
-  `PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED`. This includes signed
-  non-approval transitions such as `permit.challenge_rejected` (challenge to
-  deny): every exact claim in such a pack is now `disproved`, where 3.29.1
-  reported `permit.type.v1`, `permit.exact_target.v1` and
-  `permit.material_request.v1` as supported. `permit.decision.v1` and
-  `permit.review_transition.v1` are unchanged.
-- **[can reject previously accepted artifacts]** The signed approval
-  `decision_at` must be present and at or after the Permit's `issued_at`,
-  otherwise `PERMIT_EXACT_REVIEW_TRANSITION_TIME_INVALID` (`disproved`).
+- **[can reject previously accepted artifacts]** The signed event type fixes
+  the only final state a review transition can reach. Every transition must
+  start from `challenge` / `awaiting_attestation`.
+  - Only the released approval, `permit.challenge_approved`, can reach
+    `allow` / `attested`.
+  - The four released non-approval outcomes verify as a genuine **deny**:
+    `permit.challenge_rejected`, `permit.challenge_approval_reservation_denied`
+    and `permit.challenge_approval_authority_lapsed` reach `deny` /
+    `evaluated`, and `permit.challenge_expired` reaches `deny` / `expired`.
+    With an authentic, linked denial, `permit.type.v1`,
+    `permit.exact_target.v1` and `permit.material_request.v1` verify as they
+    did in 3.29.1, and the verified summary reports `decision: deny` with the
+    signed status.
+  - Any other event type, or a target that does not match its event type,
+    fails every exact claim with `PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED`.
+    A denial event can never yield `allow`.
+- A Permit whose signed review denied it is never dispatch authority. When
+  such a pack carries a trusted dispatch instant, `permit.valid_at_dispatch.v1`
+  is `disproved` with `PERMIT_REVIEW_DENIED_DISPATCH`. Without one it stays
+  `insufficient_evidence`, as before.
+- **[can reject previously accepted artifacts]** The signed `decision_at` of
+  any review transition must be present and at or after the Permit's
+  `issued_at`, otherwise `PERMIT_EXACT_REVIEW_TRANSITION_TIME_INVALID`
+  (`disproved`).
 - **[can reject previously accepted artifacts]** The review transition's
   binding key is now resolved only from the key manifest. It must be the
   single active entry for its `key_id` at the signed `decision_at`, and must
@@ -115,14 +126,16 @@ artifacts]**.
 ### Upgrade notes
 
 - Exports, proof packs, and exact Permit packs with no review or with an
-  approved review verify with the same verdicts as under 3.29.1. Artifacts
-  signed with ad hoc or test keys, or carrying hand-edited `decision_state`,
-  `declared_claims` or review transitions, can now fail as described above.
-- An exact Permit pack whose latest review event is not an approval
-  (`permit.challenge_rejected`, `permit.challenge_expired`,
-  `permit.challenge_approval_reservation_denied`,
-  `permit.challenge_approval_authority_lapsed`) carries that signed
-  transition. 3.30.0 reports its exact claims as `disproved` (see above).
+  approved review verify with the same verdicts as under 3.29.1. One
+  exception: a pack whose `declared_claims` leaves out `permit.type.v1`,
+  `permit.exact_target.v1` or `permit.material_request.v1` now has that claim
+  adjudicated too, and reports it as `disproved` if its evidence fails, where
+  3.29.1 left it out of the report. Artifacts signed with ad hoc or test keys,
+  or carrying hand-edited `decision_state`, `declared_claims` or review
+  transitions, can now fail as described above.
+- Exact Permit packs whose review was rejected, expired, refused at
+  reservation, or closed because the held authority lapsed verify as deny.
+  Their exact-claim verdicts are the same as under 3.29.1.
 - Voice-session attestations from staging, demo or local Keel instances need
   `--public-key` or `--public-key-url` for that instance (or
   `verify_attestation_artifact(..., key_manifest=...)`), or `--self-attested`

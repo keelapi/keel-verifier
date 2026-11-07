@@ -8277,7 +8277,7 @@ def _adjudicate_permit_review_transition_v1(
         subject_id=permit_id,
         verdict="supported",
         reason_code="PERMIT_REVIEW_TRANSITION_SUPPORTED",
-        message="human-review approval transition signature is supported",
+        message="human-review transition signature is supported",
         evidence=[evidence_path, "trust_root"],
     )
 
