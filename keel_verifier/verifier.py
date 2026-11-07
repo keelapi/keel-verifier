@@ -8235,15 +8235,18 @@ def _adjudicate_permit_review_transition_v1(
 
     key_id = canonical_payload.get("binding_key_id")
     signing_time = _parse_iso_or_none(signed_event.get("decision_at"))
-    trusted_pub, _trust_source, err = _resolve_trust_key(
-        artifact_pub=None,
-        artifact_key_id=str(key_id or ""),
-        purpose=PERMIT_BINDING_SIGNING_PURPOSE,
-        expected_public_key=None,
-        public_key_url=None,
-        key_manifest_source=key_manifest_source,
-        signing_time=signing_time,
-    )
+    trusted_pub = None
+    err = "review transition requires a binding key and valid decision_at"
+    if key_manifest_source is not None and isinstance(key_id, str) and signing_time is not None:
+        try:
+            trusted_pub, err = _select_pinned_trust_key(
+                _load_key_manifest(key_manifest_source),
+                key_id=key_id,
+                purpose=PERMIT_BINDING_SIGNING_PURPOSE,
+                signing_time=signing_time,
+            )
+        except Exception as exc:
+            err = f"could not load review transition trust root: {exc}"
     if err is not None or trusted_pub is None:
         return _permit_claim(
             PERMIT_REVIEW_TRANSITION_CLAIM_NAME,
@@ -14703,9 +14706,17 @@ def _adjudicate_permit_exact_v2(
 
     from keel_verifier.permit_exact_v2 import adjudicate_permit_exact_v2_body
 
+    transition = body.get("review_transition")
+    transition_verdict = "insufficient_evidence"
+    if isinstance(transition, dict) and transition.get("status") == "present":
+        transition_verdict = _adjudicate_permit_review_transition_v1(
+            export_document=body,
+            key_manifest_source=key_manifest_source,
+        ).aggregate_verdict
     result = adjudicate_permit_exact_v2_body(
         body,
         decision_verdict=decision_claim.aggregate_verdict,
+        review_transition_verdict=transition_verdict,
         signed_artifact_verifier=lambda artifact, purpose, signed_at_field: (
             _verify_permit_exact_v2_signed_artifact(
                 artifact,
@@ -14760,16 +14771,8 @@ def _adjudicate_permit_exact_v2(
                 else None
             ),
             "authorization_facts": dict(result.verifier_safe_facts),
-            "decision": (
-                body.get("decision_state", {}).get("decision")
-                if isinstance(body.get("decision_state"), Mapping)
-                else None
-            ),
-            "status": (
-                body.get("decision_state", {}).get("status")
-                if isinstance(body.get("decision_state"), Mapping)
-                else None
-            ),
+            "decision": result.decision,
+            "status": result.status,
             "issued_at": (
                 body.get("permit_decision", {})
                 .get("canonical_payload", {})
@@ -18437,6 +18440,11 @@ def _verify_voice_attestation_schema(artifact: Mapping[str, Any]) -> dict[str, A
 
 def _verify_voice_attestation_signature(
     artifact: Mapping[str, Any],
+    *,
+    public_key: str | None,
+    public_key_url: str | None,
+    key_manifest: str | None,
+    self_attested: bool,
 ) -> dict[str, Any]:
     signatures = artifact.get("signatures")
     if not isinstance(signatures, list) or not signatures:
@@ -18453,23 +18461,58 @@ def _verify_voice_attestation_signature(
             continue
         if entry.get("content_hash") not in (None, content_hash):
             continue
-        public_key = entry.get("public_key")
+        embedded_key = entry.get("public_key")
         signature = entry.get("signature")
-        if not isinstance(public_key, str) or not isinstance(signature, str):
+        key_id = entry.get("key_id")
+        if not isinstance(signature, str):
             continue
-        if _verify_ed25519(public_key, canonical, signature):
+        if key_manifest is not None and public_key is None and public_key_url is None:
+            # issued_at is covered by the signature; signatures[].signed_at is not.
+            signing_time = _parse_iso_or_none(artifact.get("issued_at"))
+            if not isinstance(key_id, str) or signing_time is None:
+                continue
+            try:
+                trusted_key, error = _select_pinned_trust_key(
+                    _load_key_manifest(key_manifest),
+                    key_id=key_id,
+                    purpose="export_signing",
+                    signing_time=signing_time,
+                )
+            except Exception:
+                continue
+            trust_source = f"key manifest ({key_manifest})"
+        else:
+            trusted_key, trust_source, error = _resolve_trust_key(
+                artifact_pub=embedded_key if self_attested and isinstance(embedded_key, str) else None,
+                artifact_key_id=key_id if isinstance(key_id, str) else None,
+                purpose="export_signing",
+                expected_public_key=public_key,
+                public_key_url=public_key_url,
+                key_manifest_source=None,
+            )
+        if error is not None or trusted_key is None:
+            continue
+        if embedded_key is not None and (
+            not isinstance(embedded_key, str)
+            or embedded_key.removeprefix("ed25519:") != trusted_key.removeprefix("ed25519:")
+        ):
+            continue
+        if _verify_ed25519(trusted_key, canonical, signature):
             return {
                 "name": "issuer_signature",
                 "result": "pass",
                 "key_id": entry.get("key_id"),
-                "key_purpose": entry.get("key_purpose"),
+                "key_purpose": "export_signing",
+                "public_key": trusted_key,
+                "trust_source": trust_source,
+                "self_attested": trust_source.startswith("self-attested"),
                 "content_hash": content_hash,
             }
 
     return _voice_attestation_check(
         "issuer_signature",
         False,
-        "no valid Ed25519 signature over canonical artifact bytes",
+        "no trusted valid Ed25519 signature over canonical artifact bytes",
     )
 
 
@@ -18694,7 +18737,12 @@ def _verify_voice_attestation_timestamp_receipt(
     project_head_hash = (
         project_head.get("content_hash") if isinstance(project_head, Mapping) else None
     )
+    if not isinstance(project_head_hash, str) or not project_head_hash.startswith("sha256:"):
+        return _voice_attestation_check(
+            "rfc3161_timestamp_receipt", False, "project_chain_head content_hash missing",
+        )
     verified = 0
+    trust_reports = []
     for index, receipt in enumerate(receipts, start=1):
         request_hash = str(receipt.get("request_hash") or "").strip()
         response_b64 = receipt.get("tsa_response_base64")
@@ -18717,16 +18765,23 @@ def _verify_voice_attestation_timestamp_receipt(
                 False,
                 f"receipt {index} covers_chain_head_hash does not match request_hash",
             )
-        ok, reason = _verify_tsa_receipt(
-            response_b64,
+        trust = _build_tsa_trust_report(
+            [{"receipt_b64": response_b64, "provider": receipt.get("provider")}],
             request_hash.removeprefix("sha256:"),
+            ca_bundle_path=None,
         )
-        if not ok:
+        if not _tsa_chain_is_validated(trust):
+            reasons = "; ".join(
+                str(item.get("verification_error") or item.get("reason_code"))
+                for item in trust["receipts"]
+            )
             return _voice_attestation_check(
                 "rfc3161_timestamp_receipt",
                 False,
-                f"receipt {index}: {reason}",
+                f"receipt {index}: TSA authenticity not validated: {reasons}",
+                tsa_trust=trust,
             )
+        trust_reports.append(trust)
         verified += 1
 
     return {
@@ -18734,28 +18789,51 @@ def _verify_voice_attestation_timestamp_receipt(
         "result": "pass",
         "checked": True,
         "receipts_verified": verified,
+        "tsa_trust": {
+            **trust_reports[0],
+            "receipts": [item for report in trust_reports for item in report["receipts"]],
+        },
     }
 
 
 def verify_attestation_artifact(
     artifact: Mapping[str, Any],
     *,
+    public_key: str | None = None,
+    public_key_url: str | None = None,
+    key_manifest: str | None = None,
+    self_attested: bool = False,
     check_tsa: bool = True,
 ) -> dict[str, Any]:
-    """Verify a voice-session attestation artifact."""
+    """Verify a voice artifact against independent issuer and TSA trust.
 
+    Explicit self-attestation proves internal consistency only. Disabling TSA
+    checks does not authenticate the artifact's timestamp.
+    """
+    if key_manifest is None and not self_attested and public_key is None and public_key_url is None:
+        key_manifest = _pinned_key_manifest_source()
+    signature_check = _verify_voice_attestation_signature(
+        artifact, public_key=public_key, public_key_url=public_key_url,
+        key_manifest=key_manifest, self_attested=self_attested,
+    )
+    timestamp_check = _verify_voice_attestation_timestamp_receipt(artifact, check_tsa=check_tsa)
     checks = [
         _verify_voice_attestation_schema(artifact),
-        _verify_voice_attestation_signature(artifact),
+        signature_check,
         _verify_voice_attestation_chain(artifact),
         _verify_voice_attestation_policy_snapshot_hash(artifact),
-        _verify_voice_attestation_timestamp_receipt(artifact, check_tsa=check_tsa),
+        timestamp_check,
     ]
     failed = [check for check in checks if check.get("result") != "pass"]
     metadata = artifact.get("session_metadata")
     chain_head = artifact.get("chain_head")
     return {
         "verdict": "fail" if failed else "pass",
+        "self_attested": signature_check.get("self_attested", False),
+        "trust_source": signature_check.get("trust_source"),
+        "public_key": signature_check.get("public_key"),
+        "key_id": signature_check.get("key_id"),
+        "tsa_trust": timestamp_check.get("tsa_trust", _default_tsa_trust()),
         "schema": artifact.get("schema"),
         "session_id": (
             metadata.get("session_id")
@@ -19816,7 +19894,10 @@ def verify(
         artifact, artifact_ref_error = _attach_artifact_ref(artifact, body)
         if artifact_ref_error is not None:
             return VerifyResult(ok=False, error=artifact_ref_error, artifact=artifact)
-        result = verify_attestation_artifact(body, check_tsa=check_tsa)
+        result = verify_attestation_artifact(
+            body, public_key=public_key, public_key_url=public_key_url,
+            self_attested=self_attested, check_tsa=check_tsa,
+        )
         checks = result["checks"]
         failed = result["failed_checks"]
         artifact.update(
@@ -19840,16 +19921,21 @@ def verify(
             checkpoint_id=result.get("session_id"),
             composite_hash=result.get("head_hash"),
             chain_heads_count=int(result.get("head_sequence") or 0),
+            public_key=result["public_key"],
+            key_id=result["key_id"],
+            trust_source=result["trust_source"],
+            self_attested=result["self_attested"],
+            tsa_trust=result["tsa_trust"],
+            tsa_chain_validation=result["tsa_trust"]["tsa_chain_validation"],
             tsa_present=any(check.get("name") == "rfc3161_timestamp_receipt" for check in checks),
             tsa_checked=check_tsa,
-            tsa_verified=not any(
-                check.get("name") == "rfc3161_timestamp_receipt" and check.get("result") != "pass"
-                for check in checks
+            tsa_verified=(
+                _tsa_chain_is_validated(result["tsa_trust"]) if check_tsa else None
             ),
             tsa_receipts=[
                 {
                     "checked": check_tsa,
-                    "verified": check.get("result") == "pass",
+                    "verified": check.get("result") == "pass" if check_tsa else None,
                     "reason": check.get("reason"),
                 }
                 for check in checks

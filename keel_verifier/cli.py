@@ -962,7 +962,10 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
         print(s, file=stream)
 
     if result.artifact.get("kind") == "voice_session_attestation":
-        if result.ok:
+        if result.ok and result.self_attested:
+            p(f"SELF-ATTESTED (UNTRUSTED): {export_path}")
+            p("  Internal consistency only; this does not prove that Keel signed this artifact.")
+        elif result.ok:
             p(f"VERIFIED: {export_path}")
         else:
             p(f"FAILED: {export_path}")
@@ -986,6 +989,8 @@ def _print_human(result: VerifyResult, export_path: str, stream) -> None:
                 if not isinstance(check, dict):
                     continue
                 marker = "PASS" if check.get("result") == "pass" else "FAIL"
+                if check.get("checked") is False:
+                    marker = "SKIP"
                 detail = ""
                 if check.get("events_verified") is not None:
                     detail = f" ({check['events_verified']} events)"

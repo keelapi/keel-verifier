@@ -37,6 +37,30 @@ ROOT = Path(__file__).resolve().parents[1] / "keel_verifier" / "data"
 PTX = ROOT / "permit_to_x"
 
 
+@pytest.mark.parametrize("initial", ["deny", "challenge", "review", "throttle"])
+@pytest.mark.parametrize("version", [2, 3, 4])
+def test_final_allow_cannot_override_signed_decision(initial: str, version: int) -> None:
+    body = _body()
+    body.update(profile=f"keel.permit_exact/v{version}", profile_version=version)
+    body["permit_decision"]["canonical_payload"]["decision"] = initial
+    body["declared_claims"] = ["permit.decision.v1", "permit.type.v1"]
+    result = adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    assert result.claims
+    assert all(claim.verdict != "supported" for claim in result.claims)
+
+
+def test_omitted_authorization_baseline_is_still_checked() -> None:
+    body = _body()
+    body["declared_claims"] = ["permit.decision.v1"]
+    body["permit_receipt"]["action"]["resource_attributes_json"] = {}
+    result = adjudicate_permit_exact_v2_body(body, decision_verdict="supported")
+    claims = _claim_map(result)
+    assert set(claims) == {
+        "permit.type.v1", "permit.exact_target.v1", "permit.material_request.v1"
+    }
+    assert claims["permit.exact_target.v1"].verdict == "disproved"
+
+
 def _digest_bytes(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
