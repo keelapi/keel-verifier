@@ -101,10 +101,13 @@ The signed `manifest.json` records the observed Python version, cosign version, 
 and build backend for the release.
 
 Every `uses:` in `.github/workflows/` names a full 40-character commit SHA with the
-tag it was resolved from in a trailing comment. A tag can be moved after review; a
-commit cannot. To update an action, resolve the new tag with
+ref it was resolved from in a trailing comment. A tag or branch can be moved after
+review; a commit cannot. To update an action pinned from a tag, resolve the tag with
 `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` (dereference annotated tags through
-`git/tags/<sha>`), then replace both the SHA and the comment.
+`git/tags/<sha>`). For one pinned from a branch, such as
+`pypa/gh-action-pypi-publish@release/v1`, use
+`gh api repos/<owner>/<repo>/git/ref/heads/<branch>` and take `object.sha`. Then
+replace both the SHA and the comment.
 
 ## Verifying a Keel verifier release
 
