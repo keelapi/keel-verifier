@@ -1,5 +1,134 @@
 # Changelog
 
+## 3.30.0
+
+This release contains three security fixes from #119. Each one makes a
+verdict stricter, so some artifacts that verified under 3.29.1 now fail.
+Changes that can do this are marked **[can reject previously accepted
+artifacts]**.
+
+### Security: exact Permit final state comes from signed authority
+
+- The verified summary of a `permit.exact.v2` artifact used to copy
+  `decision` and `status` from the producer's unsigned `decision_state`. It
+  now takes them from the signed Permit decision
+  (`permit_decision.canonical_payload`), or from a review transition that
+  verifies and is linked to that Permit.
+- **[can reject previously accepted artifacts]** Every exact claim is
+  `disproved` with `PERMIT_EXACT_FINAL_STATE_MISMATCH` when
+  `decision_state.decision` differs from the signed decision (or from the
+  verified transition's `to_decision`), when the signed payload's
+  `permit_id` or `project_id` differ from the artifact's, or when
+  `review_transition.status` is neither `present` nor `not_present`.
+- **[can reject previously accepted artifacts]** A `present` review
+  transition must verify and be linked to the signed Permit: same
+  `permit_id` and `project_id`, `from_decision` equal to the signed decision,
+  and `to_decision` / `to_status` equal to `decision_state`. Otherwise every
+  exact claim fails with `PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED`.
+- **[can reject previously accepted artifacts]** `permit.type.v1`,
+  `permit.exact_target.v1` and `permit.material_request.v1` are always
+  adjudicated, even when `declared_claims` leaves them out. A producer can
+  no longer skip these baseline checks. Dispatch and provider claims are
+  still optional.
+- The summary's `status` is `null` when there is no verified transition,
+  because the signed decision carries no lifecycle status. Before, it echoed
+  the producer's label.
+
+### Security: approval lifecycle is enforced before dispatch
+
+- **[can reject previously accepted artifacts]** A review transition is
+  accepted only as the released approval: `event_type`
+  `permit.challenge_approved`, from `challenge` / `awaiting_attestation` to
+  `allow` / `attested`. Any other transition fails with
+  `PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED`. This includes signed
+  non-approval transitions such as `permit.challenge_rejected` (challenge to
+  deny): every exact claim in such a pack is now `disproved`, where 3.29.1
+  reported `permit.type.v1`, `permit.exact_target.v1` and
+  `permit.material_request.v1` as supported. `permit.decision.v1` and
+  `permit.review_transition.v1` are unchanged.
+- **[can reject previously accepted artifacts]** The signed approval
+  `decision_at` must be present and at or after the Permit's `issued_at`,
+  otherwise `PERMIT_EXACT_REVIEW_TRANSITION_TIME_INVALID` (`disproved`).
+- **[can reject previously accepted artifacts]** The review transition's
+  binding key is now resolved only from the key manifest. It must be the
+  single active entry for its `key_id` at the signed `decision_at`, and must
+  not be revoked or compromised at that time. A missing or unparseable
+  `decision_at` now fails.
+- **[can reject previously accepted artifacts]** When the signed approval is
+  later than the trusted dispatch instant, `permit.valid_at_dispatch.v1` is
+  `disproved` with `PERMIT_APPROVAL_AFTER_DISPATCH`, and the certified-boundary
+  claim fails with "signed approval occurred after dispatch".
+- Approval packs with no dispatch evidence still verify.
+
+### Security: voice-session attestations are anchored to independent trust
+
+- 3.29.1 verified a voice-session attestation's issuer signature against the
+  `public_key` embedded in the artifact, so a signature from any key passed.
+  It also checked only the TSA receipt's MessageImprint.
+- **[can reject previously accepted artifacts]** The issuer key is now
+  resolved under purpose `export_signing` from `--public-key`,
+  `--public-key-url`, or the cached or bundled trust manifest. A manifest key
+  must be valid at the signed `issued_at` and must not be revoked or
+  compromised. An embedded `public_key` must equal the trusted key; the
+  `ed25519:`-prefixed and bare encodings of the same key compare equal.
+- **[can reject previously accepted artifacts]** Each RFC 3161 receipt must
+  pass full TSA authenticity validation: CMS signature, certificate chain,
+  timestamping purpose, time, and the release-pinned revocation data. A
+  missing `project_chain_head.content_hash` fails the timestamp check.
+- `--self-attested` checks internal consistency only and the human report
+  says `SELF-ATTESTED (UNTRUSTED)`. With `--no-tsa` the timestamp check shows
+  `SKIP` and `tsa_verified` is `null`, not `true`.
+- Python API: `verify_attestation_artifact()` accepts `public_key`,
+  `public_key_url`, `key_manifest` and `self_attested`, and with none of them
+  uses the cached or bundled trust manifest. Its result adds `self_attested`,
+  `trust_source`, `public_key`, `key_id` and `tsa_trust`.
+- The synthetic samples in `sample/voice_session_export*.json` are signed by
+  a test key with synthetic timestamps. Normal verification rejects them; the
+  README now runs them with `--self-attested --no-tsa`.
+
+### Dependencies
+
+- `securesystemslib` 1.5.0 to 1.5.1 in `pyproject.toml` and
+  `requirements.txt`. PyPI yanked 1.5.0 because it breaks sigstore-python when
+  installed next to cryptography older than 48
+  (secure-systems-lab/securesystemslib#1203). 1.5.1 only adds an import
+  fallback for that case. keel-verifier does not import securesystemslib
+  directly; it reaches it through `tuf` and `sigstore`, and with the pinned
+  cryptography 50.0.1 those code paths are unchanged.
+
+### CI and release workflow
+
+- Every `uses:` in `.github/workflows/` is pinned to the full commit SHA its
+  tag pointed to, with the tag in a trailing comment. Behavior is unchanged;
+  a moved tag can no longer change what runs.
+
+  | Action | Ref | Commit |
+  | --- | --- | --- |
+  | `actions/checkout` | `v6` (v6.1.0) | `d23441a48e516b6c34aea4fa41551a30e30af803` |
+  | `actions/checkout` | `v4` (v4.4.0) | `11d5960a326750d5838078e36cf38b85af677262` |
+  | `actions/setup-python` | `v6` (v6.3.0) | `ece7cb06caefa5fff74198d8649806c4678c61a1` |
+  | `actions/setup-python` | `v5` (v5.6.0) | `a26af69be951a213d495a4c3e4e4022e16d87065` |
+  | `sigstore/cosign-installer` | `v3` (v3.9.1, annotated tag) | `398d4b0eeef1380460a10c8013a76f728fb906ac` |
+  | `softprops/action-gh-release` | `v2` (v2.6.2) | `3bb12739c298aeb8a4eeaf626c5b8d85266b0e65` |
+  | `pypa/gh-action-pypi-publish` | `release/v1` branch head (v1.14.3) | `7245906fb61fa33a13554f9d5fb856fe61758086` |
+
+### Upgrade notes
+
+- Exports, proof packs, and exact Permit packs with no review or with an
+  approved review verify with the same verdicts as under 3.29.1. Artifacts
+  signed with ad hoc or test keys, or carrying hand-edited `decision_state`,
+  `declared_claims` or review transitions, can now fail as described above.
+- An exact Permit pack whose latest review event is not an approval
+  (`permit.challenge_rejected`, `permit.challenge_expired`,
+  `permit.challenge_approval_reservation_denied`,
+  `permit.challenge_approval_authority_lapsed`) carries that signed
+  transition. 3.30.0 reports its exact claims as `disproved` (see above).
+- Voice-session attestations from staging, demo or local Keel instances need
+  `--public-key` or `--public-key-url` for that instance (or
+  `verify_attestation_artifact(..., key_manifest=...)`), or `--self-attested`
+  for an integrity-only check. Use `--no-tsa` only when you accept an
+  unverified timestamp.
+
 ## 3.29.1
 
 ### Security hardening
