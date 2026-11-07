@@ -20,7 +20,10 @@ from test_permit_exact_v2 import _body
 
 def _case(tmp_path, *, version=2, initial="allow", final="allow",
           transition=False, event_changes=None, bad_signature=False,
-          declared=None, body_changes=None, binding_changes=None):
+          declared=None, body_changes=None, binding_changes=None,
+          event_type="permit.challenge_approved", final_status="attested",
+          forge_key=False, post_sign_changes=None, drop_signature=False,
+          rehash_after_changes=False):
     body = _body()
     body.update(profile=f"keel.permit_exact/v{version}", profile_version=version)
     body["declared_claims"] = declared or [
@@ -42,25 +45,39 @@ def _case(tmp_path, *, version=2, initial="allow", final="allow",
             binding_private.sign(digest.encode())
         ).decode(),
     )
-    body["decision_state"] = {"decision": final, "status": "attested"}
+    body["decision_state"] = {"decision": final, "status": final_status}
     if transition:
         event = {
-            "event_type": "permit.challenge_approved", "permit_id": body["permit_id"],
+            "event_type": event_type, "permit_id": body["permit_id"],
             "project_id": body["project_id"], "decision_at": "2026-07-30T12:05:00Z",
             "actor_id": "reviewer", "actor_kind": "user",
             "from_decision": initial, "from_status": "awaiting_attestation",
-            "to_decision": final, "to_status": "attested",
+            "to_decision": final, "to_status": final_status,
         }
         event.update(event_changes or {})
-        event_hash = hashlib.sha256(json.dumps(
-            event, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
-        ).encode()).hexdigest()
-        signature = binding_private.sign(event_hash.encode())
+
+        def _event_hash(value):
+            return hashlib.sha256(json.dumps(
+                value, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+            ).encode()).hexdigest()
+
+        event_hash = _event_hash(event)
+        signer = _keypair()[0] if forge_key else binding_private
+        signature = signer.sign(event_hash.encode())
         if bad_signature:
             signature = b"x" * 64
+        signed_event = {**event, "signature": "ed25519:" + base64.b64encode(signature).decode()}
+        # Changes after signing model tampering with an already signed event.
+        signed_event.update(post_sign_changes or {})
+        if rehash_after_changes:
+            event_hash = _event_hash(
+                {key: value for key, value in signed_event.items() if key != "signature"}
+            )
+        if drop_signature:
+            del signed_event["signature"]
         body["review_transition"] = {
             "status": "present", "canonical_hash": event_hash,
-            "signed_event": {**event, "signature": "ed25519:" + base64.b64encode(signature).decode()},
+            "signed_event": signed_event,
         }
     body.update(body_changes or {})
     export_private, export_public, export_id = _keypair()

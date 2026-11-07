@@ -115,6 +115,19 @@ _EXTERNAL_CLAIMS = {
     "permit.decision.v1",
     "permit.review_transition.v1",
 }
+# Every signed challenge-review outcome starts from the held issuance state.
+_REVIEW_TRANSITION_SOURCE = ("challenge", "awaiting_attestation")
+# The one outcome that can authorize: the released approval transition.
+_REVIEW_APPROVAL_EVENT = "permit.challenge_approved"
+_REVIEW_APPROVAL_TARGET = ("allow", "attested")
+# Signed outcomes that close a challenge review without approving it. Each
+# one ends in deny; none can produce an authorizing final state.
+_REVIEW_DENIAL_TARGETS = {
+    "permit.challenge_rejected": ("deny", "evaluated"),
+    "permit.challenge_expired": ("deny", "expired"),
+    "permit.challenge_approval_reservation_denied": ("deny", "evaluated"),
+    "permit.challenge_approval_authority_lapsed": ("deny", "evaluated"),
+}
 UNIVERSAL_CLAIMS = (
     "permit.type.v1",
     "permit.exact_target.v1",
@@ -2735,20 +2748,34 @@ def adjudicate_permit_exact_v2_body(
     )
     transition_status = transition.get("status")
     approval_at: datetime | None = None
+    denied_at: datetime | None = None
     if transition_status == "present":
         event = transition.get("signed_event")
-        linked = isinstance(event, Mapping) and all((
-            event.get("permit_id") == permit_id,
-            event.get("project_id") == project_id,
-            event.get("from_decision") == initial_decision,
-            event.get("to_decision") == state["decision"],
-            event.get("to_status") == state["status"],
-            event.get("event_type") == "permit.challenge_approved",
-            event.get("from_decision") == "challenge",
-            event.get("from_status") == "awaiting_attestation",
-            event.get("to_decision") == "allow",
-            event.get("to_status") == "attested",
-        ))
+        event_type = event.get("event_type") if isinstance(event, Mapping) else None
+        # The target state is fixed by the signed event type, never by the
+        # producer: only the released approval can reach allow, and every
+        # other released review outcome must land on deny.
+        expected_target = (
+            _REVIEW_APPROVAL_TARGET
+            if event_type == _REVIEW_APPROVAL_EVENT
+            else _REVIEW_DENIAL_TARGETS.get(event_type)
+            if isinstance(event_type, str)
+            else None
+        )
+        linked = (
+            expected_target is not None
+            and isinstance(event, Mapping)
+            and all((
+                event.get("permit_id") == permit_id,
+                event.get("project_id") == project_id,
+                event.get("from_decision") == initial_decision,
+                (event.get("from_decision"), event.get("from_status"))
+                == _REVIEW_TRANSITION_SOURCE,
+                (event.get("to_decision"), event.get("to_status")) == expected_target,
+                event.get("to_decision") == state["decision"],
+                event.get("to_status") == state["status"],
+            ))
+        )
         if review_transition_verdict != "supported" or not linked:
             return fail_all(_AdjudicationError(
                 "disproved" if not linked or review_transition_verdict == "disproved"
@@ -2756,13 +2783,17 @@ def adjudicate_permit_exact_v2_body(
                 "PERMIT_EXACT_REVIEW_TRANSITION_UNSUPPORTED",
                 "final state requires a verified review transition linked to this signed Permit",
             ))
-        approval_at = _parse_time(event.get("decision_at"))
+        decided_at = _parse_time(event.get("decision_at"))
         issuance_at = _parse_time(canonical_payload.get("issued_at"))
-        if approval_at is None or issuance_at is None or approval_at < issuance_at:
+        if decided_at is None or issuance_at is None or decided_at < issuance_at:
             return fail_all(_AdjudicationError(
                 "disproved", "PERMIT_EXACT_REVIEW_TRANSITION_TIME_INVALID",
-                "approval requires a signed decision_at at or after Permit issuance",
+                "a review transition requires a signed decision_at at or after Permit issuance",
             ))
+        if event_type == _REVIEW_APPROVAL_EVENT:
+            approval_at = decided_at
+        else:
+            denied_at = decided_at
         final_decision = event["to_decision"]
         final_status = event["to_status"]
     if (
@@ -3107,6 +3138,14 @@ def adjudicate_permit_exact_v2_body(
             "insufficient_evidence",
             "PERMIT_DISPATCH_INSTANT_UNTRUSTED",
             "a trusted dispatch instant and signed Permit validity window are required",
+        )
+    elif denied_at is not None:
+        # A held Permit is never dispatch authority, and its signed review
+        # closed it as deny. Dispatch evidence here is a failure, never support.
+        assessments["permit.valid_at_dispatch.v1"] = _assessment(
+            "permit.valid_at_dispatch.v1", "disproved",
+            "PERMIT_REVIEW_DENIED_DISPATCH",
+            "the signed review transition denied this Permit; it never authorized dispatch",
         )
     elif approval_at is not None and approval_at > dispatch_at:
         assessments["permit.valid_at_dispatch.v1"] = _assessment(
