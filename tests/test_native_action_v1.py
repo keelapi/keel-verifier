@@ -48,10 +48,15 @@ INSTANCE_ROOT = REVIEW_RUN / "instance-root.json"
 ALLOW_RUN = CANDIDATE / "allow_run"
 ALLOWED = ALLOW_RUN / "allowed_permit"
 ALLOW_ROOT = ALLOW_RUN / "instance-root.json"
+EXPIRED_RUN = CANDIDATE / "expired_run"
+EXPIRED = EXPIRED_RUN / "expired_permit"
+EXPIRED_ROOT = EXPIRED_RUN / "instance-root.json"
+CRASH_CASES = json.loads((FIXTURES / "native_action_pack_crash_cases_v1.json").read_text("utf-8"))
 
 SOURCE_SHA256 = {
     "native_action_golden_vectors_v1.json": "4e4a6717f1c0a137e73ee808473d4616571c4cbab5feeb1b6625272767cb9db6",
     "native_action_pack_vectors_v1.json": "4f144367fa259c77d21293c42e6c6b442f20b63195382378cff5d3558aec067e",
+    "native_action_pack_crash_cases_v1.json": "493eae3e9a34fb6aeb583c4cb52e9b9909300f2038bc0db076dd755d12743b4f",
 }
 
 
@@ -100,6 +105,8 @@ def test_vector_files_are_the_recorded_api_bytes():
     assert len(GOLDEN["canonical_action_vectors"]) == 11
     assert len(GOLDEN["keyed_digest_vectors"]) == 3
     assert len(PACK_VECTORS["vectors"]) == 9
+    assert CRASH_CASES["schema"] == "native_action_reference_crash_cases.v1"
+    assert len(CRASH_CASES["cases"]) == 18
 
 
 # ---------------------------------------------------------------------------
@@ -399,6 +406,92 @@ def test_closure_events_list_order_is_not_chain_order():
     assert check_native_action_pack(document).verdict == "supported"
 
 
+@pytest.mark.parametrize("case", CRASH_CASES["cases"], ids=lambda c: c["id"])
+def test_reference_crash_case(case):
+    """keel-api 70eab473f pins these 18 malformed exports as reference negatives (same file)."""
+
+    document = apply_patch(PACK_VECTORS["base_export"], case["json_patch"])
+    result = check_native_action_pack(document, requested_levels=case["requested_levels"])
+    assert (result.verdict, result.reason_code) == (
+        case["expected_verdict"],
+        case["expected_reason_code"],
+    )
+
+
+def _allowed_export():
+    return json.loads((ALLOWED / "export.json").read_text("utf-8"))
+
+
+@pytest.mark.parametrize("approval", [[], ["x"], "x", 1, True], ids=repr)
+def test_allow_path_non_object_approval_is_refused(approval):
+    """Reference rule (keel-api 24177dd8d+): a non-object approval is a review-binding failure,
+    review or not. Found on the 771d1cdff allow pack: V1 accepted it when exact_review_v2 was null."""
+
+    document = _allowed_export()
+    document["approval"] = approval
+    result = check_native_action_pack(document)
+    assert (result.verdict, result.reason_code) == ("disproved", "native.review_binding")
+
+
+def test_allow_path_object_approval_without_review_is_supported():
+    """The reference only checks the approval's content against a review; an object passes."""
+
+    document = _allowed_export()
+    document["approval"] = {}
+    assert check_native_action_pack(document).verdict == "supported"
+
+
+def test_review_binding_precedes_closure_events_type():
+    """Same precedence as the reference: a broken review hash is reported before malformed events."""
+
+    document = _base()
+    document["exact_review_v2"]["title"] = "tampered"
+    document["closure_events"] = {"not": "a list"}
+    result = check_native_action_pack(document)
+    assert (result.verdict, result.reason_code) == ("disproved", "native.review_binding")
+
+
+@pytest.mark.parametrize("events", [{"not": "a list"}, ["not an event"]], ids=["dict", "string-item"])
+def test_malformed_closure_events_with_intact_review(events):
+    document = _base()
+    document["closure_events"] = events
+    result = check_native_action_pack(document)
+    assert (result.verdict, result.reason_code) == ("disproved", "native.evidence_incomplete")
+
+
+@pytest.mark.parametrize(
+    "mutate,verdict",
+    [
+        # The review names the proposal Permit, so the reference (and V1) still pass;
+        # the signed payload's own integrity is the export and decision checks' job.
+        (lambda d: _canonical_payload(d).__setitem__("permit_id", []), "supported"),
+        (lambda d: d["exact_review_v2"].__setitem__("permit_id", ["x"]), "disproved"),
+        (lambda d: _events(d, "native.action.upstream_result")[0]["payload"].__setitem__("outcome", []), "disproved"),
+        (lambda d: _events(d, "native.action.upstream_result")[0]["payload"].__setitem__("outcome", {}), "disproved"),
+    ],
+    ids=["signed-permit-id-list", "review-permit-id-list", "outcome-list", "outcome-dict"],
+)
+def test_unhashable_values_do_not_raise(mutate, verdict):
+    """Found by the widened differential on 771d1cdff exports: these raised TypeError before."""
+
+    document = _base()
+    mutate(document)
+    assert check_native_action_pack(document).verdict == verdict
+
+
+def test_unreadable_shape_fails_closed(monkeypatch):
+    """Any unexpected read error is incomplete evidence, never a crash or a pass."""
+
+    import keel_verifier.native_action as native_module
+
+    def boom(*args, **kwargs):
+        raise AttributeError("unexpected")
+
+    monkeypatch.setattr(native_module, "_check_pack", boom)
+    result = check_native_action_pack(_base())
+    assert (result.verdict, result.reason_code) == ("disproved", "native.evidence_incomplete")
+
+
 def test_additional_checks_are_documented():
     assert len(ADDITIONAL_CHECKS) == 13
 
@@ -461,6 +554,47 @@ def test_every_native_permit_pack_verifies(pack, root, final_bound, run_cli):
     assert (signed_final is not None) is final_bound
     if final_bound:
         assert dispatch["final_request_hash"] == signed_final
+
+
+def test_expired_review_pack_verifies(run_cli):
+    """keel-api 771d1cdff: approved, then the 45 s approval window closed before any resume.
+
+    Status and resume answered ``expired``; nothing was dispatched. The pack carries
+    the review and its approval but no dispatch or upstream result.
+    """
+
+    result = run_cli("native-action-pack", "--json", str(EXPIRED), "--trust-root", str(EXPIRED_ROOT))
+    report = _json(result)
+    assert result.returncode == 0, result.stdout + result.stderr
+    claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
+    assert claims["export.integrity.v1"] == "supported"
+    assert claims["permit.decision.v1"] == "supported"
+    native = report["artifact"]["native_action"]
+    assert (native["verdict"], native["state"]) == ("supported", "expired")
+    document = json.loads((EXPIRED / "export.json").read_text("utf-8"))
+    assert [event["event_type"] for event in document["closure_events"]] == [
+        "native.action.proposed",
+        "native.action.review_decided",
+    ]
+    assert document["approval"]["attestation_id"] == _events(
+        document, "native.action.review_decided"
+    )[0]["payload"]["attestation_id"]
+
+
+def test_expired_review_pack_with_a_forged_dispatch_is_refused(tmp_path, run_cli):
+    document = json.loads((EXPIRED / "export.json").read_text("utf-8"))
+    forged = copy.deepcopy(document["closure_events"][-1])
+    forged["event_type"] = "native.action.dispatch_started"
+    forged["payload"] = {"action_id": "x"}
+    document["closure_events"].append(forged)
+    trusted = _resigned_pack(tmp_path, document, key_source=EXPIRED)
+    result = run_cli("native-action-pack", "--json", str(tmp_path), "--key-manifest", str(trusted))
+    report = _json(result)
+    assert result.returncode == 1
+    claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
+    assert claims["export.integrity.v1"] == "supported"
+    native = report["artifact"]["native_action"]
+    assert (native["verdict"], native["reason_code"]) == ("disproved", "native.single_dispatch")
 
 
 def test_allow_path_pack_has_no_review_and_one_dispatch():

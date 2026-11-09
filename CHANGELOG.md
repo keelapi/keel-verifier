@@ -26,6 +26,7 @@
   - the exact review v2 object (`keel.exact_request_review.v2`) has its full
     key set and binds to the approval, the action, the Permit and the
     decision inputs' condition semantics;
+  - an approval, when present, is an object, also in a pack with no review;
   - the review decision names its attestation, and the approval names the
     same one;
   - there is at most one `native.action.dispatch_started` and at most one

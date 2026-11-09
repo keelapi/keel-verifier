@@ -1,0 +1,19 @@
+{
+  "keys": [
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
+      "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
+      "purpose": "export_signing",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T17:39:24.206850+00:00",
+      "valid_to": null
+    }
+  ]
+}

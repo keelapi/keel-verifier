@@ -605,6 +605,16 @@ def check_native_action_pack(
             checks=tuple(passed),
             **context,
         )
+    except (TypeError, ValueError, AttributeError, KeyError, IndexError, RecursionError) as exc:
+        # Fail closed, as the reference does: a shape the checks cannot read
+        # is incomplete evidence, never a crash and never a pass.
+        return NativeActionCheckResult(
+            verdict=VERDICT_DISPROVED,
+            reason_code=REASON_EVIDENCE_INCOMPLETE,
+            message=f"native action pack is not readable: {type(exc).__name__}",
+            checks=tuple(passed),
+            **context,
+        )
     return NativeActionCheckResult(
         verdict=VERDICT_SUPPORTED,
         message="native action pack checks passed (level ceiling D)",
@@ -737,12 +747,24 @@ def _check_pack(
     # (5) exact review v2 binding.
     review = export.get("exact_review_v2")
     approval = export.get("approval")
+    # The reference refuses a non-object approval whether or not a review is
+    # present (an allow-path pack has approval null, never another type).
+    if approval is not None and not isinstance(approval, Mapping):
+        raise _disproved(REASON_REVIEW_BINDING, "approval must be an object or null")
     events_raw = export.get("closure_events") or []
-    if not isinstance(events_raw, list) or not all(
+    events_ok = isinstance(events_raw, list) and all(
         isinstance(event, Mapping) for event in events_raw
-    ):
-        raise _disproved(REASON_EVIDENCE_INCOMPLETE, "closure_events must be a list of events")
-    events: list[Mapping[str, Any]] = list(events_raw)
+    )
+    events: list[Mapping[str, Any]] = list(events_raw) if events_ok else []
+
+    def _require_events() -> None:
+        # Same precedence as the reference: the review's hash, action binding
+        # and condition semantics are checked before the closure events' type.
+        if not events_ok:
+            raise _disproved(
+                REASON_EVIDENCE_INCOMPLETE, "closure_events must be a list of events"
+            )
+
     if review is not None:
         context["review_present"] = True
         approval_map = _mapping(approval)
@@ -768,6 +790,7 @@ def _check_pack(
                 REASON_REVIEW_BINDING,
                 "exact_review_v2.policy.condition_semantics does not equal the constraint's",
             )
+        _require_events()
         try:
             validate_exact_review_v2_shape(review)
         except CanonicalActionShapeError as exc:
@@ -776,13 +799,20 @@ def _check_pack(
         # in the pack of the execution Permit that dispatched the approved
         # action, the action's proposal Permit (named by native.action.proposed
         # inside the same signed export).
-        reviewed_permits = {canonical_payload.get("permit_id")} | {
-            _event_payload(event).get("permit_id")
-            for event in events
-            if event.get("event_type") == EVENT_PROPOSED
-            and isinstance(_event_payload(event).get("permit_id"), str)
+        reviewed_permits = {
+            permit_id
+            for permit_id in (
+                canonical_payload.get("permit_id"),
+                *(
+                    _event_payload(event).get("permit_id")
+                    for event in events
+                    if event.get("event_type") == EVENT_PROPOSED
+                ),
+            )
+            if isinstance(permit_id, str) and permit_id
         }
-        if review.get("permit_id") not in reviewed_permits - {None}:
+        review_permit = review.get("permit_id")
+        if not isinstance(review_permit, str) or review_permit not in reviewed_permits:
             raise _disproved(
                 REASON_REVIEW_BINDING,
                 "exact_review_v2.permit_id is neither this Permit nor the action's "
@@ -825,7 +855,8 @@ def _check_pack(
         passed.append("review_binding")
 
     # (6) closure events: one dispatch, bound to this action, in chain order.
-    started = [event for event in events if event.get("event_type") == EVENT_DISPATCH_STARTED]
+    _require_events()
+    started =[event for event in events if event.get("event_type") == EVENT_DISPATCH_STARTED]
     context["dispatch_started_count"] = len(started)
     if len(started) > 1:
         raise _disproved(
@@ -876,7 +907,11 @@ def _check_pack(
     for event in results:
         payload = _event_payload(event)
         outcome = payload.get("outcome")
-        if payload.get("action_id") != canonical.get("action_id") or outcome not in UPSTREAM_OUTCOMES:
+        if (
+            payload.get("action_id") != canonical.get("action_id")
+            or not isinstance(outcome, str)
+            or outcome not in UPSTREAM_OUTCOMES
+        ):
             raise _disproved(
                 REASON_SINGLE_DISPATCH,
                 "upstream_result is not bound to this action with a known outcome",
