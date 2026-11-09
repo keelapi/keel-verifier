@@ -109,6 +109,9 @@ ADDITIONAL_CHECKS = (
     "dispatch_started precedes upstream_result in the event chain (§7.2 item 6)",
     "an upstream_result without dispatch_started is outcome_unknown (changelog 1.3.0)",
     "at most one upstream_result per action (§7.2 item 6)",
+    "review_decided carries an attestation_id, and the approval names the same one (§7.4, 1.5.0)",
+    "dispatch_started carries a final_request_hash, equal to the signed decision's when this "
+    "Permit is the execution Permit (§7.4, 1.5.0)",
 )
 
 CANONICAL_ACTION_V1_KEYS: frozenset[str] = frozenset(
@@ -803,11 +806,21 @@ def _check_pack(
         for event in events:
             if event.get("event_type") != EVENT_REVIEW_DECIDED:
                 continue
-            decided_hash = _event_payload(event).get("exact_review_v2_hash")
-            if decided_hash != approval_map.get("exact_review_v2_hash"):
+            decided = _event_payload(event)
+            if decided.get("exact_review_v2_hash") != approval_map.get("exact_review_v2_hash"):
                 raise _disproved(
                     REASON_REVIEW_BINDING,
                     "review_decided exact_review_v2_hash does not equal the approval's",
+                )
+            attestation_id = decided.get("attestation_id")
+            if not isinstance(attestation_id, str) or not attestation_id:
+                raise _disproved(
+                    REASON_REVIEW_BINDING, "review_decided carries no attestation_id"
+                )
+            if approval_map.get("attestation_id") != attestation_id:
+                raise _disproved(
+                    REASON_REVIEW_BINDING,
+                    "approval.attestation_id does not equal review_decided's",
                 )
         passed.append("review_binding")
 
@@ -839,6 +852,20 @@ def _check_pack(
             raise _disproved(
                 REASON_SINGLE_DISPATCH,
                 "dispatch_started action_id or equality flags are not exact",
+            )
+        # 1.5.0: the dispatch record names the execution Permit's final-request
+        # binding. When this pack is the execution Permit's, its signed
+        # decision carries the same hash.
+        final_request_hash = payload.get("final_request_hash")
+        if not isinstance(final_request_hash, str) or not _HEX64.fullmatch(final_request_hash):
+            raise _disproved(
+                REASON_SINGLE_DISPATCH, "dispatch_started carries no final_request_hash"
+            )
+        signed_final = canonical_payload.get("final_request_hash")
+        if signed_final is not None and signed_final != final_request_hash:
+            raise _disproved(
+                REASON_SINGLE_DISPATCH,
+                "dispatch_started.final_request_hash does not equal the signed decision's",
             )
     results = [event for event in events if event.get("event_type") == EVENT_UPSTREAM_RESULT]
     if len(results) > 1:

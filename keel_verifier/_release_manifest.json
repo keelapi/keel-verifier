@@ -394,7 +394,7 @@
     "keel_verifier/install_diagnostics.py": "b7559943f7c8d2c184326b8a5399dbf5881bd3c74929567969409a6e7db386ee",
     "keel_verifier/keys/keel_checkpoint.pub.json": "4b22dcfd53e591dba8a6d6546099c50f1019e8f714234316fb8bbeae560bbd8a",
     "keel_verifier/monitor.py": "29c14ce3eb444a0517221743e908bdc65c130941bf734a55be9a971d00552354",
-    "keel_verifier/native_action.py": "f6c6d6c06509116a05357b98266c4f3185655c8ee22b5acfd9d04dbed2dca3ae",
+    "keel_verifier/native_action.py": "c9e92bdd254b67aba297dd73eb9efa91aed1abd5c83b9d12326b6fdeee825ee9",
     "keel_verifier/permit_co_signature.py": "d059336d8965110812a33b93932df9387c46b641093a0e7a309ea46ff4c4cbf0",
     "keel_verifier/permit_exact.py": "38335f7e806bf3b300cb1d4308064b7ee0a4bb5c01d8528f0debf979a8fb1357",
     "keel_verifier/permit_exact_v2.py": "6f9e374f7dfdebb8e398f6edada5b273caf69cebd14153898ea02486a7c12c89",

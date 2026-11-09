@@ -1,49 +1,49 @@
 {
   "approval": {
-    "attestation_id": null,
-    "exact_review_v2_hash": "42f55251dbede4456badba9653194282e27c87786d3847b1a5e754e67dd3f2be",
-    "v1_review_hash": "f094151bd93162d0ea4f56f940fbe1ce9d465e47499352343cca346a36a7044a"
+    "attestation_id": "fe3928fe-ab1a-4100-a4ae-ff4ac71a54e0",
+    "exact_review_v2_hash": "d958a96791701396c2b3ef4e54c873ab9a2362a966e4ca8c630a5df581e792a2",
+    "v1_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b"
   },
   "closure_events": [
     {
       "actor_email": null,
-      "actor_id": "6fd69cfd-222c-4faa-84ab-9d449b040a4c",
+      "actor_id": "558c2510-41b7-4773-87fd-f44e079206a6",
       "actor_type": "agent",
       "authorization_effect": "explicit_forbid",
       "authorization_outcome": "Challenge",
       "authorizer_input_hash": null,
       "caller_event_id": null,
       "category": "native",
-      "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-      "created_at": "2026-11-09T16:06:03.837851+00:00",
+      "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+      "created_at": "2026-11-09T16:19:08.626426+00:00",
       "decision": null,
       "effect_version": "phase0_derived_v1",
-      "event_id": "gev_01m70gyfa850xmr7gds47m7fq7",
+      "event_id": "gev_01m70hpdq2fr5stb1ebj46xed2",
       "event_type": "native.action.proposed",
       "ip_address": null,
       "lineage_type": null,
       "model": null,
-      "occurred_at": "2026-11-09T16:06:03.848516+00:00",
+      "occurred_at": "2026-11-09T16:19:08.642952+00:00",
       "operation": null,
       "org_id": null,
       "outcome": "success",
       "payload": {
-        "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
-        "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
-        "credential_family_id": "5f3e0e30-dae4-4de4-87dd-06664ea2865c",
-        "installation_id": "8850132a-7679-44a9-9fd4-5ec97d262610",
-        "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
+        "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+        "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
+        "credential_family_id": "ee04c3ee-a43d-4c08-a3fc-146d76ebae72",
+        "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc",
+        "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
         "state": "review_pending",
         "system_revision": {
           "alembic_head": "0373_native_actions",
           "build_sha": null
         }
       },
-      "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-      "prev_hash": "6cfdd1e57f64f51b50743283aa8cff3b7f678da6772dac4db77a7ea3ba8de776",
-      "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+      "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+      "prev_hash": "4f426e619822d4b6cc0c515bd55121d0e5b15db44969a70e4c6237ee6430d735",
+      "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
       "provider": null,
-      "record_hash": "6a672df667375b79aa804dd3bbe81454cfd790cf0fe08c79bfeafcf816eb9ac0",
+      "record_hash": "732629915097a05d8d1581e96dadda619efe7dbdff8791985e2461a6966fdd54",
       "request_id": null,
       "resource_id": null,
       "resource_type": null,
@@ -59,12 +59,12 @@
       "user_agent": null,
       "workbench_evidence": {
         "closure_digests": {
-          "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb"
+          "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869"
         },
         "ids": {
-          "event_id": "gev_01m70gyfa850xmr7gds47m7fq7",
-          "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-          "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+          "event_id": "gev_01m70hpdq2fr5stb1ebj46xed2",
+          "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+          "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
           "surface": "native"
         },
         "request": null,
@@ -76,43 +76,43 @@
     },
     {
       "actor_email": null,
-      "actor_id": "10bc2531-bfdc-4397-9fbd-18099e831d42",
+      "actor_id": "e24bb588-3aa2-46f0-9c38-8f9017d3be30",
       "actor_type": "dashboard_user",
       "authorization_effect": "explicit_permit",
       "authorization_outcome": "Allow",
       "authorizer_input_hash": null,
       "caller_event_id": null,
       "category": "native",
-      "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-      "created_at": "2026-11-09T16:06:04.306524+00:00",
+      "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+      "created_at": "2026-11-09T16:19:09.153227+00:00",
       "decision": null,
       "effect_version": "phase0_derived_v1",
-      "event_id": "gev_01m70gyfs106hwz5xcvkf4fen5",
+      "event_id": "gev_01m70hpe7gm61jdpgzx03a2jf0",
       "event_type": "native.action.review_decided",
       "ip_address": null,
       "lineage_type": null,
       "model": null,
-      "occurred_at": "2026-11-09T16:06:04.321881+00:00",
+      "occurred_at": "2026-11-09T16:19:09.168883+00:00",
       "operation": null,
       "org_id": null,
       "outcome": "success",
       "payload": {
-        "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
-        "attestation_id": null,
+        "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
+        "attestation_id": "fe3928fe-ab1a-4100-a4ae-ff4ac71a54e0",
         "decision": "approve",
-        "exact_review_v2_hash": "42f55251dbede4456badba9653194282e27c87786d3847b1a5e754e67dd3f2be",
-        "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-        "step_up_challenge_id": "60636fe3-b014-4d79-b478-6d1cbbe1deb0",
+        "exact_review_v2_hash": "d958a96791701396c2b3ef4e54c873ab9a2362a966e4ca8c630a5df581e792a2",
+        "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+        "step_up_challenge_id": "3adc1046-167c-406e-ab57-e3daf1401dff",
         "system_revision": {
           "alembic_head": "0373_native_actions",
           "build_sha": null
         }
       },
-      "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-      "prev_hash": "0290b4a039ed64474a63628a1d536dd2f0b8401611313ae5ed35dc2717b8738a",
-      "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+      "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+      "prev_hash": "c136170ee1d29e2bd9b9c0b4eb0eac0ceabf9268fa75bd00b786cef29e9fe3d4",
+      "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
       "provider": null,
-      "record_hash": "43369867d6d009171ec8404c2970dd4876e60d2b99e27fa69f5266dd7d5a02a2",
+      "record_hash": "448e55126d5641ec409a466fc4415fd86ca99c31226203f2a814b75f192e50b7",
       "request_id": null,
       "resource_id": null,
       "resource_type": null,
@@ -128,12 +128,12 @@
       "user_agent": null,
       "workbench_evidence": {
         "closure_digests": {
-          "exact_review_v2_hash": "42f55251dbede4456badba9653194282e27c87786d3847b1a5e754e67dd3f2be"
+          "exact_review_v2_hash": "d958a96791701396c2b3ef4e54c873ab9a2362a966e4ca8c630a5df581e792a2"
         },
         "ids": {
-          "event_id": "gev_01m70gyfs106hwz5xcvkf4fen5",
-          "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-          "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+          "event_id": "gev_01m70hpe7gm61jdpgzx03a2jf0",
+          "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+          "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
           "surface": "native"
         },
         "request": null,
@@ -152,38 +152,38 @@
       "authorizer_input_hash": null,
       "caller_event_id": null,
       "category": "native",
-      "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-      "created_at": "2026-11-09T16:06:04.989318+00:00",
+      "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+      "created_at": "2026-11-09T16:19:09.861846+00:00",
       "decision": null,
       "effect_version": "phase0_derived_v1",
-      "event_id": "gev_01m70gyge1mex0hh7npgqtra54",
+      "event_id": "gev_01m70hpexd4n3xphdxw2jn6qes",
       "event_type": "native.action.dispatch_started",
       "ip_address": null,
       "lineage_type": null,
       "model": null,
-      "occurred_at": "2026-11-09T16:06:04.993813+00:00",
+      "occurred_at": "2026-11-09T16:19:09.869044+00:00",
       "operation": null,
       "org_id": null,
       "outcome": "success",
       "payload": {
-        "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
-        "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
-        "final_request_hash": null,
-        "fresh_fact_snapshot_digest": "sha256:0826f565b99db35c76e168a9c3ef4c7044c12426350ebe8d96934da1486e6451",
+        "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+        "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
+        "final_request_hash": "d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
+        "fresh_fact_snapshot_digest": "sha256:1e01357fc1883d47f442354181bbf590b51b24d0db78e6ea9c2036d513aaf8d5",
         "frozen_arguments_equal": true,
-        "governed_request_id": "630f2923-b365-4171-8b92-ee44af7d8983",
-        "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
+        "governed_request_id": "d4f63e03-c93d-4dd6-a764-2fc6a15e4bdb",
+        "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
         "preflight_facts_equal": true,
         "system_revision": {
           "alembic_head": "0373_native_actions",
           "build_sha": null
         }
       },
-      "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-      "prev_hash": "27c56f0cccb67db84a15cef33c39f08d326d4657ad1323d9edfae4f7a904f120",
-      "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+      "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+      "prev_hash": "9fad98860371998113d45d79ce62a0f5153f8f2426b060550ea545e9851b5e67",
+      "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
       "provider": null,
-      "record_hash": "cd26bfc9697370b581b724291ad3eaf797219f495ee51b42cc8babba4822eae1",
+      "record_hash": "5e51c030512340192f1e31767749129577758bca345f4c0779749c8b0df79314",
       "request_id": null,
       "resource_id": null,
       "resource_type": null,
@@ -199,13 +199,14 @@
       "user_agent": null,
       "workbench_evidence": {
         "closure_digests": {
-          "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
-          "fresh_fact_snapshot_digest": "sha256:0826f565b99db35c76e168a9c3ef4c7044c12426350ebe8d96934da1486e6451"
+          "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+          "final_request_hash": "d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
+          "fresh_fact_snapshot_digest": "sha256:1e01357fc1883d47f442354181bbf590b51b24d0db78e6ea9c2036d513aaf8d5"
         },
         "ids": {
-          "event_id": "gev_01m70gyge1mex0hh7npgqtra54",
-          "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-          "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+          "event_id": "gev_01m70hpexd4n3xphdxw2jn6qes",
+          "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+          "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
           "surface": "native"
         },
         "request": null,
@@ -224,24 +225,24 @@
       "authorizer_input_hash": null,
       "caller_event_id": null,
       "category": "native",
-      "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-      "created_at": "2026-11-09T16:06:04.989318+00:00",
+      "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+      "created_at": "2026-11-09T16:19:09.861846+00:00",
       "decision": null,
       "effect_version": "phase0_derived_v1",
-      "event_id": "gev_01m70gyge4whmeeb10hvy6y3pz",
+      "event_id": "gev_01m70hpexf5jk6eqbcpk17k04m",
       "event_type": "native.action.upstream_result",
       "ip_address": null,
       "lineage_type": null,
       "model": null,
-      "occurred_at": "2026-11-09T16:06:04.996044+00:00",
+      "occurred_at": "2026-11-09T16:19:09.871627+00:00",
       "operation": null,
       "org_id": null,
       "outcome": "success",
       "payload": {
-        "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
-        "governed_request_id": "630f2923-b365-4171-8b92-ee44af7d8983",
+        "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
+        "governed_request_id": "d4f63e03-c93d-4dd6-a764-2fc6a15e4bdb",
         "outcome": "upstream_reported_success",
-        "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
+        "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
         "pull_request_number": 1,
         "system_revision": {
           "alembic_head": "0373_native_actions",
@@ -249,11 +250,11 @@
         },
         "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
       },
-      "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-      "prev_hash": "cd26bfc9697370b581b724291ad3eaf797219f495ee51b42cc8babba4822eae1",
-      "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+      "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+      "prev_hash": "5e51c030512340192f1e31767749129577758bca345f4c0779749c8b0df79314",
+      "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
       "provider": null,
-      "record_hash": "b60dfdcc7fc8eb966e54665305d7e7cf25cc43fd41e50731fb2c3a0ef851b912",
+      "record_hash": "37a7b5f33f59fa63e79b0675a2db4b031400aadcabe8c6bee344ef03d4c36db0",
       "request_id": null,
       "resource_id": null,
       "resource_type": null,
@@ -272,9 +273,9 @@
           "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
         },
         "ids": {
-          "event_id": "gev_01m70gyge4whmeeb10hvy6y3pz",
-          "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-          "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+          "event_id": "gev_01m70hpexf5jk6eqbcpk17k04m",
+          "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
+          "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
           "surface": "native"
         },
         "request": null,
@@ -286,42 +287,42 @@
     }
   ],
   "exact_review_v2": {
-    "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
-    "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
+    "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+    "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
     "action_schema": "keel.canonical_action/v1",
     "approval": {
-      "approval_requirement_hash": "4cb8afb5ceae014b9385141ebe9915b743337a8e1b7a3073c1d8455d0d94ceeb",
+      "approval_requirement_hash": "b97cc7fd209c5c4536eb4213e4d402884b0c4c76adad8c0be0b3780ee797d8e9",
       "requirement_type": "exact_request_review"
     },
     "connector": {
       "connector_contract_version": "keel.connector.execution.v1",
       "connector_identity": "github",
-      "credential_reference": "connector-credential:ef14fd7d-5bdc-4825-afff-7db72228c0d3",
+      "credential_reference": "connector-credential:923f084f-1a34-4ef1-aa13-e4650b25e166",
       "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
     },
     "coverage": {
       "dispatch": "keel_dispatched",
-      "exclusivity_attestation_digest": "eb3c971e2af0201b89f843445dffef9a38f46d81735cbc9ca59fa07d4bda5a44",
+      "exclusivity_attestation_digest": "de77e83fdadc2e7c4a679c8fe6277334a16e9c958bdd73f329e6279e8866668e",
       "exclusivity_basis": "administrator_attestation",
       "independently_confirmable": true
     },
-    "created_at": "2026-11-09T16:06:03Z",
-    "permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159",
+    "created_at": "2026-11-09T16:19:08Z",
+    "permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43",
     "policy": {
       "condition_semantics": "legacy",
-      "id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+      "id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
       "policy_epoch": 0,
-      "snapshot_hash": "036dc3822a826f579438ea230ab1cc475728d476c69c69438f4b610c229593c7",
+      "snapshot_hash": "75d4a9fa2439e29483d01eef0e88b51b6561c8b92435fc315777ac6310215f33",
       "version": "1"
     },
     "principal": {
-      "agent_principal_id": "6fd69cfd-222c-4faa-84ab-9d449b040a4c",
+      "agent_principal_id": "558c2510-41b7-4773-87fd-f44e079206a6",
       "client_claims_digest": "5b63f6ac65c4f7cfce3b400bd47715dcf9f883f4c59421f2735b42e7ce1c39b9",
-      "credential_family_id": "5f3e0e30-dae4-4de4-87dd-06664ea2865c",
-      "installation_id": "8850132a-7679-44a9-9fd4-5ec97d262610"
+      "credential_family_id": "ee04c3ee-a43d-4c08-a3fc-146d76ebae72",
+      "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc"
     },
-    "project_id": "310969a8-c509-49be-96c8-eb094653521f",
-    "review_expires_at": "2026-11-09T17:06:03Z",
+    "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
+    "review_expires_at": "2026-11-09T17:19:08Z",
     "schema_version": "keel.exact_request_review.v2",
     "trusted_facts": {
       "additions_count": 3,
@@ -341,11 +342,11 @@
       "deletions_count": 0,
       "draft": false,
       "existing_open_pull_request_count": 0,
-      "fact_snapshot_digest": "sha256:cf6135a82e7b280df46e77c480b49e2c11462020f734d9028e59e89719af6604",
+      "fact_snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
       "head_branch": "keel/nae-m1-fixture",
       "head_commit_sha": "2222222222222222222222222222222222222222",
       "merge_authorized": false,
-      "preflight_observed_at": "2026-11-09T16:06:03Z",
+      "preflight_observed_at": "2026-11-09T16:19:08Z",
       "protected_path_change_count": 0,
       "repository_reference_commitment": {
         "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
@@ -353,17 +354,17 @@
       },
       "same_repository": true,
       "title_commitment": {
-        "digest": "sha256:26171331616df14fe8adc69c942fc85f4e7e150b9b94e6b331f1a01946879b52",
+        "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
         "method": "keel.salted_sha256_jcs.v1"
       }
     },
-    "v1_review_hash": "f094151bd93162d0ea4f56f940fbe1ce9d465e47499352343cca346a36a7044a"
+    "v1_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b"
   },
   "permit_audit_bundle": {
     "bundle_type": "permit_audit_bundle",
     "co_signatures": [],
     "format": "json",
-    "generated_at": "2026-11-09T16:06:19.282274Z",
+    "generated_at": "2026-11-09T16:19:12.076024Z",
     "governance_events": [
       {
         "actor_email": null,
@@ -373,23 +374,23 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "policy",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.664790Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.524105Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gyg6hza8133m2fanzvgy8",
+        "event_id": "gev_01m70hpenc9s1zbyhaf4s5e5xx",
         "event_type": "policy.evaluated",
         "ip_address": null,
         "lineage_type": null,
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.753902Z",
+        "occurred_at": "2026-11-09T16:19:09.612743Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
           "action": "require_human_review",
           "connector_type": "mcp_registry",
-          "policy_id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+          "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
           "policy_name": "m1_fixture_review",
           "policy_version": 1,
           "reason": "Matched policy 'm1_fixture_review' rule 1.",
@@ -400,11 +401,11 @@
             "build_sha": null
           }
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "1c7d57610e537a2eba1ffaafa1a8b26301200d7a62c9ac9341f6b3816ce14369",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "67a26a9c8d3da9df87162c40901ecf40a0570a64d04cceba4c5ec857b97f15a3",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "b7362b67559b24f4f6eabbcc44334f5edb68f0546440f3caf8c967675d747cf1",
+        "record_hash": "24fa8f2e3d8a981d4c1308a199782c398a09a530efb0951989be55a3ba197d74",
         "request_id": null,
         "resource_id": null,
         "resource_type": null,
@@ -421,11 +422,11 @@
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gyg6hza8133m2fanzvgy8",
+            "event_id": "gev_01m70hpenc9s1zbyhaf4s5e5xx",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp"
           },
           "request": null,
@@ -443,23 +444,23 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "policy",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.664790Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.524105Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gyg6nyjznnxm0xpmfgcmr",
+        "event_id": "gev_01m70hpenfxbt5n9bxtrbefzyx",
         "event_type": "policy.review_required",
         "ip_address": null,
         "lineage_type": null,
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.757726Z",
+        "occurred_at": "2026-11-09T16:19:09.615349Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
           "action": "require_human_review",
           "connector_type": "mcp_registry",
-          "policy_id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+          "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
           "policy_name": "m1_fixture_review",
           "policy_version": 1,
           "reason": "Matched policy 'm1_fixture_review' rule 1.",
@@ -470,11 +471,11 @@
             "build_sha": null
           }
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "b7362b67559b24f4f6eabbcc44334f5edb68f0546440f3caf8c967675d747cf1",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "24fa8f2e3d8a981d4c1308a199782c398a09a530efb0951989be55a3ba197d74",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "905df9734a7c2747c71bb199193c7ad7b4da6acde3b33bb76942eef9e52ca12a",
+        "record_hash": "5b2638443e581ca7c950a29b529d922486ebce89979eac4c0bed5037b5c2809d",
         "request_id": null,
         "resource_id": null,
         "resource_type": null,
@@ -491,11 +492,11 @@
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gyg6nyjznnxm0xpmfgcmr",
+            "event_id": "gev_01m70hpenfxbt5n9bxtrbefzyx",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp"
           },
           "request": null,
@@ -513,68 +514,68 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "permit",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.779284Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.636148Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gyg7zh67bx3ktyvz3q2mv",
+        "event_id": "gev_01m70hpepr4pxhb26cqe8g91xn",
         "event_type": "permit.binding_sealed_on_first_dispatch",
         "ip_address": null,
         "lineage_type": "origin",
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.799346Z",
+        "occurred_at": "2026-11-09T16:19:09.656778Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
           "binding_request_canonical_version": "v6",
           "binding_version": "v7",
-          "connector_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "connector_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "connector_type": "mcp_registry",
           "fallback_depth": 0,
           "model": "coding-workspace-github",
-          "new_hash_prefix": "46eda3ec5f20",
-          "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+          "new_hash_prefix": "d49d89dfcaff",
+          "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
           "provider": "mcp",
-          "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
+          "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
           "system_revision": {
             "alembic_head": "0373_native_actions",
             "build_sha": null
           }
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "d15f6f28d4dd699a1c5e6235a64f46fb51508f15659f71d93b6510b74cb73629",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "e5b202ba14897c307320a6fd1fdbb6d5b498902cd76d8e6a10fd053ec2f8cdc2",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "c11c1a6a16a5ea438f1cf38475e05a9d94ad3190974410f806893dcc77a4ee8c",
-        "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-        "resource_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+        "record_hash": "bbe6161b96c473dddce5c16922d17565301b1bdf88a8f68723232970a845e3a3",
+        "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+        "resource_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
         "resource_type": "permit",
         "runtime_route": null,
         "schema_version": 1,
         "sequence_number": 23,
         "severity": "info",
         "source_stage": "dispatch",
-        "span_id": "77897175b7c51fdd",
+        "span_id": "049fe5541d52b95c",
         "surface": "mcp",
-        "trace_id": "4856533b9ec048069a286c3c5e531072",
+        "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5",
         "user_agent": null,
         "workbench_evidence": {
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gyg7zh67bx3ktyvz3q2mv",
+            "event_id": "gev_01m70hpepr4pxhb26cqe8g91xn",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp",
-            "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-            "resource_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+            "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+            "resource_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
             "resource_type": "permit",
-            "span_id": "77897175b7c51fdd",
+            "span_id": "049fe5541d52b95c",
             "surface": "mcp",
-            "trace_id": "4856533b9ec048069a286c3c5e531072"
+            "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5"
           },
           "request": null,
           "response": null,
@@ -591,31 +592,31 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "dispatch",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.862625Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.725734Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gygakq0fmgx9cj10yk7m4",
+        "event_id": "gev_01m70hpeshbz4vw11jhxyqc9sh",
         "event_type": "dispatch.egress_bound",
         "ip_address": null,
         "lineage_type": "origin",
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.883168Z",
+        "occurred_at": "2026-11-09T16:19:09.745385Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
-          "binding_hash_prefix": "07dd671c3d5a",
+          "binding_hash_prefix": "6ea221fa3db6",
           "binding_key_id": "0b5a78207de7190d",
           "binding_request_canonical_version": "v6",
           "binding_version": "v7",
-          "connector_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "connector_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "connector_type": "mcp_registry",
-          "final_request_hash_prefix": "46eda3ec5f20",
+          "final_request_hash_prefix": "d49d89dfcaff",
           "model": "coding-workspace-github",
-          "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+          "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
           "provider": "mcp",
-          "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
+          "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
           "route": "mcp",
           "streaming": false,
           "system_revision": {
@@ -623,39 +624,39 @@
             "build_sha": null
           }
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "736ea6ea1a17d1e26982887e255a91a1297478263f52910a48965f5f5af0b09a",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "3828fad1f96f559d84baa08000c921b843d30dd714c15ff9b87ae92bdd9dba46",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "781e8bc9bba90c30810b3fc6ae54df6259cd6c1f1dba999b3d28d03473582128",
-        "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-        "resource_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+        "record_hash": "8f12a8ac678e1d306e65abe923d428ac3d3a566192ec153a026be75c76d961b6",
+        "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+        "resource_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
         "resource_type": "permit",
         "runtime_route": null,
         "schema_version": 1,
         "sequence_number": 25,
         "severity": "info",
         "source_stage": "dispatch",
-        "span_id": "77897175b7c51fdd",
+        "span_id": "049fe5541d52b95c",
         "surface": "mcp",
-        "trace_id": "4856533b9ec048069a286c3c5e531072",
+        "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5",
         "user_agent": null,
         "workbench_evidence": {
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gygakq0fmgx9cj10yk7m4",
+            "event_id": "gev_01m70hpeshbz4vw11jhxyqc9sh",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp",
-            "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-            "resource_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+            "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+            "resource_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
             "resource_type": "permit",
-            "span_id": "77897175b7c51fdd",
+            "span_id": "049fe5541d52b95c",
             "surface": "mcp",
-            "trace_id": "4856533b9ec048069a286c3c5e531072"
+            "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5"
           },
           "request": null,
           "response": null,
@@ -672,21 +673,21 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "permit",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.935656Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.795872Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gygcaadbgeemk9bff4qa2",
+        "event_id": "gev_01m70hpev70pm0v2ttz2nk5xt7",
         "event_type": "permit.evaluated",
         "ip_address": null,
         "lineage_type": "origin",
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.711625Z",
+        "occurred_at": "2026-11-09T16:19:09.570566Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
-          "connector_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "connector_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "connector_type": "mcp_registry",
           "decision": "allow",
           "reason": "policy.explicit_match_candidate",
@@ -695,12 +696,12 @@
             "build_sha": null
           }
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "9415889a92e982145d5885cc5763db011fbdd2c0bbbe3319f454e95f006ebdb3",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "9b6c8cdb98087051af5c9c22e98f87705caa06a0756405fe8e138fbd6a3dd842",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "7c7dbc63c61aee5662c11fac6d544583050688f27b1fe52417a8ace6a1485370",
-        "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
+        "record_hash": "f3828b6f974739843b5511421ffa3963c23c9e213f920a9db9e8694ef4f95a3b",
+        "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
         "resource_id": null,
         "resource_type": null,
         "runtime_route": null,
@@ -708,24 +709,24 @@
         "sequence_number": 27,
         "severity": "info",
         "source_stage": "emit",
-        "span_id": "77897175b7c51fdd",
+        "span_id": "049fe5541d52b95c",
         "surface": "mcp",
-        "trace_id": "4856533b9ec048069a286c3c5e531072",
+        "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5",
         "user_agent": null,
         "workbench_evidence": {
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gygcaadbgeemk9bff4qa2",
+            "event_id": "gev_01m70hpev70pm0v2ttz2nk5xt7",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp",
-            "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-            "span_id": "77897175b7c51fdd",
+            "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+            "span_id": "049fe5541d52b95c",
             "surface": "mcp",
-            "trace_id": "4856533b9ec048069a286c3c5e531072"
+            "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5"
           },
           "request": null,
           "response": null,
@@ -742,23 +743,23 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "usage",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.935656Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.795872Z",
         "decision": "allow",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gygccwtk3rshkv101gtzk",
+        "event_id": "gev_01m70hpevatwwxkgz2zhk4tj8x",
         "event_type": "usage.recorded",
         "ip_address": null,
         "lineage_type": "origin",
         "model": "coding-workspace-github",
-        "occurred_at": "2026-11-09T16:06:04.711625Z",
+        "occurred_at": "2026-11-09T16:19:09.570566Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
           "capability_validation_mode": "deferred",
           "completion_tokens": 0,
-          "connector_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "connector_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "connector_type": "mcp_registry",
           "cost_usd_micros": null,
           "pricing_lineage": null,
@@ -770,12 +771,12 @@
           },
           "total_tokens": 0
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "7c7dbc63c61aee5662c11fac6d544583050688f27b1fe52417a8ace6a1485370",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "f3828b6f974739843b5511421ffa3963c23c9e213f920a9db9e8694ef4f95a3b",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "4512fb13c70739b54a105b9a7ac2a48572e3744bea4602f18ba387cfb9ba5e41",
-        "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
+        "record_hash": "478f0920b6b1d76ff60c44bcfb4d49f1ded6dc831430f8781b144811f8218f06",
+        "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
         "resource_id": null,
         "resource_type": null,
         "runtime_route": null,
@@ -783,24 +784,24 @@
         "sequence_number": 28,
         "severity": "info",
         "source_stage": "emit",
-        "span_id": "77897175b7c51fdd",
+        "span_id": "049fe5541d52b95c",
         "surface": "mcp",
-        "trace_id": "4856533b9ec048069a286c3c5e531072",
+        "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5",
         "user_agent": null,
         "workbench_evidence": {
           "closure_digests": {},
           "ids": {
             "decision": "allow",
-            "event_id": "gev_01m70gygccwtk3rshkv101gtzk",
+            "event_id": "gev_01m70hpevatwwxkgz2zhk4tj8x",
             "model": "coding-workspace-github",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp",
-            "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
-            "span_id": "77897175b7c51fdd",
+            "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
+            "span_id": "049fe5541d52b95c",
             "surface": "mcp",
-            "trace_id": "4856533b9ec048069a286c3c5e531072"
+            "trace_id": "f7c6ad422f9244c883f6a52dffcba1d5"
           },
           "request": null,
           "response": null,
@@ -817,49 +818,49 @@
         "authorization_outcome": "Allow",
         "authorizer_input_hash": null,
         "category": "mcp",
-        "chain_scope": "project:310969a8-c509-49be-96c8-eb094653521f",
-        "created_at": "2026-11-09T16:06:04.976171Z",
+        "chain_scope": "project:be320a9b-de9b-4daf-b605-c9b555a97979",
+        "created_at": "2026-11-09T16:19:09.846841Z",
         "decision": "observed",
         "effect_version": "phase0_derived_v1",
-        "event_id": "gev_01m70gygdq4snj75g3qd2epgaj",
+        "event_id": "gev_01m70hpex0ad9qn3rd4v6pn26y",
         "event_type": "mcp.tool_call.dispatched",
         "ip_address": null,
         "lineage_type": null,
-        "model": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
-        "occurred_at": "2026-11-09T16:06:04.983927Z",
+        "model": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+        "occurred_at": "2026-11-09T16:19:09.856195Z",
         "operation": "call.tools",
         "org_id": null,
         "outcome": "success",
         "payload": {
           "connector_type": "mcp_registry",
           "epistemic_state": "observed",
-          "evidence_id": "e28e57d6-9d25-4aea-b4ba-185412acdf47",
-          "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "evidence_id": "44779832-55fc-4ada-9eec-47c5077c7cc5",
+          "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "mcp_server_signature_jsonb": null,
-          "parent_permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+          "parent_permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
           "payload_type": "keel.mcp_tool_call_evidence.v1",
-          "provider_tool_call_id": "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
-          "request_digest": "f228055e57f9c3262493b7d434a13828439e6f920334e6c58728706a602eb546",
+          "provider_tool_call_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+          "request_digest": "c9e1dbd7d726fbe196394a029ea1de40102464c83d3f06f2d992d39a75b69889",
           "request_payload_materialization": "hash_only",
-          "response_digest": "4930984a3e490f261d05166238a2956b7a3b35dce23be6bf106da347d86b64b4",
+          "response_digest": "0e4806e5bbf8e53be8c9e51e0c09223c75cca6ef873d0be0f1192f6176269937",
           "response_payload_materialization": "hash_only",
           "signed_event": {
-            "binding_canonical_hash": "33ed6c2026da1992c8b38ae4f3b84b1fc9eae751ef0be8c64a3f6945d7f5f93f",
-            "binding_issued_at": "2026-11-09T16:06:04.977364+00:00",
+            "binding_canonical_hash": "03055bdf4398d1a45a2b0b66c10b5276281c6798df67ae2e145670b2051d530e",
+            "binding_issued_at": "2026-11-09T16:19:09.848534+00:00",
             "binding_key_id": "0b5a78207de7190d",
-            "binding_signature": "ed25519:EsqUbU4EaliZkhKHT72JdCUKGrHGP99TFIpL5tBnXTeV/0p3DYs9re2aWK0+E2XLuLirEnqeW5K7uv+sCnjBBg==",
+            "binding_signature": "ed25519:alseVi12XY1fQU8nGBdGqa/kyGwpoZQpw59EHgiws2CwhpcNseOIDQWm9UgFeHhG5uIh9+Npu7r4PunGi55RDQ==",
             "binding_version": "mcp_tool_call_evidence_v1",
-            "dispatched_at": "2026-11-09T16:06:04.977364+00:00",
+            "dispatched_at": "2026-11-09T16:19:09.848534+00:00",
             "epistemic_state": "observed",
-            "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+            "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
             "mcp_server_signature_jsonb": null,
-            "parent_permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+            "parent_permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
             "payload_type": "keel.mcp_tool_call_evidence.v1",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
-            "provider_tool_call_id": "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
-            "request_digest": "f228055e57f9c3262493b7d434a13828439e6f920334e6c58728706a602eb546",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
+            "provider_tool_call_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+            "request_digest": "c9e1dbd7d726fbe196394a029ea1de40102464c83d3f06f2d992d39a75b69889",
             "request_payload_materialization": "hash_only",
-            "response_digest": "4930984a3e490f261d05166238a2956b7a3b35dce23be6bf106da347d86b64b4",
+            "response_digest": "0e4806e5bbf8e53be8c9e51e0c09223c75cca6ef873d0be0f1192f6176269937",
             "response_payload_materialization": "hash_only",
             "session_id": null,
             "tool_name": "repository.pull_request.create"
@@ -870,13 +871,13 @@
           },
           "tool_name": "repository.pull_request.create"
         },
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "prev_hash": "8f321de34b228995e8ea87530067c130cf4a2883cd3149740ad37d0bc9a359fe",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "prev_hash": "d93c42a407306ce61da4584ff73085561ca509156091e72ca755836b91d8fc78",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "record_hash": "7bbda5969c379aa0fce65cd739c38057cc1a6ee634464a3269c1ad3847f59f85",
+        "record_hash": "df1e2d1db1a746652dabb61f875ed62fc42f931476368cccded859cdfadd7f79",
         "request_id": null,
-        "resource_id": "e28e57d6-9d25-4aea-b4ba-185412acdf47",
+        "resource_id": "44779832-55fc-4ada-9eec-47c5077c7cc5",
         "resource_type": "mcp_tool_call_evidence",
         "runtime_route": null,
         "schema_version": 3,
@@ -889,22 +890,22 @@
         "user_agent": null,
         "workbench_evidence": {
           "closure_digests": {
-            "request_digest": "f228055e57f9c3262493b7d434a13828439e6f920334e6c58728706a602eb546",
-            "response_digest": "4930984a3e490f261d05166238a2956b7a3b35dce23be6bf106da347d86b64b4",
-            "signed_event.binding_canonical_hash": "33ed6c2026da1992c8b38ae4f3b84b1fc9eae751ef0be8c64a3f6945d7f5f93f",
-            "signed_event.request_digest": "f228055e57f9c3262493b7d434a13828439e6f920334e6c58728706a602eb546",
-            "signed_event.response_digest": "4930984a3e490f261d05166238a2956b7a3b35dce23be6bf106da347d86b64b4"
+            "request_digest": "c9e1dbd7d726fbe196394a029ea1de40102464c83d3f06f2d992d39a75b69889",
+            "response_digest": "0e4806e5bbf8e53be8c9e51e0c09223c75cca6ef873d0be0f1192f6176269937",
+            "signed_event.binding_canonical_hash": "03055bdf4398d1a45a2b0b66c10b5276281c6798df67ae2e145670b2051d530e",
+            "signed_event.request_digest": "c9e1dbd7d726fbe196394a029ea1de40102464c83d3f06f2d992d39a75b69889",
+            "signed_event.response_digest": "0e4806e5bbf8e53be8c9e51e0c09223c75cca6ef873d0be0f1192f6176269937"
           },
           "ids": {
             "decision": "observed",
-            "event_id": "gev_01m70gygdq4snj75g3qd2epgaj",
-            "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
-            "model": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+            "event_id": "gev_01m70hpex0ad9qn3rd4v6pn26y",
+            "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+            "model": "acb8273f-2575-44d2-9ae2-f8b64442044f",
             "operation": "call.tools",
-            "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-            "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+            "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
             "provider": "mcp",
-            "resource_id": "e28e57d6-9d25-4aea-b4ba-185412acdf47",
+            "resource_id": "44779832-55fc-4ada-9eec-47c5077c7cc5",
             "resource_type": "mcp_tool_call_evidence",
             "surface": "mcp",
             "tool_name": "repository.pull_request.create"
@@ -919,15 +920,662 @@
         }
       }
     ],
-    "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-    "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+    "permit_decision": {
+      "artifact_ref": {
+        "canonical_url": "https://api.keelapi.com/v1/permits/e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "digest": "sha256:9875f661d38c0b8d0bef0b9580c8ac2a64b9eeb70d3e0a8eccec38b4a151ebc3",
+        "id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "path": "/v1/permits/e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "region": "us-west-1",
+        "schema_version": "artifact_ref.v1",
+        "type": "decision_evidence",
+        "urn": "urn:x-keel:artifact:decision_evidence:e2e35399-c3f0-4c1a-af53-2e2eb25c93fd"
+      },
+      "artifact_type": "permit_decision_binding",
+      "artifact_version": "permit.decision.v1",
+      "binding_canonical_hash": "6ea221fa3db663f210fcb1d066881df14d080340a874efa2500ed2e4666987dd",
+      "binding_issued_at": "2026-11-09T16:19:09.586614+00:00",
+      "binding_key_id": "0b5a78207de7190d",
+      "binding_signature": "ed25519:JpVyr3JFZQuSqxxAxf0eYVGrXX2WeXlRroNodL1ZPM9Gkl9zKScmXxhEzLkcwN5a7cT9HNAjflH04bx61GJRAQ==",
+      "binding_version": "v7",
+      "canonical_payload": {
+        "account_id": null,
+        "action_name": "mcp.tool.call",
+        "authority_chain_digest": null,
+        "authority_delta": null,
+        "binding_key_id": "0b5a78207de7190d",
+        "binding_project_anchor_hash": null,
+        "binding_session_event_hash": null,
+        "binding_session_id": null,
+        "binding_version": "v7",
+        "constraints": {
+          "mcp_decision_inputs_v1": {
+            "decision_input_policy_snapshot_hash": "75d4a9fa2439e29483d01eef0e88b51b6561c8b92435fc315777ac6310215f33",
+            "trusted_action_envelope_hash": "5f9b3722872e8c08cdf5328aa09e7950dde304403e5f7e0d185211ff5b2abd5f"
+          },
+          "mcp_review_resume_v1": {
+            "approval_requirement_hash": "b97cc7fd209c5c4536eb4213e4d402884b0c4c76adad8c0be0b3780ee797d8e9",
+            "challenge_basis_hash": "f076cd36b72e0d0740c8e6f133498ed47e82fc2dc134e0fa680834a54f131726",
+            "challenge_basis_version": "mcp_challenge_basis.v4",
+            "current_trace_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+            "exact_request_binding_hash": "b833f33d3f08c9292d2809984789d5c1bdd2c2e6b6579c85bebb86982f9bcd50",
+            "exact_request_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b",
+            "mapping_fence": {
+              "kind": "keel.mapping_lifecycle_fence.v1",
+              "state": "absent"
+            },
+            "original_trace_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+            "reviewed_authorizer_input_contract_version": "p2_action_envelope_v1",
+            "reviewed_authorizer_input_hash": "84ff71b8ad2a9b0342f12ba41b165a8c6ae6f2f822c349f5666c5c9219b05aa0",
+            "reviewed_permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43"
+          },
+          "native_decision_inputs_v1": {
+            "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+            "action_schema": "keel.canonical_action/v1",
+            "adapter_id": "keel.native_adapter.repository_pull_request_create.v1",
+            "business_idempotency": {
+              "digest": "f0bf06932603240c4865d3c2d2b193f79208f81f48e2be5ee0d4833fe7b27fa8",
+              "version": "keel.native.bik.repository_pull_request_create.v1"
+            },
+            "client_claims_digest": "5b63f6ac65c4f7cfce3b400bd47715dcf9f883f4c59421f2735b42e7ce1c39b9",
+            "condition_semantics": "legacy",
+            "credential_class": "keel.native_runtime_token.v1",
+            "credential_family_id": "ee04c3ee-a43d-4c08-a3fc-146d76ebae72",
+            "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "policy_epoch": 0,
+            "preflight": {
+              "expires_at": "2026-11-09T16:23:09Z",
+              "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+              "fact_snapshot_digest": "sha256:1e01357fc1883d47f442354181bbf590b51b24d0db78e6ea9c2036d513aaf8d5",
+              "observed_at": "2026-11-09T16:19:09Z",
+              "verification": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+            },
+            "restore_generation": 1,
+            "reviewed_schema_set_id": "keel.reviewed_tool_schemas.repository_pull_request_create.v1",
+            "version": "keel.native_decision_inputs.v1"
+          },
+          "permit_lifetime": {
+            "limiting_source": "platform_default"
+          },
+          "positive_authority_v1": {
+            "mandatory_constraints_evaluated": true,
+            "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
+            "rule_index": 0,
+            "source": "customer_policy",
+            "version": "keel.positive_authority.v1"
+          },
+          "schema_version": 1
+        },
+        "decision": "allow",
+        "delegation_policy_hash": null,
+        "expires_at": "2026-11-09T22:19:09.586614+00:00",
+        "final_request_hash": "d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
+        "inherits_from": null,
+        "is_dry_run": false,
+        "issued_at": "2026-11-09T16:19:09.586614+00:00",
+        "model": "coding-workspace-github",
+        "operation": "call.tools",
+        "org_id": null,
+        "parent_permit_id": null,
+        "permit_chain_role": "session_root",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
+        "policy_snapshot_hash": "403809ea49ccb3ae945401c87dacd4ad399a90e8edae811858ceaab40b050743",
+        "policy_version": "1",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
+        "provider": "mcp",
+        "quota_reservation_id": null,
+        "reason": "policy.explicit_match_candidate",
+        "request_fingerprint": "1b4e41876bc153d1d95a50c97112738db23111306baa6604d43f01f0dc0fb6e2",
+        "resource_attributes_canonical_hash": "02e9274d22c3b9ddf6f7b69abee4d2fd7721730ed87e301f716806e530af18e3",
+        "routing": {
+          "fallback_chain": [],
+          "fallback_occurred": false,
+          "reason_code": "explicit_request",
+          "reason_metadata": {
+            "decision_trace_hash": "24d4e73bacbb211de5f2f94848ab094514c9079f8ad4182686cad2385910fa05",
+            "mcp_decision_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+            "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+            "proxy_request_id": "b92f766e-1941-4661-81c8-58d8e47949a1"
+          },
+          "requested_model": "coding-workspace-github",
+          "requested_provider": "mcp",
+          "selected_model": "coding-workspace-github",
+          "selected_provider": "mcp"
+        },
+        "spend_scope_hash": null,
+        "subject_id": "558c2510-41b7-4773-87fd-f44e079206a6",
+        "subject_type": "user"
+      },
+      "expected_decision": "allow",
+      "resource_attributes_json": {
+        "asset_summary": {
+          "mcp": {
+            "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+            "connector_contract_version": "keel.connector.execution.v1",
+            "connector_identity": "github",
+            "connector_version": "keel-coding-workspace-github-1.0.0",
+            "decision_trace_hash": "b03dd49f0b4337250382f661d2bb80961b35f411fb4bb712f6750ddc41f726c9",
+            "fact_provenance": {
+              "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+              "fact_sources": {
+                "action_access_level": "keel.action_access_registry",
+                "action_risk_tags": "keel.action_access_registry",
+                "additions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "ahead_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "base_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "base_branch_protected": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "base_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "behind_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "changed_files_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "changed_paths_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "compare_state_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "compare_status": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "connector_identity": "mcp_server.connector_identity",
+                "connector_version": "mcp_tool_contracts.connector_version",
+                "deletions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "draft": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "existing_open_pull_request_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "head_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "head_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "head_ref_exists": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "idempotency_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "max_uses": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "merge_authorized": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "preflight_expires_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "preflight_observed_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "preflight_snapshot_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "protected_path_change_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "provider_api_version": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "provider_environment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "pull_request_body_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "pull_request_title_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "repository_reference_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "same_repository": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                "tool_arguments_hash": "keel.normalized_tool_arguments",
+                "tool_name": "mcp.tools/list.name",
+                "tool_schema_hash": "mcp.tools/list.inputSchema"
+              },
+              "kind": "keel.mcp.fact-provenance.v1",
+              "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+              "preflight_verification": {
+                "snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
+                "verified_at": "2026-11-09T16:19:08.390245+00:00",
+                "version": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+              },
+              "schema_source": "mcp.tools/list",
+              "tool_contract_id": "c3597ef7-39e3-4146-a004-f29d3f4bfb34",
+              "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+              "verified_at": "2026-11-09T16:18:52.184837+00:00"
+            },
+            "mcp_decision_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+            "mcp_runtime_config_hash": "9311ccf9ba5ef88e80dcf7596a291d5d6d3ce2a3e9f5f86353c8895ce701f89f",
+            "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+            "normalized_tool_arguments_hash_version": "native_frozen_arguments_sha256_v1",
+            "requested_action": "mcp.tool.call",
+            "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+            "server_slug": "coding-workspace-github",
+            "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
+            "tool_name": "repository.pull_request.create",
+            "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+            "transport": "streamable_http",
+            "trusted_facts": {
+              "action_access_level": "write",
+              "action_risk_tags": [
+                "egress_external"
+              ],
+              "additions_count": 3,
+              "ahead_by": 1,
+              "base_branch": "main",
+              "base_branch_protected": true,
+              "base_commit_sha": "1111111111111111111111111111111111111111",
+              "behind_by": 0,
+              "changed_files_count": 1,
+              "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+              "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+              "compare_status": "ahead",
+              "connector_identity": "github",
+              "connector_version": "keel-coding-workspace-github-1.0.0",
+              "deletions_count": 0,
+              "draft": false,
+              "existing_open_pull_request_count": 0,
+              "head_branch": "keel/nae-m1-fixture",
+              "head_commit_sha": "2222222222222222222222222222222222222222",
+              "head_ref_exists": true,
+              "idempotency_digest": "sha256:9d10014097c372fb7e896abfc2c182878b474374ab9c9122ab59c6cfed2c0ed4",
+              "max_uses": 1,
+              "merge_authorized": false,
+              "preflight_expires_at": "2026-11-09T16:23:08Z",
+              "preflight_observed_at": "2026-11-09T16:19:08Z",
+              "preflight_snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
+              "protected_path_change_count": 0,
+              "provider_api_version": "2022-11-28",
+              "provider_environment": "dedicated_demo",
+              "pull_request_body_commitment": {
+                "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "pull_request_title_commitment": {
+                "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "repository_reference_commitment": {
+                "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "same_repository": true,
+              "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
+              "tool_name": "repository.pull_request.create",
+              "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
+            },
+            "typed_absence": {
+              "kind": "keel.mcp.typed-absence-composite.v1",
+              "sources": [
+                {
+                  "durable_replay_sources": {
+                    "gds_column": "governance_decision_snapshots.authorizer_input_json",
+                    "historical_sidecar": "governance_decision_authorizer_input.authorizer_input_json",
+                    "mcp_tool_decision_trace": "mcp_tool_decisions.typed_absence_jsonb",
+                    "realtime_turn_trace": "realtime_turn_authorization_traces.authorizer_input_json",
+                    "retained_sources": [
+                      "governance_decision_snapshots.canonical_request_json",
+                      "governance_decision_snapshots.condition_context_snapshot_json",
+                      "governance_decision_snapshots.policy_snapshot_json",
+                      "governance_decision_snapshots.engine_context_json"
+                    ]
+                  },
+                  "field_contract_version": "p2_mcp_action_envelope_v1",
+                  "generated_at": "2026-11-09T16:19:08.390245+00:00",
+                  "items": [
+                    {
+                      "path": "tenant.org_id",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "tenant.account_id",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "tenant.plan",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "principal.scopes",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "principal.roles",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "principal.groups",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "principal.teams",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "policy.policy_snapshot_hash",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "policy.policy_version",
+                      "reason": "mcp_authorizer_input_missing_field",
+                      "seam": "mcp.call",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "parent.permit_id",
+                      "reason": "mcp_trace_has_no_parent_permit",
+                      "seam": "mcp.call",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "parent.authorization_effect",
+                      "reason": "mcp_trace_has_no_parent_permit",
+                      "seam": "mcp.call",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "parent.effect_version",
+                      "reason": "mcp_trace_has_no_parent_permit",
+                      "seam": "mcp.call",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    },
+                    {
+                      "path": "parent.authority_envelope_hash",
+                      "reason": "mcp_trace_has_no_parent_permit",
+                      "seam": "mcp.call",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.390245+00:00"
+                    }
+                  ],
+                  "kind": "authorizer_input_typed_absence_manifest.v1",
+                  "seam_id": "mcp.call"
+                },
+                {
+                  "durable_replay_sources": {
+                    "gds_column": "governance_decision_snapshots.authorizer_input_json",
+                    "historical_sidecar": "governance_decision_authorizer_input.authorizer_input_json",
+                    "mcp_tool_decision_trace": "mcp_tool_decisions.typed_absence_jsonb",
+                    "realtime_turn_trace": "realtime_turn_authorization_traces.authorizer_input_json",
+                    "retained_sources": [
+                      "governance_decision_snapshots.canonical_request_json",
+                      "governance_decision_snapshots.condition_context_snapshot_json",
+                      "governance_decision_snapshots.policy_snapshot_json",
+                      "governance_decision_snapshots.engine_context_json"
+                    ]
+                  },
+                  "field_contract_version": "p2_action_envelope_v1",
+                  "generated_at": "2026-11-09T16:19:08.495678+00:00",
+                  "items": [
+                    {
+                      "path": "tenant.org_id",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "tenant.account_id",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "principal.scopes",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "principal.roles",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "principal.groups",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "principal.teams",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "parent.permit_id",
+                      "reason": "root_permit",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "parent.authorization_effect",
+                      "reason": "root_permit",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "parent.effect_version",
+                      "reason": "root_permit",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "parent.authority_envelope_hash",
+                      "reason": "root_permit",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "context.keel_context.pricing.estimated_cost_usd_micros",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "context.keel_context.tokens.max_output_tokens_requested",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "context.keel_context.provider_metadata.connector_id",
+                      "reason": "adapter_not_yet_registered",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "unknown",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    },
+                    {
+                      "path": "context.keel_context.action_access",
+                      "reason": "action_access_not_classified",
+                      "seam": "permit.governance_decision_snapshot",
+                      "state": "not_applicable",
+                      "timestamp": "2026-11-09T16:19:08.495678+00:00"
+                    }
+                  ],
+                  "kind": "authorizer_input_typed_absence_manifest.v1",
+                  "seam_id": "permit.governance_decision_snapshot"
+                }
+              ]
+            }
+          }
+        },
+        "callback_url": null,
+        "connector_type": "mcp_registry",
+        "estimated_input_tokens": 0,
+        "estimated_output_tokens": 0,
+        "execution_mode": "sync",
+        "generate_text_exact_candidate_v1": null,
+        "image_request": null,
+        "inputs": [],
+        "max_output_tokens_requested": null,
+        "mcp_review_resume_v1": {
+          "approval_requirement_hash": "b97cc7fd209c5c4536eb4213e4d402884b0c4c76adad8c0be0b3780ee797d8e9",
+          "challenge_basis_hash": "f076cd36b72e0d0740c8e6f133498ed47e82fc2dc134e0fa680834a54f131726",
+          "challenge_basis_version": "mcp_challenge_basis.v4",
+          "current_trace_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+          "exact_request_binding_hash": "b833f33d3f08c9292d2809984789d5c1bdd2c2e6b6579c85bebb86982f9bcd50",
+          "exact_request_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b",
+          "mapping_fence": {
+            "kind": "keel.mapping_lifecycle_fence.v1",
+            "state": "absent"
+          },
+          "original_trace_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+          "reviewed_authorizer_input_contract_version": "p2_action_envelope_v1",
+          "reviewed_authorizer_input_hash": "84ff71b8ad2a9b0342f12ba41b165a8c6ae6f2f822c349f5666c5c9219b05aa0",
+          "reviewed_permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43"
+        },
+        "modality": "text",
+        "model": "coding-workspace-github",
+        "mpp_dispatch_digest": null,
+        "native_action": {
+          "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
+          "action_schema": "keel.canonical_action/v1",
+          "canonical_action": {
+            "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
+            "action_schema": "keel.canonical_action/v1",
+            "canonical_input": {
+              "base_commit_sha": "1111111111111111111111111111111111111111",
+              "body_commitment": {
+                "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+              "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+              "draft": false,
+              "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+              "head_commit_sha": "2222222222222222222222222222222222222222",
+              "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+              "title_commitment": {
+                "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
+                "method": "keel.salted_sha256_jcs.v1"
+              }
+            },
+            "connector_contract_version": "keel.connector.execution.v1",
+            "connector_identity": "github",
+            "created_at": "2026-11-09T16:19:08Z",
+            "credential_reference": "connector-credential:923f084f-1a34-4ef1-aa13-e4650b25e166",
+            "expires_at": "2026-11-09T17:19:08Z",
+            "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc",
+            "operation": "repository.pull_request.create",
+            "policy_epoch": 0,
+            "principal_id": "558c2510-41b7-4773-87fd-f44e079206a6",
+            "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
+            "surface": "managed_mcp",
+            "target": {
+              "base_branch": "main",
+              "head_branch": "keel/nae-m1-fixture",
+              "repository_reference_commitment": {
+                "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                "method": "keel.salted_sha256_jcs.v1"
+              }
+            },
+            "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+            "workflow_binding": null
+          }
+        },
+        "operation": "call.tools",
+        "payment_classification_v1": null,
+        "permit_authorization_facts_v1": {
+          "action": "repository.pull_request.create",
+          "additions_count": 3,
+          "ahead_by": 1,
+          "base_branch": "main",
+          "base_branch_protected": true,
+          "base_commit_sha": "1111111111111111111111111111111111111111",
+          "behind_by": 0,
+          "changed_files_count": 1,
+          "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+          "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+          "compare_status": "ahead",
+          "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+          "connector_identity": "github",
+          "decision_trace_hash": "b03dd49f0b4337250382f661d2bb80961b35f411fb4bb712f6750ddc41f726c9",
+          "deletions_count": 0,
+          "draft": false,
+          "enforcement_mode": "enforced_in_path",
+          "existing_open_pull_request_count": 0,
+          "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+          "head_branch": "keel/nae-m1-fixture",
+          "head_commit_sha": "2222222222222222222222222222222222222222",
+          "head_ref_exists": true,
+          "idempotency_digest": "sha256:9d10014097c372fb7e896abfc2c182878b474374ab9c9122ab59c6cfed2c0ed4",
+          "max_uses": 1,
+          "merge_authorized": false,
+          "operation": "call.tools",
+          "preflight_expires_at": "2026-11-09T16:23:08Z",
+          "preflight_observed_at": "2026-11-09T16:19:08Z",
+          "preflight_snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
+          "protected_path_change_count": 0,
+          "provider_api_version": "2022-11-28",
+          "provider_environment": "dedicated_demo",
+          "pull_request_body_commitment": {
+            "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "pull_request_title_commitment": {
+            "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "repository_reference_commitment": {
+            "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "request_digest": "sha256:d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
+          "same_repository": true,
+          "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
+          "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+          "version": "keel.coding_workspace_exact_facts.v1"
+        },
+        "permit_semantic_binding_v2": {
+          "action_name": "repository.pull_request.create",
+          "authorization_facts_canonicalization": "rfc8785",
+          "authorization_facts_digest": "sha256:c0858bed5d3ae53eb6aa9fccbb9d4e67076284491c3e7218f2a60e9328a37e04",
+          "authorization_facts_schema_digest": "sha256:898ebb49c7cb9ed8f50d4d7d98f544322002cdae8256cc312322c1e9f9317109",
+          "chain_role": "session_root",
+          "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+          "claim_registry_version": "verifier-claims.v2",
+          "derived_at": "2026-11-09T16:19:09.586614Z",
+          "fact_profile_entry_digest": "sha256:012c92162585ebd8d5fd26a1e4a517afef35349d3d25304d419d5a52d0a9d71a",
+          "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+          "fact_profile_registry_digest": "sha256:aa17ba8b701dd20dc9e4f3a4c34381fe1e64d9a933bfe3005cd96f6f5cca5c36",
+          "fact_profile_registry_version": "keel.fact_profile_registry.v11",
+          "governed_surface": "mcp_tool",
+          "non_authorizing_presentation_profile_id": "repository_pull_request_create.r1",
+          "operation": "call.tools",
+          "selector_entry_digest": "sha256:0100b1b6d0ca27a790d52fa87d0e755a491d2c22256de60f5f1942136069faf7",
+          "selector_registry_digest": "sha256:d4bcb07a42caae97760cfc6eaab4cc0e7b7eba62a7f966b44b41ec646a70cd2b",
+          "selector_registry_version": "keel.semantic_selector_registry.v13",
+          "semantic_id": "keel.action.repository_pull_request_create.v1",
+          "trusted_source_kind": "action_verb_execute",
+          "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+          "universal_semantics_id": "keel.permit.universal_verification.v1",
+          "version": "keel.permit_semantic_binding.v2"
+        },
+        "prompt_content_hash": null,
+        "provider": "mcp",
+        "resource_id": "mcp_tool_call:acb8273f-2575-44d2-9ae2-f8b64442044f:repository.pull_request.create",
+        "resource_type": "mcp_tool_call",
+        "routing": null,
+        "work_binding_v1": null,
+        "work_binding_v2": null,
+        "work_resource_digest": null
+      }
+    },
+    "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+    "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
     "record": {
       "latest_usage_ledger": {
         "actual_input_tokens": 0,
         "actual_output_tokens": 0,
         "budget_envelope_id": null,
         "cost_usd": null,
-        "created_at": "2026-11-09T16:06:04.945418Z",
+        "created_at": "2026-11-09T16:19:09.808578Z",
         "currency": "USD",
         "decision": "allow",
         "error_code": null,
@@ -936,8 +1584,8 @@
         "estimated_input_tokens": 0,
         "estimated_output_tokens": 0,
         "http_status": 200,
-        "id": "91a8c18f-e0e3-49ab-8f9c-6683260e33e3",
-        "idempotency_key": "review-resume:native:01a1c10f3c647f309ea696b2393673cb",
+        "id": "d5f94ac4-44da-4f9f-8f83-c886d250e359",
+        "idempotency_key": "review-resume:native:01a1c11b358f7da9b969f63526b90e6f",
         "metadata_json": {
           "accounting_confidence": "authoritative",
           "accounting_disposition": "verified_final",
@@ -945,7 +1593,7 @@
           "accounting_resolution_source": "provider_usage",
           "accounting_resolution_status": "resolved",
           "authorized_model": "coding-workspace-github",
-          "connector_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+          "connector_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
           "connector_type": "mcp_registry",
           "execution_mode": "sync",
           "fallback_usage": {
@@ -962,17 +1610,17 @@
             "pipeline_stage_ms": {
               "auth": 0,
               "constraint_enforcement": 0,
-              "dispatch": 138,
-              "emit": 5,
+              "dispatch": 143,
+              "emit": 6,
               "firewall": 0,
-              "ledger": 12,
+              "ledger": 10,
               "mcp_call_shadow_enforcement": 0,
-              "mcp_pre_dispatch": 9,
+              "mcp_pre_dispatch": 10,
               "normalize": 0,
               "permit_request": 0,
-              "reconcile": 4,
+              "reconcile": 5,
               "response": 0,
-              "routing": 59
+              "routing": 57
             }
           },
           "model_reconciliation": {
@@ -1007,13 +1655,13 @@
           "provider_usage_status": "accepted",
           "requested_model": "coding-workspace-github",
           "routing": {
-            "decided_at": "2026-11-09T16:06:04.711928Z",
-            "decision_id": "01M70GYG57QCPQWBBRZ1KEKW84",
+            "decided_at": "2026-11-09T16:19:09.570884Z",
+            "decision_id": "01M70HPEM2TQACKFESVJQTXPNC",
             "estimated_cost_usd_micros": 0,
             "fallback_chain": [],
             "fallback_occurred": false,
             "latency_target_ms": null,
-            "policy_id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+            "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
             "policy_version": "1",
             "priority": null,
             "reason_code": "explicit_request",
@@ -1029,16 +1677,16 @@
                 {
                   "attempt": 1,
                   "model": "coding-workspace-github",
-                  "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
+                  "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
                   "provider": "mcp",
                   "status": "provider_call_started"
                 }
               ],
-              "decision_trace_hash": "1152c50244276e0db424953fd779d8f310d8354dac092d5df59835202cac6162",
+              "decision_trace_hash": "24d4e73bacbb211de5f2f94848ab094514c9079f8ad4182686cad2385910fa05",
               "last_attempt_outcome": "provider_call_started",
-              "mcp_decision_id": "5e2a7c55-355c-4502-98d6-bba7dabb0b9a",
-              "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
-              "proxy_request_id": "3a331162-be29-4e0f-bd3e-ff7afb266dfc"
+              "mcp_decision_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+              "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+              "proxy_request_id": "b92f766e-1941-4661-81c8-58d8e47949a1"
             },
             "requested_model": "coding-workspace-github",
             "requested_provider": "mcp",
@@ -1052,10 +1700,10 @@
           }
         },
         "model": "coding-workspace-github",
-        "permit_id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "permit_id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "provider": "mcp",
-        "request_id": "01M70GYG3W97NWYWZEPDEXSV2G",
+        "request_id": "01M70HPEJRMZVMF6DNH3ESQSX4",
         "served_from_cache": false,
         "status": "completed"
       },
@@ -1092,52 +1740,52 @@
           }
         },
         "binding_request_canonical_version": "v6",
-        "binding_request_hash": "46eda3ec5f209a64dc41e11ea36f199ab897623ec1195f71f5ff85d117c115ea",
+        "binding_request_hash": "d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
         "budget_envelope": null,
         "budgets_json": {},
         "condition_evaluation": null,
         "conditions": null,
         "constraints_json": {
           "mcp_decision_inputs_v1": {
-            "decision_input_policy_snapshot_hash": "036dc3822a826f579438ea230ab1cc475728d476c69c69438f4b610c229593c7",
-            "trusted_action_envelope_hash": "2f3e1a74a7f657f83d3929d1ba14f099145aa3fb834ddfbb4c711a5d951c7bc1"
+            "decision_input_policy_snapshot_hash": "75d4a9fa2439e29483d01eef0e88b51b6561c8b92435fc315777ac6310215f33",
+            "trusted_action_envelope_hash": "5f9b3722872e8c08cdf5328aa09e7950dde304403e5f7e0d185211ff5b2abd5f"
           },
           "mcp_review_resume_v1": {
-            "approval_requirement_hash": "4cb8afb5ceae014b9385141ebe9915b743337a8e1b7a3073c1d8455d0d94ceeb",
-            "challenge_basis_hash": "34103e0360412b5df47a7474ca9f888179ffb448c52a61989ff24c2daa576fc9",
+            "approval_requirement_hash": "b97cc7fd209c5c4536eb4213e4d402884b0c4c76adad8c0be0b3780ee797d8e9",
+            "challenge_basis_hash": "f076cd36b72e0d0740c8e6f133498ed47e82fc2dc134e0fa680834a54f131726",
             "challenge_basis_version": "mcp_challenge_basis.v4",
-            "current_trace_id": "5e2a7c55-355c-4502-98d6-bba7dabb0b9a",
-            "exact_request_binding_hash": "f246e68f09fae35a5848e3a4a88a572f4de9780f7f76ffa03197a5e4a5acfb4e",
-            "exact_request_review_hash": "f094151bd93162d0ea4f56f940fbe1ce9d465e47499352343cca346a36a7044a",
+            "current_trace_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+            "exact_request_binding_hash": "b833f33d3f08c9292d2809984789d5c1bdd2c2e6b6579c85bebb86982f9bcd50",
+            "exact_request_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b",
             "mapping_fence": {
               "kind": "keel.mapping_lifecycle_fence.v1",
               "state": "absent"
             },
-            "original_trace_id": "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
+            "original_trace_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
             "reviewed_authorizer_input_contract_version": "p2_action_envelope_v1",
-            "reviewed_authorizer_input_hash": "38a62fc986e24f29aef09f8ef1c8ac883075112d95850724c1102c0d739b00b0",
-            "reviewed_permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159"
+            "reviewed_authorizer_input_hash": "84ff71b8ad2a9b0342f12ba41b165a8c6ae6f2f822c349f5666c5c9219b05aa0",
+            "reviewed_permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43"
           },
           "native_decision_inputs_v1": {
-            "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
+            "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
             "action_schema": "keel.canonical_action/v1",
             "adapter_id": "keel.native_adapter.repository_pull_request_create.v1",
             "business_idempotency": {
-              "digest": "12eb5ac96fcb4f69d1e4a8d596c1c6e12fd3883489d4ab0be0b32553c1c82d6d",
+              "digest": "f0bf06932603240c4865d3c2d2b193f79208f81f48e2be5ee0d4833fe7b27fa8",
               "version": "keel.native.bik.repository_pull_request_create.v1"
             },
             "client_claims_digest": "5b63f6ac65c4f7cfce3b400bd47715dcf9f883f4c59421f2735b42e7ce1c39b9",
             "condition_semantics": "legacy",
             "credential_class": "keel.native_runtime_token.v1",
-            "credential_family_id": "5f3e0e30-dae4-4de4-87dd-06664ea2865c",
-            "installation_id": "8850132a-7679-44a9-9fd4-5ec97d262610",
+            "credential_family_id": "ee04c3ee-a43d-4c08-a3fc-146d76ebae72",
+            "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc",
             "native_input_version": "keel.native_input.repository_pull_request_create.v1",
             "policy_epoch": 0,
             "preflight": {
-              "expires_at": "2026-11-09T16:10:04Z",
+              "expires_at": "2026-11-09T16:23:09Z",
               "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
-              "fact_snapshot_digest": "sha256:0826f565b99db35c76e168a9c3ef4c7044c12426350ebe8d96934da1486e6451",
-              "observed_at": "2026-11-09T16:06:04Z",
+              "fact_snapshot_digest": "sha256:1e01357fc1883d47f442354181bbf590b51b24d0db78e6ea9c2036d513aaf8d5",
+              "observed_at": "2026-11-09T16:19:09Z",
               "verification": "mcp.gateway_coding_workspace_preflight_hmac.v1"
             },
             "restore_generation": 1,
@@ -1149,7 +1797,7 @@
           },
           "positive_authority_v1": {
             "mandatory_constraints_evaluated": true,
-            "policy_id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+            "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
             "rule_index": 0,
             "source": "customer_policy",
             "version": "keel.positive_authority.v1"
@@ -1158,7 +1806,7 @@
         },
         "counter_signature": null,
         "counter_signature_jsonb": null,
-        "created_at": "2026-11-09T16:06:04.726541Z",
+        "created_at": "2026-11-09T16:19:09.586614Z",
         "decision": "allow",
         "decision_details": null,
         "decision_impact": {
@@ -1181,56 +1829,56 @@
         "delegation_depth": 0,
         "estimated_input_tokens": 0,
         "estimated_output_tokens": 0,
-        "expires_at": "2026-11-09T22:06:04.726541Z",
-        "id": "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd",
-        "idempotency_key": "mcp_call:review-resume:native:01a1c10f3c647f309ea696b2393673cb",
-        "issuer_signature_hash": "44262c7f5046dbf250d46c1e1ce421a0440d81872b8b66865377e454b0931d06",
+        "expires_at": "2026-11-09T22:19:09.586614Z",
+        "id": "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd",
+        "idempotency_key": "mcp_call:review-resume:native:01a1c11b358f7da9b969f63526b90e6f",
+        "issuer_signature_hash": "c552e8fd4ed4e3312be801182d6cf2ce19958fa30a82cc4ab08139ecedc9ca21",
         "max_output_tokens_requested": null,
         "operator_approval": null,
         "operator_approval_jsonb": null,
         "parent_permit_id": null,
-        "permit_canonical_hash": "07dd671c3d5aaae78bceb855f83b571e69b59b043ddf4025699c4f25281434a0",
+        "permit_canonical_hash": "6ea221fa3db663f210fcb1d066881df14d080340a874efa2500ed2e4666987dd",
         "permit_format_version": "v2",
-        "policy_id": "6fece651-c7c7-4d48-b5d1-9e9154636a5a",
+        "policy_id": "50b637cf-67b0-417b-aa05-ef2b45a613b8",
         "policy_name": "m1_fixture_review",
         "policy_version": "1",
-        "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+        "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
         "reason": "policy.explicit_match_candidate",
         "record": {
-          "id": "4c429c50-31d7-4676-a63d-7cf6b0a51e39",
+          "id": "3f8cf025-9485-49ba-8be2-43b57e558e25",
           "kind": "governance_record",
           "state": "dispatched"
         },
         "record_children": {
           "governance_event_ids": [
-            "gev_01m70gyf69kykdg0ghp2qnfe1f",
-            "gev_01m70gyf8xjvpxgxtr139z2n26",
-            "gev_01m70gyf91cdbcvrqye09jf02p",
-            "gev_01m70gyfa850xmr7gds47m7fq7",
-            "gev_01m70gyfrayhwrpp4vn654kjs1",
-            "gev_01m70gyfrde8azfe5w0vn7218w",
-            "gev_01m70gyfs106hwz5xcvkf4fen5",
-            "gev_01m70gyg4y63s3grq9gxtp58kd",
-            "gev_01m70gyg6hza8133m2fanzvgy8",
-            "gev_01m70gyg6nyjznnxm0xpmfgcmr",
-            "gev_01m70gyg7zh67bx3ktyvz3q2mv",
-            "gev_01m70gygakq0fmgx9cj10yk7m4",
-            "gev_01m70gygcaadbgeemk9bff4qa2",
-            "gev_01m70gygccwtk3rshkv101gtzk",
-            "gev_01m70gygdq4snj75g3qd2epgaj",
-            "gev_01m70gyge1mex0hh7npgqtra54",
-            "gev_01m70gyge4whmeeb10hvy6y3pz"
+            "gev_01m70hpdhd0xkev5mkfphzj75e",
+            "gev_01m70hpdn0j7fpmvzkqxs55qre",
+            "gev_01m70hpdn5pmwhm4sxjtkt2dyf",
+            "gev_01m70hpdq2fr5stb1ebj46xed2",
+            "gev_01m70hpe6svfn5qdtkf12xjvzz",
+            "gev_01m70hpe6wjypjqdyc5vhtbrnh",
+            "gev_01m70hpe7gm61jdpgzx03a2jf0",
+            "gev_01m70hpekshtqvmrtaer740kzj",
+            "gev_01m70hpenc9s1zbyhaf4s5e5xx",
+            "gev_01m70hpenfxbt5n9bxtrbefzyx",
+            "gev_01m70hpepr4pxhb26cqe8g91xn",
+            "gev_01m70hpeshbz4vw11jhxyqc9sh",
+            "gev_01m70hpev70pm0v2ttz2nk5xt7",
+            "gev_01m70hpevatwwxkgz2zhk4tj8x",
+            "gev_01m70hpex0ad9qn3rd4v6pn26y",
+            "gev_01m70hpexd4n3xphdxw2jn6qes",
+            "gev_01m70hpexf5jk6eqbcpk17k04m"
           ],
           "mcp_decision_ids": [
-            "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
-            "5e2a7c55-355c-4502-98d6-bba7dabb0b9a"
+            "96165d23-fe89-4440-aefc-3b833e1de8a6",
+            "dcbfb559-a670-4bf6-b7cd-f688d708aa92"
           ],
           "permit_ids": [
-            "b7f420f3-5f4c-4126-b204-3ade8e11d159",
-            "dc5ea6d5-23e5-4a72-af55-a3ec82524bbd"
+            "20d600de-1a1e-40f0-9b25-917543c1de43",
+            "e2e35399-c3f0-4c1a-af53-2e2eb25c93fd"
           ]
         },
-        "request_fingerprint": "bb8743426b7c4eaab3ff6e311e5c3ce07dbec7f4950558d363f0d48b48c54809",
+        "request_fingerprint": "1b4e41876bc153d1d95a50c97112738db23111306baa6604d43f01f0dc0fb6e2",
         "resource_attributes_json": {
           "asset_summary": {
             "mcp": {
@@ -1238,7 +1886,7 @@
               "connector_contract_version": "keel.connector.execution.v1",
               "connector_identity": "github",
               "connector_version": "keel-coding-workspace-github-1.0.0",
-              "decision_trace_hash": "5969d128c298211a9747a8090b6cfc9e6dde8c06829c43b8d828902c94ac72e7",
+              "decision_trace_hash": "b03dd49f0b4337250382f661d2bb80961b35f411fb4bb712f6750ddc41f726c9",
               "fact_provenance": {
                 "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
                 "fact_sources": {
@@ -1280,25 +1928,25 @@
                   "tool_schema_hash": "mcp.tools/list.inputSchema"
                 },
                 "kind": "keel.mcp.fact-provenance.v1",
-                "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+                "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
                 "preflight_verification": {
-                  "snapshot_digest": "sha256:cf6135a82e7b280df46e77c480b49e2c11462020f734d9028e59e89719af6604",
-                  "verified_at": "2026-11-09T16:06:03.665050+00:00",
+                  "snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
+                  "verified_at": "2026-11-09T16:19:08.390245+00:00",
                   "version": "mcp.gateway_coding_workspace_preflight_hmac.v1"
                 },
                 "schema_source": "mcp.tools/list",
-                "tool_contract_id": "17d301c4-e471-4a1e-b4b4-f7eced57a1ba",
+                "tool_contract_id": "c3597ef7-39e3-4146-a004-f29d3f4bfb34",
                 "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
-                "verified_at": "2026-11-09T16:05:43.790885+00:00"
+                "verified_at": "2026-11-09T16:18:52.184837+00:00"
               },
-              "mcp_decision_id": "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
-              "mcp_runtime_config_hash": "7f7bcd64584bfeae68311fbe935e56b9068c241ad07d4e4aa509559a9728e595",
-              "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
+              "mcp_decision_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
+              "mcp_runtime_config_hash": "9311ccf9ba5ef88e80dcf7596a291d5d6d3ce2a3e9f5f86353c8895ce701f89f",
+              "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
               "normalized_tool_arguments_hash_version": "native_frozen_arguments_sha256_v1",
               "requested_action": "mcp.tool.call",
               "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
               "server_slug": "coding-workspace-github",
-              "tool_arguments_hash": "1c5fd2d615fd6db7aebb1fb582a016ae0b081630eb1ae370ba0448af81a0f080",
+              "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
               "tool_name": "repository.pull_request.create",
               "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
               "transport": "streamable_http",
@@ -1325,12 +1973,12 @@
                 "head_branch": "keel/nae-m1-fixture",
                 "head_commit_sha": "2222222222222222222222222222222222222222",
                 "head_ref_exists": true,
-                "idempotency_digest": "sha256:f07969ee4645c09348be85c47fc53c3b469d82862dbfe066330d2bb3150c361b",
+                "idempotency_digest": "sha256:9d10014097c372fb7e896abfc2c182878b474374ab9c9122ab59c6cfed2c0ed4",
                 "max_uses": 1,
                 "merge_authorized": false,
-                "preflight_expires_at": "2026-11-09T16:10:03Z",
-                "preflight_observed_at": "2026-11-09T16:06:03Z",
-                "preflight_snapshot_digest": "sha256:cf6135a82e7b280df46e77c480b49e2c11462020f734d9028e59e89719af6604",
+                "preflight_expires_at": "2026-11-09T16:23:08Z",
+                "preflight_observed_at": "2026-11-09T16:19:08Z",
+                "preflight_snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
                 "protected_path_change_count": 0,
                 "provider_api_version": "2022-11-28",
                 "provider_environment": "dedicated_demo",
@@ -1339,7 +1987,7 @@
                   "method": "keel.salted_sha256_jcs.v1"
                 },
                 "pull_request_title_commitment": {
-                  "digest": "sha256:26171331616df14fe8adc69c942fc85f4e7e150b9b94e6b331f1a01946879b52",
+                  "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
                   "method": "keel.salted_sha256_jcs.v1"
                 },
                 "repository_reference_commitment": {
@@ -1347,7 +1995,7 @@
                   "method": "keel.salted_sha256_jcs.v1"
                 },
                 "same_repository": true,
-                "tool_arguments_hash": "1c5fd2d615fd6db7aebb1fb582a016ae0b081630eb1ae370ba0448af81a0f080",
+                "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
                 "tool_name": "repository.pull_request.create",
                 "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
               },
@@ -1368,98 +2016,98 @@
                       ]
                     },
                     "field_contract_version": "p2_mcp_action_envelope_v1",
-                    "generated_at": "2026-11-09T16:06:03.665050+00:00",
+                    "generated_at": "2026-11-09T16:19:08.390245+00:00",
                     "items": [
                       {
                         "path": "tenant.org_id",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "tenant.account_id",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "tenant.plan",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "principal.scopes",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "principal.roles",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "principal.groups",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "principal.teams",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "policy.policy_snapshot_hash",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "policy.policy_version",
                         "reason": "mcp_authorizer_input_missing_field",
                         "seam": "mcp.call",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "parent.permit_id",
                         "reason": "mcp_trace_has_no_parent_permit",
                         "seam": "mcp.call",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "parent.authorization_effect",
                         "reason": "mcp_trace_has_no_parent_permit",
                         "seam": "mcp.call",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "parent.effect_version",
                         "reason": "mcp_trace_has_no_parent_permit",
                         "seam": "mcp.call",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       },
                       {
                         "path": "parent.authority_envelope_hash",
                         "reason": "mcp_trace_has_no_parent_permit",
                         "seam": "mcp.call",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.665050+00:00"
+                        "timestamp": "2026-11-09T16:19:08.390245+00:00"
                       }
                     ],
                     "kind": "authorizer_input_typed_absence_manifest.v1",
@@ -1479,105 +2127,105 @@
                       ]
                     },
                     "field_contract_version": "p2_action_envelope_v1",
-                    "generated_at": "2026-11-09T16:06:03.747817+00:00",
+                    "generated_at": "2026-11-09T16:19:08.495678+00:00",
                     "items": [
                       {
                         "path": "tenant.org_id",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "tenant.account_id",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "principal.scopes",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "principal.roles",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "principal.groups",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "principal.teams",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "parent.permit_id",
                         "reason": "root_permit",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "parent.authorization_effect",
                         "reason": "root_permit",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "parent.effect_version",
                         "reason": "root_permit",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "parent.authority_envelope_hash",
                         "reason": "root_permit",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "context.keel_context.pricing.estimated_cost_usd_micros",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "context.keel_context.tokens.max_output_tokens_requested",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "context.keel_context.provider_metadata.connector_id",
                         "reason": "adapter_not_yet_registered",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "unknown",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       },
                       {
                         "path": "context.keel_context.action_access",
                         "reason": "action_access_not_classified",
                         "seam": "permit.governance_decision_snapshot",
                         "state": "not_applicable",
-                        "timestamp": "2026-11-09T16:06:03.747817+00:00"
+                        "timestamp": "2026-11-09T16:19:08.495678+00:00"
                       }
                     ],
                     "kind": "authorizer_input_typed_absence_manifest.v1",
@@ -1597,29 +2245,29 @@
           "inputs": [],
           "max_output_tokens_requested": null,
           "mcp_review_resume_v1": {
-            "approval_requirement_hash": "4cb8afb5ceae014b9385141ebe9915b743337a8e1b7a3073c1d8455d0d94ceeb",
-            "challenge_basis_hash": "34103e0360412b5df47a7474ca9f888179ffb448c52a61989ff24c2daa576fc9",
+            "approval_requirement_hash": "b97cc7fd209c5c4536eb4213e4d402884b0c4c76adad8c0be0b3780ee797d8e9",
+            "challenge_basis_hash": "f076cd36b72e0d0740c8e6f133498ed47e82fc2dc134e0fa680834a54f131726",
             "challenge_basis_version": "mcp_challenge_basis.v4",
-            "current_trace_id": "5e2a7c55-355c-4502-98d6-bba7dabb0b9a",
-            "exact_request_binding_hash": "f246e68f09fae35a5848e3a4a88a572f4de9780f7f76ffa03197a5e4a5acfb4e",
-            "exact_request_review_hash": "f094151bd93162d0ea4f56f940fbe1ce9d465e47499352343cca346a36a7044a",
+            "current_trace_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+            "exact_request_binding_hash": "b833f33d3f08c9292d2809984789d5c1bdd2c2e6b6579c85bebb86982f9bcd50",
+            "exact_request_review_hash": "36dc3d3d2d4cd3576d6b341b1f49eaf04632e260cef76937503e9d44e81e3f0b",
             "mapping_fence": {
               "kind": "keel.mapping_lifecycle_fence.v1",
               "state": "absent"
             },
-            "original_trace_id": "9596e4f7-05ab-40e4-a02a-009b4ddde3f6",
+            "original_trace_id": "96165d23-fe89-4440-aefc-3b833e1de8a6",
             "reviewed_authorizer_input_contract_version": "p2_action_envelope_v1",
-            "reviewed_authorizer_input_hash": "38a62fc986e24f29aef09f8ef1c8ac883075112d95850724c1102c0d739b00b0",
-            "reviewed_permit_id": "b7f420f3-5f4c-4126-b204-3ade8e11d159"
+            "reviewed_authorizer_input_hash": "84ff71b8ad2a9b0342f12ba41b165a8c6ae6f2f822c349f5666c5c9219b05aa0",
+            "reviewed_permit_id": "20d600de-1a1e-40f0-9b25-917543c1de43"
           },
           "modality": "text",
           "model": "coding-workspace-github",
           "mpp_dispatch_digest": null,
           "native_action": {
-            "action_binding_hash": "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb",
+            "action_binding_hash": "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869",
             "action_schema": "keel.canonical_action/v1",
             "canonical_action": {
-              "action_id": "01a1c10f-3c64-7f30-9ea6-96b2393673cb",
+              "action_id": "01a1c11b-358f-7da9-b969-f63526b90e6f",
               "action_schema": "keel.canonical_action/v1",
               "canonical_input": {
                 "base_commit_sha": "1111111111111111111111111111111111111111",
@@ -1634,20 +2282,20 @@
                 "head_commit_sha": "2222222222222222222222222222222222222222",
                 "native_input_version": "keel.native_input.repository_pull_request_create.v1",
                 "title_commitment": {
-                  "digest": "sha256:26171331616df14fe8adc69c942fc85f4e7e150b9b94e6b331f1a01946879b52",
+                  "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
                   "method": "keel.salted_sha256_jcs.v1"
                 }
               },
               "connector_contract_version": "keel.connector.execution.v1",
               "connector_identity": "github",
-              "created_at": "2026-11-09T16:06:03Z",
-              "credential_reference": "connector-credential:ef14fd7d-5bdc-4825-afff-7db72228c0d3",
-              "expires_at": "2026-11-09T17:06:03Z",
-              "installation_id": "8850132a-7679-44a9-9fd4-5ec97d262610",
+              "created_at": "2026-11-09T16:19:08Z",
+              "credential_reference": "connector-credential:923f084f-1a34-4ef1-aa13-e4650b25e166",
+              "expires_at": "2026-11-09T17:19:08Z",
+              "installation_id": "a4aac0a3-19c5-4bfc-b58b-8e91f2713abc",
               "operation": "repository.pull_request.create",
               "policy_epoch": 0,
-              "principal_id": "6fd69cfd-222c-4faa-84ab-9d449b040a4c",
-              "project_id": "310969a8-c509-49be-96c8-eb094653521f",
+              "principal_id": "558c2510-41b7-4773-87fd-f44e079206a6",
+              "project_id": "be320a9b-de9b-4daf-b605-c9b555a97979",
               "surface": "managed_mcp",
               "target": {
                 "base_branch": "main",
@@ -1677,7 +2325,7 @@
             "compare_status": "ahead",
             "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
             "connector_identity": "github",
-            "decision_trace_hash": "5969d128c298211a9747a8090b6cfc9e6dde8c06829c43b8d828902c94ac72e7",
+            "decision_trace_hash": "b03dd49f0b4337250382f661d2bb80961b35f411fb4bb712f6750ddc41f726c9",
             "deletions_count": 0,
             "draft": false,
             "enforcement_mode": "enforced_in_path",
@@ -1686,13 +2334,13 @@
             "head_branch": "keel/nae-m1-fixture",
             "head_commit_sha": "2222222222222222222222222222222222222222",
             "head_ref_exists": true,
-            "idempotency_digest": "sha256:f07969ee4645c09348be85c47fc53c3b469d82862dbfe066330d2bb3150c361b",
+            "idempotency_digest": "sha256:9d10014097c372fb7e896abfc2c182878b474374ab9c9122ab59c6cfed2c0ed4",
             "max_uses": 1,
             "merge_authorized": false,
             "operation": "call.tools",
-            "preflight_expires_at": "2026-11-09T16:10:03Z",
-            "preflight_observed_at": "2026-11-09T16:06:03Z",
-            "preflight_snapshot_digest": "sha256:cf6135a82e7b280df46e77c480b49e2c11462020f734d9028e59e89719af6604",
+            "preflight_expires_at": "2026-11-09T16:23:08Z",
+            "preflight_observed_at": "2026-11-09T16:19:08Z",
+            "preflight_snapshot_digest": "sha256:ed89c13bb5af594758366888c7aa56a2b68aa00f8a0ae95907974c67a56438de",
             "protected_path_change_count": 0,
             "provider_api_version": "2022-11-28",
             "provider_environment": "dedicated_demo",
@@ -1701,28 +2349,28 @@
               "method": "keel.salted_sha256_jcs.v1"
             },
             "pull_request_title_commitment": {
-              "digest": "sha256:26171331616df14fe8adc69c942fc85f4e7e150b9b94e6b331f1a01946879b52",
+              "digest": "sha256:9972465fdaaff42d5fb0e73574f291758d07443f1759af3f2c3ed6987d4932c5",
               "method": "keel.salted_sha256_jcs.v1"
             },
             "repository_reference_commitment": {
               "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
               "method": "keel.salted_sha256_jcs.v1"
             },
-            "request_digest": "sha256:46eda3ec5f209a64dc41e11ea36f199ab897623ec1195f71f5ff85d117c115ea",
+            "request_digest": "sha256:d49d89dfcaff86c0d04401070d98bd0739a597a64505d66d1c8ec196185add33",
             "same_repository": true,
-            "tool_arguments_hash": "1c5fd2d615fd6db7aebb1fb582a016ae0b081630eb1ae370ba0448af81a0f080",
+            "tool_arguments_hash": "f2efa6063b7bea4b3785145e6c59674b1c45b343aecd114f58821286aecefb25",
             "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
             "version": "keel.coding_workspace_exact_facts.v1"
           },
           "permit_semantic_binding_v2": {
             "action_name": "repository.pull_request.create",
             "authorization_facts_canonicalization": "rfc8785",
-            "authorization_facts_digest": "sha256:115445052e6b7bf33535fa1c4af295ba7f0d05165f734383d9777f92d58124cd",
+            "authorization_facts_digest": "sha256:c0858bed5d3ae53eb6aa9fccbb9d4e67076284491c3e7218f2a60e9328a37e04",
             "authorization_facts_schema_digest": "sha256:898ebb49c7cb9ed8f50d4d7d98f544322002cdae8256cc312322c1e9f9317109",
             "chain_role": "session_root",
             "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
             "claim_registry_version": "verifier-claims.v2",
-            "derived_at": "2026-11-09T16:06:04.726541Z",
+            "derived_at": "2026-11-09T16:19:09.586614Z",
             "fact_profile_entry_digest": "sha256:012c92162585ebd8d5fd26a1e4a517afef35349d3d25304d419d5a52d0a9d71a",
             "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
             "fact_profile_registry_digest": "sha256:aa17ba8b701dd20dc9e4f3a4c34381fe1e64d9a933bfe3005cd96f6f5cca5c36",
@@ -1741,7 +2389,7 @@
           },
           "prompt_content_hash": null,
           "provider": "mcp",
-          "resource_id": "mcp_tool_call:0aeb5629-d80c-4d7d-9cf4-2b2f57361d97:repository.pull_request.create",
+          "resource_id": "mcp_tool_call:acb8273f-2575-44d2-9ae2-f8b64442044f:repository.pull_request.create",
           "resource_type": "mcp_tool_call",
           "routing": null,
           "work_binding_v1": null,
@@ -1754,8 +2402,8 @@
         "resource_operation": "call.tools",
         "resource_provider": "mcp",
         "routing": {
-          "decided_at": "2026-11-09T16:06:04.711928Z",
-          "decision_id": "01M70GYG57QCPQWBBRZ1KEKW84",
+          "decided_at": "2026-11-09T16:19:09.570884Z",
+          "decision_id": "01M70HPEM2TQACKFESVJQTXPNC",
           "estimated_cost_usd_micros": null,
           "fallback_chain": [],
           "fallback_occurred": false,
@@ -1765,10 +2413,10 @@
           "priority": null,
           "reason_code": "explicit_request",
           "reason_metadata": {
-            "decision_trace_hash": "1152c50244276e0db424953fd779d8f310d8354dac092d5df59835202cac6162",
-            "mcp_decision_id": "5e2a7c55-355c-4502-98d6-bba7dabb0b9a",
-            "mcp_server_id": "0aeb5629-d80c-4d7d-9cf4-2b2f57361d97",
-            "proxy_request_id": "3a331162-be29-4e0f-bd3e-ff7afb266dfc"
+            "decision_trace_hash": "24d4e73bacbb211de5f2f94848ab094514c9079f8ad4182686cad2385910fa05",
+            "mcp_decision_id": "dcbfb559-a670-4bf6-b7cd-f688d708aa92",
+            "mcp_server_id": "acb8273f-2575-44d2-9ae2-f8b64442044f",
+            "proxy_request_id": "b92f766e-1941-4661-81c8-58d8e47949a1"
           },
           "requested_model": "coding-workspace-github",
           "requested_provider": "mcp",
@@ -1777,14 +2425,14 @@
           "task_type": null
         },
         "status": "completed",
-        "subject_id": "6fd69cfd-222c-4faa-84ab-9d449b040a4c",
+        "subject_id": "558c2510-41b7-4773-87fd-f44e079206a6",
         "subject_type": "user",
-        "usage_idempotency_key": "review-resume:native:01a1c10f3c647f309ea696b2393673cb",
-        "usage_reported_at": "2026-11-09T16:06:04.928341Z",
+        "usage_idempotency_key": "review-resume:native:01a1c11b358f7da9b969f63526b90e6f",
+        "usage_reported_at": "2026-11-09T16:19:09.791218Z",
         "usage_source": "caller_report",
         "usage_verification_method": "caller_report",
         "usage_verification_status": "unverified",
-        "usage_verification_updated_at": "2026-11-09T16:06:04.928347Z",
+        "usage_verification_updated_at": "2026-11-09T16:19:09.791224Z",
         "workflow_declaration_id": null,
         "workflow_id": null,
         "workflow_state_json": null

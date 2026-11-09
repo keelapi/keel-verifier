@@ -51,7 +51,7 @@ ALLOW_ROOT = ALLOW_RUN / "instance-root.json"
 
 SOURCE_SHA256 = {
     "native_action_golden_vectors_v1.json": "4e4a6717f1c0a137e73ee808473d4616571c4cbab5feeb1b6625272767cb9db6",
-    "native_action_pack_vectors_v1.json": "6ebad46d643030344e19a46b3dc78eadb21035a46c7290ae324d89e7bdf1f2e8",
+    "native_action_pack_vectors_v1.json": "4f144367fa259c77d21293c42e6c6b442f20b63195382378cff5d3558aec067e",
 }
 
 
@@ -316,6 +316,18 @@ def _additional_cases():
     def event_not_object(d):
         d["closure_events"].append("not an event")
 
+    def attestation_missing(d):
+        _events(d, "native.action.review_decided")[0]["payload"]["attestation_id"] = None
+
+    def attestation_differs(d):
+        d["approval"]["attestation_id"] = "00000000-0000-4000-8000-0000000000a1"
+
+    def final_hash_missing(d):
+        _events(d, "native.action.dispatch_started")[0]["payload"]["final_request_hash"] = None
+
+    def final_hash_not_signed_one(d):
+        _canonical_payload(d)["final_request_hash"] = "0" * 64
+
     return [
         ("project_mismatch", project_mismatch, "disproved", "native.cross_field_mismatch"),
         ("principal_mismatch", principal_mismatch, "disproved", "native.cross_field_mismatch"),
@@ -331,6 +343,10 @@ def _additional_cases():
         ("dispatch_other_action", dispatch_other_action, "disproved", "native.single_dispatch"),
         ("unknown_outcome", unknown_outcome, "disproved", "native.single_dispatch"),
         ("event_not_object", event_not_object, "disproved", "native.evidence_incomplete"),
+        ("attestation_missing", attestation_missing, "disproved", "native.review_binding"),
+        ("attestation_differs", attestation_differs, "disproved", "native.review_binding"),
+        ("final_hash_missing", final_hash_missing, "disproved", "native.single_dispatch"),
+        ("final_hash_not_signed_one", final_hash_not_signed_one, "disproved", "native.single_dispatch"),
     ]
 
 
@@ -384,7 +400,7 @@ def test_closure_events_list_order_is_not_chain_order():
 
 
 def test_additional_checks_are_documented():
-    assert len(ADDITIONAL_CHECKS) == 11
+    assert len(ADDITIONAL_CHECKS) == 13
 
 
 # ---------------------------------------------------------------------------
@@ -409,62 +425,42 @@ def test_reviewed_permit_pack_verifies(run_cli):
     assert claims["permit.decision.v1"] == "supported"
     native = report["artifact"]["native_action"]
     assert native["verdict"] == "supported"
-    assert native["action_id"] == "01a1c10f-3c64-7f30-9ea6-96b2393673cb"
+    assert native["action_id"] == "01a1c11b-358f-7da9-b969-f63526b90e6f"
     assert native["action_binding_hash"] == (
-        "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb"
+        "8a37d35a89e4cc19621944550867323b3ec6b479d0ee104ef57869d29b01b869"
     )
     assert native["state"] == "upstream_reported_success"
     assert report["artifact"]["kind"] == "native_action_pack"
 
 
 @pytest.mark.parametrize(
-    "pack,root", [(EXECUTION, INSTANCE_ROOT), (ALLOWED, ALLOW_ROOT)], ids=["execution", "allowed"]
+    "pack,root,final_bound",
+    [(EXECUTION, INSTANCE_ROOT, True), (ALLOWED, ALLOW_ROOT, True), (REVIEWED, INSTANCE_ROOT, False)],
+    ids=["execution", "allowed", "reviewed"],
 )
-def test_dispatch_permit_pack_lacks_its_signed_decision(pack, root, run_cli):
-    """keel-api 27cae1c28 omits the signed decision of a Permit bound to a final request.
+def test_every_native_permit_pack_verifies(pack, root, final_bound, run_cli):
+    """keel-api 24177dd8d (interface 1.5.0): every native Permit's pack carries its signed decision.
 
     The review-resume execution Permit and the allow-path dispatch Permit are
-    both signed with a final_request_hash, and the proof bundle drops such
-    decisions, so their packs cannot verify. keel-api's reference gives the
-    same verdict (open interface question, gate-blocking).
+    signed with a final-request binding; dispatch_started names the same hash.
     """
 
     result = run_cli("native-action-pack", "--json", str(pack), "--trust-root", str(root))
     report = _json(result)
 
-    assert result.returncode == 1
-    assert report["artifact"]["native_action"]["reason_code"] == "native.evidence_incomplete"
-    claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
-    assert claims["export.integrity.v1"] == "supported"
-
-
-@pytest.mark.parametrize(
-    "pack,decision",
-    [
-        (EXECUTION, REVIEW_RUN / "execution_permit_signed_decision.json"),
-        (ALLOWED, ALLOW_RUN / "allowed_permit_signed_decision.json"),
-    ],
-    ids=["execution", "allowed"],
-)
-def test_dispatch_permit_pack_with_its_signed_decision_is_supported(pack, decision, tmp_path, run_cli):
-    """With the Permit's own signed decision (taken from its artifact) the pack verifies.
-
-    This is the shape the API fix would emit; the outer manifest is re-signed
-    with a test key, and the decision is checked against the candidate's
-    binding key.
-    """
-
-    document = json.loads((pack / "export.json").read_text("utf-8"))
-    document["permit_audit_bundle"]["permit_decision"] = json.loads(decision.read_text("utf-8"))
-    trusted = _resigned_pack(tmp_path, document, key_source=pack)
-
-    result = run_cli("native-action-pack", "--json", str(tmp_path), "--key-manifest", str(trusted))
-    report = _json(result)
-
     assert result.returncode == 0, result.stdout + result.stderr
     claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
+    assert claims["export.integrity.v1"] == "supported"
     assert claims["permit.decision.v1"] == "supported"
     assert report["artifact"]["native_action"]["verdict"] == "supported"
+    document = json.loads((pack / "export.json").read_text("utf-8"))
+    signed_final = document["permit_audit_bundle"]["permit_decision"]["canonical_payload"][
+        "final_request_hash"
+    ]
+    dispatch = _events(document, "native.action.dispatch_started")[0]["payload"]
+    assert (signed_final is not None) is final_bound
+    if final_bound:
+        assert dispatch["final_request_hash"] == signed_final
 
 
 def test_allow_path_pack_has_no_review_and_one_dispatch():
@@ -529,7 +525,7 @@ def test_export_subcommand_adds_native_checks(run_cli):
     assert _json(result)["artifact"]["native_action"]["verdict"] == "supported"
 
 
-def test_export_raw_mode_agrees(run_cli):
+def test_export_raw_mode_agrees(tmp_path, run_cli):
     ok = run_cli(
         "export",
         "--raw",
@@ -542,18 +538,19 @@ def test_export_raw_mode_agrees(run_cli):
     )
     assert ok.returncode == 0, ok.stdout + ok.stderr
     assert "Native action: supported" in ok.stdout
+    document = json.loads((EXECUTION / "export.json").read_text("utf-8"))
+    _events(document, "native.action.dispatch_started")[0]["payload"]["final_request_hash"] = "0" * 64
+    trusted = _resigned_pack(tmp_path, document, key_source=EXECUTION)
     bad = run_cli(
         "export",
         "--raw",
-        str(EXECUTION / "export.json"),
-        str(EXECUTION / "manifest.json"),
+        str(tmp_path / "export.json"),
+        str(tmp_path / "manifest.json"),
         "--key-manifest",
-        str(EXECUTION / "key_manifest.json"),
-        "--trust-root",
-        str(INSTANCE_ROOT),
+        str(trusted),
     )
     assert bad.returncode == 1
-    assert "native.evidence_incomplete" in bad.stderr
+    assert "native.single_dispatch" in bad.stderr
 
 
 def _zip(tmp_path, source, *, extra=None, name="pack.zip"):

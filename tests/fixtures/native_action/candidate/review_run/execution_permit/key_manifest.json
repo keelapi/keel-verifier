@@ -13,7 +13,7 @@
       "region": "us-west-1",
       "revoked_at": null,
       "status": "active",
-      "valid_from": "2026-11-09T16:06:02.040058+00:00",
+      "valid_from": "2026-11-09T16:19:07.087748+00:00",
       "valid_to": null
     },
     {
@@ -28,7 +28,7 @@
       "region": "us-west-1",
       "revoked_at": null,
       "status": "active",
-      "valid_from": "2026-11-09T16:06:02.040058+00:00",
+      "valid_from": "2026-11-09T16:19:07.087748+00:00",
       "valid_to": null
     },
     {
@@ -43,7 +43,7 @@
       "region": "us-west-1",
       "revoked_at": null,
       "status": "active",
-      "valid_from": "2026-11-09T16:06:02.040058+00:00",
+      "valid_from": "2026-11-09T16:19:07.087748+00:00",
       "valid_to": null
     },
     {
@@ -58,7 +58,7 @@
       "region": "us-west-1",
       "revoked_at": null,
       "status": "active",
-      "valid_from": "2026-11-09T16:06:02.042867+00:00",
+      "valid_from": "2026-11-09T16:19:07.095188+00:00",
       "valid_to": null
     },
     {
@@ -73,17 +73,17 @@
       "region": "us-west-1",
       "revoked_at": null,
       "status": "active",
-      "valid_from": "2026-11-09T16:06:02.042867+00:00",
+      "valid_from": "2026-11-09T16:19:07.095188+00:00",
       "valid_to": null
     }
   ],
   "manifest_signature": {
     "canonicalization_profile": "keel.canonical_json.payload.v1",
-    "content_hash": "sha256:4b6544b2b2f1388ff8fa2f3e4a19c40b30ba646f2efaeeaa9709cb2cd72f028c",
+    "content_hash": "sha256:82fb85a291883e7ded57d1720455f5b4e18d018403533119bef7069aeeb4e591",
     "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
     "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
     "purpose": "export_signing",
-    "signature": "ed25519:PU4J1D66ZK4kgSITwSHo3qbxyKFWRaaLCLmpLhDPX/nbEYoyDn3BkxJ0huAsecY76DlaXgdFEoFG2TnuF+AGDw==",
+    "signature": "ed25519:je08zLLEgXqkhMd5qRHUqhpQSA5XHRhlJf00fT33bcI609qOsiDPyGiTbJioeMFiJOI/XVmHywWvOfv7G5LUBg==",
     "signature_type": "ed25519.content_hash.v1",
     "signed_fields": [
       "manifest_version",

@@ -1,5 +1,5 @@
 {
-  "action_id": "01a1c10f-ed7b-723e-86eb-289a202b7882",
+  "action_id": "01a1c11b-ad5e-7a9a-8f31-4d061c0839ab",
   "claim_boundary": {
     "does_not_establish": [
       "provider execution",
@@ -28,12 +28,12 @@
     "version": "verifier-claims.v0"
   },
   "compressed": false,
-  "content_hash": "sha256:5bcc34fc180f0833971eac029be4e6dd4ce71c08e0148c931be4948d8a5440aa",
+  "content_hash": "sha256:81cde0d614fb1f1ac3d44287feafb5e8289b976b8fa4b8f938311691c5f41c19",
   "export_type": "native_action",
   "format": "json",
   "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
-  "permit_id": "10357caf-ff73-476a-a8b9-be8b01bdcefa",
-  "project_id": "4c8a8258-cb46-4ad7-8158-8e58170a506d",
+  "permit_id": "d3bbd9fa-4b83-43fb-bdba-c74093643ba5",
+  "project_id": "cc49b45d-d96b-4208-a4a6-f59b213441e4",
   "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
   "record_count": 1,
   "semantics_pins": {
@@ -47,14 +47,14 @@
     "mode": "pinned",
     "version": "keel-semantics-pins.v0"
   },
-  "signature": "ed25519:zQVAvlMHgD25bL1A56kx8BPRi4WrAIEZqKqmT8T539PFDnF2eelD5hE6Od1dNS9BesLqLumjhObB/TCkE/YjAw==",
+  "signature": "ed25519:8JVRwjzInSor/zE1VVonGC4JeWPfaSMIWSQdRwNuKTR1D7CAacJDO826ssIdDE/lU4UKmc6iCd3I5raqTQZJBg==",
   "signatures": [
     {
       "algorithm": "ed25519",
       "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
-      "signature": "ed25519:zQVAvlMHgD25bL1A56kx8BPRi4WrAIEZqKqmT8T539PFDnF2eelD5hE6Od1dNS9BesLqLumjhObB/TCkE/YjAw==",
-      "signed_at": "2026-11-09T16:06:53.549349+00:00"
+      "signature": "ed25519:8JVRwjzInSor/zE1VVonGC4JeWPfaSMIWSQdRwNuKTR1D7CAacJDO826ssIdDE/lU4UKmc6iCd3I5raqTQZJBg==",
+      "signed_at": "2026-11-09T16:19:43.880384+00:00"
     }
   ],
-  "signed_at": "2026-11-09T16:06:53.549349+00:00"
+  "signed_at": "2026-11-09T16:19:43.880384+00:00"
 }

@@ -26,9 +26,13 @@
   - the exact review v2 object (`keel.exact_request_review.v2`) has its full
     key set and binds to the approval, the action, the Permit and the
     decision inputs' condition semantics;
+  - the review decision names its attestation, and the approval names the
+    same one;
   - there is at most one `native.action.dispatch_started` and at most one
     `native.action.upstream_result`, each bound to the action, in chain
     order (an `outcome_unknown` result may stand alone);
+  - `dispatch_started` names the execution Permit's final-request hash,
+    equal to the signed decision's when the pack is that Permit's;
   - a requested claim at evidence level E or F (`--request-level`) is not
     supported. A native pack never supports more than level D.
 - The result is reported under `artifact.native_action` (verdict, reason
