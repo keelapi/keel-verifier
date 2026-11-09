@@ -1,0 +1,492 @@
+{
+  "artifact_ref": {
+    "canonical_url": "https://api.keelapi.com/v1/permits/10357caf-ff73-476a-a8b9-be8b01bdcefa",
+    "digest": "sha256:c788a759b78bacef8c9b0b76ddf2cf841f01438f2eb87a0be1de2c073ade4b7d",
+    "id": "10357caf-ff73-476a-a8b9-be8b01bdcefa",
+    "path": "/v1/permits/10357caf-ff73-476a-a8b9-be8b01bdcefa",
+    "region": "us-west-1",
+    "schema_version": "artifact_ref.v1",
+    "type": "decision_evidence",
+    "urn": "urn:x-keel:artifact:decision_evidence:10357caf-ff73-476a-a8b9-be8b01bdcefa"
+  },
+  "artifact_type": "permit_decision_binding",
+  "artifact_version": "permit.decision.v1",
+  "binding_canonical_hash": "1dd425ca75e3d184ff80da7674fefb1053053c195dc8552b15b9d619eb6b932f",
+  "binding_issued_at": "2026-11-09T16:06:51.661022+00:00",
+  "binding_key_id": "0b5a78207de7190d",
+  "binding_signature": "ed25519:G40YCjoANYB+HQlRw2jdznXD4DHyHbWh0hsqdnDEF9Xnwz2oR4VRlhFqRIlwwxgbT5Ln+uuREXcITyykX2JhBw==",
+  "binding_version": "v7",
+  "canonical_payload": {
+    "account_id": null,
+    "action_name": "mcp.tool.call",
+    "authority_chain_digest": null,
+    "authority_delta": null,
+    "binding_key_id": "0b5a78207de7190d",
+    "binding_project_anchor_hash": null,
+    "binding_session_event_hash": null,
+    "binding_session_id": null,
+    "binding_version": "v7",
+    "constraints": {
+      "mcp_decision_inputs_v1": {
+        "decision_input_policy_snapshot_hash": "e6f28d06d5f34c3105088154416574d5ad1e9cadcec54e934c726caf373f1219",
+        "trusted_action_envelope_hash": "ea01f9f94bd435a919b8766343d9f7d7f5ff84b9d3fa0be2cf8960055ed0fd4a"
+      },
+      "native_decision_inputs_v1": {
+        "action_binding_hash": "b1db4ffd8d692c4c47e323fcd751354513574acff6e8338769441b5dd496a280",
+        "action_schema": "keel.canonical_action/v1",
+        "adapter_id": "keel.native_adapter.repository_pull_request_create.v1",
+        "business_idempotency": {
+          "digest": "7e058d8808782415aeb2c424a1ac5c10c2e75ee0977f9431010effe94f92fbf5",
+          "version": "keel.native.bik.repository_pull_request_create.v1"
+        },
+        "client_claims_digest": "5b63f6ac65c4f7cfce3b400bd47715dcf9f883f4c59421f2735b42e7ce1c39b9",
+        "condition_semantics": "legacy",
+        "credential_class": "keel.native_runtime_token.v1",
+        "credential_family_id": "02b1849a-1652-4155-84d2-d26b5d166a6d",
+        "installation_id": "b072dbf3-ae3e-43df-8d00-a9d317d9c617",
+        "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+        "policy_epoch": 0,
+        "preflight": {
+          "expires_at": "2026-11-09T16:10:51Z",
+          "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+          "fact_snapshot_digest": "sha256:ecf4a06ec3f020276638516cebc13c4411dc2f34cd454d6b45ba686a6920157d",
+          "observed_at": "2026-11-09T16:06:51Z",
+          "verification": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+        },
+        "restore_generation": 1,
+        "reviewed_schema_set_id": "keel.reviewed_tool_schemas.repository_pull_request_create.v1",
+        "version": "keel.native_decision_inputs.v1"
+      },
+      "permit_lifetime": {
+        "limiting_source": "platform_default"
+      },
+      "positive_authority_v1": {
+        "mandatory_constraints_evaluated": true,
+        "policy_id": "1d79006c-aac6-4f8d-9a96-1a756bd2dbbd",
+        "rule_index": 0,
+        "source": "customer_policy",
+        "version": "keel.positive_authority.v1"
+      },
+      "schema_version": 1
+    },
+    "decision": "allow",
+    "delegation_policy_hash": null,
+    "expires_at": "2026-11-09T22:06:51.661022+00:00",
+    "final_request_hash": "2f7a7f6607c4566e0fc21f17e17a2cfe17e64ab7847af66a8184cc526f023fa5",
+    "inherits_from": null,
+    "is_dry_run": false,
+    "issued_at": "2026-11-09T16:06:51.661022+00:00",
+    "model": "coding-workspace-github",
+    "operation": "call.tools",
+    "org_id": null,
+    "parent_permit_id": null,
+    "permit_chain_role": "session_root",
+    "permit_id": "10357caf-ff73-476a-a8b9-be8b01bdcefa",
+    "policy_id": "1d79006c-aac6-4f8d-9a96-1a756bd2dbbd",
+    "policy_snapshot_hash": "e581ee8d78e4911c501f394be074d466af51c0b5405f0eedf9c1e1705b3c3fb4",
+    "policy_version": "1",
+    "project_id": "4c8a8258-cb46-4ad7-8158-8e58170a506d",
+    "provider": "mcp",
+    "quota_reservation_id": null,
+    "reason": "policy.explicit_match_candidate",
+    "request_fingerprint": "95b989a61696d10d8b6c0c72d97c0ab2166aafd7785df32a72e0775d59fa4d32",
+    "resource_attributes_canonical_hash": "6ef244936727ec6d11b2b945bcee6e974d815e42ecb63be1f05a755426caac94",
+    "routing": {
+      "fallback_chain": [],
+      "fallback_occurred": false,
+      "reason_code": "explicit_request",
+      "reason_metadata": {
+        "decision_trace_hash": "00c668ac1c2323756a155b966e143c665c53385b6694b23d42b216460c99afe2",
+        "mcp_decision_id": "03e50c32-0eb5-4a00-82c4-7d3e406e2490",
+        "mcp_server_id": "8b9c92e8-3c1a-405b-855f-4301802275e6",
+        "proxy_request_id": "525dd7f6-20e7-4ff7-80e1-e40ab198b35e"
+      },
+      "requested_model": "coding-workspace-github",
+      "requested_provider": "mcp",
+      "selected_model": "coding-workspace-github",
+      "selected_provider": "mcp"
+    },
+    "spend_scope_hash": null,
+    "subject_id": "ebf33faa-5c12-448e-81d8-6dee26a12efe",
+    "subject_type": "user"
+  },
+  "expected_decision": "allow",
+  "resource_attributes_json": {
+    "asset_summary": {
+      "mcp": {
+        "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+        "connector_contract_version": "keel.connector.execution.v1",
+        "connector_identity": "github",
+        "connector_version": "keel-coding-workspace-github-1.0.0",
+        "decision_trace_hash": "00c668ac1c2323756a155b966e143c665c53385b6694b23d42b216460c99afe2",
+        "fact_provenance": {
+          "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+          "fact_sources": {
+            "action_access_level": "keel.action_access_registry",
+            "action_risk_tags": "keel.action_access_registry",
+            "additions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "ahead_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "base_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "base_branch_protected": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "base_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "behind_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "changed_files_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "changed_paths_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "compare_state_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "compare_status": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "connector_identity": "mcp_server.connector_identity",
+            "connector_version": "mcp_tool_contracts.connector_version",
+            "deletions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "draft": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "existing_open_pull_request_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "head_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "head_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "head_ref_exists": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "idempotency_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "max_uses": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "merge_authorized": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "preflight_expires_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "preflight_observed_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "preflight_snapshot_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "protected_path_change_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "provider_api_version": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "provider_environment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "pull_request_body_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "pull_request_title_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "repository_reference_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "same_repository": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+            "tool_arguments_hash": "keel.normalized_tool_arguments",
+            "tool_name": "mcp.tools/list.name",
+            "tool_schema_hash": "mcp.tools/list.inputSchema"
+          },
+          "kind": "keel.mcp.fact-provenance.v1",
+          "mcp_server_id": "8b9c92e8-3c1a-405b-855f-4301802275e6",
+          "preflight_verification": {
+            "snapshot_digest": "sha256:ecf4a06ec3f020276638516cebc13c4411dc2f34cd454d6b45ba686a6920157d",
+            "verified_at": "2026-11-09T16:06:51.617575+00:00",
+            "version": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+          },
+          "schema_source": "mcp.tools/list",
+          "tool_contract_id": "c68b4312-9169-4e73-9c0d-924d7ef5b6f7",
+          "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+          "verified_at": "2026-11-09T16:06:35.210679+00:00"
+        },
+        "mcp_decision_id": "03e50c32-0eb5-4a00-82c4-7d3e406e2490",
+        "mcp_runtime_config_hash": "19f5665dcaf1b5627beb8e20660cc4e32152fb2b9e9e228d1d2351e3d41d9406",
+        "mcp_server_id": "8b9c92e8-3c1a-405b-855f-4301802275e6",
+        "normalized_tool_arguments_hash_version": "native_frozen_arguments_sha256_v1",
+        "requested_action": "mcp.tool.call",
+        "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+        "server_slug": "coding-workspace-github",
+        "tool_arguments_hash": "e0a749267ea962cbe36a294872802b1fa16c3c58b38e4f73d962544df894f926",
+        "tool_name": "repository.pull_request.create",
+        "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+        "transport": "streamable_http",
+        "trusted_facts": {
+          "action_access_level": "write",
+          "action_risk_tags": [
+            "egress_external"
+          ],
+          "additions_count": 3,
+          "ahead_by": 1,
+          "base_branch": "main",
+          "base_branch_protected": true,
+          "base_commit_sha": "1111111111111111111111111111111111111111",
+          "behind_by": 0,
+          "changed_files_count": 1,
+          "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+          "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+          "compare_status": "ahead",
+          "connector_identity": "github",
+          "connector_version": "keel-coding-workspace-github-1.0.0",
+          "deletions_count": 0,
+          "draft": false,
+          "existing_open_pull_request_count": 0,
+          "head_branch": "keel/nae-m1-fixture",
+          "head_commit_sha": "2222222222222222222222222222222222222222",
+          "head_ref_exists": true,
+          "idempotency_digest": "sha256:eff807486a894f2987563f2a199c4ded8dcdcbea13d6067da1e1f9f2508b5dee",
+          "max_uses": 1,
+          "merge_authorized": false,
+          "preflight_expires_at": "2026-11-09T16:10:51Z",
+          "preflight_observed_at": "2026-11-09T16:06:51Z",
+          "preflight_snapshot_digest": "sha256:ecf4a06ec3f020276638516cebc13c4411dc2f34cd454d6b45ba686a6920157d",
+          "protected_path_change_count": 0,
+          "provider_api_version": "2022-11-28",
+          "provider_environment": "dedicated_demo",
+          "pull_request_body_commitment": {
+            "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "pull_request_title_commitment": {
+            "digest": "sha256:89e5a29937d9331b701d318fb8038138503dcaa090191973df9a1ce4fc2654e8",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "repository_reference_commitment": {
+            "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "same_repository": true,
+          "tool_arguments_hash": "e0a749267ea962cbe36a294872802b1fa16c3c58b38e4f73d962544df894f926",
+          "tool_name": "repository.pull_request.create",
+          "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
+        },
+        "typed_absence": {
+          "durable_replay_sources": {
+            "gds_column": "governance_decision_snapshots.authorizer_input_json",
+            "historical_sidecar": "governance_decision_authorizer_input.authorizer_input_json",
+            "mcp_tool_decision_trace": "mcp_tool_decisions.typed_absence_jsonb",
+            "realtime_turn_trace": "realtime_turn_authorization_traces.authorizer_input_json",
+            "retained_sources": [
+              "governance_decision_snapshots.canonical_request_json",
+              "governance_decision_snapshots.condition_context_snapshot_json",
+              "governance_decision_snapshots.policy_snapshot_json",
+              "governance_decision_snapshots.engine_context_json"
+            ]
+          },
+          "field_contract_version": "p2_mcp_action_envelope_v1",
+          "generated_at": "2026-11-09T16:06:51.617575+00:00",
+          "items": [
+            {
+              "path": "tenant.org_id",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "tenant.account_id",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "tenant.plan",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "principal.scopes",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "principal.roles",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "principal.groups",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "principal.teams",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "policy.policy_snapshot_hash",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "policy.policy_version",
+              "reason": "mcp_authorizer_input_missing_field",
+              "seam": "mcp.call",
+              "state": "unknown",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "parent.permit_id",
+              "reason": "mcp_trace_has_no_parent_permit",
+              "seam": "mcp.call",
+              "state": "not_applicable",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "parent.authorization_effect",
+              "reason": "mcp_trace_has_no_parent_permit",
+              "seam": "mcp.call",
+              "state": "not_applicable",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "parent.effect_version",
+              "reason": "mcp_trace_has_no_parent_permit",
+              "seam": "mcp.call",
+              "state": "not_applicable",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            },
+            {
+              "path": "parent.authority_envelope_hash",
+              "reason": "mcp_trace_has_no_parent_permit",
+              "seam": "mcp.call",
+              "state": "not_applicable",
+              "timestamp": "2026-11-09T16:06:51.617575+00:00"
+            }
+          ],
+          "kind": "authorizer_input_typed_absence_manifest.v1",
+          "seam_id": "mcp.call"
+        }
+      }
+    },
+    "callback_url": null,
+    "connector_type": "mcp_registry",
+    "estimated_input_tokens": 0,
+    "estimated_output_tokens": 0,
+    "execution_mode": "sync",
+    "generate_text_exact_candidate_v1": null,
+    "image_request": null,
+    "inputs": [],
+    "max_output_tokens_requested": null,
+    "modality": "text",
+    "model": "coding-workspace-github",
+    "mpp_dispatch_digest": null,
+    "native_action": {
+      "action_binding_hash": "b1db4ffd8d692c4c47e323fcd751354513574acff6e8338769441b5dd496a280",
+      "action_schema": "keel.canonical_action/v1",
+      "canonical_action": {
+        "action_id": "01a1c10f-ed7b-723e-86eb-289a202b7882",
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_input": {
+          "base_commit_sha": "1111111111111111111111111111111111111111",
+          "body_commitment": {
+            "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+            "method": "keel.salted_sha256_jcs.v1"
+          },
+          "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+          "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+          "draft": false,
+          "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+          "head_commit_sha": "2222222222222222222222222222222222222222",
+          "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+          "title_commitment": {
+            "digest": "sha256:89e5a29937d9331b701d318fb8038138503dcaa090191973df9a1ce4fc2654e8",
+            "method": "keel.salted_sha256_jcs.v1"
+          }
+        },
+        "connector_contract_version": "keel.connector.execution.v1",
+        "connector_identity": "github",
+        "created_at": "2026-11-09T16:06:48Z",
+        "credential_reference": "connector-credential:af598b11-b4ca-4bfe-974c-64f573b347cc",
+        "expires_at": "2026-11-09T17:06:48Z",
+        "installation_id": "b072dbf3-ae3e-43df-8d00-a9d317d9c617",
+        "operation": "repository.pull_request.create",
+        "policy_epoch": 0,
+        "principal_id": "ebf33faa-5c12-448e-81d8-6dee26a12efe",
+        "project_id": "4c8a8258-cb46-4ad7-8158-8e58170a506d",
+        "surface": "managed_mcp",
+        "target": {
+          "base_branch": "main",
+          "head_branch": "keel/nae-m1-fixture",
+          "repository_reference_commitment": {
+            "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+            "method": "keel.salted_sha256_jcs.v1"
+          }
+        },
+        "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+        "workflow_binding": null
+      }
+    },
+    "operation": "call.tools",
+    "payment_classification_v1": null,
+    "permit_authorization_facts_v1": {
+      "action": "repository.pull_request.create",
+      "additions_count": 3,
+      "ahead_by": 1,
+      "base_branch": "main",
+      "base_branch_protected": true,
+      "base_commit_sha": "1111111111111111111111111111111111111111",
+      "behind_by": 0,
+      "changed_files_count": 1,
+      "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+      "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+      "compare_status": "ahead",
+      "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+      "connector_identity": "github",
+      "decision_trace_hash": "00c668ac1c2323756a155b966e143c665c53385b6694b23d42b216460c99afe2",
+      "deletions_count": 0,
+      "draft": false,
+      "enforcement_mode": "enforced_in_path",
+      "existing_open_pull_request_count": 0,
+      "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+      "head_branch": "keel/nae-m1-fixture",
+      "head_commit_sha": "2222222222222222222222222222222222222222",
+      "head_ref_exists": true,
+      "idempotency_digest": "sha256:eff807486a894f2987563f2a199c4ded8dcdcbea13d6067da1e1f9f2508b5dee",
+      "max_uses": 1,
+      "merge_authorized": false,
+      "operation": "call.tools",
+      "preflight_expires_at": "2026-11-09T16:10:51Z",
+      "preflight_observed_at": "2026-11-09T16:06:51Z",
+      "preflight_snapshot_digest": "sha256:ecf4a06ec3f020276638516cebc13c4411dc2f34cd454d6b45ba686a6920157d",
+      "protected_path_change_count": 0,
+      "provider_api_version": "2022-11-28",
+      "provider_environment": "dedicated_demo",
+      "pull_request_body_commitment": {
+        "digest": "sha256:0b174b0bc43d1632889725c2b65b538acece9f3bf2488e248e761ba62fcdea08",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "pull_request_title_commitment": {
+        "digest": "sha256:89e5a29937d9331b701d318fb8038138503dcaa090191973df9a1ce4fc2654e8",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "repository_reference_commitment": {
+        "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+        "method": "keel.salted_sha256_jcs.v1"
+      },
+      "request_digest": "sha256:2f7a7f6607c4566e0fc21f17e17a2cfe17e64ab7847af66a8184cc526f023fa5",
+      "same_repository": true,
+      "tool_arguments_hash": "e0a749267ea962cbe36a294872802b1fa16c3c58b38e4f73d962544df894f926",
+      "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+      "version": "keel.coding_workspace_exact_facts.v1"
+    },
+    "permit_semantic_binding_v2": {
+      "action_name": "repository.pull_request.create",
+      "authorization_facts_canonicalization": "rfc8785",
+      "authorization_facts_digest": "sha256:a3de52512a9f07a54d78ca50157d012497098fa12eef601e66c84a702d9edd34",
+      "authorization_facts_schema_digest": "sha256:898ebb49c7cb9ed8f50d4d7d98f544322002cdae8256cc312322c1e9f9317109",
+      "chain_role": "session_root",
+      "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+      "claim_registry_version": "verifier-claims.v2",
+      "derived_at": "2026-11-09T16:06:51.661022Z",
+      "fact_profile_entry_digest": "sha256:012c92162585ebd8d5fd26a1e4a517afef35349d3d25304d419d5a52d0a9d71a",
+      "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+      "fact_profile_registry_digest": "sha256:aa17ba8b701dd20dc9e4f3a4c34381fe1e64d9a933bfe3005cd96f6f5cca5c36",
+      "fact_profile_registry_version": "keel.fact_profile_registry.v11",
+      "governed_surface": "mcp_tool",
+      "non_authorizing_presentation_profile_id": "repository_pull_request_create.r1",
+      "operation": "call.tools",
+      "selector_entry_digest": "sha256:0100b1b6d0ca27a790d52fa87d0e755a491d2c22256de60f5f1942136069faf7",
+      "selector_registry_digest": "sha256:d4bcb07a42caae97760cfc6eaab4cc0e7b7eba62a7f966b44b41ec646a70cd2b",
+      "selector_registry_version": "keel.semantic_selector_registry.v13",
+      "semantic_id": "keel.action.repository_pull_request_create.v1",
+      "trusted_source_kind": "action_verb_execute",
+      "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+      "universal_semantics_id": "keel.permit.universal_verification.v1",
+      "version": "keel.permit_semantic_binding.v2"
+    },
+    "prompt_content_hash": null,
+    "provider": "mcp",
+    "resource_id": "mcp_tool_call:8b9c92e8-3c1a-405b-855f-4301802275e6:repository.pull_request.create",
+    "resource_type": "mcp_tool_call",
+    "routing": null,
+    "work_binding_v1": null,
+    "work_binding_v2": null,
+    "work_resource_digest": null
+  }
+}

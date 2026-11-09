@@ -101,7 +101,8 @@ ADDITIONAL_CHECKS = (
     "canonical_action.project_id equals the signed Permit project_id (§7.2 item 4)",
     "canonical_action.principal_id equals the signed Permit subject_id (§7.2 item 4)",
     "exact review v2 has exactly the §7.3 key set at every level and no null (§7.3)",
-    "exact review v2 permit_id, project_id, action_id and action_schema equal the Permit's (§7.3)",
+    "exact review v2 project_id, action_id and action_schema equal the Permit's, and its "
+    "permit_id is this Permit or the action's proposal Permit (§7.3)",
     "approval v1_review_hash equals exact_review_v2.v1_review_hash (§7.5)",
     "a review_decided event's exact_review_v2_hash equals the approval's (§7.4)",
     "dispatch_started carries the action's action_id and booleans that are exactly true (§7.4)",
@@ -768,8 +769,23 @@ def _check_pack(
             validate_exact_review_v2_shape(review)
         except CanonicalActionShapeError as exc:
             raise _disproved(REASON_REVIEW_BINDING, str(exc)) from exc
+        # The review names the Permit a human reviewed: this pack's Permit, or,
+        # in the pack of the execution Permit that dispatched the approved
+        # action, the action's proposal Permit (named by native.action.proposed
+        # inside the same signed export).
+        reviewed_permits = {canonical_payload.get("permit_id")} | {
+            _event_payload(event).get("permit_id")
+            for event in events
+            if event.get("event_type") == EVENT_PROPOSED
+            and isinstance(_event_payload(event).get("permit_id"), str)
+        }
+        if review.get("permit_id") not in reviewed_permits - {None}:
+            raise _disproved(
+                REASON_REVIEW_BINDING,
+                "exact_review_v2.permit_id is neither this Permit nor the action's "
+                "proposal Permit",
+            )
         for key, expected in (
-            ("permit_id", canonical_payload.get("permit_id")),
             ("project_id", canonical_payload.get("project_id")),
             ("action_id", canonical.get("action_id")),
             ("action_schema", ACTION_SCHEMA_V1),

@@ -41,9 +41,13 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures" / "native_action"
 GOLDEN = json.loads((FIXTURES / "native_action_golden_vectors_v1.json").read_text("utf-8"))
 PACK_VECTORS = json.loads((FIXTURES / "native_action_pack_vectors_v1.json").read_text("utf-8"))
 CANDIDATE = FIXTURES / "candidate"
-REVIEWED = CANDIDATE / "reviewed_permit"
-EXECUTION = CANDIDATE / "execution_permit"
-INSTANCE_ROOT = CANDIDATE / "instance-root.json"
+REVIEW_RUN = CANDIDATE / "review_run"
+REVIEWED = REVIEW_RUN / "reviewed_permit"
+EXECUTION = REVIEW_RUN / "execution_permit"
+INSTANCE_ROOT = REVIEW_RUN / "instance-root.json"
+ALLOW_RUN = CANDIDATE / "allow_run"
+ALLOWED = ALLOW_RUN / "allowed_permit"
+ALLOW_ROOT = ALLOW_RUN / "instance-root.json"
 
 SOURCE_SHA256 = {
     "native_action_golden_vectors_v1.json": "4e4a6717f1c0a137e73ee808473d4616571c4cbab5feeb1b6625272767cb9db6",
@@ -340,6 +344,26 @@ def test_additional_check(name, mutate, verdict, reason):
     assert (result.verdict, result.reason_code) == (verdict, reason), result.message
 
 
+def test_review_may_name_the_proposal_permit_in_an_execution_pack():
+    """An execution Permit's pack carries the review of the action's proposal Permit."""
+
+    document = _base()
+    _canonical_payload(document)["permit_id"] = "00000000-0000-4000-8000-0000000000e1"
+    proposal = _events(document, "native.action.proposed")[0]["payload"]["permit_id"]
+    assert document["exact_review_v2"]["permit_id"] == proposal
+    assert check_native_action_pack(document).verdict == "supported"
+
+
+def test_review_naming_neither_permit_is_refused():
+    document = _base()
+    _canonical_payload(document)["permit_id"] = "00000000-0000-4000-8000-0000000000e1"
+    _events(document, "native.action.proposed")[0]["payload"]["permit_id"] = (
+        "00000000-0000-4000-8000-0000000000e2"
+    )
+    result = check_native_action_pack(document)
+    assert (result.verdict, result.reason_code) == ("disproved", "native.review_binding")
+
+
 def test_outcome_unknown_without_dispatch_is_supported():
     """Interface 1.3.0: an interrupted resume closes with outcome_unknown and no dispatch_started."""
 
@@ -385,27 +409,87 @@ def test_reviewed_permit_pack_verifies(run_cli):
     assert claims["permit.decision.v1"] == "supported"
     native = report["artifact"]["native_action"]
     assert native["verdict"] == "supported"
-    assert native["action_id"] == "01a1c0fc-3344-7966-a490-aebd940cffb5"
+    assert native["action_id"] == "01a1c10f-3c64-7f30-9ea6-96b2393673cb"
     assert native["action_binding_hash"] == (
-        "d1e3bb464c9cea29988216abb68163278aa4b5f0710d444c4a7615d6a3fdafaf"
+        "d9c30b0512f9380306faf04ee2448c40286b9788118eb5a1b8fd9dec58e5ddeb"
     )
     assert native["state"] == "upstream_reported_success"
     assert report["artifact"]["kind"] == "native_action_pack"
 
 
-def test_execution_permit_pack_lacks_its_signed_decision(run_cli):
-    """The candidate emits a pack for the execution Permit with no permit_decision.
+@pytest.mark.parametrize(
+    "pack,root", [(EXECUTION, INSTANCE_ROOT), (ALLOWED, ALLOW_ROOT)], ids=["execution", "allowed"]
+)
+def test_dispatch_permit_pack_lacks_its_signed_decision(pack, root, run_cli):
+    """keel-api 27cae1c28 omits the signed decision of a Permit bound to a final request.
 
-    keel-api's reference gives the same verdict (open interface question).
+    The review-resume execution Permit and the allow-path dispatch Permit are
+    both signed with a final_request_hash, and the proof bundle drops such
+    decisions, so their packs cannot verify. keel-api's reference gives the
+    same verdict (open interface question, gate-blocking).
     """
 
-    result = run_cli(
-        "native-action-pack", "--json", str(EXECUTION), "--trust-root", str(INSTANCE_ROOT)
-    )
+    result = run_cli("native-action-pack", "--json", str(pack), "--trust-root", str(root))
     report = _json(result)
 
     assert result.returncode == 1
     assert report["artifact"]["native_action"]["reason_code"] == "native.evidence_incomplete"
+    claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
+    assert claims["export.integrity.v1"] == "supported"
+
+
+@pytest.mark.parametrize(
+    "pack,decision",
+    [
+        (EXECUTION, REVIEW_RUN / "execution_permit_signed_decision.json"),
+        (ALLOWED, ALLOW_RUN / "allowed_permit_signed_decision.json"),
+    ],
+    ids=["execution", "allowed"],
+)
+def test_dispatch_permit_pack_with_its_signed_decision_is_supported(pack, decision, tmp_path, run_cli):
+    """With the Permit's own signed decision (taken from its artifact) the pack verifies.
+
+    This is the shape the API fix would emit; the outer manifest is re-signed
+    with a test key, and the decision is checked against the candidate's
+    binding key.
+    """
+
+    document = json.loads((pack / "export.json").read_text("utf-8"))
+    document["permit_audit_bundle"]["permit_decision"] = json.loads(decision.read_text("utf-8"))
+    trusted = _resigned_pack(tmp_path, document, key_source=pack)
+
+    result = run_cli("native-action-pack", "--json", str(tmp_path), "--key-manifest", str(trusted))
+    report = _json(result)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    claims = {claim["name"]: claim["verdict"] for claim in report["claims"]}
+    assert claims["permit.decision.v1"] == "supported"
+    assert report["artifact"]["native_action"]["verdict"] == "supported"
+
+
+def test_allow_path_pack_has_no_review_and_one_dispatch():
+    document = json.loads((ALLOWED / "export.json").read_text("utf-8"))
+    assert document["exact_review_v2"] is None and document["approval"] is None
+    types = [event["event_type"] for event in document["closure_events"]]
+    assert types == [
+        "native.action.proposed",
+        "native.action.dispatch_started",
+        "native.action.upstream_result",
+    ]
+
+
+@pytest.mark.parametrize("pack", [REVIEWED, EXECUTION, ALLOWED], ids=["reviewed", "execution", "allowed"])
+def test_real_closure_events_are_in_chain_order(pack):
+    """keel-api 1.4.0: closure events come per action, in hash-chain order."""
+
+    document = json.loads((pack / "export.json").read_text("utf-8"))
+    events = document["closure_events"]
+    sequence = [event["sequence_number"] for event in events]
+    assert sequence == sorted(sequence) and len(set(sequence)) == len(sequence)
+    action_id = document["permit_audit_bundle"]["record"]["permit"]["resource_attributes_json"][
+        "native_action"
+    ]["canonical_action"]["action_id"]
+    assert {event["payload"]["action_id"] for event in events} == {action_id}
 
 
 def test_pack_requires_a_pinned_key_manifest_signer(run_cli):
@@ -550,14 +634,14 @@ def test_non_native_export_is_refused_by_the_pack_command(tmp_path, run_cli):
 # ---------------------------------------------------------------------------
 
 
-def _resigned_pack(tmp_path, document):
+def _resigned_pack(tmp_path, document, *, key_source=REVIEWED):
     """Sign ``document`` with a fresh test export key; trust it plus the candidate binding key."""
 
     private, public, key_id = keypair()
     export_file, manifest = write_signed_export(
         tmp_path, document, export_private_key=private, export_public_key=public, export_key_id=key_id
     )
-    candidate_keys = json.loads((REVIEWED / "key_manifest.json").read_text("utf-8"))["keys"]
+    candidate_keys = json.loads((key_source / "key_manifest.json").read_text("utf-8"))["keys"]
     binding = [key for key in candidate_keys if key["purpose"] == "permit_binding_signing"]
     assert binding
     write_json(
