@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.31.0
+
+### Permit presentation registry v23
+
+- Vendor keel-permit presentation registry v23 and its schema, plus the v22
+  and v23 entries the sync script was missing. v23 gives every canonical
+  `AI Permit-to-…` title an explicit `AI-P2` acronym (for example
+  `AI Permit-to-Grant-Group-Access` is `AI-P2GGA`). Titles, definitions,
+  leading fields and evidence sections are unchanged from v22.
+- v23 is the current canonical identity registry. Permits issued under
+  semantic selector registry v22 resolve through it and report
+  `keel.presentation_registry.v23`.
+- The three profiles v22 published as cross-history identity aliases (Work,
+  Pay, Transfer) now resolve through v23, so their acronyms read `AI-P2W`,
+  `AI-P2P` and `AI-P2T` instead of `AI-PTW`, `AI-PTP` and `AI-PTT`. No
+  other historical Permit changes registry: older records keep the
+  presentation registry they resolved under.
+- Presentation stays non-authorizing: verdicts, claims, cryptographic checks
+  and exit codes are unchanged.
+
 ## 3.30.1
 
 ### Trust-material refresh
