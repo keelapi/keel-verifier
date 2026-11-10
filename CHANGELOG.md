@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.32.1
+
+### Command-line routing
+
+- `keel-verify` now routes on the first positional argument, so flags can
+  come before the file (keelapi/keel-verifier#125). In 3.31.0 and 3.32.0 a
+  self-attesting evidence bundle, `.keelpermit` package or work-chain pack
+  was detected only as the first argument; `keel-verify --json BUNDLE.json`
+  fell through to the legacy checkpoint verifier and failed, and
+  `keel-verify --json export BUNDLE.json` failed with a usage error. Both now
+  verify the bundle, and `keel-verify export WORK_CHAIN.json` verifies a
+  work-chain pack.
+- `export` given a work-chain pack refuses the flags the pack verifier can't
+  honor (`--walk-events`, `--verify-closure`, `--raw`, `--allow-unsigned`,
+  `--expected-public-key`/`--public-key`, `--self-attested`,
+  `--key-manifest-url`) with exit 2 instead of ignoring them, and refuses
+  `--trust-root` together with `--key-manifest`.
+- Verdicts, claims and cryptographic checks are unchanged. Commands that put
+  the subcommand or file first behave as before.
+
 ## 3.32.0
 
 ### Permit presentation registry v24 (AI-PT acronyms)
