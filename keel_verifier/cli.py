@@ -126,6 +126,8 @@ def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -
     args.manifest = args.manifest_flag or args.manifest_pos
     if not args.export_file:
         parser.error("export requires EXPORT_FILE or --export-file")
+    if not args.manifest and _looks_like_work_chain(str(args.export_file)):
+        return _cmd_export_work_chain(parser, args)
     if _trust_flag_count(args, include_public_key_url=False) > 1:
         parser.error(
             "--expected-public-key/--public-key, --key-manifest, "
@@ -134,6 +136,49 @@ def _cmd_export_cli(parser: argparse.ArgumentParser, args: argparse.Namespace) -
     if str(args.export_file).lower().endswith(".keelpermit"):
         return _cmd_permit_package(args)
     return cmd_export(args)
+
+
+# export flags that have no meaning for a Permit-to-Work pack. They are
+# refused instead of silently ignored, so ``export`` never reports a pack
+# VERIFIED under a check the caller asked for but the pack verifier skipped.
+_EXPORT_FLAGS_UNSUPPORTED_FOR_WORK_CHAIN = (
+    ("as_raw", "--raw"),
+    ("walk_events", "--walk-events"),
+    ("verify_closure", "--verify-closure"),
+    ("allow_unsigned", "--allow-unsigned"),
+    ("expected_public_key", "--expected-public-key/--public-key"),
+    ("self_attested", "--self-attested"),
+    ("key_manifest_url", "--key-manifest-url"),
+)
+
+
+def _cmd_export_work_chain(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Route ``export <work-chain pack>`` to the work-chain verifier.
+
+    Bare ``keel-verify PACK`` auto-detects a work-chain pack; the explicit
+    ``export`` spelling must reach the same verifier instead of reading the
+    pack as a compliance export.
+    """
+
+    unsupported = [
+        flag for attr, flag in _EXPORT_FLAGS_UNSUPPORTED_FOR_WORK_CHAIN if getattr(args, attr, None)
+    ]
+    if unsupported:
+        parser.error(
+            "not supported for a work-chain pack: "
+            + ", ".join(unsupported)
+            + " (use: keel-verify work-chain --help)"
+        )
+    if args.trust_root and args.key_manifest:
+        parser.error(
+            "--trust-root and --key-manifest are aliases for a work-chain pack; pass only one"
+        )
+    nested = argparse.Namespace(
+        pack=str(args.export_file),
+        trust_root=args.trust_root or args.key_manifest,
+        as_json=bool(args.as_json),
+    )
+    return _cmd_work_chain(nested)
 
 
 def _cmd_authority_proof(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
@@ -1134,31 +1179,93 @@ def _looks_like_work_chain(path: str) -> bool:
     )
 
 
+_TOP_LEVEL_FLAGS = {"-h", "--help", "--version"}
+
+
+def _option_arities() -> tuple[frozenset[str], frozenset[str]]:
+    """Return (value-taking options, valueless options) across every parser.
+
+    Routing has to skip an option's value when it looks for the first
+    positional, or ``--trust-root export.json FILE`` would route on the
+    trust-root path. Read from the parsers themselves so a new option can't
+    drift out of this list.
+    """
+
+    takes_value: set[str] = set()
+    valueless: set[str] = set()
+    parsers = [_build_parser(), _build_legacy_parser()]
+    while parsers:
+        current = parsers.pop()
+        for action in current._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                parsers.extend(action.choices.values())
+                continue
+            target = valueless if action.nargs == 0 else takes_value
+            target.update(action.option_strings)
+    return frozenset(takes_value), frozenset(valueless)
+
+
+def _option_takes_value(token: str, takes_value: frozenset[str], valueless: frozenset[str]) -> bool:
+    if "=" in token:
+        return False
+    if token in takes_value:
+        return True
+    if token in valueless or not token.startswith("--"):
+        return False
+    # argparse accepts unambiguous long-option prefixes (``--trust`` for
+    # ``--trust-root``); treat a prefix as value-taking only when every option
+    # it could expand to takes a value.
+    candidates = [opt for opt in takes_value | valueless if opt.startswith(token)]
+    return bool(candidates) and all(opt in takes_value for opt in candidates)
+
+
+def _first_positional_index(raw: list[str]) -> int | None:
+    """Index of the first non-flag argument, skipping option values."""
+
+    takes_value, valueless = _option_arities()
+    index = 0
+    while index < len(raw):
+        token = raw[index]
+        if token == "--":
+            return index + 1 if index + 1 < len(raw) else None
+        if token.startswith("-") and token != "-":
+            index += 2 if _option_takes_value(token, takes_value, valueless) else 1
+            continue
+        return index
+    return None
+
+
+def _route_argv(raw: list[str]) -> list[str] | None:
+    """Normalize argv for the subcommand parser, or None for the legacy verifier.
+
+    Routing keys on the first positional argument, not ``raw[0]``, so flags
+    may come before or after the file (``--json FILE`` and ``FILE --json``)
+    and before an explicit subcommand (``--json export FILE``).
+    """
+
+    if not raw or raw[0] in _TOP_LEVEL_FLAGS or raw[0] in LEGACY_COMMANDS:
+        return raw
+    position = _first_positional_index(raw)
+    if position is None:
+        return None
+    target = raw[position]
+    if target in LEGACY_COMMANDS:
+        return [target, *raw[:position], *raw[position + 1 :]]
+    if _looks_like_permit_package(target):
+        return ["export", *raw]
+    if _looks_like_work_chain(target):
+        return ["work-chain", *raw]
+    if _looks_like_self_attesting_bundle(target):
+        return ["export", *raw]
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
-    if (
-        raw
-        and raw[0] not in LEGACY_COMMANDS
-        and raw[0] not in {"-h", "--help", "--version"}
-        and _looks_like_permit_package(raw[0])
-    ):
-        raw = ["export", *raw]
-    if (
-        raw
-        and raw[0] not in LEGACY_COMMANDS
-        and raw[0] not in {"-h", "--help", "--version"}
-        and _looks_like_work_chain(raw[0])
-    ):
-        raw = ["work-chain", *raw]
-    if (
-        raw
-        and raw[0] not in LEGACY_COMMANDS
-        and raw[0] not in {"-h", "--help", "--version"}
-        and _looks_like_self_attesting_bundle(raw[0])
-    ):
-        raw = ["export", *raw]
-    if raw and raw[0] not in LEGACY_COMMANDS and raw[0] not in {"-h", "--help", "--version"}:
+    routed = _route_argv(raw)
+    if routed is None:
         return _main_legacy(raw)
+    raw = routed
 
     parser = _build_parser()
     args = parser.parse_args(raw)
