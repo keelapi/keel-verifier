@@ -16,7 +16,7 @@
     "keel_verifier/canonical/permit_binding.py": "d359bcccfbb82a58aebcbbbbc075de052d69c096ffa06439ca5f7d32e3c6a7fd",
     "keel_verifier/capability/README.md": "1e7768b1f78b6f7f24fafe52d29febcd863c05f4e60cffcb0dd0852a59f52678",
     "keel_verifier/capability/v1.json": "e434acb17275d78f985fb3178da71d1657e5e372ef3b5473e9b80e71ae7a2952",
-    "keel_verifier/cli.py": "6fac00a39d522f31091a01a8d43428c4e08f3e93339cd2f4b8130e67fbd8dec5",
+    "keel_verifier/cli.py": "5d4fca346b13beaf20905306fb6774b22bd9f5212512896059f61b405601f4c3",
     "keel_verifier/data/claim_registry/historical/v0-sha256-02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5.json": "02b6fa04d9471905bee9d7e45698c96bd16124bf167ee19ae859213935b264e5",
     "keel_verifier/data/claim_registry/historical/v0-sha256-0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4.json": "0b27a8346fac861a8c7298055fc763c0bad0dfcd068af38dd2c620b6a7d610c4",
     "keel_verifier/data/claim_registry/historical/v0-sha256-193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6.json": "193003abced927dd7be5acb9d41d5bde6cab72cdb04a022496c1f59139d75eb6",
