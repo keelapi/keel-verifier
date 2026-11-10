@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 3.32.0
 
 ### Permit presentation registry v24 (AI-PT acronyms)
 
