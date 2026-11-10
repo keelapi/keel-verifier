@@ -958,7 +958,7 @@ def test_human_artifact_validates_and_ignores_caller_title_and_summary() -> None
     assert "Drain" not in human["summary"]["text"]
     assert "Caller says" not in human["summary"]["text"]
     assert human["source"]["presentation_registry_version"] == (
-        "keel.presentation_registry.v23"
+        "keel.presentation_registry.v24"
     )
 
 

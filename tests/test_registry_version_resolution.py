@@ -85,9 +85,9 @@ def test_v21_action_gateway_payment_resolves_to_pay_title() -> None:
     assert resolved["resolution"] == "trusted_signed_semantic"
     assert resolved["customer_title"] == "AI Permit-to-Pay"
     # A v22 identity alias: the historical record takes the current acronym.
-    assert resolved["acronym"] == "AI-P2P"
+    assert resolved["acronym"] == "AI-PTP"
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v23"
+        "keel.presentation_registry.v24"
     )
 
 
@@ -121,17 +121,17 @@ def test_verified_profile_exposes_registry_defined_acronym() -> None:
     resolved = resolve_permit_presentation(binding)
 
     assert resolved["resolution"] == "trusted_signed_semantic"
-    assert resolved["acronym"] == "AI-P2P"
+    assert resolved["acronym"] == "AI-PTP"
     assert resolved["customer_title"] == "AI Permit-to-Pay"
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v23"
+        "keel.presentation_registry.v24"
     )
 
 
 def _binding_for_v22_semantic(semantic_id: str) -> dict:
     registry, raw = _registry("semantic_registry/v22.json")
     entry = next(item for item in registry["entries"] if item["semantic_id"] == semantic_id)
-    presentation, _ = _registry("presentation_registry/v23.json")
+    presentation, _ = _registry("presentation_registry/v24.json")
     profile = next(
         item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
     )
@@ -177,6 +177,54 @@ def test_v23_titles_and_evidence_are_unchanged_from_v22() -> None:
     assert v23["semantic_registry_version"] == v22["semantic_registry_version"]
 
 
+def test_v24_acronyms_follow_the_ai_pt_registry_rule() -> None:
+    v23, _ = _registry("presentation_registry/v23.json")
+    v24, _ = _registry("presentation_registry/v24.json")
+    acronyms = [profile["acronym"] for profile in v24["profiles"] if profile.get("acronym")]
+
+    assert len(acronyms) == len(set(acronyms)) == 101
+    assert all(re.fullmatch(r"AI-PT[A-Z]{1,4}", acronym) for acronym in acronyms)
+    # Same rule as v23, AI-PT prefix instead of AI-P2.
+    for old, new in zip(v23["profiles"], v24["profiles"], strict=True):
+        expected = old["acronym"].replace("AI-P2", "AI-PT", 1) if old.get("acronym") else None
+        assert new.get("acronym") == expected, new["presentation_profile_id"]
+
+
+def test_v24_keeps_the_three_acronyms_v22_published() -> None:
+    v22, _ = _registry("presentation_registry/v22.json")
+    v24, _ = _registry("presentation_registry/v24.json")
+    current = {p["presentation_profile_id"]: p.get("acronym") for p in v24["profiles"]}
+    published = {p["presentation_profile_id"]: p["acronym"] for p in v22["profiles"] if p.get("acronym")}
+
+    assert published == {
+        "permit_to_work.r1": "AI-PTW",
+        "permit_to_pay.r1": "AI-PTP",
+        "stripe_connect_transfer_send.r1": "AI-PTT",
+    }
+    assert {profile_id: current[profile_id] for profile_id in published} == published
+
+
+def test_v24_titles_and_evidence_are_unchanged_from_v22() -> None:
+    v22, _ = _registry("presentation_registry/v22.json")
+    v24, _ = _registry("presentation_registry/v24.json")
+
+    def without_acronym(profile: dict) -> dict:
+        return {key: value for key, value in profile.items() if key != "acronym"}
+
+    assert [without_acronym(p) for p in v22["profiles"]] == [
+        without_acronym(p) for p in v24["profiles"]
+    ]
+    assert v24["semantic_registry_version"] == v22["semantic_registry_version"]
+
+
+def test_v23_presentation_registry_bytes_are_unchanged() -> None:
+    _value, raw = _registry("presentation_registry/v23.json")
+
+    assert hashlib.sha256(raw).hexdigest() == (
+        "558247cb13be3ed7ef6da27051dc62fade293dc892e34a4c3f0e7580fc985e1a"
+    )
+
+
 def test_v22_presentation_registry_bytes_are_unchanged() -> None:
     _value, raw = _registry("presentation_registry/v22.json")
 
@@ -190,13 +238,13 @@ def test_v22_presentation_registry_bytes_are_unchanged() -> None:
     [
         (
             "keel.action.identity_group_access_grant.v1",
-            "AI-P2GGA",
+            "AI-PTGGA",
             "AI Permit-to-Grant-Group-Access",
         ),
-        ("keel.action.payment_execute.v1", "AI-P2P", "AI Permit-to-Pay"),
+        ("keel.action.payment_execute.v1", "AI-PTP", "AI Permit-to-Pay"),
     ],
 )
-def test_v23_profile_exposes_ai_p2_acronym(
+def test_v24_profile_exposes_ai_pt_acronym(
     semantic_id: str, acronym: str, title: str
 ) -> None:
     resolved = resolve_permit_presentation(_binding_for_v22_semantic(semantic_id))
@@ -205,7 +253,7 @@ def test_v23_profile_exposes_ai_p2_acronym(
     assert resolved["acronym"] == acronym
     assert resolved["customer_title"] == title
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v23"
+        "keel.presentation_registry.v24"
     )
 
 
@@ -970,7 +1018,7 @@ def test_v18_goal3a_portfolio_profiles_resolve_from_published_vectors() -> None:
         )
         assert resolved["customer_title"] == expected_title
         assert resolved["presentation_registry_version"] == (
-            "keel.presentation_registry.v23"
+            "keel.presentation_registry.v24"
             if resolved.get("acronym")
             else "keel.presentation_registry.v17"
         )

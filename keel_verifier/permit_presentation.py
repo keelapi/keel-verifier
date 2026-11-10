@@ -65,6 +65,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v24.json",
     "presentation_registry/v23.json",
     "presentation_registry/v22.json",
     "presentation_registry/v21.json",
@@ -91,13 +92,15 @@ _PRESENTATION_REGISTRIES = (
 )
 
 # Current canonical identity registry.  Titles, definitions and evidence
-# sections in v23 equal the v22 values; only the acronyms differ (an explicit
-# AI-P2 acronym for every canonical Permit-to title).  Permits issued under the
-# current selector registry reach it through the newest-first scan below.
-_CANONICAL_IDENTITY_REGISTRY = "presentation_registry/v23.json"
+# sections in v24 equal the v22 values; only the acronyms differ (an explicit
+# AI-PT acronym for every canonical Permit-to title, keeping v22's three).
+# v24 supersedes v23, which used an AI-P2 prefix: both name selector registry
+# v22, so the newest-first scan below reaches v24 first and v23 stays vendored
+# only so its published bytes remain reproducible.
+_CANONICAL_IDENTITY_REGISTRY = "presentation_registry/v24.json"
 
 # v22 published three profiles as public identity aliases that apply across the
-# back catalogue.  That set is fixed: v23 adds acronyms for current Permits but
+# back catalogue.  That set is fixed: v24 adds acronyms for current Permits but
 # does not move other historical Permits off the registry they resolved under.
 _IDENTITY_ALIAS_REGISTRY = "presentation_registry/v22.json"
 
@@ -143,9 +146,10 @@ def _presentation_registry_for(
     discriminator.  v22 adds a narrow exception: profiles carrying an explicit
     canonical acronym are public identity aliases, so their registry-defined
     acronym/title are used after the original selector bytes verify.  This does
-    not change authorization or permit claim adjudication.  v23 is the current
-    canonical identity registry: it carries an explicit AI-P2 acronym for every
-    canonical Permit-to title, with titles and definitions unchanged from v22.
+    not change authorization or permit claim adjudication.  v24 is the current
+    canonical identity registry: it carries an explicit AI-PT acronym for every
+    canonical Permit-to title, with titles and definitions unchanged from v22
+    (it supersedes v23, which used an AI-P2 prefix).
     The cross-history alias set stays the three profiles v22 published; other
     historical Permits keep resolving through the registry they were issued
     under.
@@ -214,7 +218,7 @@ def _presentation_registry_for(
         ):
             return registry, raw
     legacy_name = (
-        "presentation_registry/v23.json"
+        "presentation_registry/v24.json"
         if selector_version == "keel.semantic_selector_registry.v22"
         else "presentation_registry/v20.json"
         if selector_version == "keel.semantic_selector_registry.v21"
