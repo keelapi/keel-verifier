@@ -105,6 +105,8 @@ _PARITY_MAP = {
     "permit_to_x/presentation_registry/v22.schema.json": "presentation_registry/v22.schema.json",
     "permit_to_x/presentation_registry/v23.json": "presentation_registry/v23.json",
     "permit_to_x/presentation_registry/v23.schema.json": "presentation_registry/v23.schema.json",
+    "permit_to_x/presentation_registry/v24.json": "presentation_registry/v24.json",
+    "permit_to_x/presentation_registry/v24.schema.json": "presentation_registry/v24.schema.json",
     "permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "test-vectors/permit_to_work/v1/corpus.json",
     "comparator_registry/work-payment-authority-v1.json": "comparator_registry/work-payment-authority-v1.json",
     "semantics/work/authority_manifest_v1.json": "semantics/work/authority_manifest_v1.json",

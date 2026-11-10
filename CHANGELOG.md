@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.32.0
+
+### Permit presentation registry v24 (AI-PT acronyms)
+
+- Vendor keel-permit presentation registry v24 and its schema
+  (keel-permit `f0af322`). v24 supersedes v23: same rule, with the `AI-PT`
+  prefix v22 used instead of `AI-P2` (for example
+  `AI Permit-to-Grant-Group-Access` is `AI-PTGGA`). Titles, definitions,
+  leading fields and evidence sections are unchanged from v22 and v23.
+- v24 is the current canonical identity registry. Permits issued under
+  semantic selector registry v22 resolve through it and report
+  `keel.presentation_registry.v24`.
+- The three v22 cross-history identity aliases read `AI-PTW`, `AI-PTP` and
+  `AI-PTT` again, the values v22 published, instead of 3.31.0's `AI-P2W`,
+  `AI-P2P` and `AI-P2T`. No other historical Permit changes registry.
+- v23 stays vendored and byte-identical; no Permit resolves through it.
+- Presentation stays non-authorizing: verdicts, claims, cryptographic checks
+  and exit codes are unchanged. Trust material (CRLs, roots) is unchanged
+  from 3.31.0.
+
 ## 3.31.0
 
 ### Permit presentation registry v23

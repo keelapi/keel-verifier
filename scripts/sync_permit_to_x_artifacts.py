@@ -160,6 +160,8 @@ COPIES = {
     "presentation_registry/v22.schema.json": ("permit_to_x/presentation_registry/v22.schema.json"),
     "presentation_registry/v23.json": "permit_to_x/presentation_registry/v23.json",
     "presentation_registry/v23.schema.json": ("permit_to_x/presentation_registry/v23.schema.json"),
+    "presentation_registry/v24.json": "permit_to_x/presentation_registry/v24.json",
+    "presentation_registry/v24.schema.json": ("permit_to_x/presentation_registry/v24.schema.json"),
     "consequence_registry/v13.json": "permit_to_x/consequence_registry/v13.json",
     "consequence_registry/v13.schema.json": ("permit_to_x/consequence_registry/v13.schema.json"),
     "consequence_registry/v1.json": "permit_to_x/consequence_registry/v1.json",
