@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from importlib import resources
 
+import pytest
 import rfc8785
 
 from keel_verifier.permit_presentation import resolve_permit_presentation
@@ -82,8 +84,10 @@ def test_v21_action_gateway_payment_resolves_to_pay_title() -> None:
 
     assert resolved["resolution"] == "trusted_signed_semantic"
     assert resolved["customer_title"] == "AI Permit-to-Pay"
+    # A v22 identity alias: the historical record takes the current acronym.
+    assert resolved["acronym"] == "AI-P2P"
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v22"
+        "keel.presentation_registry.v23"
     )
 
 
@@ -96,7 +100,7 @@ def test_v21_legacy_payment_source_remains_compatible() -> None:
     assert resolved["customer_title"] == "AI Permit-to-Pay"
 
 
-def test_v22_verified_profile_exposes_registry_defined_acronym() -> None:
+def test_verified_profile_exposes_registry_defined_acronym() -> None:
     binding = _payment_binding_for_v21("action_gateway_service")
     registry, raw = _registry("semantic_registry/v22.json")
     entry = next(
@@ -117,10 +121,91 @@ def test_v22_verified_profile_exposes_registry_defined_acronym() -> None:
     resolved = resolve_permit_presentation(binding)
 
     assert resolved["resolution"] == "trusted_signed_semantic"
-    assert resolved["acronym"] == "AI-PTP"
+    assert resolved["acronym"] == "AI-P2P"
     assert resolved["customer_title"] == "AI Permit-to-Pay"
     assert resolved["presentation_registry_version"] == (
-        "keel.presentation_registry.v22"
+        "keel.presentation_registry.v23"
+    )
+
+
+def _binding_for_v22_semantic(semantic_id: str) -> dict:
+    registry, raw = _registry("semantic_registry/v22.json")
+    entry = next(item for item in registry["entries"] if item["semantic_id"] == semantic_id)
+    presentation, _ = _registry("presentation_registry/v23.json")
+    profile = next(
+        item for item in presentation["profiles"] if item["semantic_id"] == semantic_id
+    )
+    match = entry["match"]
+    return {
+        "version": "keel.permit_semantic_binding.v2",
+        "semantic_id": semantic_id,
+        "trusted_source_kind": entry["trusted_source_kinds"][0],
+        "chain_role": match["allowed_chain_roles"][0],
+        "action_name": match["action_names"][0],
+        "operation": match["operations"][0],
+        "governed_surface": "keel_action_gateway",
+        "non_authorizing_presentation_profile_id": profile["presentation_profile_id"],
+        "selector_registry_version": registry["version"],
+        "selector_registry_digest": f"sha256:{hashlib.sha256(raw).hexdigest()}",
+        "selector_entry_digest": (
+            f"sha256:{hashlib.sha256(rfc8785.dumps(entry)).hexdigest()}"
+        ),
+    }
+
+
+def test_v23_acronyms_follow_the_ai_p2_registry_rule() -> None:
+    presentation, _ = _registry("presentation_registry/v23.json")
+    acronyms = [
+        profile["acronym"] for profile in presentation["profiles"] if profile.get("acronym")
+    ]
+
+    assert len(acronyms) == len(set(acronyms))
+    assert all(re.fullmatch(r"AI-P2[A-Z]{1,4}", acronym) for acronym in acronyms)
+    assert not any(acronym.startswith("AI-PT") for acronym in acronyms)
+
+
+def test_v23_titles_and_evidence_are_unchanged_from_v22() -> None:
+    v22, _ = _registry("presentation_registry/v22.json")
+    v23, _ = _registry("presentation_registry/v23.json")
+
+    def without_acronym(profile: dict) -> dict:
+        return {key: value for key, value in profile.items() if key != "acronym"}
+
+    assert [without_acronym(p) for p in v22["profiles"]] == [
+        without_acronym(p) for p in v23["profiles"]
+    ]
+    assert v23["semantic_registry_version"] == v22["semantic_registry_version"]
+
+
+def test_v22_presentation_registry_bytes_are_unchanged() -> None:
+    _value, raw = _registry("presentation_registry/v22.json")
+
+    assert hashlib.sha256(raw).hexdigest() == (
+        "70f92d1daa4441afb01b748ae4dbebdbeb639146eeb14ae6fdf901ad13f1e991"
+    )
+
+
+@pytest.mark.parametrize(
+    ("semantic_id", "acronym", "title"),
+    [
+        (
+            "keel.action.identity_group_access_grant.v1",
+            "AI-P2GGA",
+            "AI Permit-to-Grant-Group-Access",
+        ),
+        ("keel.action.payment_execute.v1", "AI-P2P", "AI Permit-to-Pay"),
+    ],
+)
+def test_v23_profile_exposes_ai_p2_acronym(
+    semantic_id: str, acronym: str, title: str
+) -> None:
+    resolved = resolve_permit_presentation(_binding_for_v22_semantic(semantic_id))
+
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["acronym"] == acronym
+    assert resolved["customer_title"] == title
+    assert resolved["presentation_registry_version"] == (
+        "keel.presentation_registry.v23"
     )
 
 
@@ -885,7 +970,7 @@ def test_v18_goal3a_portfolio_profiles_resolve_from_published_vectors() -> None:
         )
         assert resolved["customer_title"] == expected_title
         assert resolved["presentation_registry_version"] == (
-            "keel.presentation_registry.v22"
+            "keel.presentation_registry.v23"
             if resolved.get("acronym")
             else "keel.presentation_registry.v17"
         )
