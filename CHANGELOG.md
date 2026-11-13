@@ -1,5 +1,44 @@
 # Changelog
 
+## 3.33.0
+
+### Standing-approval coverage and permit binding v8
+
+This release ships before keel-api emits standing-approval coverage
+(earned-autonomy spec v4, piece V; contract invariant 10).
+
+- A permit decision whose signed reason is
+  `platform_safety_floor.standing_approval_covered` (any binding version)
+  verifies as before and is reported as "pre-approved by standing approval
+  `<id>` v`<n>`; no per-action review". It is never described as
+  human-reviewed: `permit.decision.v1` adds "that a human reviewed this
+  individual action" and related limits to `does_not_establish`.
+- New permit binding version `v8`: the `v7` payload plus
+  `standing_approval_version_id` (UUID) and `terms_digest`
+  (`sha256:<64 hex>`), RFC 8785 canonical bytes. A `v8` decision must carry
+  the covered reason and `allow`; otherwise it is `disproved`
+  (`PERMIT_DECISION_SCHEMA_INVALID`).
+- The receipt block `permit_receipt.standing_approval` is validated when
+  present (absent or `null` is fine). A malformed block, a block on a permit
+  whose signed reason is not covered, a signed `issued_at` outside the
+  approval's `[authorized_at, expires_at)`, or on `v8` a version id or terms
+  digest that differs from the signed value makes `permit.decision.v1`
+  `disproved` with `STANDING_APPROVAL_RECEIPT_INVALID`,
+  `STANDING_APPROVAL_RECEIPT_UNSIGNED_COVERAGE` or
+  `STANDING_APPROVAL_RECEIPT_MISMATCH`.
+- `--report` and the human Permit artifact add an admin-review line and
+  sentence for covered permits, and `artifact.permit.standing_approval`
+  projects the signed and receipt-reported values separately.
+- `v8` is accepted wherever `v7` is (authority chain, co-signature quorum,
+  permit-v2 slot canonicalization), except Work packs: standing approvals
+  never cover Work, so Work roots and children still require `v7`.
+- Pinned semantics `keel.permit.decision.v1` now advertises `v8` and the
+  standing-approval rule (new hash
+  `sha256:8a2b6795606defc1c3f2798bc27ae79d9fd619a529893cde24de4a92bdb8a5a6`);
+  the 3.32.1 artifact stays bundled under its hash.
+- Permits without the covered reason, and receipts without the block, verify
+  and report exactly as in 3.32.1.
+
 ## 3.32.1
 
 ### Command-line routing
