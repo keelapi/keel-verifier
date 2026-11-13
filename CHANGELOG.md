@@ -1,5 +1,49 @@
 # Changelog
 
+## 3.32.1
+
+### Command-line routing
+
+- `keel-verify` now routes on the first positional argument, so flags can
+  come before the file (keelapi/keel-verifier#125). In 3.31.0 and 3.32.0 a
+  self-attesting evidence bundle, `.keelpermit` package or work-chain pack
+  was detected only as the first argument; `keel-verify --json BUNDLE.json`
+  fell through to the legacy checkpoint verifier and failed, and
+  `keel-verify --json export BUNDLE.json` failed with a usage error. Both now
+  verify the bundle, and `keel-verify export WORK_CHAIN.json` verifies a
+  work-chain pack.
+- `export` given a work-chain pack refuses the flags the pack verifier can't
+  honor (`--walk-events`, `--verify-closure`, `--raw`, `--allow-unsigned`,
+  `--expected-public-key`/`--public-key`, `--self-attested`,
+  `--key-manifest-url`) with exit 2 instead of ignoring them, and refuses
+  `--trust-root` together with `--key-manifest`.
+- Verdicts, claims and cryptographic checks are unchanged. Commands that put
+  the subcommand or file first behave as before.
+
+### Trust-material refresh
+
+- Refresh the three bundled DigiCert certificate-revocation lists (Trusted G4
+  TimeStamping RSA4096 SHA256 2025 CA1, Trusted Root G4, Assured ID Root CA)
+  and their pinned hashes, and refresh the coupled public-CA timestamp
+  receipt fixture. No certificate was newly revoked. GlobalSign CRLs are
+  unchanged.
+- A TSA timestamp is validated only when every CRL in its chain covers its
+  genTime. Each release therefore covers a moving window of DigiCert
+  timestamps:
+  - 3.30.1, 3.31.0 and 3.32.0: 2026-11-06T17:42:35Z to 2026-11-25T16:40:26Z.
+  - 3.32.1: 2026-11-13T17:42:35Z to 2026-12-02T16:40:26Z.
+
+  Outside its window a release reports the DigiCert timestamp as
+  `not_validated_revocation_snapshot_stale`. A DigiCert timestamp from
+  2026-11-06T17:42:35Z to before 2026-11-13T17:42:35Z verifies under 3.32.0
+  but is reported `not_validated_revocation_snapshot_stale` under 3.32.1; use
+  the published 3.32.0 to verify evidence in that window. GlobalSign coverage
+  is unchanged (2026-10-07T00:00:00Z to 2027-01-15T00:00:00Z).
+- The seven-day release freshness gate requires the next refresh before
+  2026-11-25T16:40:26Z.
+- Existing trust roots, verifier adjudication logic, historical semantics,
+  and freshness requirements are unchanged.
+
 ## 3.32.0
 
 ### Permit presentation registry v24 (AI-PT acronyms)
