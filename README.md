@@ -363,6 +363,31 @@ When a pack does not embed its signed public-key manifest, provide one with
 scope-faithful through its declared cutoff. It does not claim to record every
 real-world event or prove payment settlement without the required evidence.
 
+## Standing-Approval Coverage
+
+Keel can let a bounded, passkey-confirmed standing approval satisfy its default
+admin review for a narrow class of managed actions. Such a permit is signed
+with reason `platform_safety_floor.standing_approval_covered` on every binding
+version; the customer policy's `policy_id` and `policy_version` are unchanged.
+Binding `v8` is the `v7` payload plus the covering approval's
+`standing_approval_version_id` and `terms_digest`, and is used only for these
+permits.
+
+The verifier reports a covered permit as "pre-approved by standing approval
+`<id>` v`<n>`; no per-action review" and never as human-reviewed. The
+approval id and number come from the unsigned `permit_receipt.standing_approval`
+block; when that block is absent (older receipts, or `null`) the report names
+the signed approval version on `v8`, or just "a standing approval" below `v8`.
+When the block is present it must be well formed, the signed reason must be the
+covered reason, and on `v8` its version id and terms digest must equal the
+signed values. Otherwise `permit.decision.v1` is `disproved`
+(`STANDING_APPROVAL_RECEIPT_INVALID`, `STANDING_APPROVAL_RECEIPT_UNSIGNED_COVERAGE`
+or `STANDING_APPROVAL_RECEIPT_MISMATCH`). The verifier does not establish the
+approval's terms, the approver's passkey assertion over `terms_digest`, or the
+identity-provider facts the coverage relied on (gateway-asserted,
+Keel-authenticated). Standing approvals never cover Work, so Work packs keep
+requiring `v7` and reject `v8`.
+
 ## Workflow Intent Verification
 
 `keel-verify export` understands `keel.workflow_evidence/v1` artifacts emitted alongside evidence exports. During the 3.x transition it also accepts the legacy `keel.vanta.workflow_evidence/v1` name with a deprecation warning. When the signed export manifest includes a `sibling_artifacts.workflow_evidence` entry, the verifier checks the sibling file hash, export signature, workflow declaration signatures, workflow amendment signatures, amendment version ordering, declaration `effective_intent_hash`, and any permit `workflow_state_json` snapshots in the main evidence.

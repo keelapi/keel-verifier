@@ -15,6 +15,7 @@
   },
   "templates": {
     "permit_authorization": "Keel authorized {agent} to {action} on {target}.",
+    "standing_approval_coverage": "No human reviewed this individual action: the admin review was satisfied by {coverage}.",
     "permit_validity_bounded": "The Permit was valid from {issued_at} until {expires_at}.",
     "permit_validity_unbounded": "The Permit was issued at {issued_at}; no expiry was recorded.",
     "not_dispatched": "No provider dispatch is represented.",
@@ -25,7 +26,7 @@
     "review": "The proposed {action} on {target} is awaiting approval. No Permit or provider dispatch is represented.",
     "verification": "The artifact verification result is {integrity_verdict} in {trust_mode} mode."
   },
-  "sentence_order": ["decision", "validity", "outcome", "verification"],
+  "sentence_order": ["decision", "admin_review", "validity", "outcome", "verification"],
   "security": {
     "caller_supplied_title_allowed": false,
     "caller_supplied_summary_allowed": false,

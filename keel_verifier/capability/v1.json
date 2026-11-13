@@ -362,7 +362,7 @@
     {
       "name": "permit.decision.v1",
       "status": "implemented",
-      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v6, canonical hash, v6 resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision.",
+      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v8, canonical hash, v6+ resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision. A signed reason platform_safety_floor.standing_approval_covered is reported as pre-approved by a standing approval with no per-action review, never as human-reviewed; a permit_receipt.standing_approval block is validated and, on v8, must match the signed standing_approval_version_id and terms_digest.",
       "depends_on_semantics": [
         "keel.permit.decision.v1"
       ],
@@ -1330,6 +1330,9 @@
       "PERMIT_DECISION_KEY_ID_MISMATCH",
       "PERMIT_DECISION_UNTRUSTED_KEY",
       "PERMIT_DECISION_UNSUPPORTED_BINDING_VERSION",
+      "STANDING_APPROVAL_RECEIPT_INVALID",
+      "STANDING_APPROVAL_RECEIPT_UNSIGNED_COVERAGE",
+      "STANDING_APPROVAL_RECEIPT_MISMATCH",
       "permit.binding.resource_attributes_json_missing",
       "permit.binding.resource_attributes_json_invalid",
       "permit.binding.v3.spend_scope_hash_mismatch",
@@ -1522,7 +1525,7 @@
     },
     {
       "id": "keel.permit.decision.v1",
-      "hash": "sha256:6c990d806ce3a72837464b5d20a3eb20caa9ad74e3ac147ee98ec37bdd10cbbb",
+      "hash": "sha256:8a2b6795606defc1c3f2798bc27ae79d9fd619a529893cde24de4a92bdb8a5a6",
       "status": "allowlisted"
     },
     {
