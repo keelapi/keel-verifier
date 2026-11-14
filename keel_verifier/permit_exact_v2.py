@@ -854,6 +854,86 @@ def _verify_procurement_ap_invariants(facts: Mapping[str, Any]) -> None:
         )
 
 
+_AIDBOX_MAILING_ADDRESS_UPDATE = "healthcare.patient.mailing_address.update"
+_AIDBOX_APPOINTMENT_RESCHEDULE = "healthcare.appointment.reschedule"
+_AIDBOX_RECORDS_RELEASE = "healthcare.records.release"
+_AIDBOX_ACTIONS = frozenset(
+    {
+        _AIDBOX_MAILING_ADDRESS_UPDATE,
+        _AIDBOX_APPOINTMENT_RESCHEDULE,
+        _AIDBOX_RECORDS_RELEASE,
+    }
+)
+
+
+def _aidbox_invariants_hold(action: str, facts: Mapping[str, Any]) -> bool:
+    """Synthetic Aidbox administration relations JSON Schema cannot express.
+
+    The aidbox-fhir-exact-facts-v1 schema already fixes every constant (sandbox
+    environment, synthetic record, verified identity, single use, field set,
+    slot/appointment states, bounded document set).  These checks repeat the
+    issuer's exact-action contract so a schema-valid fact set cannot pass on its
+    own: the signed preflight snapshot must expire no later than the identity
+    verification (and, for a release, the disclosure eligibility) it relied on,
+    and a reschedule must move to a different slot.  They establish nothing
+    about identity proofing, consent, clinical suitability or delivery.
+    """
+
+    def boolean(name: str, expected: bool) -> bool:
+        return facts.get(name) is expected
+
+    def integer(name: str) -> int | None:
+        value = facts.get(name)
+        return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+    preflight_expires_at = _parse_time(facts.get("preflight_expires_at"))
+    verification_expires_at = _parse_time(facts.get("verification_expires_at"))
+    if (
+        preflight_expires_at is None
+        or verification_expires_at is None
+        or preflight_expires_at > verification_expires_at
+        or not boolean("identity_verified", True)
+        or not boolean("version_precondition_matches", True)
+        or facts.get("provider_api_version") != "fhir-r4"
+        or facts.get("enforcement_mode") != "enforced_in_path"
+    ):
+        return False
+    if action == _AIDBOX_MAILING_ADDRESS_UPDATE:
+        return (
+            facts.get("address_field_set") == ["city", "line", "postalCode", "state"]
+            and boolean("clinical_field_mutation_requested", False)
+        )
+    if action == _AIDBOX_APPOINTMENT_RESCHEDULE:
+        old_slot = facts.get("old_slot_reference_commitment")
+        new_slot = facts.get("new_slot_reference_commitment")
+        return (
+            facts.get("appointment_status_before") == "booked"
+            and facts.get("old_slot_status") == "busy"
+            and facts.get("new_slot_status") == "free"
+            and boolean("same_schedule", True)
+            and integer("schedule_conflict_count") == 0
+            and isinstance(old_slot, Mapping)
+            and isinstance(new_slot, Mapping)
+            and old_slot.get("digest") != new_slot.get("digest")
+        )
+    if action == _AIDBOX_RECORDS_RELEASE:
+        disclosure_expires_at = _parse_time(facts.get("disclosure_expires_at"))
+        document_count = integer("document_count")
+        total_bytes = integer("total_bytes")
+        return (
+            disclosure_expires_at is not None
+            and preflight_expires_at <= disclosure_expires_at
+            and boolean("recipient_validated", True)
+            and boolean("disclosure_eligible", True)
+            and boolean("human_review_required", True)
+            and document_count is not None
+            and 1 <= document_count <= 8
+            and total_bytes is not None
+            and 1 <= total_bytes <= 4_000_000
+        )
+    return False
+
+
 def _verify_commerce_regulated_invariants(facts: Mapping[str, Any]) -> None:
     """Adjudicate commerce/regulated relations JSON Schema cannot express."""
 
@@ -881,6 +961,10 @@ def _verify_commerce_regulated_invariants(facts: Mapping[str, Any]) -> None:
         "healthcare.appointment.schedule": ("hapi-fhir", "self_hosted_synthetic"),
         "healthcare.claim.submit": ("hapi-fhir", "self_hosted_synthetic"),
         "healthcare.patient_administrative_record.update": ("hapi-fhir", "self_hosted_synthetic"),
+        # Synthetic Aidbox administration (selector v23 / fact profiles v20).
+        "healthcare.patient.mailing_address.update": ("aidbox-fhir", "provider_sandbox"),
+        "healthcare.appointment.reschedule": ("aidbox-fhir", "provider_sandbox"),
+        "healthcare.records.release": ("aidbox-fhir", "provider_sandbox"),
     }
     expected = connector_and_environment.get(action)
     valid = bool(
@@ -1000,6 +1084,8 @@ def _verify_commerce_regulated_invariants(facts: Mapping[str, Any]) -> None:
             and facts.get("administrative_fields_allowlisted") is True
             and facts.get("clinical_field_mutation_requested") is False
         )
+    elif valid and action in _AIDBOX_ACTIONS:
+        valid = _aidbox_invariants_hold(action, facts)
     else:
         valid = False
 
@@ -1572,6 +1658,7 @@ def _resolve_contracts(
             "semantic_registry/v20.json",
             "semantic_registry/v21.json",
             "semantic_registry/v22.json",
+            "semantic_registry/v23.json",
         ),
         artifact_id="keel.permit.semantic_selector_registry",
         allow_compact=allow_compact,
@@ -1597,6 +1684,7 @@ def _resolve_contracts(
             "fact_profiles/v16.json",
             "fact_profiles/v17.json",
             "fact_profiles/v18.json",
+            "fact_profiles/v20.json",
         ),
         artifact_id="keel.permit.fact_profile_registry",
         allow_compact=allow_compact,

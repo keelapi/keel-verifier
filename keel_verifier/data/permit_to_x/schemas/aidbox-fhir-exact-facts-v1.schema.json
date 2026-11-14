@@ -1,0 +1,499 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/schemas/aidbox-fhir-exact-facts-v1.schema.json",
+  "title": "Candidate exact synthetic Aidbox administration facts v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/healthcare_patient_mailing_address_update"
+    },
+    {
+      "$ref": "#/$defs/healthcare_appointment_reschedule"
+    },
+    {
+      "$ref": "#/$defs/healthcare_records_release"
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rawDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z$"
+    },
+    "saltedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "digest"
+      ],
+      "properties": {
+        "method": {
+          "const": "keel.salted_sha256_jcs.v1"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "healthcare_patient_mailing_address_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "address_field_set",
+        "clinical_field_mutation_requested",
+        "connector_contract_hash",
+        "connector_identity",
+        "decision_trace_hash",
+        "enforcement_mode",
+        "fact_profile_id",
+        "idempotency_digest",
+        "identity_verified",
+        "max_uses",
+        "operation",
+        "patient_reference_commitment",
+        "preflight_expires_at",
+        "preflight_observed_at",
+        "preflight_snapshot_digest",
+        "provider_api_version",
+        "provider_environment",
+        "provider_instance_reference_commitment",
+        "provider_state_commitment",
+        "record_is_synthetic",
+        "request_commitment",
+        "request_digest",
+        "tool_arguments_hash",
+        "tool_schema_hash",
+        "verification_expires_at",
+        "verification_reference_commitment",
+        "version",
+        "version_precondition_matches"
+      ],
+      "properties": {
+        "action": {
+          "const": "healthcare.patient.mailing_address.update"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_patient_mailing_address_update_exact.v1"
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "connector_identity": {
+          "const": "aidbox-fhir"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_state_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "address_field_set": {
+          "const": [
+            "city",
+            "line",
+            "postalCode",
+            "state"
+          ]
+        },
+        "identity_verified": {
+          "type": "boolean",
+          "const": true
+        },
+        "clinical_field_mutation_requested": {
+          "type": "boolean",
+          "const": false
+        },
+        "max_uses": {
+          "const": 1,
+          "type": "integer"
+        },
+        "verification_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_api_version": {
+          "const": "fhir-r4"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "verification_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "version_precondition_matches": {
+          "type": "boolean",
+          "const": true
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "record_is_synthetic": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "healthcare_appointment_reschedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "appointment_reference_commitment",
+        "appointment_status_before",
+        "connector_contract_hash",
+        "connector_identity",
+        "decision_trace_hash",
+        "enforcement_mode",
+        "fact_profile_id",
+        "idempotency_digest",
+        "identity_verified",
+        "max_uses",
+        "new_slot_reference_commitment",
+        "new_slot_status",
+        "old_slot_reference_commitment",
+        "old_slot_status",
+        "operation",
+        "patient_reference_commitment",
+        "preflight_expires_at",
+        "preflight_observed_at",
+        "preflight_snapshot_digest",
+        "provider_api_version",
+        "provider_environment",
+        "provider_instance_reference_commitment",
+        "provider_state_commitment",
+        "record_is_synthetic",
+        "request_commitment",
+        "request_digest",
+        "same_schedule",
+        "schedule_conflict_count",
+        "tool_arguments_hash",
+        "tool_schema_hash",
+        "verification_expires_at",
+        "verification_reference_commitment",
+        "version",
+        "version_precondition_matches"
+      ],
+      "properties": {
+        "action": {
+          "const": "healthcare.appointment.reschedule"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_appointment_reschedule_exact.v1"
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "connector_identity": {
+          "const": "aidbox-fhir"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "schedule_conflict_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 0
+        },
+        "identity_verified": {
+          "type": "boolean",
+          "const": true
+        },
+        "old_slot_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "max_uses": {
+          "const": 1,
+          "type": "integer"
+        },
+        "same_schedule": {
+          "type": "boolean",
+          "const": true
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "old_slot_status": {
+          "const": "busy"
+        },
+        "provider_api_version": {
+          "const": "fhir-r4"
+        },
+        "verification_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "version_precondition_matches": {
+          "type": "boolean",
+          "const": true
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "provider_state_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "new_slot_status": {
+          "const": "free"
+        },
+        "verification_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "new_slot_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "appointment_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "appointment_status_before": {
+          "const": "booked"
+        },
+        "record_is_synthetic": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "healthcare_records_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "connector_contract_hash",
+        "connector_identity",
+        "decision_trace_hash",
+        "disclosure_eligible",
+        "disclosure_expires_at",
+        "document_count",
+        "document_set_commitment",
+        "enforcement_mode",
+        "fact_profile_id",
+        "human_review_required",
+        "idempotency_digest",
+        "identity_verified",
+        "max_uses",
+        "operation",
+        "patient_reference_commitment",
+        "preflight_expires_at",
+        "preflight_observed_at",
+        "preflight_snapshot_digest",
+        "provider_api_version",
+        "provider_environment",
+        "provider_instance_reference_commitment",
+        "provider_state_commitment",
+        "recipient_reference_commitment",
+        "recipient_validated",
+        "record_is_synthetic",
+        "request_commitment",
+        "request_digest",
+        "tool_arguments_hash",
+        "tool_schema_hash",
+        "total_bytes",
+        "transfer_payload_commitment",
+        "verification_expires_at",
+        "verification_reference_commitment",
+        "version",
+        "version_precondition_matches"
+      ],
+      "properties": {
+        "action": {
+          "const": "healthcare.records.release"
+        },
+        "operation": {
+          "const": "call.tools"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "version": {
+          "const": "keel.commerce_regulated_exact_facts.v1"
+        },
+        "fact_profile_id": {
+          "const": "keel.facts.healthcare_records_release_exact.v1"
+        },
+        "preflight_observed_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "preflight_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "connector_identity": {
+          "const": "aidbox-fhir"
+        },
+        "tool_schema_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "tool_arguments_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "connector_contract_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "preflight_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "enforcement_mode": {
+          "const": "enforced_in_path"
+        },
+        "decision_trace_hash": {
+          "$ref": "#/$defs/rawDigest"
+        },
+        "request_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000000
+        },
+        "identity_verified": {
+          "type": "boolean",
+          "const": true
+        },
+        "max_uses": {
+          "const": 1,
+          "type": "integer"
+        },
+        "recipient_validated": {
+          "type": "boolean",
+          "const": true
+        },
+        "provider_instance_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "document_set_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_api_version": {
+          "const": "fhir-r4"
+        },
+        "verification_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "version_precondition_matches": {
+          "type": "boolean",
+          "const": true
+        },
+        "idempotency_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "document_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "provider_state_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "recipient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "disclosure_eligible": {
+          "type": "boolean",
+          "const": true
+        },
+        "disclosure_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "verification_expires_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "patient_reference_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "provider_environment": {
+          "const": "provider_sandbox"
+        },
+        "human_review_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "transfer_payload_commitment": {
+          "$ref": "#/$defs/saltedCommitment"
+        },
+        "record_is_synthetic": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  }
+}

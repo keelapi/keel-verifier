@@ -1,0 +1,188 @@
+{
+  "scope": "synthetic schema-validation examples; not issued Permits, provider evidence or a live authorization result",
+  "cases": [
+    {
+      "action": "healthcare.patient.mailing_address.update",
+      "facts": {
+        "action": "healthcare.patient.mailing_address.update",
+        "operation": "call.tools",
+        "version": "keel.commerce_regulated_exact_facts.v1",
+        "fact_profile_id": "keel.facts.healthcare_patient_mailing_address_update_exact.v1",
+        "connector_identity": "aidbox-fhir",
+        "enforcement_mode": "enforced_in_path",
+        "address_field_set": [
+          "city",
+          "line",
+          "postalCode",
+          "state"
+        ],
+        "identity_verified": true,
+        "clinical_field_mutation_requested": false,
+        "max_uses": 1,
+        "provider_api_version": "fhir-r4",
+        "provider_environment": "provider_sandbox",
+        "version_precondition_matches": true,
+        "record_is_synthetic": true,
+        "idempotency_digest": "sha256:5b6a62ed5a6d14ada6b47f01372a259735630446a0915e7c0094bf8946c9c1c3",
+        "patient_reference_commitment": {
+          "digest": "sha256:3698ec5fe3b02ddda9f702f24ef4762ff71810eaa35d8f1beae0c3badd650ad0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_instance_reference_commitment": {
+          "digest": "sha256:d9ceef4839fecacf878bf4a4ba4c864998efcd5bedcec29e8aa4f4e570afedf6",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_state_commitment": {
+          "digest": "sha256:0a1bb946d08ab397dbc5eb9e502ad3d64e10c443af7cc067a3ff05ea8258e137",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "request_commitment": {
+          "digest": "sha256:09d758c55959f9e0b8da579f6fdb727cf7714a1f8232931b0d8398fd7dffb219",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "verification_expires_at": "2026-11-14T02:02:46Z",
+        "verification_reference_commitment": {
+          "digest": "sha256:52e6d1ca4ebfd03a4c173c62c6b3a0fb3acbdafb0f00f5633724dd5c134c96d0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "tool_schema_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "tool_arguments_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "connector_contract_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_trace_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "request_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "preflight_observed_at": "2026-11-14T01:57:46Z",
+        "preflight_expires_at": "2026-11-14T01:59:46Z",
+        "preflight_snapshot_digest": "sha256:975a330db1770cf610f88a1a82c1b27cb10a2b902882c7eb271eb421883c7838"
+      }
+    },
+    {
+      "action": "healthcare.appointment.reschedule",
+      "facts": {
+        "action": "healthcare.appointment.reschedule",
+        "operation": "call.tools",
+        "version": "keel.commerce_regulated_exact_facts.v1",
+        "fact_profile_id": "keel.facts.healthcare_appointment_reschedule_exact.v1",
+        "connector_identity": "aidbox-fhir",
+        "enforcement_mode": "enforced_in_path",
+        "identity_verified": true,
+        "max_uses": 1,
+        "same_schedule": true,
+        "old_slot_status": "busy",
+        "provider_api_version": "fhir-r4",
+        "version_precondition_matches": true,
+        "new_slot_status": "free",
+        "provider_environment": "provider_sandbox",
+        "appointment_status_before": "booked",
+        "record_is_synthetic": true,
+        "appointment_reference_commitment": {
+          "digest": "sha256:457497ce87b5811403414cf1fc35ad970325acbf6a539559fd907cf080a22274",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "idempotency_digest": "sha256:69e2e6f4f92ece8dca5903c8ef7702c70134902d146d16126f903ba7cda16f90",
+        "new_slot_reference_commitment": {
+          "digest": "sha256:26244e17538a513e06c68b0860d2089871ee48c3ec5ba681f55708535bef9b5e",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "old_slot_reference_commitment": {
+          "digest": "sha256:b20592b1773ff77b980eecf4ba29eb5d3590e1f542cbf18f5ac31ce8d192947b",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "patient_reference_commitment": {
+          "digest": "sha256:3698ec5fe3b02ddda9f702f24ef4762ff71810eaa35d8f1beae0c3badd650ad0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_instance_reference_commitment": {
+          "digest": "sha256:d9ceef4839fecacf878bf4a4ba4c864998efcd5bedcec29e8aa4f4e570afedf6",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_state_commitment": {
+          "digest": "sha256:fc1b08cc180a7d5840a91c91e9080641cef43b8eef56ef2234f2d040b1a9e4e2",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "request_commitment": {
+          "digest": "sha256:4a358f01e74fd345b02a43996b0ff814cdc29274964a81dd27244ecb4e9e1f0b",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "schedule_conflict_count": 0,
+        "verification_expires_at": "2026-11-14T02:02:46Z",
+        "verification_reference_commitment": {
+          "digest": "sha256:52e6d1ca4ebfd03a4c173c62c6b3a0fb3acbdafb0f00f5633724dd5c134c96d0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "tool_schema_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "tool_arguments_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "connector_contract_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_trace_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "request_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "preflight_observed_at": "2026-11-14T01:57:46Z",
+        "preflight_expires_at": "2026-11-14T01:59:46Z",
+        "preflight_snapshot_digest": "sha256:e1a0cf957dd1fc6e20e71c3bb4021c624ad26bc33c35da33f43562a8fc331bb6"
+      }
+    },
+    {
+      "action": "healthcare.records.release",
+      "facts": {
+        "action": "healthcare.records.release",
+        "operation": "call.tools",
+        "version": "keel.commerce_regulated_exact_facts.v1",
+        "fact_profile_id": "keel.facts.healthcare_records_release_exact.v1",
+        "connector_identity": "aidbox-fhir",
+        "enforcement_mode": "enforced_in_path",
+        "identity_verified": true,
+        "max_uses": 1,
+        "recipient_validated": true,
+        "provider_api_version": "fhir-r4",
+        "version_precondition_matches": true,
+        "disclosure_eligible": true,
+        "provider_environment": "provider_sandbox",
+        "human_review_required": true,
+        "record_is_synthetic": true,
+        "disclosure_expires_at": "2026-11-14T02:02:46Z",
+        "document_count": 2,
+        "document_set_commitment": {
+          "digest": "sha256:4eba042ee1d86e9e7b7bf731129d122b2f467e9fe487c2ae2fcb531bde67a6bb",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "idempotency_digest": "sha256:8c8bcfbea5f0828025140f47822a77172b35e6841f80c6d7f003fc807a27c725",
+        "patient_reference_commitment": {
+          "digest": "sha256:3698ec5fe3b02ddda9f702f24ef4762ff71810eaa35d8f1beae0c3badd650ad0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_instance_reference_commitment": {
+          "digest": "sha256:d9ceef4839fecacf878bf4a4ba4c864998efcd5bedcec29e8aa4f4e570afedf6",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "provider_state_commitment": {
+          "digest": "sha256:c8bedc67e31e3a631731128f6d809875d1eba419d832bc4df2a18993554e9340",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "recipient_reference_commitment": {
+          "digest": "sha256:1fc5a1f538010780bc41852704b00b27f838d7b09c2dc6f2a5e64293b9765d26",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "request_commitment": {
+          "digest": "sha256:a7d0a5cc5d49ef7f1987c55be47d1d8ac79cdaaad5b3994d76509e911accfeb8",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "total_bytes": 211,
+        "transfer_payload_commitment": {
+          "digest": "sha256:42c146b9b3c3140066ed3f66d8dd1730cda15355fee6ae455c4ee08db02f60f8",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "verification_expires_at": "2026-11-14T02:02:46Z",
+        "verification_reference_commitment": {
+          "digest": "sha256:52e6d1ca4ebfd03a4c173c62c6b3a0fb3acbdafb0f00f5633724dd5c134c96d0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "tool_schema_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "tool_arguments_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "connector_contract_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "decision_trace_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "request_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "preflight_observed_at": "2026-11-14T01:57:46Z",
+        "preflight_expires_at": "2026-11-14T01:59:46Z",
+        "preflight_snapshot_digest": "sha256:56782fce98a4feb2388b4f999723c53ddd1665ad01a9c7336f13f02f68a18bea"
+      }
+    }
+  ]
+}

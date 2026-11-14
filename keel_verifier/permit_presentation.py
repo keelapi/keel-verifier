@@ -59,6 +59,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
     "keel.semantic_selector_registry.v20": "semantic_registry/v20.json",
     "keel.semantic_selector_registry.v21": "semantic_registry/v21.json",
     "keel.semantic_selector_registry.v22": "semantic_registry/v22.json",
+    "keel.semantic_selector_registry.v23": "semantic_registry/v23.json",
 }
 
 # Registry used for permits carrying no version at all (pre-versioning records).
@@ -204,6 +205,7 @@ def _presentation_registry_for(
             "keel.semantic_selector_registry.v20",
             "keel.semantic_selector_registry.v21",
             "keel.semantic_selector_registry.v22",
+            "keel.semantic_selector_registry.v23",
         }:
             if registry.get("semantic_registry_version") != selector_version:
                 continue
@@ -217,9 +219,17 @@ def _presentation_registry_for(
             for profile in profiles
         ):
             return registry, raw
+    # Selector v23 preserves every v22 entry byte-for-byte and adds only the
+    # three synthetic Aidbox actions, for which no presentation profile exists:
+    # its preserved entries keep their v24 titles and the Aidbox actions fall
+    # back to the generic title.
     legacy_name = (
         "presentation_registry/v24.json"
-        if selector_version == "keel.semantic_selector_registry.v22"
+        if selector_version
+        in {
+            "keel.semantic_selector_registry.v22",
+            "keel.semantic_selector_registry.v23",
+        }
         else "presentation_registry/v20.json"
         if selector_version == "keel.semantic_selector_registry.v21"
         else "presentation_registry/v19.json"

@@ -107,6 +107,16 @@ _PARITY_MAP = {
     "permit_to_x/presentation_registry/v23.schema.json": "presentation_registry/v23.schema.json",
     "permit_to_x/presentation_registry/v24.json": "presentation_registry/v24.json",
     "permit_to_x/presentation_registry/v24.schema.json": "presentation_registry/v24.schema.json",
+    "permit_to_x/semantic_registry/v23.json": "semantic_registry/v23.json",
+    "permit_to_x/semantic_registry/v23.schema.json": "semantic_registry/v23.schema.json",
+    "permit_to_x/fact_profiles/v20.json": "fact_profiles/v20.json",
+    "permit_to_x/fact_profiles/v20.schema.json": "fact_profiles/v20.schema.json",
+    "permit_to_x/schemas/aidbox-fhir-exact-facts-v1.schema.json": (
+        "schemas/aidbox-fhir-exact-facts-v1.schema.json"
+    ),
+    "permit_to_x/test_vectors/fact_profiles/aidbox-v1.json": (
+        "fact_profiles/test-vectors/aidbox-v1.json"
+    ),
     "permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "test-vectors/permit_to_work/v1/corpus.json",
     "comparator_registry/work-payment-authority-v1.json": "comparator_registry/work-payment-authority-v1.json",
     "semantics/work/authority_manifest_v1.json": "semantics/work/authority_manifest_v1.json",

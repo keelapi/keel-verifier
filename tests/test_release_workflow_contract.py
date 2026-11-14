@@ -18,3 +18,22 @@ def test_release_checks_out_pinned_permit_contract_before_compatibility_gate() -
     assert "ref: v1.24.0" in checkout_block
     assert "e6c12a1c82bce85e1a906b031dbb30d61a9c2c26" in checkout_block
     assert '["git", "-C", "keel-permit", "rev-parse", "HEAD"]' in checkout_block
+
+
+def test_release_pins_the_qualification_corpus_to_the_vendored_permit_commit() -> None:
+    """The corpus parity gate must compare against the commit the bytes came from.
+
+    keel-permit 8016036f (PR #65) adds selector v23, fact profiles v20 and the
+    Aidbox exact-facts schema on top of f0af322; v1.24.0 contains neither.
+    """
+
+    workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    checkout = workflow.index("- name: Checkout coordinated Permit qualification corpus")
+    commit_gate = workflow.index("- name: Verify qualification corpus commit")
+    corpus_gate = workflow.index("- name: Gate historical compatibility corpus")
+
+    assert checkout < commit_gate < corpus_gate
+    block = workflow[checkout:corpus_gate]
+    assert "path: keel-permit-corpus" in block
+    assert block.count("8016036f6d8da968a02de47179e4dbc7975b988b") == 2
+    assert "f0af32228f9b7a9c61d575d7cbf3716462b9fe87" not in block
