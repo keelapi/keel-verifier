@@ -332,6 +332,10 @@ def test_receipt_block_without_signed_coverage_fails(trust_root: Path) -> None:
         {"usage": {"window": "rolling_24h", "used": 1, "cap": 0}},
         {"usage": {"window": "", "used": 1, "cap": 10}},
         {"usage": None},
+        {"authorized_by": {"kind": [], "id": "user_1"}},
+        {"co_approved_by": {"kind": {}, "id": "user_2"}},
+        {"assurance_level": {}},
+        {"assurance_level": []},
     ),
 )
 def test_malformed_receipt_block_fails(trust_root: Path, overrides: dict[str, Any]) -> None:
@@ -442,7 +446,7 @@ def test_human_summary_and_report_never_call_coverage_a_human_review(
     )
     assert summary is not None
     assert (
-        "No human reviewed this individual action: the admin review was satisfied by "
+        "No per-action human review is recorded: the admin review was satisfied by "
         f"standing approval {sav.STANDING_APPROVAL_ID} v3."
     ) in summary
 
@@ -545,3 +549,16 @@ def test_human_summary_v1_stays_canonical() -> None:
         == "3ef3977347117bbc8930c5f4d3a3c6b666d02a78aba6a905387c054ea533eeb7"
     )
     assert b"standing_approval_coverage" not in data
+
+
+@pytest.mark.parametrize("issued_at", ("2026-12-02T10:00:00", "not-a-time", None))
+def test_receipt_with_unparseable_signed_issued_at_fails_closed(issued_at: Any) -> None:
+    from keel_verifier.standing_approval import StandingApprovalError, check_against_signed
+
+    evidence = sav.decision_evidence("v8")
+    doc = sav.document(evidence, block=sav.receipt_block())
+    payload = dict(evidence["canonical_payload"])
+    payload["issued_at"] = issued_at
+    with pytest.raises(StandingApprovalError) as error:
+        check_against_signed(payload, doc)
+    assert error.value.reason_code == "STANDING_APPROVAL_RECEIPT_MISMATCH"

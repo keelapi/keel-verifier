@@ -147,7 +147,7 @@ def _principal(value: Any, field: str, *, nullable: bool) -> dict[str, str] | No
         )
     kind = value.get("kind")
     principal_id = value.get("id")
-    if kind not in STANDING_APPROVAL_AUTHORIZER_KINDS:
+    if not isinstance(kind, str) or kind not in STANDING_APPROVAL_AUTHORIZER_KINDS:
         raise _invalid(f"{field}.kind must be user", f"{field}.kind")
     if not isinstance(principal_id, str) or not principal_id.strip():
         raise _invalid(f"{field}.id must be a non-empty string", f"{field}.id")
@@ -210,7 +210,10 @@ def parse_receipt_block(block: Any) -> StandingApprovalReceipt:
     if not isinstance(origin, str) or not origin.strip():
         raise _invalid("origin must be a non-empty string", "origin")
     assurance_level = block["assurance_level"]
-    if assurance_level not in STANDING_APPROVAL_ASSURANCE_LEVELS:
+    if (
+        not isinstance(assurance_level, str)
+        or assurance_level not in STANDING_APPROVAL_ASSURANCE_LEVELS
+    ):
         raise _invalid("assurance_level must be A2", "assurance_level")
     usage = block["usage"]
     if not isinstance(usage, Mapping):
@@ -332,6 +335,13 @@ def check_against_signed(
     issued_at = _parse_time(canonical_payload.get("issued_at"))
     authorized_at = _parse_time(parsed.authorized_at)
     expires_at = _parse_time(parsed.expires_at)
+    if issued_at is None:
+        raise StandingApprovalError(
+            "STANDING_APPROVAL_RECEIPT_MISMATCH",
+            "signed canonical_payload.issued_at is not an RFC 3339 timestamp "
+            "with offset, so the standing approval window cannot be checked",
+            ("canonical_payload.issued_at",),
+        )
     if (
         issued_at is not None
         and authorized_at is not None
@@ -439,7 +449,7 @@ def coverage_view(
 #: ``semantics/permit/human_summary_v1.json``: that file is keel-permit's
 #: canonical artifact and must stay byte-identical to its pinned digest.
 STANDING_APPROVAL_COVERAGE_SENTENCE = (
-    "No human reviewed this individual action: the admin review was satisfied "
+    "No per-action human review is recorded: the admin review was satisfied "
     "by {coverage}."
 )
 
