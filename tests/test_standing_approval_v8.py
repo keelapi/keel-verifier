@@ -526,3 +526,22 @@ def test_decision_semantics_advertise_v8_fields() -> None:
     assert versioned["v8"] == [*versioned["v7"], "standing_approval_version_id", "terms_digest"]
     assert STANDING_APPROVAL_COVERED_REASON in body["canonical_payload"]["standing_approval_rule"]
 
+
+
+def test_human_summary_v1_stays_canonical() -> None:
+    """keel-permit owns human_summary_v1.json; the coverage sentence lives in code."""
+
+    import hashlib
+    from importlib import resources
+
+    data = (
+        resources.files("keel_verifier")
+        .joinpath("data/semantics/permit/human_summary_v1.json")
+        .read_bytes()
+    )
+    # keel-permit artifact-manifests/permit-to-x-v1.json, keel.permit.human_summary.v1
+    assert (
+        hashlib.sha256(data).hexdigest()
+        == "3ef3977347117bbc8930c5f4d3a3c6b666d02a78aba6a905387c054ea533eeb7"
+    )
+    assert b"standing_approval_coverage" not in data

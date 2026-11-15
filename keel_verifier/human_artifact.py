@@ -15,7 +15,10 @@ import unicodedata
 from typing import Any
 
 from keel_verifier.permit_presentation import resolve_permit_presentation
-from keel_verifier.standing_approval import coverage_subject
+from keel_verifier.standing_approval import (
+    STANDING_APPROVAL_COVERAGE_SENTENCE,
+    coverage_subject,
+)
 
 
 _WHITESPACE = re.compile(r"\s+")
@@ -347,7 +350,7 @@ def derive_human_summary(
     coverage = _standing_approval(permit)
     if decision == "allow" and coverage is not None:
         sentences.append(
-            str(templates["standing_approval_coverage"]).format(
+            STANDING_APPROVAL_COVERAGE_SENTENCE.format(
                 coverage=coverage_subject(coverage)
             )
         )

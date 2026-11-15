@@ -435,6 +435,15 @@ def coverage_view(
     return view
 
 
+#: Summary sentence for a covered permit. It lives here, not in
+#: ``semantics/permit/human_summary_v1.json``: that file is keel-permit's
+#: canonical artifact and must stay byte-identical to its pinned digest.
+STANDING_APPROVAL_COVERAGE_SENTENCE = (
+    "No human reviewed this individual action: the admin review was satisfied "
+    "by {coverage}."
+)
+
+
 def coverage_subject(view: Mapping[str, Any]) -> str:
     """Name the covering approval from a ``coverage_view`` dict, for renderers."""
 

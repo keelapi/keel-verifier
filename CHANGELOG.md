@@ -36,6 +36,8 @@ This release ships before keel-api emits standing-approval coverage
   standing-approval rule (new hash
   `sha256:8a2b6795606defc1c3f2798bc27ae79d9fd619a529893cde24de4a92bdb8a5a6`);
   the 3.32.1 artifact stays bundled under its hash.
+- `semantics/permit/human_summary_v1.json` stays byte-identical to keel-permit's
+  canonical artifact; the covered-permit sentence is defined by the verifier.
 - Permits without the covered reason, and receipts without the block, verify
   and report exactly as in 3.32.1.
 
