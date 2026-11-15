@@ -15,6 +15,10 @@ import unicodedata
 from typing import Any
 
 from keel_verifier.permit_presentation import resolve_permit_presentation
+from keel_verifier.standing_approval import (
+    STANDING_APPROVAL_COVERAGE_SENTENCE,
+    coverage_subject,
+)
 
 
 _WHITESPACE = re.compile(r"\s+")
@@ -266,6 +270,15 @@ def _target(permit: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _standing_approval(permit: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Verifier-projected standing-approval coverage, if the permit was covered."""
+
+    view = permit.get("standing_approval")
+    if not isinstance(view, Mapping) or view.get("per_action_review") is not False:
+        return None
+    return dict(view)
+
+
 def _status(report: Mapping[str, Any], permit: Mapping[str, Any]) -> str:
     decision = _normalize(permit.get("decision"))
     if decision == "deny":
@@ -331,6 +344,14 @@ def derive_human_summary(
                 agent=agent,
                 action=action,
                 target=target,
+            )
+        )
+
+    coverage = _standing_approval(permit)
+    if decision == "allow" and coverage is not None:
+        sentences.append(
+            STANDING_APPROVAL_COVERAGE_SENTENCE.format(
+                coverage=coverage_subject(coverage)
             )
         )
 
@@ -497,7 +518,12 @@ def derive_human_artifact(
             "display_fields": [],
             "limits": {},
             "policy": None,
-            "approval": None,
+            "approval": (
+                {"kind": "standing_approval", **coverage}
+                if (coverage := _standing_approval(permit)) is not None
+                and decision == "allow"
+                else None
+            ),
         },
         "lifecycle": {
             "issued_at": issued_at if artifact_kind == "permit" else None,

@@ -1247,7 +1247,7 @@ def test_unknown_binding_version_rejected(tmp_path: Path) -> None:
     trust_root = write_permit_trust_root(tmp_path, public_key)
     evidence = decision_evidence(private_key, public_key)
     evidence["canonical_payload"] = copy.deepcopy(evidence["canonical_payload"])
-    evidence["canonical_payload"]["binding_version"] = "v8"
+    evidence["canonical_payload"]["binding_version"] = "v9"
 
     claim = _claim(evidence, trust_root)
 

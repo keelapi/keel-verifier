@@ -88,12 +88,14 @@ from keel_verifier.canonical.permit_binding import (
     canonical_spend_scope_payload,
     compute_canonical_binding_hash as _canonical_permit_binding_hash,
 )
+from keel_verifier import standing_approval as _standing_approval
 from keel_verifier.verdicts import (
     ClaimVerdict,
     VERDICT_SCHEMA_ID,
     VerificationReport,
     VerdictSubject,
     legacy_semantics,
+    load_claim_registry,
     verdict_value,
     verifier_version,
 )
@@ -953,6 +955,11 @@ _PERMIT_DECISION_V7_CANONICAL_FIELDS = (
     "account_id",
     "org_id",
 )
+_PERMIT_DECISION_V8_CANONICAL_FIELDS = (
+    *_PERMIT_DECISION_V7_CANONICAL_FIELDS,
+    "standing_approval_version_id",
+    "terms_digest",
+)
 _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v1": _PERMIT_DECISION_REQUIRED_CANONICAL_FIELDS,
     "v2": _PERMIT_DECISION_V2_CANONICAL_FIELDS,
@@ -961,6 +968,7 @@ _PERMIT_DECISION_CANONICAL_FIELDS_BY_VERSION = {
     "v5": _PERMIT_DECISION_V4_CANONICAL_FIELDS,
     "v6": _PERMIT_DECISION_V6_CANONICAL_FIELDS,
     "v7": _PERMIT_DECISION_V7_CANONICAL_FIELDS,
+    "v8": _PERMIT_DECISION_V8_CANONICAL_FIELDS,
 }
 _PERMIT_REVOKED_REQUIRED_FIELDS = (
     "permit_id",
@@ -4435,7 +4443,9 @@ def _adjudicate_permit_authority_chain_v1(
 
     binding_version = _permit_v2_envelope_version(permit)
     chain_digest = _authority_digest(permit)
-    if binding_version != "v7":
+    # v8 is v7 plus the covering standing approval; it carries the same
+    # authority-chain subject fields.
+    if binding_version not in {"v7", "v8"}:
         return _authority_chain_claim(
             input_doc=input_doc,
             verdict=_authority_code_verdict("authority_chain.typed_absence"),
@@ -6338,7 +6348,7 @@ def _permit_v2_canonical_bytes(
     envelope_version: str | None,
     payload: Mapping[str, Any],
 ) -> bytes:
-    if str(envelope_version or "").strip() in {"v5", "v6", "v7"}:
+    if str(envelope_version or "").strip() in {"v5", "v6", "v7", "v8"}:
         return rfc8785.dumps(dict(payload))
     return _canonical_json_bytes(dict(payload))
 
@@ -6371,7 +6381,7 @@ def _permit_v2_account_id(
         manifest,
         ("account_id", "organization_id", "org_id", "tenant_id", "project_id"),
     )
-    if envelope_version == "v7":
+    if envelope_version in {"v7", "v8"}:
         canonical_payload = permit.get("canonical_payload")
         signed_id, signed_field = _permit_v2_identity_value(
             canonical_payload if isinstance(canonical_payload, Mapping) else None,
@@ -7650,7 +7660,7 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
         extra = sorted(set(canonical_payload.keys()) - required)
         if missing:
             if (
-                binding_version in {"v6", "v7"}
+                binding_version in {"v6", "v7", "v8"}
                 and missing == ["resource_attributes_canonical_hash"]
                 and not extra
             ):
@@ -7662,7 +7672,7 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
     for field in ("permit_id", "project_id", "issued_at", "binding_key_id"):
         if not _is_nonempty_str(canonical_payload.get(field)):
             return f"canonical_payload.{field} must be a non-empty string"
-    if binding_version == "v7":
+    if binding_version in {"v7", "v8"}:
         if not _is_nonempty_str(canonical_payload.get("subject_id")):
             return "canonical_payload.subject_id must be a non-empty string"
         if canonical_payload.get("subject_type") not in {
@@ -7678,6 +7688,9 @@ def _permit_decision_schema_error(evidence: dict[str, Any]) -> str | None:
             value = canonical_payload.get(field)
             if value is not None and not _is_uuid_text(value):
                 return f"canonical_payload.{field} must be a UUID string or null"
+    standing_approval_error = _standing_approval.signed_binding_error(canonical_payload)
+    if standing_approval_error is not None:
+        return standing_approval_error
     if not _is_nonempty_str(evidence.get("binding_canonical_hash")):
         return "binding_canonical_hash must be a non-empty string"
     signature = evidence.get("binding_signature")
@@ -7824,16 +7837,16 @@ def _permit_decision_binding_recompute_failure(
         )
         unsigned_canonical_version = evidence.get("binding_request_canonical_version")
         if (
-            version == "v7"
+            version in {"v7", "v8"}
             and unsigned_canonical_version is not None
             and str(unsigned_canonical_version).strip() != canonical_version
         ):
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
-                reason_code="permit.binding.v7.request_canonical_version_mismatch",
+                reason_code=f"permit.binding.{version}.request_canonical_version_mismatch",
                 message=(
                     "unsigned binding_request_canonical_version does not match "
-                    "the signed v7 request canonicalizer"
+                    f"the signed {version} request canonicalizer"
                 ),
                 evidence=[
                     evidence_path,
@@ -7848,7 +7861,7 @@ def _permit_decision_binding_recompute_failure(
         if actual_hash != expected_hash:
             reason = (
                 f"permit.binding.{version}.wire_body_hash_mismatch"
-                if version in {"v5", "v6", "v7"}
+                if version in {"v5", "v6", "v7", "v8"}
                 else "permit.binding.wire_body_hash_mismatch"
             )
             return _PermitDecisionBindingFailure(
@@ -7862,12 +7875,12 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v3", "v4", "v5", "v6", "v7"}:
+    if version not in {"v3", "v4", "v5", "v6", "v7", "v8"}:
         return None
 
     resource_attributes, resource_failure = _permit_decision_resource_attributes(evidence)
 
-    if version in {"v6", "v7"}:
+    if version in {"v6", "v7", "v8"}:
         resource_attributes_canonical_hash = canonical_payload.get(
             "resource_attributes_canonical_hash"
         )
@@ -7917,7 +7930,9 @@ def _permit_decision_binding_recompute_failure(
             resource_attributes.get("spend_scope")
         )
         if recomputed_spend_scope_hash != spend_scope_hash:
-            spend_reason_version = str(version) if version in {"v5", "v6", "v7"} else "v3"
+            spend_reason_version = (
+                str(version) if version in {"v5", "v6", "v7", "v8"} else "v3"
+            )
             return _PermitDecisionBindingFailure(
                 verdict="disproved",
                 reason_code=(f"permit.binding.{spend_reason_version}.spend_scope_hash_mismatch"),
@@ -7932,7 +7947,7 @@ def _permit_decision_binding_recompute_failure(
                 ],
             )
 
-    if version not in {"v4", "v5", "v6", "v7"}:
+    if version not in {"v4", "v5", "v6", "v7", "v8"}:
         return None
 
     delegation_policy_hash = canonical_payload.get("delegation_policy_hash")
@@ -7945,7 +7960,9 @@ def _permit_decision_binding_recompute_failure(
         resource_attributes.get("delegation_policy")
     )
     if recomputed_delegation_policy_hash != delegation_policy_hash:
-        delegation_reason_version = str(version) if version in {"v5", "v6", "v7"} else "v4"
+        delegation_reason_version = (
+            str(version) if version in {"v5", "v6", "v7", "v8"} else "v4"
+        )
         return _PermitDecisionBindingFailure(
             verdict="disproved",
             reason_code=(
@@ -8142,6 +8159,72 @@ def _adjudicate_permit_decision_v1(
             reason_code="PERMIT_DECISION_SIGNATURE_INVALID",
             message="permit decision signature does not verify over the canonical hash",
             evidence=[evidence_path, "binding_signature"],
+        )
+    # Only now is the signed reason trustworthy. The unsigned receipt block may
+    # restate standing-approval coverage, but it can never add coverage the
+    # signed reason lacks or disagree with what a v8 binding signs.
+    try:
+        standing_receipt = _standing_approval.check_against_signed(
+            canonical_payload, export_document
+        )
+    except _standing_approval.StandingApprovalError as exc:
+        return _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="disproved",
+            reason_code=exc.reason_code,
+            message=exc.message,
+            evidence=[evidence_path, *exc.evidence],
+        )
+    if _standing_approval.is_covered_reason(canonical_payload.get("reason")):
+        statement = _standing_approval.coverage_statement(
+            receipt=standing_receipt,
+            signed_version_id=(
+                str(canonical_payload.get("standing_approval_version_id"))
+                if canonical_payload.get("binding_version")
+                == _standing_approval.STANDING_APPROVAL_BINDING_VERSION
+                else None
+            ),
+        )
+        claim = _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="supported",
+            reason_code="PERMIT_DECISION_SUPPORTED",
+            message=(
+                "permit decision canonical hash and signature are supported; "
+                f"{statement}"
+            ),
+            evidence=[
+                evidence_path,
+                "trust_root",
+                "canonical_payload.reason",
+                *(
+                    ["permit_receipt.standing_approval"]
+                    if standing_receipt is not None
+                    else []
+                ),
+            ],
+        )
+        # Setting does_not_establish replaces the registry default, so keep
+        # the registry's entries and add the coverage boundary to them.
+        registry_boundary = list(
+            load_claim_registry().claim(PERMIT_DECISION_CLAIM_NAME).does_not_establish
+        )
+        return replace(
+            claim,
+            does_not_establish=[
+                *registry_boundary,
+                *(
+                    value
+                    for value in _standing_approval.does_not_establish(
+                        canonical_payload, standing_receipt
+                    )
+                    if value not in registry_boundary
+                ),
+            ],
         )
     return _permit_claim(
         PERMIT_DECISION_CLAIM_NAME,
@@ -10522,6 +10605,29 @@ def _permit_view_fields(
     return view
 
 
+def _standing_approval_permit_view(document: Any) -> dict[str, Any] | None:
+    """Coverage view for a permit whose signed reason is standing-approval coverage.
+
+    Call only after ``permit.decision.v1`` is ``supported`` for ``document``:
+    that claim already validated the receipt block against the signed binding,
+    so a failure here means the inputs changed and nothing is projected.
+    """
+
+    if not isinstance(document, dict):
+        return None
+    evidence, _ = _find_permit_decision_evidence(document)
+    canonical = evidence.get("canonical_payload") if isinstance(evidence, dict) else None
+    if not isinstance(canonical, dict) or not _standing_approval.is_covered_reason(
+        canonical.get("reason")
+    ):
+        return None
+    try:
+        receipt = _standing_approval.check_against_signed(canonical, document)
+    except _standing_approval.StandingApprovalError:
+        return None
+    return _standing_approval.coverage_view(canonical, receipt)
+
+
 def _attach_permit_view(
     artifact: dict[str, Any],
     claims: list[ClaimVerdict],
@@ -10544,6 +10650,9 @@ def _attach_permit_view(
         if isinstance(canonical, dict):
             view = _permit_view_fields(canonical, _PERMIT_VIEW_CANONICAL_FIELDS)
             if view:
+                coverage = _standing_approval_permit_view(export_document)
+                if coverage is not None:
+                    view["standing_approval"] = coverage
                 artifact["permit"] = view
                 return
 
@@ -14457,7 +14566,7 @@ def _adjudicate_permit_co_signature_bundle_v1(
         # a requirement read from them would be attacker-authored, not signed.
         attributes_bound = (
             isinstance(canonical_payload, Mapping)
-            and canonical_payload.get("binding_version") in {"v6", "v7"}
+            and canonical_payload.get("binding_version") in {"v6", "v7", "v8"}
         )
         decision_attributes, attributes_failure = _permit_decision_resource_attributes(
             dict(permit_decision)
@@ -15300,6 +15409,14 @@ def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 )
                 diagnostics.append(error)
             else:
+                if (
+                    isinstance(exact_summary, dict)
+                    and decision_claim.aggregate_verdict
+                    == verdict_value("supported")
+                ):
+                    coverage = _standing_approval_permit_view(body)
+                    if coverage is not None:
+                        exact_summary["standing_approval"] = coverage
                 artifact.update(
                     {
                         "kind": "permit_exact",

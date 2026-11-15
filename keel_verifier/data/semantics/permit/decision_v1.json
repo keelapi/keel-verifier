@@ -16,13 +16,14 @@
         "v4",
         "v5",
         "v6",
-        "v7"
+        "v7",
+        "v8"
       ]
     },
     "scope": "issuance_only",
     "issuer_key_purpose": "permit_binding_signing",
     "canonical_payload": {
-      "source": "The issuance-time v1-v7 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
+      "source": "The issuance-time v1-v8 permit binding canonical payload, captured before any dispatch-time or lifecycle mutation.",
       "required_fields": [
         "binding_version",
         "permit_id",
@@ -72,12 +73,24 @@
           "subject_type",
           "account_id",
           "org_id"
+        ],
+        "v8": [
+          "resource_attributes_canonical_hash",
+          "authority_chain_digest",
+          "quota_reservation_id",
+          "subject_id",
+          "subject_type",
+          "account_id",
+          "org_id",
+          "standing_approval_version_id",
+          "terms_digest"
         ]
       },
-      "subhash_recompute_rule": "For v3/v4/v5/v6/v7 payloads carrying spend_scope_hash or delegation_policy_hash, verifiers recompute the hash from exported resource_attributes_json.spend_scope or resource_attributes_json.delegation_policy before accepting the signed decision. For v6/v7 payloads, verifiers additionally require resource_attributes_canonical_hash and recompute SHA-256(rfc8785.dumps(resource_attributes_json)) before accepting the signed decision.",
+      "subhash_recompute_rule": "For v3/v4/v5/v6/v7/v8 payloads carrying spend_scope_hash or delegation_policy_hash, verifiers recompute the hash from exported resource_attributes_json.spend_scope or resource_attributes_json.delegation_policy before accepting the signed decision. For v6/v7/v8 payloads, verifiers additionally require resource_attributes_canonical_hash and recompute SHA-256(rfc8785.dumps(resource_attributes_json)) before accepting the signed decision.",
       "decision_rule": "canonical_payload.decision is the only decision adjudicated by this claim and must be one of allow, deny, or challenge after issuer binding normalization.",
-      "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project. For v7, canonical_payload.account_id and canonical_payload.org_id bind the decision to the signed c7 account selector and must be preferred over unsigned manifest account selectors.",
-      "row_state_rule": "Verifiers MUST NOT adjudicate a later mutable permit row as the issuance decision unless the pack supplies evidence that the reconstructed payload is the original issuance-time signed payload."
+      "identity_binding": "canonical_payload.permit_id and canonical_payload.project_id bind the signed decision to one permit and one project. For v7 and v8, canonical_payload.account_id and canonical_payload.org_id bind the decision to the signed c7 account selector and must be preferred over unsigned manifest account selectors.",
+      "row_state_rule": "Verifiers MUST NOT adjudicate a later mutable permit row as the issuance decision unless the pack supplies evidence that the reconstructed payload is the original issuance-time signed payload.",
+      "standing_approval_rule": "A permit whose signed canonical_payload.reason is platform_safety_floor.standing_approval_covered (any binding version) had its admin review satisfied by a standing approval; verifiers MUST report it as pre-approved with no per-action review and MUST NOT describe it as human-reviewed. v8 is used only for such permits: it requires reason platform_safety_floor.standing_approval_covered, decision allow, standing_approval_version_id as a lowercase UUID string, and terms_digest as sha256:<64 lowercase hex>. When permit_receipt.standing_approval is present it must be well formed (admin_review satisfied_by_standing_approval, per_action_review false, facts_trust gateway_asserted_keel_authenticated, assurance_level A2), the signed reason must be the covered reason, the signed issued_at must fall in [authorized_at, expires_at), and on v8 its standing_approval_version_id and terms_digest must equal the signed values; otherwise the decision is disproved. Its absence is not an error."
     },
     "hash_rule": {
       "canonical_hash": "lowercase hex SHA-256 of canonical_json(canonical_payload)",
@@ -92,7 +105,7 @@
     },
     "verdicts": {
       "supported": "canonical payload is present or reconstructable as issuance-time evidence, binding_canonical_hash matches, signature verifies under a trusted permit-binding key, and decision matches the claim request.",
-      "disproved": "canonical bytes or decision disagree with binding_canonical_hash, or a supplied signature fails under the resolved trusted key.",
+      "disproved": "canonical bytes or decision disagree with binding_canonical_hash, or a supplied signature fails under the resolved trusted key, or a standing-approval receipt block is malformed, claims coverage the signed reason lacks, or disagrees with a v8 binding.",
       "insufficient_evidence": "canonical payload fields, binding_canonical_hash, binding_signature, signing time, or trust-root evidence are missing.",
       "unverifiable_scope": "binding version, canonicalization profile, or trust-root profile is unsupported."
     }

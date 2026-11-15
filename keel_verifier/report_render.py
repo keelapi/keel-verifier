@@ -25,6 +25,10 @@ from keel_verifier.action_mapping_evidence import (
     DISPATCH_CLAIM_ACQUIRED_STATEMENT,
 )
 from keel_verifier.human_artifact import derive_human_artifact
+from keel_verifier.standing_approval import (
+    STANDING_APPROVAL_NOT_HUMAN_REVIEWED,
+    coverage_subject,
+)
 from keel_verifier.permit_presentation import resolve_permit_presentation
 
 __all__ = [
@@ -440,10 +444,12 @@ def _artifact_identity_lines(
         for label, names in _ACTION_LINES
         if (value := _lookup(source, names)) is not None
     ]
-    if action_lines:
+    coverage_lines = _standing_approval_lines(source)
+    if action_lines or coverage_lines:
         lines.append(ReportLine("", structural=True))
         lines.append(ReportLine("Authorized action", structural=True))
         lines.extend(action_lines)
+        lines.extend(coverage_lines)
     if artifact.get("kind") == "permit_exact":
         amount_minor = source.get("amount_minor")
         currency = source.get("currency")
@@ -470,6 +476,32 @@ def _artifact_identity_lines(
                     )
                 )
     return lines
+
+
+def _standing_approval_lines(source: dict[str, Any]) -> list[ReportLine]:
+    """Admin-review line for a permit covered by a standing approval.
+
+    The projection exists only when the signed decision verified and its
+    signed reason is standing-approval coverage. It is never worded as a
+    human review of the action.
+    """
+
+    view = source.get("standing_approval")
+    if not isinstance(view, dict) or view.get("per_action_review") is not False:
+        return []
+    if str(source.get("decision") or "").lower() != "allow":
+        return []
+    return [
+        ReportLine(
+            "  Admin review: satisfied by "
+            f"{coverage_subject(view)} (pre-approval); no per-action review",
+            provenance="DERIVED_VERIFICATION_RESULT",
+        ),
+        ReportLine(
+            f"    — does not establish: {STANDING_APPROVAL_NOT_HUMAN_REVIEWED}",
+            provenance="DERIVED_VERIFICATION_RESULT",
+        ),
+    ]
 
 
 def _permit_report_title(artifact: dict[str, Any]) -> str:

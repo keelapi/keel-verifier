@@ -4,6 +4,10 @@ Ported from keel-api ``app/services/permit_binding.py`` at commit
 03bcd1d964c6f25f9c985850d1452a19ee771a5a. Keep these builders byte-stable:
 the verifier must not import keel-api, but it must produce identical canonical
 bytes for legitimate permits.
+
+``v8`` is defined here first (earned-autonomy spec v4, piece V, section 1.10):
+the verifier ships before keel-api emits it. keel-api's v8 builder must mirror
+``canonical_binding_payload_v8`` exactly.
 """
 
 from __future__ import annotations
@@ -12,6 +16,7 @@ import base64
 import hashlib
 import inspect
 import json
+import re
 import uuid
 from collections.abc import Iterable, Mapping
 from dataclasses import asdict, is_dataclass
@@ -20,10 +25,13 @@ from typing import Any
 
 import rfc8785
 
-SUPPORTED_BINDING_VERSIONS = frozenset({"v1", "v2", "v3", "v4", "v5", "v6", "v7"})
+SUPPORTED_BINDING_VERSIONS = frozenset(
+    {"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"}
+)
 CLOSURE_RFC8785_BINDING_VERSION = "closure_v3"
+RFC8785_BINDING_VERSIONS = frozenset({"v5", "v6", "v7", "v8"})
 _RFC8785_SIGNED_SURFACE_VERSIONS = frozenset(
-    {"v5", "v6", "v7", CLOSURE_RFC8785_BINDING_VERSION}
+    {*RFC8785_BINDING_VERSIONS, CLOSURE_RFC8785_BINDING_VERSION}
 )
 LEGACY_CHAIN_CANONICAL_VERSIONS = frozenset({"v1", "closure_v1", "closure_v2"})
 RFC8785_CHAIN_CANONICAL_VERSIONS = frozenset({"closure_v3", "chain_v3"})
@@ -42,6 +50,12 @@ _V7_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
         "account_id",
         "org_id",
     }
+)
+# v8: v7 plus the standing approval that satisfied the admin review. Only
+# permits whose signed reason is ``platform_safety_floor.standing_approval_covered``
+# are bound with v8.
+_V8_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
+    {"standing_approval_version_id", "terms_digest"}
 )
 CANONICAL_PERMIT_SUBJECT_TYPES: frozenset[str] = frozenset(
     {"agent", "user", "service_principal", "system"}
@@ -109,7 +123,7 @@ def canonical_binding_bytes(binding_version: str, payload: Mapping[str, Any]) ->
     normalized = str(binding_version or "").strip()
     if normalized in {"v1", "v2", "v3", "v4"}:
         return _legacy_canonical_json_v1_to_v4(payload)
-    if normalized in {"v5", "v6", "v7"}:
+    if normalized in RFC8785_BINDING_VERSIONS:
         return rfc8785.dumps(payload)
     raise ValueError(f"Unsupported binding_version: {binding_version}")
 
@@ -128,7 +142,7 @@ def binding_request_canonical_version_for_binding(
 ) -> str:
     return (
         RFC8785_BINDING_REQUEST_CANONICAL_VERSION
-        if str(binding_version or "").strip() in {"v5", "v6", "v7"}
+        if str(binding_version or "").strip() in RFC8785_BINDING_VERSIONS
         else LEGACY_BINDING_REQUEST_CANONICAL_VERSION
     )
 
@@ -529,6 +543,36 @@ def canonical_binding_payload_v7(
     return payload
 
 
+_TERMS_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+
+def canonical_binding_payload_v8(
+    *,
+    standing_approval_version_id: uuid.UUID | str,
+    terms_digest: str,
+    **v7_fields: Any,
+) -> dict[str, Any]:
+    """v8 canonical payload: the v7 shape plus the covering standing approval.
+
+    ``standing_approval_version_id`` is the immutable approval version that
+    satisfied the admin review; ``terms_digest`` is that version's
+    ``sha256:<hex>`` terms digest (the value the approver's passkey assertion
+    signs). Both are required: a v8 binding without them is not issued.
+    """
+
+    payload = canonical_binding_payload_v7(**v7_fields)
+    payload["binding_version"] = "v8"
+    version_id = _normalize_uuid(standing_approval_version_id)
+    if version_id is None:
+        raise ValueError("v8 permit binding requires standing_approval_version_id.")
+    normalized_terms_digest = str(terms_digest or "").strip().lower()
+    if not _TERMS_DIGEST_RE.fullmatch(normalized_terms_digest):
+        raise ValueError("v8 permit binding requires terms_digest as sha256:<hex>.")
+    payload["standing_approval_version_id"] = version_id
+    payload["terms_digest"] = normalized_terms_digest
+    return payload
+
+
 CANONICAL_PAYLOAD_BUILDERS = {
     "v1": canonical_binding_payload_v1,
     "v2": canonical_binding_payload_v2,
@@ -537,6 +581,7 @@ CANONICAL_PAYLOAD_BUILDERS = {
     "v5": canonical_binding_payload_v5,
     "v6": canonical_binding_payload_v6,
     "v7": canonical_binding_payload_v7,
+    "v8": canonical_binding_payload_v8,
 }
 
 
@@ -729,6 +774,8 @@ __all__ = [
     "_V5_BINDING_FIELD_NAMES",
     "_V6_BINDING_FIELD_NAMES",
     "_V7_BINDING_FIELD_NAMES",
+    "_V8_BINDING_FIELD_NAMES",
+    "RFC8785_BINDING_VERSIONS",
     "CANONICAL_PERMIT_SUBJECT_TYPES",
     "_legacy_canonical_json_v1_to_v4",
     "binding_request_canonical_version_for_binding",
@@ -741,6 +788,7 @@ __all__ = [
     "canonical_binding_payload_v5",
     "canonical_binding_payload_v6",
     "canonical_binding_payload_v7",
+    "canonical_binding_payload_v8",
     "canonical_delegation_policy_payload",
     "canonical_provider_wire_body",
     "canonical_provider_wire_body_hash",
