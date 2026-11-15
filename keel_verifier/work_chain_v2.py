@@ -154,13 +154,13 @@ _SELECTOR_FILES = {
     f"keel.semantic_selector_registry.v{version}": (
         f"data/permit_to_x/semantic_registry/v{version}.json"
     )
-    for version in range(1, 23)
+    for version in range(1, 24)
 }
 _FACT_PROFILE_FILES = {
     f"keel.fact_profile_registry.v{version}": (
         f"data/permit_to_x/fact_profiles/v{version}.json"
     )
-    for version in range(1, 20)
+    for version in range(1, 21)
 }
 
 

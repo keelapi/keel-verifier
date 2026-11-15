@@ -114,6 +114,8 @@ COPIES = {
     "semantic_registry/v21.schema.json": ("permit_to_x/semantic_registry/v21.schema.json"),
     "semantic_registry/v22.json": "permit_to_x/semantic_registry/v22.json",
     "semantic_registry/v22.schema.json": ("permit_to_x/semantic_registry/v22.schema.json"),
+    "semantic_registry/v23.json": "permit_to_x/semantic_registry/v23.json",
+    "semantic_registry/v23.schema.json": ("permit_to_x/semantic_registry/v23.schema.json"),
     "presentation_registry/v1.json": "permit_to_x/presentation_registry/v1.json",
     "presentation_registry/v1.schema.json": ("permit_to_x/presentation_registry/v1.schema.json"),
     "presentation_registry/v2.json": "permit_to_x/presentation_registry/v2.json",
@@ -462,6 +464,8 @@ COPIES = {
     "fact_profiles/v18.schema.json": "permit_to_x/fact_profiles/v18.schema.json",
     "fact_profiles/v19.json": "permit_to_x/fact_profiles/v19.json",
     "fact_profiles/v19.schema.json": "permit_to_x/fact_profiles/v19.schema.json",
+    "fact_profiles/v20.json": "permit_to_x/fact_profiles/v20.json",
+    "fact_profiles/v20.schema.json": "permit_to_x/fact_profiles/v20.schema.json",
     "schemas/action-gateway-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/action-gateway-exact-facts-v1.schema.json"
     ),
@@ -470,6 +474,12 @@ COPIES = {
     ),
     "schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json": (
         "permit_to_x/schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json"
+    ),
+    "schemas/aidbox-fhir-exact-facts-v1.schema.json": (
+        "permit_to_x/schemas/aidbox-fhir-exact-facts-v1.schema.json"
+    ),
+    "fact_profiles/test-vectors/aidbox-v1.json": (
+        "permit_to_x/test_vectors/fact_profiles/aidbox-v1.json"
     ),
 }
 

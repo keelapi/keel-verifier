@@ -1,5 +1,46 @@
 # Changelog
 
+## 3.34.0
+
+### Synthetic Aidbox FHIR exact administration actions
+
+This release vendors keel-permit `8016036f` (PR #65) and must ship after
+3.33.0. Every 3.33.0 behavior is unchanged.
+
+- Vendors semantic selector registry v23, fact profile registry v20 (each
+  with its schema), and `schemas/aidbox-fhir-exact-facts-v1.schema.json`,
+  byte-identical to keel-permit. v23 keeps all 104 v22 entries and v20 keeps
+  all 103 v19 profiles and the disclosure contract. Each adds exactly three
+  exact actions: `healthcare.patient.mailing_address.update`,
+  `healthcare.appointment.reschedule` and `healthcare.records.release`
+  (connector `aidbox-fhir`, `provider_sandbox`, synthetic records only). The
+  synthetic schema examples ship as
+  `permit_to_x/test_vectors/fact_profiles/aidbox-v1.json`. Every historical
+  artifact is byte-for-byte unchanged.
+- Exact Permit packs (`keel.permit_exact/v2`–`v4`) accept selector v23 and
+  fact profiles v20 as embedded or compact contract pins.
+- The three actions use `keel.commerce_regulated_exact_facts.v1` facts, and
+  their commerce/regulated invariants are now enforced. Beyond the schema,
+  `permit.type.v1` is `disproved`
+  (`PERMIT_COMMERCE_REGULATED_INVARIANT_INVALID`) when the signed preflight
+  snapshot expires after `verification_expires_at` or, for a release, after
+  `disclosure_expires_at`, or when a reschedule targets the slot it frees.
+  The existing preflight freshness rule (`PERMIT_PREFLIGHT_WINDOW_INVALID`)
+  applies unchanged.
+- These Permits establish the exact authorization only. Dispatch, provider
+  outcome and other requested claims still need their own evidence. A
+  records-release Permit does not prove a document transfer, and the
+  verifier establishes no identity proofing, consent, clinical suitability
+  or compliance. Unimplemented requested claims stay `unverifiable_scope`.
+- Presentation: bindings issued under selector v23 resolve, and preserved
+  entries keep their presentation registry v24 titles. No Aidbox presentation
+  profile exists, so these Permits show the generic "AI Permit" title.
+- Work v2 resolves selector v23 and fact profiles v20. No Aidbox Work
+  journey is claimed.
+- The release qualification corpus is pinned to keel-permit `8016036f`. The
+  released contract checkout stays `v1.24.0`, and `permit_spec_version`
+  stays `1.24.0`.
+
 ## 3.33.0
 
 ### Standing-approval coverage and permit binding v8

@@ -343,6 +343,12 @@ def test_installed_wheel_resolves_path_only_semantic_pins(
         "permit_to_x/semantic_registry/v22.schema.json",
         "permit_to_x/schemas/telephony-call-outbound-gateway-exact-facts-v1.schema.json",
         "permit_to_x/schemas/telephony-call-respond-gateway-exact-facts-v1.schema.json",
+        "permit_to_x/semantic_registry/v23.json",
+        "permit_to_x/semantic_registry/v23.schema.json",
+        "permit_to_x/fact_profiles/v20.json",
+        "permit_to_x/fact_profiles/v20.schema.json",
+        "permit_to_x/schemas/aidbox-fhir-exact-facts-v1.schema.json",
+        "permit_to_x/test_vectors/fact_profiles/aidbox-v1.json",
     ):
         assert f"keel_verifier/data/{relative_path}" in wheel_names
     assert "keel_verifier/data/claim_registry_v0.json" in wheel_names
