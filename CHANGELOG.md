@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## 3.35.0
 
 ### Review document templates v1
+
+This release must ship after 3.34.0. Every 3.34.0 behavior is unchanged.
+The TSA trust bundle and CRLs are the same as 3.34.0; a CRL-only release
+follows once DigiCert reissues its CRLs.
+
 
 - Bundle keel-permit review document templates v1 and their schema
   (`keel_verifier/data/permit_to_x/review_document_templates/`, byte-identical
