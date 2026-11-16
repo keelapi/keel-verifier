@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.35.0
+
+### Review document templates v1
+
+This release must ship after 3.34.0. Every 3.34.0 behavior is unchanged.
+The TSA trust bundle and CRLs are the same as 3.34.0; a CRL-only release
+follows once DigiCert reissues its CRLs.
+
+
+- Bundle keel-permit review document templates v1 and their schema
+  (`keel_verifier/data/permit_to_x/review_document_templates/`, byte-identical
+  to keel-permit `dba8832`). A template names, for one trusted Permit
+  semantic, the facts a reviewer reads before deciding a held request: each
+  field's source, provenance, whether it is essential, and its value labels
+  or salted commitment. v1 defines one template,
+  `identity_group_access_grant.review.r1`, for adding a person to an Okta
+  group.
+- Add `keel_verifier.review_document_templates`, which loads the bundled
+  registry and returns a template by `template_id` together with the
+  registry's RFC 8785 digest and file SHA-256. An unknown `template_id` raises
+  `KeyError`; nothing is guessed.
+- The templates are presentation: no verifier module imports the loader, and
+  verdicts, claims, cryptographic checks and exit codes are unchanged. Trust
+  material (CRLs, roots) is unchanged.
+
 ## 3.34.0
 
 ### Synthetic Aidbox FHIR exact administration actions

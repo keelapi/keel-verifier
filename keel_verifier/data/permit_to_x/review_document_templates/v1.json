@@ -1,0 +1,220 @@
+{
+  "$schema": "./v1.schema.json",
+  "artifact_id": "keel.permit.review_document_templates",
+  "version": "keel.review_document_templates.v1",
+  "canonicalization_profile": "RFC8785-JCS",
+  "document_format": "keel.review_document.v1",
+  "provenance_kinds": [
+    {
+      "id": "keel_checked",
+      "label": "Checked by Keel"
+    },
+    {
+      "id": "gateway_reported",
+      "label": "Reported by the identity gateway"
+    },
+    {
+      "id": "agent_reported",
+      "label": "Reported by the agent"
+    }
+  ],
+  "fact_sources": [
+    {
+      "id": "exact_facts",
+      "description": "The Permit's signed exact facts"
+    },
+    {
+      "id": "subject_facts",
+      "description": "Subject facts opened from the identity gateway's encrypted envelope and checked against the exact facts' commitments"
+    },
+    {
+      "id": "review",
+      "description": "The Review that holds the request"
+    },
+    {
+      "id": "template",
+      "description": "A constant stated by this template"
+    }
+  ],
+  "templates": [
+    {
+      "template_id": "identity_group_access_grant.review.r1",
+      "semantic_id": "keel.action.identity_group_access_grant.v1",
+      "fact_profile_id": "keel.facts.identity_group_access_grant_exact.v1",
+      "presentation_profile_id": "identity_group_access_grant.r1",
+      "title": "Add a person to an Okta group",
+      "sections": [
+        {
+          "section_id": "subject",
+          "label": "Who gets access",
+          "fields": [
+            {
+              "field_id": "target_user.display_name",
+              "label": "Person",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true
+            },
+            {
+              "field_id": "target_user.id",
+              "label": "Okta user id",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "user_reference_commitment"
+            }
+          ]
+        },
+        {
+          "section_id": "access",
+          "label": "Access requested",
+          "fields": [
+            {
+              "field_id": "group.name",
+              "label": "Group",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true
+            },
+            {
+              "field_id": "group.id",
+              "label": "Okta group id",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "group_reference_commitment"
+            },
+            {
+              "field_id": "tenant.host",
+              "label": "Okta tenant",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "tenant_reference_commitment"
+            },
+            {
+              "field_id": "provider_environment",
+              "label": "Environment",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "dedicated_demo": "Dedicated demo tenant"
+              }
+            },
+            {
+              "field_id": "current_membership",
+              "label": "Member today",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "false": "Not a member"
+              }
+            },
+            {
+              "field_id": "group_privilege_class",
+              "label": "Group privilege",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "administrative": "Administrative",
+                "privileged": "Privileged",
+                "standard": "Standard"
+              }
+            },
+            {
+              "field_id": "target_is_privileged_admin",
+              "label": "Person already holds an admin role",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "false": "No",
+                "true": "Yes"
+              }
+            },
+            {
+              "field_id": "current_group_member_count",
+              "label": "Members now",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": false
+            },
+            {
+              "field_id": "projected_group_member_count",
+              "label": "Members after",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": false
+            },
+            {
+              "field_id": "access_duration",
+              "label": "Duration",
+              "source": "template",
+              "provenance": "keel_checked",
+              "essential": true,
+              "constant": "Until removed"
+            }
+          ]
+        },
+        {
+          "section_id": "why_review",
+          "label": "Why review is required",
+          "fields": [
+            {
+              "field_id": "cause",
+              "label": "Reason",
+              "source": "review",
+              "provenance": "keel_checked",
+              "essential": true
+            }
+          ]
+        },
+        {
+          "section_id": "request",
+          "label": "Exact request",
+          "fields": [
+            {
+              "field_id": "request_digest",
+              "label": "Request digest",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true
+            },
+            {
+              "field_id": "preflight_observed_at",
+              "label": "Okta state read at",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true
+            }
+          ]
+        }
+      ],
+      "requester_explanation": {
+        "label": "Requester's explanation",
+        "provenance": "agent_reported",
+        "authoritative": false,
+        "max_chars": 2000
+      },
+      "status_outside_digest": [
+        "votes",
+        "deadline",
+        "filing_state"
+      ],
+      "beneficiary": {
+        "field_id": "target_user.id",
+        "role": "user_receiving_access"
+      },
+      "protected_class_rule": {
+        "fact": "group_privilege_class",
+        "protected_values": [
+          "administrative",
+          "privileged"
+        ]
+      }
+    }
+  ]
+}

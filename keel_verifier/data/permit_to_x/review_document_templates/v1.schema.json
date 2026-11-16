@@ -1,0 +1,472 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/keelapi/keel-permit/review_document_templates/v1.schema.json",
+  "title": "Keel review document templates v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact_id",
+    "version",
+    "canonicalization_profile",
+    "document_format",
+    "provenance_kinds",
+    "fact_sources",
+    "templates"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "artifact_id": {
+      "const": "keel.permit.review_document_templates"
+    },
+    "version": {
+      "const": "keel.review_document_templates.v1"
+    },
+    "canonicalization_profile": {
+      "const": "RFC8785-JCS"
+    },
+    "document_format": {
+      "const": "keel.review_document.v1"
+    },
+    "provenance_kinds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/provenanceKind"
+      }
+    },
+    "fact_sources": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/factSource"
+      }
+    },
+    "templates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/template"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "maxLength": 64
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "provenanceId": {
+      "enum": [
+        "keel_checked",
+        "gateway_reported",
+        "agent_reported"
+      ]
+    },
+    "fieldProvenanceId": {
+      "enum": [
+        "keel_checked",
+        "gateway_reported"
+      ]
+    },
+    "sourceId": {
+      "enum": [
+        "exact_facts",
+        "subject_facts",
+        "review",
+        "template"
+      ]
+    },
+    "provenanceKind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/provenanceId"
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        }
+      }
+    },
+    "factSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/sourceId"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "template_id",
+        "semantic_id",
+        "fact_profile_id",
+        "presentation_profile_id",
+        "title",
+        "sections",
+        "requester_explanation",
+        "status_outside_digest",
+        "beneficiary"
+      ],
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*\\.review\\.r[1-9][0-9]*$",
+          "maxLength": 96
+        },
+        "semantic_id": {
+          "type": "string",
+          "pattern": "^keel\\.action\\.[a-z][a-z0-9_]*\\.v[1-9][0-9]*$"
+        },
+        "fact_profile_id": {
+          "type": "string",
+          "pattern": "^keel\\.facts\\.[a-z][a-z0-9_]*\\.v[1-9][0-9]*$"
+        },
+        "presentation_profile_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*\\.r[1-9][0-9]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/section"
+          }
+        },
+        "requester_explanation": {
+          "$ref": "#/$defs/requesterExplanation"
+        },
+        "status_outside_digest": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "votes",
+              "deadline",
+              "filing_state"
+            ]
+          }
+        },
+        "beneficiary": {
+          "$ref": "#/$defs/beneficiary"
+        },
+        "protected_class_rule": {
+          "$ref": "#/$defs/protectedClassRule"
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "section_id",
+        "label",
+        "fields"
+      ],
+      "properties": {
+        "section_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "label",
+        "source",
+        "provenance",
+        "essential"
+      ],
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)*$",
+          "maxLength": 96
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "source": {
+          "$ref": "#/$defs/sourceId"
+        },
+        "provenance": {
+          "$ref": "#/$defs/fieldProvenanceId"
+        },
+        "essential": {
+          "type": "boolean"
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9_]+$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/label"
+          }
+        },
+        "commitment": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*_commitment$"
+        },
+        "constant": {
+          "$ref": "#/$defs/label"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "exact_facts"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "field_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "provenance": {
+                "const": "keel_checked"
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "commitment"
+                  ]
+                },
+                {
+                  "required": [
+                    "constant"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "subject_facts"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "provenance": {
+                "const": "gateway_reported"
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "values"
+                  ]
+                },
+                {
+                  "required": [
+                    "constant"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "review"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "field_id": {
+                "enum": [
+                  "cause"
+                ]
+              },
+              "provenance": {
+                "const": "keel_checked"
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "values"
+                  ]
+                },
+                {
+                  "required": [
+                    "commitment"
+                  ]
+                },
+                {
+                  "required": [
+                    "constant"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "template"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "constant"
+            ],
+            "properties": {
+              "field_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "provenance": {
+                "const": "keel_checked"
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "values"
+                  ]
+                },
+                {
+                  "required": [
+                    "commitment"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "requesterExplanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "provenance",
+        "authoritative",
+        "max_chars"
+      ],
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "provenance": {
+          "const": "agent_reported"
+        },
+        "authoritative": {
+          "const": false
+        },
+        "max_chars": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "beneficiary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field_id",
+        "role"
+      ],
+      "properties": {
+        "field_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)*$",
+          "maxLength": 96
+        },
+        "role": {
+          "enum": [
+            "user_receiving_access"
+          ]
+        }
+      }
+    },
+    "protectedClassRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact",
+        "protected_values"
+      ],
+      "properties": {
+        "fact": {
+          "$ref": "#/$defs/identifier"
+        },
+        "protected_values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        }
+      }
+    }
+  }
+}

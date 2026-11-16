@@ -117,6 +117,8 @@ _PARITY_MAP = {
     "permit_to_x/test_vectors/fact_profiles/aidbox-v1.json": (
         "fact_profiles/test-vectors/aidbox-v1.json"
     ),
+    "permit_to_x/review_document_templates/v1.json": "review_document_templates/v1.json",
+    "permit_to_x/review_document_templates/v1.schema.json": "review_document_templates/v1.schema.json",
     "permit_to_x/test_vectors/permit_to_work/v1/corpus.json": "test-vectors/permit_to_work/v1/corpus.json",
     "comparator_registry/work-payment-authority-v1.json": "comparator_registry/work-payment-authority-v1.json",
     "semantics/work/authority_manifest_v1.json": "semantics/work/authority_manifest_v1.json",
