@@ -66,6 +66,7 @@ _SEMANTIC_REGISTRY_BY_VERSION = {
 _DEFAULT_SEMANTIC_REGISTRY = "semantic_registry/v1.json"
 
 _PRESENTATION_REGISTRIES = (
+    "presentation_registry/v25.json",
     "presentation_registry/v24.json",
     "presentation_registry/v23.json",
     "presentation_registry/v22.json",
@@ -105,6 +106,21 @@ _CANONICAL_IDENTITY_REGISTRY = "presentation_registry/v24.json"
 # does not move other historical Permits off the registry they resolved under.
 _IDENTITY_ALIAS_REGISTRY = "presentation_registry/v22.json"
 
+# Additive registries, mapped to the registry they extend.  v25 keeps every
+# v24 profile unchanged and adds profiles for the three synthetic Aidbox
+# semantics of selector registry v23, which v24 does not title.  Permit
+# bindings carry no presentation registry version, only the presentation
+# profile id the issuer pinned, so the profile id decides: an additive
+# registry reaches a Permit only when that Permit was issued under the
+# additive registry's own selector registry AND names a (semantic, profile)
+# pair the base registry does not.  Every pair v24 names therefore keeps
+# resolving exactly as before (same registry version, digest and title), and
+# a v24-era Aidbox Permit, which carries no profile id, stays generic.  Only a
+# Permit whose issuer pinned one of v25's new profile ids reaches v25.
+_ADDITIVE_PRESENTATION_REGISTRIES = {
+    "presentation_registry/v25.json": "presentation_registry/v24.json",
+}
+
 
 def _load_semantic_registry_for(
     binding: Mapping[str, Any] | None,
@@ -137,6 +153,20 @@ def load_permit_presentation_registry() -> dict[str, Any]:
     return json.loads(json.dumps(registry))
 
 
+def _names_profile(
+    registry: Mapping[str, Any],
+    semantic_id: Any,
+    profile_id: Any,
+) -> bool:
+    profiles = registry.get("profiles")
+    return isinstance(profiles, list) and any(
+        isinstance(profile, Mapping)
+        and profile.get("semantic_id") == semantic_id
+        and profile.get("presentation_profile_id") == profile_id
+        for profile in profiles
+    )
+
+
 def _presentation_registry_for(
     semantic_binding: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], bytes]:
@@ -153,7 +183,9 @@ def _presentation_registry_for(
     (it supersedes v23, which used an AI-P2 prefix).
     The cross-history alias set stays the three profiles v22 published; other
     historical Permits keep resolving through the registry they were issued
-    under.
+    under.  v25 is additive (see ``_ADDITIVE_PRESENTATION_REGISTRIES``): it is
+    reached only by a selector-v23 Permit naming one of the Aidbox profiles
+    v24 does not have.
     """
 
     semantic_id = (
@@ -185,6 +217,12 @@ def _presentation_registry_for(
 
     for name in _PRESENTATION_REGISTRIES:
         registry, raw = _load(name)
+        base_name = _ADDITIVE_PRESENTATION_REGISTRIES.get(name)
+        if base_name is not None and (
+            registry.get("semantic_registry_version") != selector_version
+            or _names_profile(_load(base_name)[0], semantic_id, profile_id)
+        ):
+            continue
         if selector_version in {
             "keel.semantic_selector_registry.v4",
             "keel.semantic_selector_registry.v5",
@@ -209,20 +247,13 @@ def _presentation_registry_for(
         }:
             if registry.get("semantic_registry_version") != selector_version:
                 continue
-        profiles = registry.get("profiles")
-        if not isinstance(profiles, list):
-            continue
-        if any(
-            isinstance(profile, Mapping)
-            and profile.get("semantic_id") == semantic_id
-            and profile.get("presentation_profile_id") == profile_id
-            for profile in profiles
-        ):
+        if _names_profile(registry, semantic_id, profile_id):
             return registry, raw
-    # Selector v23 preserves every v22 entry byte-for-byte and adds only the
-    # three synthetic Aidbox actions, for which no presentation profile exists:
-    # its preserved entries keep their v24 titles and the Aidbox actions fall
-    # back to the generic title.
+    # Selector v23 preserves every v22 entry byte-for-byte and adds the
+    # synthetic Aidbox actions.  Its preserved entries keep their v24 titles.
+    # An Aidbox Permit issued under v24 carries no presentation profile id and
+    # falls back to the generic title; one whose issuer pinned a v25 profile id
+    # was returned from v25 by the scan above.
     legacy_name = (
         "presentation_registry/v24.json"
         if selector_version

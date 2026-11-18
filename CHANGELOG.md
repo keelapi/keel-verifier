@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased
+
+### Permit presentation registry v25 (Aidbox titles)
+
+- Bundle keel-permit presentation registry v25 and its schema (keel-permit
+  `fcf1176`). v25 keeps every v24 profile unchanged and adds titles for the
+  three synthetic Aidbox semantics of semantic selector registry v23:
+  `AI Permit-to-Update-Patient-Mailing-Address` (`AI-PTUPMA`),
+  `AI Permit-to-Reschedule-Appointment` (`AI-PTRA`) and
+  `AI Permit-to-Release-Records` (`AI-PTRR`).
+- A Permit binding names a presentation profile, not a presentation registry.
+  v25 is reached only by a selector-v23 Permit whose binding names one of
+  these three profile ids, which v24 does not have. Every profile v24 names
+  keeps resolving through v24, with the same registry version, digest and
+  title.
+- Aidbox Permits issued so far carry no presentation profile id. They keep
+  the generic `AI Permit` title and report presentation registry v24.
+- v24 stays the canonical identity registry
+  (`load_permit_presentation_registry()` still returns v24) and stays
+  byte-identical.
+
+### Review document templates v2 and v3
+
+- Bundle keel-permit review document templates v2 and v3 and their schemas
+  (`keel_verifier/data/permit_to_x/review_document_templates/`, byte-identical
+  to keel-permit `fcf1176`). v2 keeps the v1 template and adds a generic rule
+  set for semantics with no tailored template. v3 keeps v2's generic rules and
+  adds tailored templates for 15 more types, including AI Permit-to-Pay and
+  the Aidbox records release. v2 pins presentation registry v24; v3 pins v25.
+  v1 is unchanged.
+- `keel_verifier.review_document_templates` takes an optional `version`
+  (`keel.review_document_templates.v1`, `.v2` or `.v3`) on every function. The
+  default stays v1, so existing callers get the same registry, digest and
+  templates. `REGISTRY_VERSIONS` lists the bundled versions and
+  `LATEST_REGISTRY_VERSION` names v3. An unknown version raises `KeyError`.
+- Add `review_document_templates_file_sha256(version)`.
+- The verifier does not apply the generic rules or build review documents.
+  Templates stay presentation: verdicts, claims, cryptographic checks and exit
+  codes are unchanged.
+
 ## 3.35.0
 
 ### Review document templates v1
