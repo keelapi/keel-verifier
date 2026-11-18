@@ -517,6 +517,83 @@ def test_aidbox_permits_fall_back_to_the_generic_title(action: str) -> None:
 
     assert resolved["customer_title"] == "AI Permit"
     assert resolved["resolution"] == "generic_profile_missing"
+    # Issued under presentation v24, which has no Aidbox profile: the record
+    # keeps reporting v24 after v25 is bundled.
+    assert resolved["presentation_registry_version"] == "keel.presentation_registry.v24"
+
+
+# Presentation registry v25 (keel-permit fcf1176) titles the three Aidbox
+# semantics.  A Permit reaches v25 only when its issuer pinned one of these
+# profile ids, which no v24-era issuer could do.
+V25_AIDBOX_TITLES = {
+    ADDRESS: (
+        "healthcare_patient_mailing_address_update.r1",
+        "AI Permit-to-Update-Patient-Mailing-Address",
+        "AI-PTUPMA",
+    ),
+    RESCHEDULE: (
+        "healthcare_appointment_reschedule.r1",
+        "AI Permit-to-Reschedule-Appointment",
+        "AI-PTRA",
+    ),
+    RELEASE: (
+        "healthcare_records_release.r1",
+        "AI Permit-to-Release-Records",
+        "AI-PTRR",
+    ),
+}
+V25_SHA256 = "693a25984def1dbd1d1ac3489cb083ac554d2be4306f7daae60f4cebc858b424"
+
+
+def _binding_naming(action: str, profile_id: str) -> dict:
+    binding = copy.deepcopy(aidbox_body(action)["semantic_binding"])
+    binding["non_authorizing_presentation_profile_id"] = profile_id
+    return binding
+
+
+@pytest.mark.parametrize("action", sorted(SEMANTICS))
+def test_aidbox_permit_naming_its_v25_profile_gets_the_v25_title(action: str) -> None:
+    profile_id, title, acronym = V25_AIDBOX_TITLES[action]
+
+    resolved = resolve_permit_presentation(_binding_naming(action, profile_id))
+
+    assert resolved["resolution"] == "trusted_signed_semantic"
+    assert resolved["presentation_profile_id"] == profile_id
+    assert resolved["customer_title"] == title
+    assert resolved["acronym"] == acronym
+    assert resolved["presentation_registry_version"] == "keel.presentation_registry.v25"
+    assert resolved["presentation_registry_digest"] == f"sha256:{V25_SHA256}"
+
+
+@pytest.mark.parametrize("action", sorted(SEMANTICS))
+def test_aidbox_v25_profile_cannot_title_another_aidbox_semantic(action: str) -> None:
+    others = [other for other in sorted(SEMANTICS) if other != action]
+    foreign_profile = V25_AIDBOX_TITLES[others[0]][0]
+
+    resolved = resolve_permit_presentation(_binding_naming(action, foreign_profile))
+
+    assert resolved["customer_title"] == "AI Permit"
+    assert resolved["resolution"] == "generic_profile_missing"
+    assert resolved["presentation_registry_version"] == "keel.presentation_registry.v24"
+
+
+def test_aidbox_v25_profile_is_not_reached_outside_selector_v23() -> None:
+    profile_id = V25_AIDBOX_TITLES[RELEASE][0]
+    for selector_version in (
+        "keel.semantic_selector_registry.v22",
+        "keel.semantic_selector_registry.v1",
+        None,
+    ):
+        binding = _binding_naming(RELEASE, profile_id)
+        if selector_version is None:
+            binding.pop("selector_registry_version")
+        else:
+            binding["selector_registry_version"] = selector_version
+        resolved = resolve_permit_presentation(binding)
+        assert resolved["presentation_registry_version"] != (
+            "keel.presentation_registry.v25"
+        ), selector_version
+        assert resolved["customer_title"] != V25_AIDBOX_TITLES[RELEASE][1]
 
 
 def test_preserved_v22_semantic_under_selector_v23_keeps_its_v24_title() -> None:
@@ -554,6 +631,9 @@ def test_preserved_v22_semantic_under_selector_v23_keeps_its_v24_title() -> None
     assert resolved["resolution"] == "trusted_signed_semantic"
     assert resolved["customer_title"] == profile["customer_title"]
     assert resolved["presentation_registry_version"] == "keel.presentation_registry.v24"
+    assert resolved["presentation_registry_digest"] == (
+        "sha256:e11e312beab6f662e92030279754040b02e424cde3cb85d8ebbc0f5f92ac61c3"
+    )
 
 
 # --- built and installed wheel ---------------------------------------------------

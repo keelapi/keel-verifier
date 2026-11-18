@@ -53,14 +53,14 @@ jobs:
         with:
           repository: keelapi/keel-permit
           path: keel-permit-corpus
-          ref: 9d72119f661b33351da64d967da0b252b0384cbc
+          ref: fcf1176d11d78099c474543ce615993eb5ecff3b
           persist-credentials: false
 
       - name: Verify qualification corpus commit
         run: >-
           python -c
           'import subprocess, sys;
-          expected = "9d72119f661b33351da64d967da0b252b0384cbc";
+          expected = "fcf1176d11d78099c474543ce615993eb5ecff3b";
           actual = subprocess.check_output(
           ["git", "-C", "keel-permit-corpus", "rev-parse", "HEAD"], text=True).strip();
           sys.exit(0 if actual == expected else

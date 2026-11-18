@@ -217,6 +217,103 @@ def test_v24_titles_and_evidence_are_unchanged_from_v22() -> None:
     assert v24["semantic_registry_version"] == v22["semantic_registry_version"]
 
 
+V25_AIDBOX_PROFILES = {
+    "healthcare_patient_mailing_address_update.r1": (
+        "keel.action.healthcare_patient_mailing_address_update.v1",
+        "AI Permit-to-Update-Patient-Mailing-Address",
+        "AI-PTUPMA",
+    ),
+    "healthcare_appointment_reschedule.r1": (
+        "keel.action.healthcare_appointment_reschedule.v1",
+        "AI Permit-to-Reschedule-Appointment",
+        "AI-PTRA",
+    ),
+    "healthcare_records_release.r1": (
+        "keel.action.healthcare_records_release.v1",
+        "AI Permit-to-Release-Records",
+        "AI-PTRR",
+    ),
+}
+
+
+def test_v25_presentation_registry_bytes_are_pinned() -> None:
+    _value, raw = _registry("presentation_registry/v25.json")
+    _schema, schema_raw = _registry("presentation_registry/v25.schema.json")
+
+    assert hashlib.sha256(raw).hexdigest() == (
+        "693a25984def1dbd1d1ac3489cb083ac554d2be4306f7daae60f4cebc858b424"
+    )
+    assert hashlib.sha256(schema_raw).hexdigest() == (
+        "8bd5e9b19a6fbcba9a72cc9216415555b14dc4af0a930ae2e53335f5d0551c17"
+    )
+
+
+def test_v24_presentation_registry_bytes_are_unchanged() -> None:
+    _value, raw = _registry("presentation_registry/v24.json")
+
+    assert hashlib.sha256(raw).hexdigest() == (
+        "e11e312beab6f662e92030279754040b02e424cde3cb85d8ebbc0f5f92ac61c3"
+    )
+
+
+def test_v25_is_v24_plus_exactly_the_three_aidbox_profiles() -> None:
+    v24, _ = _registry("presentation_registry/v24.json")
+    v25, _ = _registry("presentation_registry/v25.json")
+
+    assert v25["version"] == "keel.presentation_registry.v25"
+    assert v25["semantic_registry_version"] == "keel.semantic_selector_registry.v23"
+    assert v25["profiles"][: len(v24["profiles"])] == v24["profiles"]
+    added = v25["profiles"][len(v24["profiles"]) :]
+    assert {
+        profile["presentation_profile_id"]: (
+            profile["semantic_id"],
+            profile["customer_title"],
+            profile["acronym"],
+        )
+        for profile in added
+    } == V25_AIDBOX_PROFILES
+    assert all(profile["release_state"] == "eligible" for profile in added)
+    assert v25["fallback_profiles"] == v24["fallback_profiles"]
+    for key in set(v24) | set(v25):
+        if key not in {"$schema", "version", "semantic_registry_version", "profiles"}:
+            assert v25[key] == v24[key], key
+
+
+def test_every_v24_profile_under_selector_v23_keeps_resolving_through_v24() -> None:
+    """Bundling v25 retitles nothing: v24's pairs never reach v25."""
+
+    v24, _ = _registry("presentation_registry/v24.json")
+    selector, _ = _registry("semantic_registry/v23.json")
+    selector_semantics = {entry["semantic_id"] for entry in selector["entries"]}
+    checked = 0
+    for profile in v24["profiles"]:
+        if profile["semantic_id"] not in selector_semantics:
+            continue
+        resolved = resolve_permit_presentation(
+            {
+                "version": "keel.permit_semantic_binding.v2",
+                "semantic_id": profile["semantic_id"],
+                "non_authorizing_presentation_profile_id": profile[
+                    "presentation_profile_id"
+                ],
+                "selector_registry_version": selector["version"],
+            }
+        )
+        assert resolved["presentation_registry_version"] == (
+            "keel.presentation_registry.v24"
+        ), profile["presentation_profile_id"]
+        checked += 1
+    assert checked >= 100
+
+
+def test_v25_is_not_the_canonical_identity_registry() -> None:
+    from keel_verifier.permit_presentation import load_permit_presentation_registry
+
+    assert load_permit_presentation_registry()["version"] == (
+        "keel.presentation_registry.v24"
+    )
+
+
 def test_v23_presentation_registry_bytes_are_unchanged() -> None:
     _value, raw = _registry("presentation_registry/v23.json")
 

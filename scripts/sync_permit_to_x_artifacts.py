@@ -164,9 +164,19 @@ COPIES = {
     "presentation_registry/v23.schema.json": ("permit_to_x/presentation_registry/v23.schema.json"),
     "presentation_registry/v24.json": "permit_to_x/presentation_registry/v24.json",
     "presentation_registry/v24.schema.json": ("permit_to_x/presentation_registry/v24.schema.json"),
+    "presentation_registry/v25.json": "permit_to_x/presentation_registry/v25.json",
+    "presentation_registry/v25.schema.json": ("permit_to_x/presentation_registry/v25.schema.json"),
     "review_document_templates/v1.json": "permit_to_x/review_document_templates/v1.json",
     "review_document_templates/v1.schema.json": (
         "permit_to_x/review_document_templates/v1.schema.json"
+    ),
+    "review_document_templates/v2.json": "permit_to_x/review_document_templates/v2.json",
+    "review_document_templates/v2.schema.json": (
+        "permit_to_x/review_document_templates/v2.schema.json"
+    ),
+    "review_document_templates/v3.json": "permit_to_x/review_document_templates/v3.json",
+    "review_document_templates/v3.schema.json": (
+        "permit_to_x/review_document_templates/v3.schema.json"
     ),
     "consequence_registry/v13.json": "permit_to_x/consequence_registry/v13.json",
     "consequence_registry/v13.schema.json": ("permit_to_x/consequence_registry/v13.schema.json"),

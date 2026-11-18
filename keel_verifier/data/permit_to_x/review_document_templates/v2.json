@@ -1,0 +1,469 @@
+{
+  "$schema": "./v2.schema.json",
+  "artifact_id": "keel.permit.review_document_templates",
+  "version": "keel.review_document_templates.v2",
+  "canonicalization_profile": "RFC8785-JCS",
+  "document_format": "keel.review_document.v2",
+  "source_registries": {
+    "semantic_registry": {
+      "version": "keel.semantic_selector_registry.v23",
+      "path": "semantic_registry/v23.json",
+      "digest": "sha256:42022f73fbd8e59f79cec80d2857c21922f051cd48f33f559db0cd2435ce09c8"
+    },
+    "presentation_registry": {
+      "version": "keel.presentation_registry.v24",
+      "path": "presentation_registry/v24.json",
+      "digest": "sha256:e11e312beab6f662e92030279754040b02e424cde3cb85d8ebbc0f5f92ac61c3"
+    },
+    "fact_profiles": {
+      "version": "keel.fact_profile_registry.v20",
+      "path": "fact_profiles/v20.json",
+      "digest": "sha256:f72e8d8f7f7c57ea9e70bb9bc0b80097c2f23fc901513d95652bb709a77e5b0f"
+    }
+  },
+  "provenance_kinds": [
+    {
+      "id": "keel_checked",
+      "label": "Checked by Keel"
+    },
+    {
+      "id": "gateway_reported",
+      "label": "Reported by the identity gateway"
+    },
+    {
+      "id": "agent_reported",
+      "label": "Reported by the agent"
+    }
+  ],
+  "fact_sources": [
+    {
+      "id": "exact_facts",
+      "description": "The Permit's signed exact facts"
+    },
+    {
+      "id": "subject_facts",
+      "description": "Subject facts opened from the identity gateway's encrypted envelope and checked against the exact facts' commitments"
+    },
+    {
+      "id": "review",
+      "description": "The Review that holds the request"
+    },
+    {
+      "id": "template",
+      "description": "A constant stated by this template"
+    }
+  ],
+  "card_kinds": [
+    {
+      "id": "amount",
+      "description": "One money amount, formatted from a *amount_minor exact fact and the profile's currency fact"
+    },
+    {
+      "id": "change",
+      "description": "One value now and the value the request sets, from a current_/target_, current_/projected_ or _before/_after pair of exact facts"
+    }
+  ],
+  "templates": [
+    {
+      "template_id": "identity_group_access_grant.review.r1",
+      "semantic_id": "keel.action.identity_group_access_grant.v1",
+      "fact_profile_id": "keel.facts.identity_group_access_grant_exact.v1",
+      "presentation_profile_id": "identity_group_access_grant.r1",
+      "title": "Add a person to an Okta group",
+      "sections": [
+        {
+          "section_id": "subject",
+          "label": "Who gets access",
+          "fields": [
+            {
+              "field_id": "target_user.display_name",
+              "label": "Person",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true
+            },
+            {
+              "field_id": "target_user.id",
+              "label": "Okta user id",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "user_reference_commitment"
+            }
+          ]
+        },
+        {
+          "section_id": "access",
+          "label": "Access requested",
+          "fields": [
+            {
+              "field_id": "group.name",
+              "label": "Group",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true
+            },
+            {
+              "field_id": "group.id",
+              "label": "Okta group id",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "group_reference_commitment"
+            },
+            {
+              "field_id": "tenant.host",
+              "label": "Okta tenant",
+              "source": "subject_facts",
+              "provenance": "gateway_reported",
+              "essential": true,
+              "commitment": "tenant_reference_commitment"
+            },
+            {
+              "field_id": "provider_environment",
+              "label": "Environment",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "dedicated_demo": "Dedicated demo tenant"
+              }
+            },
+            {
+              "field_id": "current_membership",
+              "label": "Member today",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "false": "Not a member"
+              }
+            },
+            {
+              "field_id": "group_privilege_class",
+              "label": "Group privilege",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "administrative": "Administrative",
+                "privileged": "Privileged",
+                "standard": "Standard"
+              }
+            },
+            {
+              "field_id": "target_is_privileged_admin",
+              "label": "Person already holds an admin role",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true,
+              "values": {
+                "false": "No",
+                "true": "Yes"
+              }
+            },
+            {
+              "field_id": "current_group_member_count",
+              "label": "Members now",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": false
+            },
+            {
+              "field_id": "projected_group_member_count",
+              "label": "Members after",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": false
+            },
+            {
+              "field_id": "access_duration",
+              "label": "Duration",
+              "source": "template",
+              "provenance": "keel_checked",
+              "essential": true,
+              "constant": "Until removed"
+            }
+          ]
+        },
+        {
+          "section_id": "why_review",
+          "label": "Why review is required",
+          "fields": [
+            {
+              "field_id": "cause",
+              "label": "Reason",
+              "source": "review",
+              "provenance": "keel_checked",
+              "essential": true
+            }
+          ]
+        },
+        {
+          "section_id": "request",
+          "label": "Exact request",
+          "fields": [
+            {
+              "field_id": "request_digest",
+              "label": "Request digest",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true
+            },
+            {
+              "field_id": "preflight_observed_at",
+              "label": "Okta state read at",
+              "source": "exact_facts",
+              "provenance": "keel_checked",
+              "essential": true
+            }
+          ]
+        }
+      ],
+      "requester_explanation": {
+        "label": "Requester's explanation",
+        "provenance": "agent_reported",
+        "authoritative": false,
+        "max_chars": 2000
+      },
+      "status_outside_digest": [
+        "votes",
+        "deadline",
+        "filing_state"
+      ],
+      "beneficiary": {
+        "field_id": "target_user.id",
+        "role": "user_receiving_access"
+      },
+      "protected_class_rule": {
+        "fact": "group_privilege_class",
+        "protected_values": [
+          "administrative",
+          "privileged"
+        ]
+      }
+    }
+  ],
+  "generic": {
+    "template_id": "generic.review.r1",
+    "applies_when": "no_tailored_template",
+    "fact_source": "exact_facts",
+    "provenance": "keel_checked",
+    "title": {
+      "presentation_field": "customer_title"
+    },
+    "sentence": {
+      "presentation_field": "type_definition",
+      "remove_words": [
+        "immutable"
+      ],
+      "terminal_punctuation": "."
+    },
+    "fallback_presentation_profile_id": "generic_ai_permit",
+    "labels": {
+      "strip_suffixes": [
+        "_reference_commitment",
+        "_commitment",
+        "_minor"
+      ],
+      "remove_tokens": [
+        "minor"
+      ],
+      "word_separator": "_",
+      "capitalize": "first_character"
+    },
+    "omit": {
+      "fact_keys": [
+        "action",
+        "connector_contract_hash",
+        "connector_identity",
+        "currency",
+        "decision_trace_hash",
+        "enforcement_mode",
+        "fact_profile_id",
+        "idempotency_digest",
+        "operation",
+        "preflight_expires_at",
+        "preflight_observed_at",
+        "preflight_snapshot_digest",
+        "provider_api_version",
+        "request_digest",
+        "tool_arguments_hash",
+        "tool_schema_hash",
+        "version"
+      ],
+      "key_suffixes": [
+        "_digest",
+        "_hash"
+      ],
+      "value_types": [
+        "array",
+        "digest",
+        "null",
+        "timestamp"
+      ]
+    },
+    "disclosure": {
+      "audience": "authorized",
+      "clear_disclosure": "cleartext",
+      "clear_classifications": [
+        "financial",
+        "operational"
+      ],
+      "hidden_value_types": [
+        "commitment"
+      ],
+      "hide_target_fact_paths": true,
+      "hidden_text": "Hidden"
+    },
+    "values": {
+      "boolean": {
+        "false": "No",
+        "true": "Yes"
+      },
+      "integer_group_separator": ",",
+      "code_pattern": "^[a-z0-9_]+$",
+      "code_word_separator": "_",
+      "acronyms": [
+        "ai",
+        "api",
+        "http",
+        "https",
+        "id",
+        "mcp",
+        "pdf",
+        "sms",
+        "url"
+      ],
+      "text": {
+        "normalization": "NFC",
+        "removed_categories": [
+          "Cc",
+          "Cf"
+        ],
+        "kept_characters": [
+          "\t",
+          "\n"
+        ],
+        "max_chars": 256
+      }
+    },
+    "amount": {
+      "key_suffix": "amount_minor",
+      "money_key_token": "minor",
+      "currency_fact": "currency",
+      "primary_excludes": [
+        "after",
+        "before",
+        "current",
+        "outstanding",
+        "projected",
+        "refundable",
+        "remaining"
+      ],
+      "currencies": {
+        "AUD": {
+          "prefix": "A$",
+          "exponent": 2
+        },
+        "CAD": {
+          "prefix": "CA$",
+          "exponent": 2
+        },
+        "EUR": {
+          "prefix": "€",
+          "exponent": 2
+        },
+        "GBP": {
+          "prefix": "£",
+          "exponent": 2
+        },
+        "JPY": {
+          "prefix": "¥",
+          "exponent": 0
+        },
+        "USD": {
+          "prefix": "$",
+          "exponent": 2
+        }
+      },
+      "unknown_currency_suffix": " (minor units)",
+      "missing_currency_unit": "units"
+    },
+    "changes": {
+      "pairs": [
+        {
+          "from": {
+            "prefix": "current_"
+          },
+          "to": [
+            {
+              "prefix": "target_"
+            },
+            {
+              "prefix": "projected_"
+            },
+            {
+              "prefix": "requested_"
+            },
+            {
+              "prefix": "desired_"
+            }
+          ]
+        },
+        {
+          "from": {
+            "suffix": "_before"
+          },
+          "to": [
+            {
+              "suffix": "_after"
+            },
+            {
+              "prefix": "requested_"
+            }
+          ]
+        }
+      ],
+      "value_types": [
+        "boolean",
+        "integer",
+        "string"
+      ],
+      "max_cards": 2
+    },
+    "sections": [
+      {
+        "section_id": "checked_facts",
+        "label": "Checked facts",
+        "content": "exact_facts"
+      },
+      {
+        "section_id": "why_review",
+        "label": "Why review is required",
+        "content": "fields",
+        "fields": [
+          {
+            "field_id": "cause",
+            "label": "Reason",
+            "source": "review",
+            "provenance": "keel_checked",
+            "essential": false
+          }
+        ]
+      }
+    ],
+    "essential": "material_request_fact_paths",
+    "requester_explanation": {
+      "label": "Requester's explanation",
+      "provenance": "agent_reported",
+      "authoritative": false,
+      "max_chars": 2000
+    },
+    "status_outside_digest": [
+      "votes",
+      "deadline",
+      "filing_state"
+    ]
+  }
+}
