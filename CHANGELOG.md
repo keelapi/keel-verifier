@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 3.36.0
+
+This release must ship after 3.35.0. Every 3.35.0 behavior is unchanged.
+
+- TODO(CRL refresh): the TSA CRL snapshots are refreshed in this release. The
+  CRL refresh commit lands separately and replaces this line.
 
 ### Permit presentation registry v25 (Aidbox titles)
 
