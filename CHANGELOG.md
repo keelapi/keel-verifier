@@ -2,10 +2,25 @@
 
 ## 3.36.0
 
-This release must ship after 3.35.0. Every 3.35.0 behavior is unchanged.
+This release must ship after 3.35.0. Every 3.35.0 behavior is unchanged
+except the DigiCert revocation coverage window below.
 
-- TODO(CRL refresh): the TSA CRL snapshots are refreshed in this release. The
-  CRL refresh commit lands separately and replaces this line.
+### Trust-material refresh
+
+- Refresh the bundled DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1
+  certificate-revocation list after DigiCert's weekly reissue, with its pinned
+  hash, the bundle hash, the coupled public-CA receipt fixture and the
+  embedded release manifest. CRL number 0x51 -> 0x52; last_update
+  2026-11-11T16:40:26Z -> 2026-11-18T16:40:26Z; next_update
+  2026-12-02T16:40:26Z -> 2026-12-09T16:40:26Z.
+- No certificate was newly revoked. The other two DigiCert CRLs and all three
+  GlobalSign CRLs are unchanged.
+- New DigiCert coverage window: 2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z
+  (3.32.1 through 3.35.0: 2026-11-13T17:42:35Z to 2026-12-02T16:40:26Z).
+- Stranded window: a DigiCert timestamp with genTime from
+  2026-11-13T17:42:35Z to before 2026-11-18T16:40:26Z verifies under 3.35.0
+  but is reported `not_validated_revocation_snapshot_stale` under 3.36.0. Use
+  the published 3.35.0 for evidence in that window.
 
 ### Permit presentation registry v25 (Aidbox titles)
 

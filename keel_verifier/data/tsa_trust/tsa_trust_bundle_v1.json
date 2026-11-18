@@ -37,11 +37,11 @@
     {
       "issuer": "CN=DigiCert Trusted G4 TimeStamping RSA4096 SHA256 2025 CA1,O=DigiCert\\, Inc.,C=US",
       "kind": "crl",
-      "last_update": "2026-11-11T16:40:26Z",
-      "next_update": "2026-12-02T16:40:26Z",
+      "last_update": "2026-11-18T16:40:26Z",
+      "next_update": "2026-12-09T16:40:26Z",
       "path": "digicert/trusted_g4_timestamping_rsa4096_sha256_2025_ca1.crl.pem",
       "provider": "digicert",
-      "sha256": "sha256:55b2bc623a851ef3418e694e6b9add41a02943910fc4a87c015148ec6cac130b",
+      "sha256": "sha256:a2bdb53d6cc7529a0639b612707408a818c909eec01a0ac898e48b4122910413",
       "source_url": "http://crl3.digicert.com/DigiCertTrustedG4TimeStampingRSA4096SHA2562025CA1.crl"
     },
     {
@@ -128,11 +128,11 @@
       "source_url": "http://crl.globalsign.com/root-r6.crl"
     }
   ],
-  "generated_at": "2026-11-13T20:20:34Z",
+  "generated_at": "2026-11-18T18:19:35Z",
   "id": "keel.tsa_trust_bundle.v1",
   "validation": {
     "crl_refresh_guard": "CI must refresh the release-pinned TSA CRL snapshots before the earliest bundled CRL next_update enters the configured guard window.",
-    "crl_refresh_required_before": "2026-12-02T16:40:26Z",
+    "crl_refresh_required_before": "2026-12-03T23:47:20Z",
     "revocation_rule": "For each non-root certificate in the resolved chain, a bundled CRL issued by that certificate issuer must cover genTime; revocationDate or invalidityDate at or before genTime invalidates the TSA chain.",
     "stale_crl_reason_code": "not_validated_revocation_snapshot_stale",
     "timestamp_verification_time": "RFC3161 TSTInfo.genTime"
