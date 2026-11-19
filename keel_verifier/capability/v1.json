@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.37.0",
+    "version": "3.37.1",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -362,7 +362,7 @@
     {
       "name": "permit.decision.v1",
       "status": "implemented",
-      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v8, canonical hash, v6+ resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision. A signed reason platform_safety_floor.standing_approval_covered is reported as pre-approved by a standing approval with no per-action review, never as human-reviewed; a permit_receipt.standing_approval block is validated and, on v8, must match the signed standing_approval_version_id and terms_digest.",
+      "description": "Verifies the issuance-time permit decision canonical payload for binding versions v1-v8, canonical hash, v6+ resource_attributes_canonical_hash, and Ed25519 signature under the permit-binding trust root; mutable row state is not adjudicated as the issuance decision. A signed reason platform_safety_floor.standing_approval_covered is reported as pre-approved by a standing approval with no per-action review, never as human-reviewed; a permit_receipt.standing_approval block is validated and, on v8, must match the signed standing_approval_version_id and terms_digest. Provider wire-body evidence is recomputed against the signed final_request_hash under request canonicalization v1 for binding versions v1-v4, and v5 or v6 for v5-v8 as named by the unsigned binding_request_canonical_version (absent means v5); a v5 match names any nested volatile or credential keys it did not bind in does_not_establish.",
       "depends_on_semantics": [
         "keel.permit.decision.v1"
       ],
@@ -1665,5 +1665,5 @@
       "status": "allowlisted"
     }
   ],
-  "version": "3.37.0"
+  "version": "3.37.1"
 }

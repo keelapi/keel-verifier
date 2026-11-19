@@ -1,5 +1,60 @@
 # Changelog
 
+## 3.37.1
+
+This release must ship after 3.37.0. Every 3.37.0 behavior is unchanged
+except the `permit.decision.v1` provider wire-body recompute, below. It runs
+only when the evidence carries a provider request body
+(`binding_request_body` or one of its aliases).
+
+### Trust material
+
+- Unchanged from 3.37.0. The bundled TSA trust bundle, CRL snapshots and
+  public-CA receipt fixtures are byte-identical to 3.37.0's, so the DigiCert
+  coverage window is the same: 2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z.
+
+### Request canonicalization v6
+
+- The Keel Issuer binds the provider request body of every newly issued
+  v5-v8 Permit with request canonicalization **v6**: RFC 8785 JCS after
+  removing volatile and credential keys (`request_id`, `timestamp`,
+  `idempotency_key`, `authorization`, `api_key`, ...) from the top level of
+  the body only. Nested content, such as MCP tool arguments, tool and
+  response schemas and message parts, is bound verbatim. Permits first bound
+  before v6 keep **v5**, which removes those keys at every depth.
+- 3.37.0 implemented only v5, so it disproved genuine v6 evidence whose body
+  had such a key below the top level
+  (`permit.binding.<version>.wire_body_hash_mismatch`), and for v7 and v8 it
+  disproved any evidence declaring `binding_request_canonical_version: "v6"`
+  (`permit.binding.<version>.request_canonical_version_mismatch`). Both now
+  verify. The v6 bytes are byte-identical to the Issuer's
+  (`canonical_provider_wire_body(..., binding_request_canonical_version="v6")`).
+- The signed binding payload does not carry the request canonical version.
+  For v5-v8 the verifier uses the unsigned evidence field
+  `binding_request_canonical_version`: `v5` or `v6`; absent or blank means
+  `v5`, as the Issuer reads a Permit that records none. For v1-v4 the signed
+  binding version still fixes v1 and the field is ignored, as before.
+- A v6 match proves the body below the top level is exactly what was bound,
+  whichever canonicalizer the Issuer used. A v5 match proves less: values
+  under volatile or credential keys below the top level are not bound, and
+  an unsigned `v5` can be declared for a v6-bound Permit. When a v5 match
+  leaves such paths, the supported verdict now names them in
+  `does_not_establish`. The verdict is the same as 3.37.0's.
+
+### Compatibility
+
+- **[can reject previously accepted artifacts]** For a v5 or v6 binding,
+  a declared `binding_request_canonical_version` other than `v5` or `v6`
+  (after trimming whitespace) is now disproved with
+  `permit.binding.<version>.request_canonical_version_mismatch`. 3.37.0
+  ignored it and recomputed with v5. The Issuer never emits such a value.
+- For a v7 or v8 binding, the same reason code's message now names the
+  declared value and the accepted versions.
+- A supported `permit.decision.v1` whose wire body matched under v5 with
+  volatile or credential keys below the top level gains one
+  `does_not_establish` entry. Every other `--json` output is byte-identical
+  to 3.37.0's, apart from the verifier version.
+
 ## 3.37.0
 
 This release must ship after 3.36.0. Every 3.36.0 behavior is unchanged

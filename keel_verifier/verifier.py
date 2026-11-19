@@ -80,13 +80,17 @@ import rfc8785
 
 from keel_verifier.canonical.permit_binding import (
     CLOSURE_RFC8785_BINDING_VERSION,
+    RFC8785_BINDING_REQUEST_CANONICAL_VERSION,
+    RFC8785_BINDING_VERSIONS as RFC8785_PERMIT_BINDING_VERSIONS,
     SUPPORTED_BINDING_VERSIONS as SUPPORTED_PERMIT_BINDING_VERSIONS,
     binding_request_canonical_version_for_binding,
+    binding_request_canonical_versions_for_binding,
     canonical_delegation_policy_payload,
     canonical_provider_wire_body_hash,
     canonical_resource_attributes_payload,
     canonical_spend_scope_payload,
     compute_canonical_binding_hash as _canonical_permit_binding_hash,
+    nested_request_keys_outside_binding,
 )
 from keel_verifier import standing_approval as _standing_approval
 from keel_verifier.verdicts import (
@@ -7802,11 +7806,64 @@ def _permit_decision_binding_request_hash(
 
 
 def _permit_decision_binding_request_canonical_version(
-    _evidence: dict[str, Any],
+    evidence: dict[str, Any],
     canonical_payload: dict[str, Any],
-) -> str:
-    return binding_request_canonical_version_for_binding(
-        str(canonical_payload.get("binding_version") or "")
+    *,
+    evidence_path: str,
+) -> tuple[str, _PermitDecisionBindingFailure | None]:
+    """Pick the provider wire-body canonicalizer for the recompute.
+
+    The signed binding payload does not carry the request canonical version.
+    For v1-v4 the signed binding version alone fixes it (v1) and the unsigned
+    evidence field is ignored, as before. For v5-v8 keel-api used v5 (Permits
+    first bound before v6 existed) or v6 (every Permit first bound since), and
+    records which only in the unsigned ``binding_request_canonical_version``.
+    The evidence may name either; absence means v5, exactly as keel-api reads
+    a Permit row without the column. Any other value is a contradiction.
+
+    Letting unsigned evidence choose is safe for v6: a v6 match proves the
+    body below the top level is byte-for-byte what was bound, whichever
+    canonicalizer the Issuer used. A v5 match proves less when the body has
+    volatile or credential keys below the top level, so the supported verdict
+    names those paths in ``does_not_establish`` (see
+    ``_permit_decision_binding_recompute``).
+    """
+
+    version = str(canonical_payload.get("binding_version") or "")
+    default_version = binding_request_canonical_version_for_binding(version)
+    if version not in RFC8785_PERMIT_BINDING_VERSIONS:
+        return default_version, None
+    declared = evidence.get("binding_request_canonical_version")
+    if declared is None or (isinstance(declared, str) and not declared.strip()):
+        return default_version, None
+    normalized = str(declared).strip()
+    allowed = binding_request_canonical_versions_for_binding(version)
+    if normalized in allowed:
+        return normalized, None
+    return default_version, _PermitDecisionBindingFailure(
+        verdict="disproved",
+        reason_code=f"permit.binding.{version}.request_canonical_version_mismatch",
+        message=(
+            f"unsigned binding_request_canonical_version {normalized!r} is not a "
+            f"request canonicalizer the Issuer uses for signed {version} bindings "
+            f"({' or '.join(sorted(allowed))})"
+        ),
+        evidence=[
+            evidence_path,
+            "binding_request_canonical_version",
+            "canonical_payload.binding_version",
+        ],
+    )
+
+
+def _permit_decision_wire_body_boundary(paths: tuple[str, ...]) -> str:
+    return (
+        "that the provider request-body values at "
+        + ", ".join(paths)
+        + " were bound: the body matched final_request_hash under request "
+        "canonicalization v5, which drops volatile and credential keys at every "
+        "depth, and binding_request_canonical_version is not signed, so it cannot "
+        "show whether the Issuer used v5 or v6 (which binds them)"
     )
 
 
@@ -7815,6 +7872,43 @@ def _permit_decision_binding_recompute_failure(
     evidence: dict[str, Any],
     canonical_payload: dict[str, Any],
     evidence_path: str,
+) -> _PermitDecisionBindingFailure | None:
+    failure, _boundary = _permit_decision_binding_recompute(
+        evidence=evidence,
+        canonical_payload=canonical_payload,
+        evidence_path=evidence_path,
+    )
+    return failure
+
+
+def _permit_decision_binding_recompute(
+    *,
+    evidence: dict[str, Any],
+    canonical_payload: dict[str, Any],
+    evidence_path: str,
+) -> tuple[_PermitDecisionBindingFailure | None, list[str]]:
+    """Recompute the binding sub-hashes from evidence.
+
+    Returns the first failure, or ``None`` with the ``does_not_establish``
+    statements a supported verdict must carry.
+    """
+
+    boundary: list[str] = []
+    failure = _permit_decision_binding_recompute_checks(
+        evidence=evidence,
+        canonical_payload=canonical_payload,
+        evidence_path=evidence_path,
+        boundary=boundary,
+    )
+    return failure, ([] if failure is not None else boundary)
+
+
+def _permit_decision_binding_recompute_checks(
+    *,
+    evidence: dict[str, Any],
+    canonical_payload: dict[str, Any],
+    evidence_path: str,
+    boundary: list[str],
 ) -> _PermitDecisionBindingFailure | None:
     version = canonical_payload.get("binding_version")
     wire_body, wire_field, wire_failure = _permit_decision_wire_body(evidence)
@@ -7835,29 +7929,15 @@ def _permit_decision_binding_recompute_failure(
                 ),
                 evidence=[wire_field or "binding_request_body"],
             )
-        canonical_version = _permit_decision_binding_request_canonical_version(
-            evidence,
-            canonical_payload,
-        )
-        unsigned_canonical_version = evidence.get("binding_request_canonical_version")
-        if (
-            version in {"v7", "v8"}
-            and unsigned_canonical_version is not None
-            and str(unsigned_canonical_version).strip() != canonical_version
-        ):
-            return _PermitDecisionBindingFailure(
-                verdict="disproved",
-                reason_code=f"permit.binding.{version}.request_canonical_version_mismatch",
-                message=(
-                    "unsigned binding_request_canonical_version does not match "
-                    f"the signed {version} request canonicalizer"
-                ),
-                evidence=[
-                    evidence_path,
-                    "binding_request_canonical_version",
-                    "canonical_payload.binding_version",
-                ],
+        canonical_version, version_failure = (
+            _permit_decision_binding_request_canonical_version(
+                evidence,
+                canonical_payload,
+                evidence_path=evidence_path,
             )
+        )
+        if version_failure is not None:
+            return version_failure
         actual_hash = canonical_provider_wire_body_hash(
             wire_body,
             binding_request_canonical_version=canonical_version,
@@ -7878,6 +7958,16 @@ def _permit_decision_binding_recompute_failure(
                     hash_field or "binding_request_hash",
                 ],
             )
+        if (
+            version in RFC8785_PERMIT_BINDING_VERSIONS
+            and canonical_version == RFC8785_BINDING_REQUEST_CANONICAL_VERSION
+        ):
+            unbound_paths = nested_request_keys_outside_binding(
+                wire_body,
+                binding_request_canonical_version=canonical_version,
+            )
+            if unbound_paths:
+                boundary.append(_permit_decision_wire_body_boundary(unbound_paths))
 
     if version not in {"v3", "v4", "v5", "v6", "v7", "v8"}:
         return None
@@ -8049,7 +8139,7 @@ def _adjudicate_permit_decision_v1(
             evidence=[evidence_path, "canonical_payload"],
         )
 
-    binding_failure = _permit_decision_binding_recompute_failure(
+    binding_failure, wire_body_boundary = _permit_decision_binding_recompute(
         evidence=evidence,
         canonical_payload=canonical_payload,
         evidence_path=evidence_path,
@@ -8217,27 +8307,57 @@ def _adjudicate_permit_decision_v1(
         registry_boundary = list(
             load_claim_registry().claim(PERMIT_DECISION_CLAIM_NAME).does_not_establish
         )
-        return replace(
-            claim,
-            does_not_establish=[
-                *registry_boundary,
-                *(
-                    value
-                    for value in _standing_approval.does_not_establish(
-                        canonical_payload, standing_receipt
-                    )
-                    if value not in registry_boundary
-                ),
-            ],
+        return _with_permit_decision_boundary(
+            replace(
+                claim,
+                does_not_establish=[
+                    *registry_boundary,
+                    *(
+                        value
+                        for value in _standing_approval.does_not_establish(
+                            canonical_payload, standing_receipt
+                        )
+                        if value not in registry_boundary
+                    ),
+                ],
+            ),
+            wire_body_boundary,
         )
-    return _permit_claim(
-        PERMIT_DECISION_CLAIM_NAME,
-        subject_type="permit_decision",
-        subject_id=permit_id,
-        verdict="supported",
-        reason_code="PERMIT_DECISION_SUPPORTED",
-        message="permit decision canonical hash and signature are supported",
-        evidence=[evidence_path, "trust_root"],
+    return _with_permit_decision_boundary(
+        _permit_claim(
+            PERMIT_DECISION_CLAIM_NAME,
+            subject_type="permit_decision",
+            subject_id=permit_id,
+            verdict="supported",
+            reason_code="PERMIT_DECISION_SUPPORTED",
+            message="permit decision canonical hash and signature are supported",
+            evidence=[evidence_path, "trust_root"],
+        ),
+        wire_body_boundary,
+    )
+
+
+def _with_permit_decision_boundary(
+    claim: ClaimVerdict,
+    boundary: list[str],
+) -> ClaimVerdict:
+    """Add ``does_not_establish`` statements, keeping the registry's own."""
+
+    if not boundary:
+        return claim
+    existing = (
+        list(claim.does_not_establish)
+        if claim.does_not_establish is not None
+        else list(
+            load_claim_registry().claim(PERMIT_DECISION_CLAIM_NAME).does_not_establish
+        )
+    )
+    return replace(
+        claim,
+        does_not_establish=[
+            *existing,
+            *(value for value in boundary if value not in existing),
+        ],
     )
 
 

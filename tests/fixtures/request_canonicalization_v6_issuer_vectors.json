@@ -1,0 +1,149 @@
+{
+  "schema_version": "keel.request_canonicalization_vectors.v1",
+  "description": "Provider wire-body request canonicalization vectors produced by executing the Keel Issuer's canonical_provider_wire_body (keel-api app/services/permit_binding.py, commit 0b22118ca) on synthetic, Issuer-shaped request bodies. Values are placeholders, not credentials. v5 hashes are computed without the Issuer's MCP params.arguments.idempotency_key preservation, which the verifier does not implement.",
+  "issuer_commit": "0b22118ca",
+  "vectors": [
+    {
+      "id": "mcp_tools_call_nested_volatile_arguments",
+      "description": "MCP tools/call: volatile and credential key names inside params.arguments are business arguments. v6 binds them; v5 drops them. Top-level request_id and x-keel-timestamp are stripped by both.",
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "tools/call",
+        "request_id": "keel_req_01",
+        "x-keel-timestamp": "2026-11-19T10:00:00Z",
+        "params": {
+          "name": "github.create_issue",
+          "arguments": {
+            "repository": "acme/app",
+            "title": "Rotate staging key",
+            "timestamp": "2026-11-19T09:59:00Z",
+            "request_id": "customer-ticket-4411",
+            "api_key": "placeholder-not-a-secret",
+            "labels": [
+              {
+                "name": "security",
+                "trace_id": "label-trace-1"
+              }
+            ]
+          }
+        }
+      },
+      "v1_sha256": "f480010c0baae23a236089cc38962348107307fc8ac6b8e639769b267d43579a",
+      "v5_sha256": "f480010c0baae23a236089cc38962348107307fc8ac6b8e639769b267d43579a",
+      "v6_sha256": "5ee1a7a15610efbc04a20b5ff595854ce24b6cd48fd9dcd75d22ea674b05e1b7",
+      "v6_canonical_utf8": "{\"id\":7,\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"arguments\":{\"api_key\":\"placeholder-not-a-secret\",\"labels\":[{\"name\":\"security\",\"trace_id\":\"label-trace-1\"}],\"repository\":\"acme/app\",\"request_id\":\"customer-ticket-4411\",\"timestamp\":\"2026-11-19T09:59:00Z\",\"title\":\"Rotate staging key\"},\"name\":\"github.create_issue\"}}"
+    },
+    {
+      "id": "anthropic_messages_tool_schema_properties",
+      "description": "Anthropic messages with a tool input_schema whose properties are named timestamp and authorization. v6 keeps the schema verbatim; v5 drops those property definitions. Top-level authorization is stripped by both.",
+      "body": {
+        "model": "claude-sonnet-5-5",
+        "max_tokens": 512,
+        "authorization": "Bearer placeholder",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Schedule the call."
+              }
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "name": "schedule_call",
+            "description": "Schedule a call",
+            "input_schema": {
+              "type": "object",
+              "required": [
+                "timestamp"
+              ],
+              "properties": {
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "authorization": {
+                  "type": "string"
+                },
+                "attendee": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "metadata": {
+          "user_id": "u_123",
+          "request_id": "client-meta-9"
+        }
+      },
+      "v1_sha256": "d3ecd6d27c08f6158c8d5dfd9c15f339fa193eb4f9c8de0f6f5a670bdae96206",
+      "v5_sha256": "d3ecd6d27c08f6158c8d5dfd9c15f339fa193eb4f9c8de0f6f5a670bdae96206",
+      "v6_sha256": "b1f8396cf8f886a5403c0f82eeef0270b09adcce5b7beb0e1874c4f52d0210a9",
+      "v6_canonical_utf8": "{\"max_tokens\":512,\"messages\":[{\"content\":[{\"text\":\"Schedule the call.\",\"type\":\"text\"}],\"role\":\"user\"}],\"metadata\":{\"request_id\":\"client-meta-9\",\"user_id\":\"u_123\"},\"model\":\"claude-sonnet-5-5\",\"tools\":[{\"description\":\"Schedule a call\",\"input_schema\":{\"properties\":{\"attendee\":{\"type\":\"string\"},\"authorization\":{\"type\":\"string\"},\"timestamp\":{\"format\":\"date-time\",\"type\":\"string\"}},\"required\":[\"timestamp\"],\"type\":\"object\"},\"name\":\"schedule_call\"}]}"
+    },
+    {
+      "id": "openai_responses_no_nested_volatile",
+      "description": "OpenAI responses body with no volatile or credential key below the top level: v5 and v6 produce identical bytes. Top-level idempotency_key is stripped by both.",
+      "body": {
+        "model": "gpt-5",
+        "temperature": 0.2,
+        "idempotency_key": "idem-abc",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Summarise Q3 — ü, 日本,  ."
+              }
+            ]
+          }
+        ],
+        "max_output_tokens": 1024,
+        "store": false,
+        "top_p": 1.0,
+        "seed": 9007199254740991
+      },
+      "v1_sha256": "a86c18e1c9bd85ae0626c786e53597d82feecfbab289b16ae412045c711c4fb2",
+      "v5_sha256": "9f0a8f0f59e24cacf99d9d936d8b27c2fa962a190041db515fba361f2349122c",
+      "v6_sha256": "9f0a8f0f59e24cacf99d9d936d8b27c2fa962a190041db515fba361f2349122c",
+      "v6_canonical_utf8": "{\"input\":[{\"content\":[{\"text\":\"Summarise Q3 — ü, 日本,  .\",\"type\":\"input_text\"}],\"role\":\"user\"}],\"max_output_tokens\":1024,\"model\":\"gpt-5\",\"seed\":9007199254740991,\"store\":false,\"temperature\":0.2,\"top_p\":1}"
+    },
+    {
+      "id": "nested_lists_of_objects",
+      "description": "List items are nested: v6 keeps volatile keys inside list items, including at the top-level list's first object level.",
+      "body": {
+        "batch": [
+          {
+            "span_id": "s1",
+            "value": 1.5e-07
+          },
+          [
+            {
+              "X-Request-Id": "r2",
+              "ok": true
+            }
+          ],
+          {
+            "items": [
+              {
+                "proxy_authorization": "p",
+                "n": null
+              }
+            ]
+          }
+        ],
+        "trace_id": "top-level-trace"
+      },
+      "v1_sha256": "7feca2f95284a670c1a30af4e0c01b6e5b8c71abb5ba90b54935f83b92ae5092",
+      "v5_sha256": "c61e000dcc965a8915046957c9f34100ed2053e84a29cfe5c85b9ad4693e7f19",
+      "v6_sha256": "f4b0c0048696e3f49eaf3f7c9b9616cb47da018ec91a4de0afcdb8c79dac9102",
+      "v6_canonical_utf8": "{\"batch\":[{\"span_id\":\"s1\",\"value\":1.5e-7},[{\"X-Request-Id\":\"r2\",\"ok\":true}],{\"items\":[{\"n\":null,\"proxy_authorization\":\"p\"}]}]}"
+    }
+  ]
+}
