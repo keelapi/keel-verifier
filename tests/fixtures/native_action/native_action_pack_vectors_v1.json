@@ -1,0 +1,1975 @@
+{
+  "base_export": {
+    "approval": {
+      "attestation_id": null,
+      "exact_review_v2_hash": "2c4bd48d07e2006f86d1890252a196866e443d3263a46c0163ffc20b77ec6b6f",
+      "v1_review_hash": "94c99cca1e7b4f3d59193e46f5f003f7d61b2a0e49e32fc20f8e7158687c7fe0"
+    },
+    "closure_events": [
+      {
+        "actor_email": null,
+        "actor_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+        "actor_type": "dashboard_user",
+        "authorization_effect": "explicit_permit",
+        "authorization_outcome": "Allow",
+        "authorizer_input_hash": null,
+        "caller_event_id": null,
+        "category": "native",
+        "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "created_at": "2026-11-09T09:48:22",
+        "decision": null,
+        "effect_version": "phase0_derived_v1",
+        "event_id": "gev_01m6zvax6p2a4s5gjmnhj7bvjr",
+        "event_type": "native.action.review_decided",
+        "ip_address": null,
+        "lineage_type": null,
+        "model": null,
+        "occurred_at": "2026-11-09T09:48:22.614735",
+        "operation": null,
+        "org_id": null,
+        "outcome": "success",
+        "payload": {
+          "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+          "attestation_id": null,
+          "decision": "approve",
+          "exact_review_v2_hash": "2c4bd48d07e2006f86d1890252a196866e443d3263a46c0163ffc20b77ec6b6f",
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "step_up_challenge_id": "bde91079-1675-4666-927b-2d5de44a6244",
+          "system_revision": {
+            "alembic_head": null,
+            "build_sha": null
+          }
+        },
+        "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+        "prev_hash": "835a83c6b14d119d13b4cf1e146971bbe000f7a5273f34fed2e96f5e459564a0",
+        "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "provider": null,
+        "record_hash": "6ff7bed3d5c87fac2bf3b539c0cba205cb77a90a0a8926d45cccdd043d2037d5",
+        "request_id": null,
+        "resource_id": null,
+        "resource_type": null,
+        "runtime_route": null,
+        "schema_version": 2,
+        "sequence_number": 16,
+        "session_id": null,
+        "severity": "info",
+        "source_stage": null,
+        "span_id": null,
+        "surface": "native",
+        "trace_id": null,
+        "user_agent": null,
+        "workbench_evidence": {
+          "closure_digests": {
+            "exact_review_v2_hash": "2c4bd48d07e2006f86d1890252a196866e443d3263a46c0163ffc20b77ec6b6f"
+          },
+          "ids": {
+            "event_id": "gev_01m6zvax6p2a4s5gjmnhj7bvjr",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+            "surface": "native"
+          },
+          "request": null,
+          "response": null,
+          "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+          "runtime_route": null,
+          "schema_version": 1
+        }
+      },
+      {
+        "actor_email": null,
+        "actor_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+        "actor_type": "agent",
+        "authorization_effect": "explicit_forbid",
+        "authorization_outcome": "Challenge",
+        "authorizer_input_hash": null,
+        "caller_event_id": null,
+        "category": "native",
+        "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "created_at": "2026-11-09T09:48:22",
+        "decision": null,
+        "effect_version": "phase0_derived_v1",
+        "event_id": "gev_01m6zvax2s7ddgdcn7xs6mxb6v",
+        "event_type": "native.action.proposed",
+        "ip_address": null,
+        "lineage_type": null,
+        "model": null,
+        "occurred_at": "2026-11-09T09:48:22.489411",
+        "operation": null,
+        "org_id": null,
+        "outcome": "success",
+        "payload": {
+          "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+          "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+          "credential_family_id": "a5a2eaaf-9aed-421d-aeac-679992c59e1b",
+          "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "state": "review_pending",
+          "system_revision": {
+            "alembic_head": null,
+            "build_sha": null
+          }
+        },
+        "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+        "prev_hash": "3b448289a8b9eae5a8b043cfc9e989e6201fc44caf74f0405fef4806380f956d",
+        "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "provider": null,
+        "record_hash": "4354ce0886b8e000a705989103dc5cc0ae0157954cfbeb371bf1934f374e7905",
+        "request_id": null,
+        "resource_id": null,
+        "resource_type": null,
+        "runtime_route": null,
+        "schema_version": 2,
+        "sequence_number": 11,
+        "session_id": null,
+        "severity": "info",
+        "source_stage": null,
+        "span_id": null,
+        "surface": "native",
+        "trace_id": null,
+        "user_agent": null,
+        "workbench_evidence": {
+          "closure_digests": {
+            "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5"
+          },
+          "ids": {
+            "event_id": "gev_01m6zvax2s7ddgdcn7xs6mxb6v",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+            "surface": "native"
+          },
+          "request": null,
+          "response": null,
+          "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+          "runtime_route": null,
+          "schema_version": 1
+        }
+      },
+      {
+        "actor_email": null,
+        "actor_id": null,
+        "actor_type": null,
+        "authorization_effect": "explicit_permit",
+        "authorization_outcome": "Allow",
+        "authorizer_input_hash": null,
+        "caller_event_id": null,
+        "category": "native",
+        "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "created_at": "2026-11-09T09:48:23",
+        "decision": null,
+        "effect_version": "phase0_derived_v1",
+        "event_id": "gev_01m6zvaxkcj8rkbd5ny1schxkq",
+        "event_type": "native.action.dispatch_started",
+        "ip_address": null,
+        "lineage_type": null,
+        "model": null,
+        "occurred_at": "2026-11-09T09:48:23.020175",
+        "operation": null,
+        "org_id": null,
+        "outcome": "success",
+        "payload": {
+          "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+          "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+          "final_request_hash": null,
+          "fresh_fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+          "frozen_arguments_equal": true,
+          "governed_request_id": "e16914b8-5205-4680-93dd-a4662497a246",
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "preflight_facts_equal": true,
+          "system_revision": {
+            "alembic_head": null,
+            "build_sha": null
+          }
+        },
+        "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+        "prev_hash": "8940f45b025d68dae19ca75e6b7683997f7e2cb7a31c5957f3669b23e1bb965b",
+        "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "provider": null,
+        "record_hash": "7c95fd5d910fbe00c4160732129b049c7ddf61bdd54affdb2ec4fda59473bc94",
+        "request_id": null,
+        "resource_id": null,
+        "resource_type": null,
+        "runtime_route": null,
+        "schema_version": 2,
+        "sequence_number": 32,
+        "session_id": null,
+        "severity": "info",
+        "source_stage": null,
+        "span_id": null,
+        "surface": "native",
+        "trace_id": null,
+        "user_agent": null,
+        "workbench_evidence": {
+          "closure_digests": {
+            "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+            "fresh_fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d"
+          },
+          "ids": {
+            "event_id": "gev_01m6zvaxkcj8rkbd5ny1schxkq",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+            "surface": "native"
+          },
+          "request": null,
+          "response": null,
+          "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+          "runtime_route": null,
+          "schema_version": 1
+        }
+      },
+      {
+        "actor_email": null,
+        "actor_id": null,
+        "actor_type": null,
+        "authorization_effect": "explicit_permit",
+        "authorization_outcome": "Allow",
+        "authorizer_input_hash": null,
+        "caller_event_id": null,
+        "category": "native",
+        "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "created_at": "2026-11-09T09:48:23",
+        "decision": null,
+        "effect_version": "phase0_derived_v1",
+        "event_id": "gev_01m6zvaxke69v88b87xb0ky663",
+        "event_type": "native.action.upstream_result",
+        "ip_address": null,
+        "lineage_type": null,
+        "model": null,
+        "occurred_at": "2026-11-09T09:48:23.022514",
+        "operation": null,
+        "org_id": null,
+        "outcome": "success",
+        "payload": {
+          "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+          "governed_request_id": "e16914b8-5205-4680-93dd-a4662497a246",
+          "outcome": "upstream_reported_success",
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "pull_request_number": 1,
+          "system_revision": {
+            "alembic_head": null,
+            "build_sha": null
+          },
+          "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+        },
+        "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+        "prev_hash": "7c95fd5d910fbe00c4160732129b049c7ddf61bdd54affdb2ec4fda59473bc94",
+        "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+        "provider": null,
+        "record_hash": "61718ee5c3e3f00928f10c1cadff2900e418a970d65513ed1f4d15a3415e4776",
+        "request_id": null,
+        "resource_id": null,
+        "resource_type": null,
+        "runtime_route": null,
+        "schema_version": 2,
+        "sequence_number": 33,
+        "session_id": null,
+        "severity": "info",
+        "source_stage": null,
+        "span_id": null,
+        "surface": "native",
+        "trace_id": null,
+        "user_agent": null,
+        "workbench_evidence": {
+          "closure_digests": {
+            "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+          },
+          "ids": {
+            "event_id": "gev_01m6zvaxke69v88b87xb0ky663",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+            "surface": "native"
+          },
+          "request": null,
+          "response": null,
+          "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+          "runtime_route": null,
+          "schema_version": 1
+        }
+      }
+    ],
+    "exact_review_v2": {
+      "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+      "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+      "action_schema": "keel.canonical_action/v1",
+      "approval": {
+        "approval_requirement_hash": "8f85917f59a128ef887a798c42babebfbc4f651cc18640c6301213d07c886a3e",
+        "requirement_type": "exact_request_review"
+      },
+      "connector": {
+        "connector_contract_version": "keel.connector.execution.v1",
+        "connector_identity": "github",
+        "credential_reference": "connector-credential:acace4ba-9287-4567-85d2-0be6b34ae994",
+        "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
+      },
+      "coverage": {
+        "dispatch": "keel_dispatched",
+        "exclusivity_attestation_digest": "263cb2e7b85f1c5e3a9bba949965544893fec9b2f0783cf2004a8c409c825638",
+        "exclusivity_basis": "administrator_attestation",
+        "independently_confirmable": true
+      },
+      "created_at": "2026-11-09T09:48:22Z",
+      "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+      "policy": {
+        "condition_semantics": "legacy",
+        "id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+        "policy_epoch": 0,
+        "snapshot_hash": "aa3a5d149a91d5fab685b18865e1f27cc799ddc81e24a007e18bbf84831b7046",
+        "version": "1"
+      },
+      "principal": {
+        "agent_principal_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+        "client_claims_digest": "0b062c056a1863506337ff94729666daa672bf334c20f4cd739727fdca303384",
+        "credential_family_id": "a5a2eaaf-9aed-421d-aeac-679992c59e1b",
+        "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a"
+      },
+      "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+      "review_expires_at": "2026-11-09T10:48:22Z",
+      "schema_version": "keel.exact_request_review.v2",
+      "trusted_facts": {
+        "additions_count": 3,
+        "ahead_by": 1,
+        "base_branch": "main",
+        "base_branch_protected": true,
+        "base_commit_sha": "1111111111111111111111111111111111111111",
+        "behind_by": 0,
+        "body_commitment": {
+          "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "changed_files_count": 1,
+        "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+        "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+        "compare_status": "ahead",
+        "deletions_count": 0,
+        "draft": false,
+        "existing_open_pull_request_count": 0,
+        "fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+        "head_branch": "keel/nae-m1-fixture",
+        "head_commit_sha": "2222222222222222222222222222222222222222",
+        "merge_authorized": false,
+        "preflight_observed_at": "2026-11-09T09:48:22Z",
+        "protected_path_change_count": 0,
+        "repository_reference_commitment": {
+          "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+          "method": "keel.salted_sha256_jcs.v1"
+        },
+        "same_repository": true,
+        "title_commitment": {
+          "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+          "method": "keel.salted_sha256_jcs.v1"
+        }
+      },
+      "v1_review_hash": "94c99cca1e7b4f3d59193e46f5f003f7d61b2a0e49e32fc20f8e7158687c7fe0"
+    },
+    "permit_audit_bundle": {
+      "bundle_type": "permit_audit_bundle",
+      "co_signatures": [],
+      "format": "json",
+      "generated_at": "2026-11-09T09:48:23.041568Z",
+      "governance_events": [
+        {
+          "actor_email": null,
+          "actor_id": null,
+          "actor_type": null,
+          "authorization_effect": "explicit_forbid",
+          "authorization_outcome": "Challenge",
+          "authorizer_input_hash": null,
+          "category": "policy",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": "review",
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax1aqfp1bce581zsndq7",
+          "event_type": "policy.evaluated",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": "coding-workspace-github",
+          "occurred_at": "2026-11-09T09:48:22.442034",
+          "operation": "call.tools",
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action": "require_human_review",
+            "connector_type": "mcp_registry",
+            "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+            "policy_name": "mcp_effect_policy",
+            "policy_version": 1,
+            "reason": "Matched policy 'mcp_effect_policy' rule 1.",
+            "rule_index": 1,
+            "scope": "project",
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "7231aba3e6bc4aae64742b11d4b3d3a0a2a26feec4ae4af7d55ebd49a0c8c32c",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": "mcp",
+          "record_hash": "e8f7ed21138074fdf116f689328c0ef423922ab022f9d9a37383066023449e67",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 1,
+          "sequence_number": 8,
+          "severity": "info",
+          "source_stage": "permit",
+          "span_id": null,
+          "surface": null,
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {},
+            "ids": {
+              "decision": "challenge",
+              "event_id": "gev_01m6zvax1aqfp1bce581zsndq7",
+              "model": "coding-workspace-github",
+              "operation": "call.tools",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "provider": "mcp"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": null,
+          "actor_type": null,
+          "authorization_effect": "explicit_forbid",
+          "authorization_outcome": "Challenge",
+          "authorizer_input_hash": null,
+          "category": "policy",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": "review",
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax1e7r02dn0s704nzdsx",
+          "event_type": "policy.review_required",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": "coding-workspace-github",
+          "occurred_at": "2026-11-09T09:48:22.446368",
+          "operation": "call.tools",
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action": "require_human_review",
+            "connector_type": "mcp_registry",
+            "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+            "policy_name": "mcp_effect_policy",
+            "policy_version": 1,
+            "reason": "Matched policy 'mcp_effect_policy' rule 1.",
+            "rule_index": 1,
+            "scope": "project",
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "e8f7ed21138074fdf116f689328c0ef423922ab022f9d9a37383066023449e67",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": "mcp",
+          "record_hash": "dd1f1b5946f3b8f722f981cfdafc3ed27515d3cefd92328dca8ad8a1ce81a211",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 1,
+          "sequence_number": 9,
+          "severity": "info",
+          "source_stage": "permit",
+          "span_id": null,
+          "surface": null,
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {},
+            "ids": {
+              "decision": "challenge",
+              "event_id": "gev_01m6zvax1e7r02dn0s704nzdsx",
+              "model": "coding-workspace-github",
+              "operation": "call.tools",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "provider": "mcp"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+          "actor_type": "agent",
+          "authorization_effect": "explicit_forbid",
+          "authorization_outcome": "Challenge",
+          "authorizer_input_hash": null,
+          "category": "native",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": null,
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax2s7ddgdcn7xs6mxb6v",
+          "event_type": "native.action.proposed",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": null,
+          "occurred_at": "2026-11-09T09:48:22.489411",
+          "operation": null,
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+            "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+            "credential_family_id": "a5a2eaaf-9aed-421d-aeac-679992c59e1b",
+            "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "state": "review_pending",
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "3b448289a8b9eae5a8b043cfc9e989e6201fc44caf74f0405fef4806380f956d",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": null,
+          "record_hash": "4354ce0886b8e000a705989103dc5cc0ae0157954cfbeb371bf1934f374e7905",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 11,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "native",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5"
+            },
+            "ids": {
+              "event_id": "gev_01m6zvax2s7ddgdcn7xs6mxb6v",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "surface": "native"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+          "actor_type": "user",
+          "authorization_effect": "explicit_permit",
+          "authorization_outcome": "Allow",
+          "authorizer_input_hash": null,
+          "category": "permit",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": "allow",
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax5kghwczhbw6wr44y4r",
+          "event_type": "permit.challenge_approved",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": "coding-workspace-github",
+          "occurred_at": "2026-11-09T09:48:22.556529",
+          "operation": "permit_challenge_transition",
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "challenge_transition_canonical_hash": "278a225a1c570619a6ff94befeb6f713326cc808ba73090ab06835218988b46d",
+            "challenge_transition_event": {
+              "actor_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+              "actor_kind": "user",
+              "decision_at": "2026-11-09T09:48:22.556529+00:00",
+              "event_type": "permit.challenge_approved",
+              "from_decision": "challenge",
+              "from_status": "awaiting_attestation",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "signature": "IN8p2qs1xd2npOvHdEkMmtgxRwl8xVhKkDjo5WQgcKAYgCuLqL/4kXDPzEsBkvaPG4Bc1pWQRuzrl8tjPK60DA==",
+              "to_decision": "allow",
+              "to_status": "attested"
+            },
+            "connector_type": "mcp_registry",
+            "signature_profile": "keel.canonical_json.payload.v1",
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "9aad260775f84ffe1730acb27cfb9e31131aa396a61da0b2fb54cab39f9488b6",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": "mcp",
+          "record_hash": "9c8dd7632edf33c07e76899b499c8759cce6a13f4cd050b7d5d1b38fd1b0de17",
+          "request_id": null,
+          "resource_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "resource_type": "permit",
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 13,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "dashboard",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "challenge_transition_canonical_hash": "278a225a1c570619a6ff94befeb6f713326cc808ba73090ab06835218988b46d"
+            },
+            "ids": {
+              "decision": "allow",
+              "event_id": "gev_01m6zvax5kghwczhbw6wr44y4r",
+              "model": "coding-workspace-github",
+              "operation": "permit_challenge_transition",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "provider": "mcp",
+              "resource_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "resource_type": "permit",
+              "surface": "dashboard"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+          "actor_type": "dashboard_user",
+          "authorization_effect": "explicit_permit",
+          "authorization_outcome": "Allow",
+          "authorizer_input_hash": null,
+          "category": "audit",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": "approve",
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax5r7v594e54rv7w2wj8",
+          "event_type": "audit.attestation",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": "coding-workspace-github",
+          "occurred_at": "2026-11-09T09:48:22.585012",
+          "operation": "permit_attestation",
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "actor_api_key_id": null,
+            "actor_guest_principal_id": null,
+            "actor_user_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+            "approval_actor_snapshot": {
+              "credential": null,
+              "principal_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+              "principal_subject": "user:1f749885-5631-41ae-ad28-b00a237f0237",
+              "principal_type": "user",
+              "version": "keel.approval_actor.v1"
+            },
+            "approval_requirement": {
+              "delegated_approval": false,
+              "min_approvals": 1,
+              "separation_of_duties": true,
+              "timeout_seconds": 3600,
+              "type": "user",
+              "user_id": "1f749885-5631-41ae-ad28-b00a237f0237"
+            },
+            "approval_requirement_type": "user",
+            "approvals_recorded": 1,
+            "approvals_required": 1,
+            "attestation_type": "approve",
+            "attestor": "user:1f749885-5631-41ae-ad28-b00a237f0237",
+            "authorization_basis": "explicit_user",
+            "authorization_subject_hmac": "a864ea02b0f650468e9c27563a0b660509f23630c58c2534f1d9b431e3ba7882",
+            "connector_type": "mcp_registry",
+            "evidence_url_provided": false,
+            "exact_request_review_hash": "94c99cca1e7b4f3d59193e46f5f003f7d61b2a0e49e32fc20f8e7158687c7fe0",
+            "identifier_hmac_version": "v1",
+            "permit_decision": "allow",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "permit_status": "attested",
+            "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+            "policy_version": "1",
+            "rationale_provided": false,
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "9c8dd7632edf33c07e76899b499c8759cce6a13f4cd050b7d5d1b38fd1b0de17",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": "mcp",
+          "record_hash": "d79a3168933df6a1dfb6d019c6dfa01e4a18d9209bf0b7ec179581bad410e3c9",
+          "request_id": null,
+          "resource_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "resource_type": "permit",
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 14,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "dashboard",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "exact_request_review_hash": "94c99cca1e7b4f3d59193e46f5f003f7d61b2a0e49e32fc20f8e7158687c7fe0"
+            },
+            "ids": {
+              "decision": "approve",
+              "event_id": "gev_01m6zvax5r7v594e54rv7w2wj8",
+              "model": "coding-workspace-github",
+              "operation": "permit_attestation",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "provider": "mcp",
+              "resource_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "resource_type": "permit",
+              "surface": "dashboard"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": "1f749885-5631-41ae-ad28-b00a237f0237",
+          "actor_type": "dashboard_user",
+          "authorization_effect": "explicit_permit",
+          "authorization_outcome": "Allow",
+          "authorizer_input_hash": null,
+          "category": "native",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:22",
+          "decision": null,
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvax6p2a4s5gjmnhj7bvjr",
+          "event_type": "native.action.review_decided",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": null,
+          "occurred_at": "2026-11-09T09:48:22.614735",
+          "operation": null,
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+            "attestation_id": null,
+            "decision": "approve",
+            "exact_review_v2_hash": "2c4bd48d07e2006f86d1890252a196866e443d3263a46c0163ffc20b77ec6b6f",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "step_up_challenge_id": "bde91079-1675-4666-927b-2d5de44a6244",
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "835a83c6b14d119d13b4cf1e146971bbe000f7a5273f34fed2e96f5e459564a0",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": null,
+          "record_hash": "6ff7bed3d5c87fac2bf3b539c0cba205cb77a90a0a8926d45cccdd043d2037d5",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 16,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "native",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "exact_review_v2_hash": "2c4bd48d07e2006f86d1890252a196866e443d3263a46c0163ffc20b77ec6b6f"
+            },
+            "ids": {
+              "event_id": "gev_01m6zvax6p2a4s5gjmnhj7bvjr",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "surface": "native"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": null,
+          "actor_type": null,
+          "authorization_effect": "explicit_permit",
+          "authorization_outcome": "Allow",
+          "authorizer_input_hash": null,
+          "category": "native",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:23",
+          "decision": null,
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvaxkcj8rkbd5ny1schxkq",
+          "event_type": "native.action.dispatch_started",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": null,
+          "occurred_at": "2026-11-09T09:48:23.020175",
+          "operation": null,
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+            "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+            "final_request_hash": null,
+            "fresh_fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+            "frozen_arguments_equal": true,
+            "governed_request_id": "e16914b8-5205-4680-93dd-a4662497a246",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "preflight_facts_equal": true,
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            }
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "8940f45b025d68dae19ca75e6b7683997f7e2cb7a31c5957f3669b23e1bb965b",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": null,
+          "record_hash": "7c95fd5d910fbe00c4160732129b049c7ddf61bdd54affdb2ec4fda59473bc94",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 32,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "native",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+              "fresh_fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d"
+            },
+            "ids": {
+              "event_id": "gev_01m6zvaxkcj8rkbd5ny1schxkq",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "surface": "native"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        },
+        {
+          "actor_email": null,
+          "actor_id": null,
+          "actor_type": null,
+          "authorization_effect": "explicit_permit",
+          "authorization_outcome": "Allow",
+          "authorizer_input_hash": null,
+          "category": "native",
+          "chain_scope": "project:2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "created_at": "2026-11-09T09:48:23",
+          "decision": null,
+          "effect_version": "phase0_derived_v1",
+          "event_id": "gev_01m6zvaxke69v88b87xb0ky663",
+          "event_type": "native.action.upstream_result",
+          "ip_address": null,
+          "lineage_type": null,
+          "model": null,
+          "occurred_at": "2026-11-09T09:48:23.022514",
+          "operation": null,
+          "org_id": null,
+          "outcome": "success",
+          "payload": {
+            "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+            "governed_request_id": "e16914b8-5205-4680-93dd-a4662497a246",
+            "outcome": "upstream_reported_success",
+            "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+            "pull_request_number": 1,
+            "system_revision": {
+              "alembic_head": null,
+              "build_sha": null
+            },
+            "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+          },
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "prev_hash": "7c95fd5d910fbe00c4160732129b049c7ddf61bdd54affdb2ec4fda59473bc94",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": null,
+          "record_hash": "61718ee5c3e3f00928f10c1cadff2900e418a970d65513ed1f4d15a3415e4776",
+          "request_id": null,
+          "resource_id": null,
+          "resource_type": null,
+          "runtime_route": null,
+          "schema_version": 2,
+          "sequence_number": 33,
+          "severity": "info",
+          "source_stage": null,
+          "span_id": null,
+          "surface": "native",
+          "trace_id": null,
+          "user_agent": null,
+          "workbench_evidence": {
+            "closure_digests": {
+              "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+            },
+            "ids": {
+              "event_id": "gev_01m6zvaxke69v88b87xb0ky663",
+              "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "surface": "native"
+            },
+            "request": null,
+            "response": null,
+            "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+            "runtime_route": null,
+            "schema_version": 1
+          }
+        }
+      ],
+      "permit_decision": {
+        "artifact_ref": {
+          "canonical_url": "https://api.keelapi.com/v1/permits/8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "digest": "sha256:47b5706fb119dc23d3c28cb7f16dc8ab40a0e5300877fe46b16a0aa340b6f089",
+          "id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "path": "/v1/permits/8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "region": "us-west-1",
+          "schema_version": "artifact_ref.v1",
+          "type": "decision_evidence",
+          "urn": "urn:x-keel:artifact:decision_evidence:8626cdb7-ce41-41fc-b151-cb18807e959a"
+        },
+        "artifact_type": "permit_decision_binding",
+        "artifact_version": "permit.decision.v1",
+        "binding_canonical_hash": "2135dddcc45c93340b7aeab26daa9479e38e8b9f71492493248f2b24a4376099",
+        "binding_issued_at": "2026-11-09T09:48:22.396656+00:00",
+        "binding_key_id": "d2f381d7b0b5f1d3",
+        "binding_signature": "ed25519:Plndsp8YRLCwKUwZNRoqfeY1304yYH4RkvBVew+UCmiKOhrZEP9mtmGb5wFTxwKsnl752vV3O6/eSaSCvHevBg==",
+        "binding_version": "v7",
+        "canonical_payload": {
+          "account_id": null,
+          "action_name": "mcp.tool.call",
+          "authority_chain_digest": null,
+          "authority_delta": null,
+          "binding_key_id": "d2f381d7b0b5f1d3",
+          "binding_project_anchor_hash": null,
+          "binding_session_event_hash": null,
+          "binding_session_id": null,
+          "binding_version": "v7",
+          "constraints": {
+            "mcp_decision_inputs_v1": {
+              "decision_input_policy_snapshot_hash": "aa3a5d149a91d5fab685b18865e1f27cc799ddc81e24a007e18bbf84831b7046",
+              "trusted_action_envelope_hash": "d06bafc24d0e78011f404596bf81cf9a77639520686821fd9093bd593f5210da"
+            },
+            "native_decision_inputs_v1": {
+              "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+              "action_schema": "keel.canonical_action/v1",
+              "adapter_id": "keel.native_adapter.repository_pull_request_create.v1",
+              "business_idempotency": {
+                "digest": "e304765d87ad73b7082832373948b5b28a394418e6b7f1e502708aa712d91b82",
+                "version": "keel.native.bik.repository_pull_request_create.v1"
+              },
+              "client_claims_digest": "0b062c056a1863506337ff94729666daa672bf334c20f4cd739727fdca303384",
+              "condition_semantics": "legacy",
+              "credential_class": "keel.native_runtime_token.v1",
+              "credential_family_id": "a5a2eaaf-9aed-421d-aeac-679992c59e1b",
+              "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+              "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+              "policy_epoch": 0,
+              "preflight": {
+                "expires_at": "2026-11-09T09:52:22Z",
+                "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+                "fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                "observed_at": "2026-11-09T09:48:22Z",
+                "verification": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+              },
+              "restore_generation": 1,
+              "reviewed_schema_set_id": "keel.reviewed_tool_schemas.repository_pull_request_create.v1",
+              "version": "keel.native_decision_inputs.v1"
+            },
+            "permit_lifetime": {
+              "limiting_source": "approval_window"
+            },
+            "positive_authority_v1": {
+              "mandatory_constraints_evaluated": true,
+              "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+              "rule_index": 0,
+              "source": "customer_policy",
+              "version": "keel.positive_authority.v1"
+            },
+            "schema_version": 1
+          },
+          "decision": "challenge",
+          "delegation_policy_hash": null,
+          "expires_at": "2026-11-09T10:48:22.396656+00:00",
+          "final_request_hash": null,
+          "inherits_from": null,
+          "is_dry_run": false,
+          "issued_at": "2026-11-09T09:48:22.396656+00:00",
+          "model": "coding-workspace-github",
+          "operation": "call.tools",
+          "org_id": null,
+          "parent_permit_id": null,
+          "permit_chain_role": "session_root",
+          "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+          "policy_snapshot_hash": "a7dda7023b41723664267656273a08da25bb1eac19cbee7f9050a616364d7f79",
+          "policy_version": "1",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "provider": "mcp",
+          "quota_reservation_id": null,
+          "reason": "attestation_required",
+          "request_fingerprint": "43253ca03379f70adcb494e6857300fda3005f749c68834c0b674dbaad57b3eb",
+          "resource_attributes_canonical_hash": "8c07f72043b0d8dc87dcc964758b14880c5ff1d452121fda2fa1290b1dca63f6",
+          "routing": {
+            "fallback_chain": [],
+            "fallback_occurred": false,
+            "reason_code": "explicit_request",
+            "reason_metadata": {
+              "capability_constraints": {
+                "embedding_support": false,
+                "execution_modes": [
+                  "sync"
+                ],
+                "request_modalities": null,
+                "response_modalities": null,
+                "supports_streaming": null,
+                "supports_tools": null
+              },
+              "execution_mode": "sync",
+              "fallback_eligible": false,
+              "modality": "text",
+              "operation": "call.tools",
+              "supports_streaming": null
+            },
+            "requested_model": "coding-workspace-github",
+            "requested_provider": "mcp",
+            "selected_model": "coding-workspace-github",
+            "selected_provider": "mcp"
+          },
+          "spend_scope_hash": null,
+          "subject_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+          "subject_type": "user"
+        },
+        "expected_decision": "challenge",
+        "resource_attributes_json": {
+          "asset_summary": {
+            "mcp": {
+              "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+              "connector_contract_version": "keel.connector.execution.v1",
+              "connector_identity": "github",
+              "connector_version": "test-1",
+              "decision_trace_hash": "d50eaf296208c8c2f9fcd08d714a777ff7c8bb9eaff41b8625c4997709c8e006",
+              "fact_provenance": {
+                "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+                "fact_sources": {
+                  "action_access_level": "keel.action_access_registry",
+                  "action_risk_tags": "keel.action_access_registry",
+                  "additions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "ahead_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "base_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "base_branch_protected": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "base_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "behind_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "changed_files_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "changed_paths_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "compare_state_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "compare_status": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "connector_identity": "mcp_server.connector_identity",
+                  "connector_version": "mcp_tool_contracts.connector_version",
+                  "deletions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "draft": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "existing_open_pull_request_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "head_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "head_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "head_ref_exists": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "idempotency_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "max_uses": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "merge_authorized": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "preflight_expires_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "preflight_observed_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "preflight_snapshot_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "protected_path_change_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "provider_api_version": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "provider_environment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "pull_request_body_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "pull_request_title_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "repository_reference_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "same_repository": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                  "tool_arguments_hash": "keel.normalized_tool_arguments",
+                  "tool_name": "mcp.tools/list.name",
+                  "tool_schema_hash": "mcp.tools/list.inputSchema"
+                },
+                "kind": "keel.mcp.fact-provenance.v1",
+                "mcp_server_id": "3c307aa2-4261-46bb-8161-5a523b748a6c",
+                "preflight_verification": {
+                  "snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                  "verified_at": "2026-11-09T09:48:22.298345+00:00",
+                  "version": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+                },
+                "schema_source": "mcp.tools/list",
+                "tool_contract_id": "6570c057-6070-4b6d-8395-6090cf745e31",
+                "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+                "verified_at": "2026-11-09T09:48:22.058043"
+              },
+              "mcp_decision_id": "cdf64649-7711-4582-8b40-04e1e2a24590",
+              "mcp_runtime_config_hash": "b2c135ab647ff07994c6a54cc8280b34d9dc0b8040f89d13198d937f06bf6267",
+              "mcp_server_id": "3c307aa2-4261-46bb-8161-5a523b748a6c",
+              "normalized_tool_arguments_hash_version": "native_frozen_arguments_sha256_v1",
+              "requested_action": "mcp.tool.call",
+              "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+              "server_slug": "coding-workspace-github",
+              "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+              "tool_name": "repository.pull_request.create",
+              "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+              "transport": "streamable_http",
+              "trusted_facts": {
+                "action_access_level": "write",
+                "action_risk_tags": [
+                  "egress_external"
+                ],
+                "additions_count": 3,
+                "ahead_by": 1,
+                "base_branch": "main",
+                "base_branch_protected": true,
+                "base_commit_sha": "1111111111111111111111111111111111111111",
+                "behind_by": 0,
+                "changed_files_count": 1,
+                "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+                "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+                "compare_status": "ahead",
+                "connector_identity": "github",
+                "connector_version": "test-1",
+                "deletions_count": 0,
+                "draft": false,
+                "existing_open_pull_request_count": 0,
+                "head_branch": "keel/nae-m1-fixture",
+                "head_commit_sha": "2222222222222222222222222222222222222222",
+                "head_ref_exists": true,
+                "idempotency_digest": "sha256:f342d22dd8b289bd9da0252da296666dec7cc3965b45235e64affa2be0928cfc",
+                "max_uses": 1,
+                "merge_authorized": false,
+                "preflight_expires_at": "2026-11-09T09:52:22Z",
+                "preflight_observed_at": "2026-11-09T09:48:22Z",
+                "preflight_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                "protected_path_change_count": 0,
+                "provider_api_version": "2022-11-28",
+                "provider_environment": "dedicated_demo",
+                "pull_request_body_commitment": {
+                  "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "pull_request_title_commitment": {
+                  "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "repository_reference_commitment": {
+                  "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "same_repository": true,
+                "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+                "tool_name": "repository.pull_request.create",
+                "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
+              }
+            }
+          },
+          "callback_url": null,
+          "connector_type": "mcp_registry",
+          "estimated_input_tokens": 0,
+          "estimated_output_tokens": 0,
+          "execution_mode": "sync",
+          "generate_text_exact_candidate_v1": null,
+          "image_request": null,
+          "inputs": [],
+          "max_output_tokens_requested": null,
+          "modality": "text",
+          "model": "coding-workspace-github",
+          "mpp_dispatch_digest": null,
+          "native_action": {
+            "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+            "action_schema": "keel.canonical_action/v1",
+            "canonical_action": {
+              "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+              "action_schema": "keel.canonical_action/v1",
+              "canonical_input": {
+                "base_commit_sha": "1111111111111111111111111111111111111111",
+                "body_commitment": {
+                  "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+                  "method": "keel.salted_sha256_jcs.v1"
+                },
+                "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+                "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+                "draft": false,
+                "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+                "head_commit_sha": "2222222222222222222222222222222222222222",
+                "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+                "title_commitment": {
+                  "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+                  "method": "keel.salted_sha256_jcs.v1"
+                }
+              },
+              "connector_contract_version": "keel.connector.execution.v1",
+              "connector_identity": "github",
+              "created_at": "2026-11-09T09:48:22Z",
+              "credential_reference": "connector-credential:acace4ba-9287-4567-85d2-0be6b34ae994",
+              "expires_at": "2026-11-09T10:48:22Z",
+              "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+              "operation": "repository.pull_request.create",
+              "policy_epoch": 0,
+              "principal_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+              "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+              "surface": "managed_mcp",
+              "target": {
+                "base_branch": "main",
+                "head_branch": "keel/nae-m1-fixture",
+                "repository_reference_commitment": {
+                  "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                  "method": "keel.salted_sha256_jcs.v1"
+                }
+              },
+              "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+              "workflow_binding": null
+            }
+          },
+          "operation": "call.tools",
+          "payment_classification_v1": null,
+          "permit_authorization_facts_v1": {
+            "action": "repository.pull_request.create",
+            "additions_count": 3,
+            "ahead_by": 1,
+            "base_branch": "main",
+            "base_branch_protected": true,
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "behind_by": 0,
+            "changed_files_count": 1,
+            "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+            "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+            "compare_status": "ahead",
+            "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+            "connector_identity": "github",
+            "decision_trace_hash": "d50eaf296208c8c2f9fcd08d714a777ff7c8bb9eaff41b8625c4997709c8e006",
+            "deletions_count": 0,
+            "draft": false,
+            "enforcement_mode": "enforced_in_path",
+            "existing_open_pull_request_count": 0,
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "head_branch": "keel/nae-m1-fixture",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "head_ref_exists": true,
+            "idempotency_digest": "sha256:f342d22dd8b289bd9da0252da296666dec7cc3965b45235e64affa2be0928cfc",
+            "max_uses": 1,
+            "merge_authorized": false,
+            "operation": "call.tools",
+            "preflight_expires_at": "2026-11-09T09:52:22Z",
+            "preflight_observed_at": "2026-11-09T09:48:22Z",
+            "preflight_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+            "protected_path_change_count": 0,
+            "provider_api_version": "2022-11-28",
+            "provider_environment": "dedicated_demo",
+            "pull_request_body_commitment": {
+              "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "pull_request_title_commitment": {
+              "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "repository_reference_commitment": {
+              "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+              "method": "keel.salted_sha256_jcs.v1"
+            },
+            "request_digest": "sha256:bcd047dbe965557f3cd2c22cab4ed667e60d09fafd545584d4505c801deac3a0",
+            "same_repository": true,
+            "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+            "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+            "version": "keel.coding_workspace_exact_facts.v1"
+          },
+          "permit_semantic_binding_v2": {
+            "action_name": "repository.pull_request.create",
+            "authorization_facts_canonicalization": "rfc8785",
+            "authorization_facts_digest": "sha256:50c3894e8d8efd583b079a16930a57f3ff2a1a33d7a986d69e062c7cfd76bb9d",
+            "authorization_facts_schema_digest": "sha256:898ebb49c7cb9ed8f50d4d7d98f544322002cdae8256cc312322c1e9f9317109",
+            "chain_role": "session_root",
+            "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+            "claim_registry_version": "verifier-claims.v2",
+            "derived_at": "2026-11-09T09:48:22.396656Z",
+            "fact_profile_entry_digest": "sha256:012c92162585ebd8d5fd26a1e4a517afef35349d3d25304d419d5a52d0a9d71a",
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "fact_profile_registry_digest": "sha256:aa17ba8b701dd20dc9e4f3a4c34381fe1e64d9a933bfe3005cd96f6f5cca5c36",
+            "fact_profile_registry_version": "keel.fact_profile_registry.v11",
+            "governed_surface": "mcp_tool",
+            "non_authorizing_presentation_profile_id": "repository_pull_request_create.r1",
+            "operation": "call.tools",
+            "selector_entry_digest": "sha256:0100b1b6d0ca27a790d52fa87d0e755a491d2c22256de60f5f1942136069faf7",
+            "selector_registry_digest": "sha256:d4bcb07a42caae97760cfc6eaab4cc0e7b7eba62a7f966b44b41ec646a70cd2b",
+            "selector_registry_version": "keel.semantic_selector_registry.v13",
+            "semantic_id": "keel.action.repository_pull_request_create.v1",
+            "trusted_source_kind": "action_verb_execute",
+            "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+            "universal_semantics_id": "keel.permit.universal_verification.v1",
+            "version": "keel.permit_semantic_binding.v2"
+          },
+          "prompt_content_hash": null,
+          "provider": "mcp",
+          "resource_id": "mcp_tool_call:3c307aa2-4261-46bb-8161-5a523b748a6c:repository.pull_request.create",
+          "resource_type": "mcp_tool_call",
+          "routing": null,
+          "work_binding_v1": null,
+          "work_binding_v2": null,
+          "work_resource_digest": null
+        }
+      },
+      "permit_id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+      "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+      "record": {
+        "latest_usage_ledger": null,
+        "legacy_representation_note": null,
+        "outcome_kind": "unclassified",
+        "outcome_kind_classifier_version": "2026-11-01.1",
+        "permit": {
+          "account_id": null,
+          "accounting_disposition": null,
+          "action_access": null,
+          "action_name": "mcp.tool.call",
+          "actions_json": [
+            {
+              "message": "Evaluation requires an explicit matching policy.",
+              "type": "allow"
+            }
+          ],
+          "actual_cost_usd_micros": null,
+          "actual_input_tokens": null,
+          "actual_output_tokens": null,
+          "actual_total_tokens": null,
+          "actual_usage_json": null,
+          "binding_request_canonical_version": "v6",
+          "binding_request_hash": null,
+          "budget_envelope": null,
+          "budgets_json": {},
+          "condition_evaluation": null,
+          "conditions": null,
+          "constraints_json": {
+            "mcp_decision_inputs_v1": {
+              "decision_input_policy_snapshot_hash": "aa3a5d149a91d5fab685b18865e1f27cc799ddc81e24a007e18bbf84831b7046",
+              "trusted_action_envelope_hash": "d06bafc24d0e78011f404596bf81cf9a77639520686821fd9093bd593f5210da"
+            },
+            "native_decision_inputs_v1": {
+              "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+              "action_schema": "keel.canonical_action/v1",
+              "adapter_id": "keel.native_adapter.repository_pull_request_create.v1",
+              "business_idempotency": {
+                "digest": "e304765d87ad73b7082832373948b5b28a394418e6b7f1e502708aa712d91b82",
+                "version": "keel.native.bik.repository_pull_request_create.v1"
+              },
+              "client_claims_digest": "0b062c056a1863506337ff94729666daa672bf334c20f4cd739727fdca303384",
+              "condition_semantics": "legacy",
+              "credential_class": "keel.native_runtime_token.v1",
+              "credential_family_id": "a5a2eaaf-9aed-421d-aeac-679992c59e1b",
+              "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+              "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+              "policy_epoch": 0,
+              "preflight": {
+                "expires_at": "2026-11-09T09:52:22Z",
+                "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+                "fact_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                "observed_at": "2026-11-09T09:48:22Z",
+                "verification": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+              },
+              "restore_generation": 1,
+              "reviewed_schema_set_id": "keel.reviewed_tool_schemas.repository_pull_request_create.v1",
+              "version": "keel.native_decision_inputs.v1"
+            },
+            "permit_lifetime": {
+              "limiting_source": "approval_window"
+            },
+            "positive_authority_v1": {
+              "mandatory_constraints_evaluated": true,
+              "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+              "rule_index": 0,
+              "source": "customer_policy",
+              "version": "keel.positive_authority.v1"
+            },
+            "schema_version": 1
+          },
+          "counter_signature": null,
+          "counter_signature_jsonb": null,
+          "created_at": "2026-11-09T09:48:22.396656",
+          "decision": "allow",
+          "decision_details": null,
+          "decision_impact": {
+            "amount_usd_micros": null,
+            "detail": {
+              "decision": "allow",
+              "provider": "mcp",
+              "reason_code": "policy.explicit_match_candidate",
+              "tool_name": "repository.pull_request.create"
+            },
+            "display_priority": 85,
+            "kind": "action",
+            "label": "Authorized Action",
+            "source": "canonical",
+            "source_path": "resource_attributes_json.operation",
+            "summary": "policy.explicit_match_candidate",
+            "unit": "actions",
+            "value": "Call tools"
+          },
+          "delegation_depth": 0,
+          "estimated_input_tokens": 0,
+          "estimated_output_tokens": 0,
+          "expires_at": "2026-11-09T10:48:22.396656",
+          "id": "8626cdb7-ce41-41fc-b151-cb18807e959a",
+          "idempotency_key": "mcp_call:native:01a1bfb5737e7aaea2e970d3a3f1c21f",
+          "issuer_signature_hash": "b197946367bd448be65c253b4d7812cd6f39f234be43a1480830d2cef97f32d1",
+          "max_output_tokens_requested": null,
+          "operator_approval": null,
+          "operator_approval_jsonb": null,
+          "parent_permit_id": null,
+          "permit_canonical_hash": "2135dddcc45c93340b7aeab26daa9479e38e8b9f71492493248f2b24a4376099",
+          "permit_format_version": "v2",
+          "policy_id": "3fa04984-a0db-42ef-98b1-9f83fdecad3b",
+          "policy_name": "mcp_effect_policy",
+          "policy_version": "1",
+          "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+          "reason": "policy.explicit_match_candidate",
+          "record": {
+            "id": "9da5ff87-01d8-4200-973e-e247840bedc4",
+            "kind": "governance_record",
+            "state": "dispatched"
+          },
+          "record_children": {
+            "governance_event_ids": [
+              "gev_01m6zvawym1v180xk5115e1p3q",
+              "gev_01m6zvax1aqfp1bce581zsndq7",
+              "gev_01m6zvax1e7r02dn0s704nzdsx",
+              "gev_01m6zvax2s7ddgdcn7xs6mxb6v",
+              "gev_01m6zvax5kghwczhbw6wr44y4r",
+              "gev_01m6zvax5r7v594e54rv7w2wj8",
+              "gev_01m6zvax6p2a4s5gjmnhj7bvjr",
+              "gev_01m6zvax9pjvajmekvf1dashx4",
+              "gev_01m6zvaxc03pyvqpjdzrhpvrdh",
+              "gev_01m6zvaxc3d0z19kyx0wqxg8y2",
+              "gev_01m6zvaxdvsfn960rnpz48sg19",
+              "gev_01m6zvaxgn479d5tw1wjev1bmz",
+              "gev_01m6zvaxhykckewjq6hnsaqzs8",
+              "gev_01m6zvaxj12pzrs3d8f8ad6p99",
+              "gev_01m6zvaxk3vb2m31v0kj0vaxra",
+              "gev_01m6zvaxkcj8rkbd5ny1schxkq",
+              "gev_01m6zvaxke69v88b87xb0ky663"
+            ],
+            "mcp_decision_ids": [
+              "cdf64649-7711-4582-8b40-04e1e2a24590",
+              "9548cbf7-3f47-4060-b4b8-622cb9568c91"
+            ],
+            "permit_ids": [
+              "8626cdb7-ce41-41fc-b151-cb18807e959a",
+              "f2f1cbf1-9bc6-428f-9ace-bee643a8aeeb"
+            ]
+          },
+          "request_fingerprint": "43253ca03379f70adcb494e6857300fda3005f749c68834c0b674dbaad57b3eb",
+          "resource_attributes_json": {
+            "asset_summary": {
+              "mcp": {
+                "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+                "connector_contract_version": "keel.connector.execution.v1",
+                "connector_identity": "github",
+                "connector_version": "test-1",
+                "decision_trace_hash": "d50eaf296208c8c2f9fcd08d714a777ff7c8bb9eaff41b8625c4997709c8e006",
+                "fact_provenance": {
+                  "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+                  "fact_sources": {
+                    "action_access_level": "keel.action_access_registry",
+                    "action_risk_tags": "keel.action_access_registry",
+                    "additions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "ahead_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "base_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "base_branch_protected": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "base_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "behind_by": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "changed_files_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "changed_paths_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "compare_state_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "compare_status": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "connector_identity": "mcp_server.connector_identity",
+                    "connector_version": "mcp_tool_contracts.connector_version",
+                    "deletions_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "draft": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "existing_open_pull_request_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "head_branch": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "head_commit_sha": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "head_ref_exists": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "idempotency_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "max_uses": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "merge_authorized": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "preflight_expires_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "preflight_observed_at": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "preflight_snapshot_digest": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "protected_path_change_count": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "provider_api_version": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "provider_environment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "pull_request_body_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "pull_request_title_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "repository_reference_commitment": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "same_repository": "mcp.gateway_coding_workspace_preflight_hmac.v1",
+                    "tool_arguments_hash": "keel.normalized_tool_arguments",
+                    "tool_name": "mcp.tools/list.name",
+                    "tool_schema_hash": "mcp.tools/list.inputSchema"
+                  },
+                  "kind": "keel.mcp.fact-provenance.v1",
+                  "mcp_server_id": "3c307aa2-4261-46bb-8161-5a523b748a6c",
+                  "preflight_verification": {
+                    "snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                    "verified_at": "2026-11-09T09:48:22.298345+00:00",
+                    "version": "mcp.gateway_coding_workspace_preflight_hmac.v1"
+                  },
+                  "schema_source": "mcp.tools/list",
+                  "tool_contract_id": "6570c057-6070-4b6d-8395-6090cf745e31",
+                  "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+                  "verified_at": "2026-11-09T09:48:22.058043"
+                },
+                "mcp_decision_id": "cdf64649-7711-4582-8b40-04e1e2a24590",
+                "mcp_runtime_config_hash": "b2c135ab647ff07994c6a54cc8280b34d9dc0b8040f89d13198d937f06bf6267",
+                "mcp_server_id": "3c307aa2-4261-46bb-8161-5a523b748a6c",
+                "normalized_tool_arguments_hash_version": "native_frozen_arguments_sha256_v1",
+                "requested_action": "mcp.tool.call",
+                "semantic_adapter_version": "keel.mcp.semantic-facts.v6",
+                "server_slug": "coding-workspace-github",
+                "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+                "tool_name": "repository.pull_request.create",
+                "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+                "transport": "streamable_http",
+                "trusted_facts": {
+                  "action_access_level": "write",
+                  "action_risk_tags": [
+                    "egress_external"
+                  ],
+                  "additions_count": 3,
+                  "ahead_by": 1,
+                  "base_branch": "main",
+                  "base_branch_protected": true,
+                  "base_commit_sha": "1111111111111111111111111111111111111111",
+                  "behind_by": 0,
+                  "changed_files_count": 1,
+                  "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+                  "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+                  "compare_status": "ahead",
+                  "connector_identity": "github",
+                  "connector_version": "test-1",
+                  "deletions_count": 0,
+                  "draft": false,
+                  "existing_open_pull_request_count": 0,
+                  "head_branch": "keel/nae-m1-fixture",
+                  "head_commit_sha": "2222222222222222222222222222222222222222",
+                  "head_ref_exists": true,
+                  "idempotency_digest": "sha256:f342d22dd8b289bd9da0252da296666dec7cc3965b45235e64affa2be0928cfc",
+                  "max_uses": 1,
+                  "merge_authorized": false,
+                  "preflight_expires_at": "2026-11-09T09:52:22Z",
+                  "preflight_observed_at": "2026-11-09T09:48:22Z",
+                  "preflight_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+                  "protected_path_change_count": 0,
+                  "provider_api_version": "2022-11-28",
+                  "provider_environment": "dedicated_demo",
+                  "pull_request_body_commitment": {
+                    "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  },
+                  "pull_request_title_commitment": {
+                    "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  },
+                  "repository_reference_commitment": {
+                    "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  },
+                  "same_repository": true,
+                  "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+                  "tool_name": "repository.pull_request.create",
+                  "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836"
+                }
+              }
+            },
+            "callback_url": null,
+            "connector_type": "mcp_registry",
+            "estimated_input_tokens": 0,
+            "estimated_output_tokens": 0,
+            "execution_mode": "sync",
+            "generate_text_exact_candidate_v1": null,
+            "image_request": null,
+            "inputs": [],
+            "max_output_tokens_requested": null,
+            "modality": "text",
+            "model": "coding-workspace-github",
+            "mpp_dispatch_digest": null,
+            "native_action": {
+              "action_binding_hash": "245564fcf273ed3367239620a0d6c46c774fa2bcaa962a54ed7e8fd3aac62ff5",
+              "action_schema": "keel.canonical_action/v1",
+              "canonical_action": {
+                "action_id": "01a1bfb5-737e-7aae-a2e9-70d3a3f1c21f",
+                "action_schema": "keel.canonical_action/v1",
+                "canonical_input": {
+                  "base_commit_sha": "1111111111111111111111111111111111111111",
+                  "body_commitment": {
+                    "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  },
+                  "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+                  "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+                  "draft": false,
+                  "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+                  "head_commit_sha": "2222222222222222222222222222222222222222",
+                  "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+                  "title_commitment": {
+                    "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  }
+                },
+                "connector_contract_version": "keel.connector.execution.v1",
+                "connector_identity": "github",
+                "created_at": "2026-11-09T09:48:22Z",
+                "credential_reference": "connector-credential:acace4ba-9287-4567-85d2-0be6b34ae994",
+                "expires_at": "2026-11-09T10:48:22Z",
+                "installation_id": "4f50dcf8-f03d-4110-aeee-c24da0921e7a",
+                "operation": "repository.pull_request.create",
+                "policy_epoch": 0,
+                "principal_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+                "project_id": "2df7702c-8627-4703-9e3a-4115a38a6af2",
+                "surface": "managed_mcp",
+                "target": {
+                  "base_branch": "main",
+                  "head_branch": "keel/nae-m1-fixture",
+                  "repository_reference_commitment": {
+                    "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                    "method": "keel.salted_sha256_jcs.v1"
+                  }
+                },
+                "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+                "workflow_binding": null
+              }
+            },
+            "operation": "call.tools",
+            "payment_classification_v1": null,
+            "permit_authorization_facts_v1": {
+              "action": "repository.pull_request.create",
+              "additions_count": 3,
+              "ahead_by": 1,
+              "base_branch": "main",
+              "base_branch_protected": true,
+              "base_commit_sha": "1111111111111111111111111111111111111111",
+              "behind_by": 0,
+              "changed_files_count": 1,
+              "changed_paths_digest": "sha256:6a6278856f2298994ad6e306b321c92f18331ca2be9e4ff23372f823756ed71a",
+              "compare_state_digest": "sha256:6a4416390873ea4256a40d094a7d7d1bf1b35f2aaef8bd794b7946bf0a8ed62f",
+              "compare_status": "ahead",
+              "connector_contract_hash": "252aced6e1bbe0e3b98ccfda37f4be0e99093dad319baead7a48927cea1cbd7f",
+              "connector_identity": "github",
+              "decision_trace_hash": "d50eaf296208c8c2f9fcd08d714a777ff7c8bb9eaff41b8625c4997709c8e006",
+              "deletions_count": 0,
+              "draft": false,
+              "enforcement_mode": "enforced_in_path",
+              "existing_open_pull_request_count": 0,
+              "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+              "head_branch": "keel/nae-m1-fixture",
+              "head_commit_sha": "2222222222222222222222222222222222222222",
+              "head_ref_exists": true,
+              "idempotency_digest": "sha256:f342d22dd8b289bd9da0252da296666dec7cc3965b45235e64affa2be0928cfc",
+              "max_uses": 1,
+              "merge_authorized": false,
+              "operation": "call.tools",
+              "preflight_expires_at": "2026-11-09T09:52:22Z",
+              "preflight_observed_at": "2026-11-09T09:48:22Z",
+              "preflight_snapshot_digest": "sha256:9e4212c3a319842f2f9ab8708a6bbaaf5e23d10d1cc0e2607d0953e91879594d",
+              "protected_path_change_count": 0,
+              "provider_api_version": "2022-11-28",
+              "provider_environment": "dedicated_demo",
+              "pull_request_body_commitment": {
+                "digest": "sha256:816dff8bae3d3f31f6a26c7559878b3933726534268641b406b2391234c7ffc0",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "pull_request_title_commitment": {
+                "digest": "sha256:ef625289d7dcc17e6951c544647ea260c5a4398816b275cd460c30f19924b3d8",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "repository_reference_commitment": {
+                "digest": "sha256:d4e566984db196de6e46960af7ea47bf2f82d8cde85950f7c581a9c61c24e49e",
+                "method": "keel.salted_sha256_jcs.v1"
+              },
+              "request_digest": "sha256:bcd047dbe965557f3cd2c22cab4ed667e60d09fafd545584d4505c801deac3a0",
+              "same_repository": true,
+              "tool_arguments_hash": "89a20740be24958d967a6468bf9d91c798cf7951b0c2dcc78d4c4e892d89c634",
+              "tool_schema_hash": "2d06369dda1b4768aa931bedf431096fda0e953cde9687744cc3d27485940836",
+              "version": "keel.coding_workspace_exact_facts.v1"
+            },
+            "permit_semantic_binding_v2": {
+              "action_name": "repository.pull_request.create",
+              "authorization_facts_canonicalization": "rfc8785",
+              "authorization_facts_digest": "sha256:50c3894e8d8efd583b079a16930a57f3ff2a1a33d7a986d69e062c7cfd76bb9d",
+              "authorization_facts_schema_digest": "sha256:898ebb49c7cb9ed8f50d4d7d98f544322002cdae8256cc312322c1e9f9317109",
+              "chain_role": "session_root",
+              "claim_registry_digest": "sha256:b21b06402a55ee38ffeafadee8fe491aef786e2a7b29650c762efc7cbe2f1344",
+              "claim_registry_version": "verifier-claims.v2",
+              "derived_at": "2026-11-09T09:48:22.396656Z",
+              "fact_profile_entry_digest": "sha256:012c92162585ebd8d5fd26a1e4a517afef35349d3d25304d419d5a52d0a9d71a",
+              "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+              "fact_profile_registry_digest": "sha256:aa17ba8b701dd20dc9e4f3a4c34381fe1e64d9a933bfe3005cd96f6f5cca5c36",
+              "fact_profile_registry_version": "keel.fact_profile_registry.v11",
+              "governed_surface": "mcp_tool",
+              "non_authorizing_presentation_profile_id": "repository_pull_request_create.r1",
+              "operation": "call.tools",
+              "selector_entry_digest": "sha256:0100b1b6d0ca27a790d52fa87d0e755a491d2c22256de60f5f1942136069faf7",
+              "selector_registry_digest": "sha256:d4bcb07a42caae97760cfc6eaab4cc0e7b7eba62a7f966b44b41ec646a70cd2b",
+              "selector_registry_version": "keel.semantic_selector_registry.v13",
+              "semantic_id": "keel.action.repository_pull_request_create.v1",
+              "trusted_source_kind": "action_verb_execute",
+              "universal_semantics_digest": "sha256:13f86e51433620e5a3d53ccc343f097663a8455c39e58c2cfa8a35e556fe5262",
+              "universal_semantics_id": "keel.permit.universal_verification.v1",
+              "version": "keel.permit_semantic_binding.v2"
+            },
+            "prompt_content_hash": null,
+            "provider": "mcp",
+            "resource_id": "mcp_tool_call:3c307aa2-4261-46bb-8161-5a523b748a6c:repository.pull_request.create",
+            "resource_type": "mcp_tool_call",
+            "routing": null,
+            "work_binding_v1": null,
+            "work_binding_v2": null,
+            "work_resource_digest": null
+          },
+          "resource_inputs_json": null,
+          "resource_modality": "text",
+          "resource_model": "coding-workspace-github",
+          "resource_operation": "call.tools",
+          "resource_provider": "mcp",
+          "routing": {
+            "decided_at": "2026-11-09T09:48:22.398349Z",
+            "decision_id": "01M6ZVAWZYMZ6QJNXPVWRKNXGA",
+            "estimated_cost_usd_micros": null,
+            "fallback_chain": [],
+            "fallback_occurred": false,
+            "latency_target_ms": null,
+            "policy_id": null,
+            "policy_version": null,
+            "priority": null,
+            "reason_code": "explicit_request",
+            "reason_metadata": {
+              "capability_constraints": {
+                "embedding_support": false,
+                "execution_modes": [
+                  "sync"
+                ],
+                "request_modalities": null,
+                "response_modalities": null,
+                "supports_streaming": null,
+                "supports_tools": null
+              },
+              "execution_mode": "sync",
+              "fallback_eligible": false,
+              "modality": "text",
+              "operation": "call.tools",
+              "supports_streaming": null
+            },
+            "requested_model": "coding-workspace-github",
+            "requested_provider": "mcp",
+            "selected_model": "coding-workspace-github",
+            "selected_provider": "mcp",
+            "task_type": null
+          },
+          "status": "attested",
+          "subject_id": "1054ecdc-b80e-4ece-8311-377b89b98964",
+          "subject_type": "user",
+          "usage_idempotency_key": null,
+          "usage_reported_at": null,
+          "usage_source": null,
+          "usage_verification_method": null,
+          "usage_verification_status": null,
+          "usage_verification_updated_at": null,
+          "workflow_declaration_id": null,
+          "workflow_id": null,
+          "workflow_state_json": null
+        },
+        "permit_evidence": [],
+        "replay_evidence": {
+          "diff_summary": {
+            "differences": {
+              "replay_impossible": true
+            },
+            "scope": null
+          },
+          "drift_type": null,
+          "explanation": "Snapshot contains server-stamped authorization attributes (permit_authorization_facts_v1, permit_semantic_binding_v2); their evaluator inputs are not captured for replay.",
+          "match_type": "replay_impossible",
+          "original_decision": "allow",
+          "original_reason": "policy.explicit_match_candidate",
+          "replay_impossible_reason": "Snapshot contains server-stamped authorization attributes (permit_authorization_facts_v1, permit_semantic_binding_v2); their evaluator inputs are not captured for replay.",
+          "replayed_decision": null,
+          "replayed_reason": null
+        },
+        "usage_log": null
+      },
+      "schema_version": 1
+    },
+    "schema": "keel.native_action_pack.v1",
+    "state": "upstream_reported_success"
+  },
+  "generated_by": "keel-api tests/test_native_actions_evidence.py (real issuance, test signing keys)",
+  "interface_version": "nae-m1-interface/1.2.0",
+  "patch_format": "RFC 6902 JSON Patch (add/remove/replace/copy) applied to base_export",
+  "schema": "native_action_pack_vectors.v1",
+  "vectors": [
+    {
+      "expected_reason_code": null,
+      "expected_verdict": "supported",
+      "id": "pack_positive",
+      "json_patch": [],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "pack_attrs_without_constraint",
+      "json_patch": [
+        {
+          "op": "remove",
+          "path": "/permit_audit_bundle/permit_decision/canonical_payload/constraints/native_decision_inputs_v1"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "pack_record_copy_diverges",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/permit_audit_bundle/record/permit/resource_attributes_json/native_action/action_binding_hash",
+          "value": "1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.action_binding_hash_mismatch",
+      "expected_verdict": "disproved",
+      "id": "pack_canonical_draft_flipped",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/permit_audit_bundle/permit_decision/resource_attributes_json/native_action/canonical_action/canonical_input/draft",
+          "value": true
+        },
+        {
+          "op": "replace",
+          "path": "/permit_audit_bundle/record/permit/resource_attributes_json/native_action/canonical_action/canonical_input/draft",
+          "value": true
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.canonical_action_shape",
+      "expected_verdict": "disproved",
+      "id": "pack_canonical_extra_key",
+      "json_patch": [
+        {
+          "op": "add",
+          "path": "/permit_audit_bundle/permit_decision/resource_attributes_json/native_action/canonical_action/note",
+          "value": "x"
+        },
+        {
+          "op": "add",
+          "path": "/permit_audit_bundle/record/permit/resource_attributes_json/native_action/canonical_action/note",
+          "value": "x"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.action_binding_hash_mismatch",
+      "expected_verdict": "disproved",
+      "id": "pack_constraint_hash_swapped",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/permit_audit_bundle/permit_decision/canonical_payload/constraints/native_decision_inputs_v1/action_binding_hash",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "op": "replace",
+          "path": "/permit_audit_bundle/record/permit/constraints_json/native_decision_inputs_v1/action_binding_hash",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "pack_review_v2_tampered",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/head_commit_sha",
+          "value": "9999999999999999999999999999999999999999"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.single_dispatch",
+      "expected_verdict": "disproved",
+      "id": "pack_two_dispatch_started",
+      "json_patch": [
+        {
+          "from": "/closure_events/2",
+          "op": "copy",
+          "path": "/closure_events/-"
+        }
+      ],
+      "requested_levels": []
+    },
+    {
+      "expected_reason_code": "native.level_ceiling",
+      "expected_verdict": "not_supported",
+      "id": "pack_claim_level_e",
+      "json_patch": [],
+      "requested_levels": [
+        "E"
+      ]
+    }
+  ]
+}

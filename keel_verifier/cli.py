@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 from keel_verifier import __version__
@@ -52,6 +53,7 @@ LEGACY_COMMANDS = {
     "doctor",
     "render",
     "work-chain",
+    "native-action-pack",
 }
 
 
@@ -255,6 +257,113 @@ def _cmd_authority_proof(parser: argparse.ArgumentParser, args: argparse.Namespa
     if not report.ok or disproved:
         return 1
     return 0
+
+
+NATIVE_ACTION_PACK_MEMBERS = ("export.json", "manifest.json", "key_manifest.json")
+NATIVE_ACTION_PACK_MAX_MEMBER_BYTES = 64 * 1024 * 1024
+
+
+def _extract_native_action_pack(pack: Path, target: Path) -> Path:
+    """Copy the pack's three members into ``target``; returns the pack directory.
+
+    A zip is read by exact member name only (no path from the archive is used
+    on disk). A directory is used in place.
+    """
+
+    if pack.is_dir():
+        return pack
+    if not zipfile.is_zipfile(pack):
+        raise ValueError(f"{pack} is neither a directory nor a zip archive")
+    with zipfile.ZipFile(pack) as archive:
+        names = [info.filename for info in archive.infolist()]
+        for member in NATIVE_ACTION_PACK_MEMBERS:
+            if names.count(member) > 1:
+                raise ValueError(f"pack holds more than one {member}")
+            if member not in names:
+                continue
+            info = archive.getinfo(member)
+            if info.file_size > NATIVE_ACTION_PACK_MAX_MEMBER_BYTES:
+                raise ValueError(f"pack member {member} is too large")
+            with archive.open(info) as source:
+                data = source.read(NATIVE_ACTION_PACK_MAX_MEMBER_BYTES + 1)
+            if len(data) > NATIVE_ACTION_PACK_MAX_MEMBER_BYTES:
+                raise ValueError(f"pack member {member} is too large")
+            (target / member).write_bytes(data)
+    return target
+
+
+def _cmd_native_action_pack(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Verify a native action pack (NAE M1, ``keel.native_action_pack.v1``).
+
+    The export integrity, the wrapped Permit decision and the native checks
+    must all hold. The pack's own signed ``key_manifest.json`` is the default
+    key manifest; its signer is pinned by the bundled trust root or by
+    ``--trust-root``.
+    """
+
+    try:
+        _public_key_alias(args)
+    except argparse.ArgumentTypeError as exc:
+        parser.error(str(exc))
+    if _trust_flag_count(args, include_public_key_url=False) > 1:
+        parser.error(
+            "--expected-public-key/--public-key, --key-manifest, "
+            "--key-manifest-url, and --self-attested are mutually exclusive"
+        )
+    pack = Path(args.pack)
+    if not pack.exists():
+        print(f"FAILED: native action pack not found: {pack}", file=sys.stderr)
+        return 1
+    with tempfile.TemporaryDirectory(prefix="keel-native-pack-") as temp_dir:
+        try:
+            root = _extract_native_action_pack(pack, Path(temp_dir))
+        except (OSError, ValueError, zipfile.BadZipFile) as exc:
+            print(f"FAILED: native action pack is unreadable: {exc}", file=sys.stderr)
+            return 1
+        nested = _build_parser().parse_args(["export", str(root / "export.json"), "--json"])
+        for name, value in vars(args).items():
+            if name not in {"func", "cmd", "pack"} and hasattr(nested, name):
+                setattr(nested, name, value)
+        nested.export_file = str(root / "export.json")
+        nested.manifest = str(root / "manifest.json")
+        if _trust_flag_count(nested, include_public_key_url=False) == 0 and (
+            root / "key_manifest.json"
+        ).is_file():
+            nested.key_manifest = str(root / "key_manifest.json")
+        nested.native_requested_levels = tuple(args.request_level or ())
+        with _signed_key_manifest_trust_root(getattr(args, "trust_root", None)):
+            report = verify_export_structured(nested)
+        payload = report.to_dict()
+    native = payload.get("artifact", {}).get("native_action")
+    if report.ok and native is None:
+        payload["ok"] = False
+        payload["exit_code"] = 1
+        payload["error"] = "NATIVE_ACTION_PACK_SCHEMA: export.json is not keel.native_action_pack.v1"
+    if args.as_json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        stream = sys.stdout if payload["ok"] else sys.stderr
+        print("VERIFIED" if payload["ok"] else "FAILED", file=stream)
+        print(f"  Pack:          {pack.name}", file=stream)
+        for claim in payload.get("claims", []):
+            print(f"  {claim['name']}: {claim['verdict']}", file=stream)
+        if native is not None:
+            print(
+                f"  native_action: {native['verdict']}"
+                + (f" ({native['reason_code']})" if native.get("reason_code") else ""),
+                file=stream,
+            )
+            for key in ("action_id", "action_binding_hash", "state", "upstream_outcome"):
+                if native.get(key) is not None:
+                    print(f"    {key}: {native[key]}", file=stream)
+            print(
+                f"    level ceiling: {native['level_ceiling']}; does not establish: "
+                + ", ".join(native["does_not_establish"]),
+                file=stream,
+            )
+        if payload.get("error"):
+            print(f"  error: {payload['error']}", file=stream)
+    return 0 if payload["ok"] else int(payload.get("exit_code") or 1)
 
 
 def _cmd_permit_package(args: argparse.Namespace) -> int:
@@ -583,6 +692,35 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_common_trust_args(p_export)
     _add_key_manifest_args(p_export)
     p_export.set_defaults(func=lambda args: _cmd_export_cli(p_export, args))
+
+    p_native = sub.add_parser(
+        "native-action-pack",
+        help=(
+            "Verify a native action pack (keel.native_action_pack.v1): export "
+            "integrity, the wrapped Permit decision and the native action checks."
+        ),
+    )
+    p_native.add_argument("pack", metavar="PACK", help="Pack zip or directory.")
+    p_native.add_argument("--json", action="store_true", dest="as_json")
+    p_native.add_argument(
+        "--request-level",
+        action="append",
+        choices=["A", "B", "C", "D", "E", "F"],
+        help=(
+            "Evidence level of a claim you rely on (repeatable). A native pack "
+            "supports at most D; requesting E or F fails the verification."
+        ),
+    )
+    p_native.add_argument(
+        "--trust-root",
+        help=(
+            "Local public-key manifest that pins the signer of the pack's "
+            "key_manifest.json instead of the bundled Keel trust root."
+        ),
+    )
+    _add_common_trust_args(p_native)
+    _add_key_manifest_args(p_native)
+    p_native.set_defaults(func=lambda args: _cmd_native_action_pack(p_native, args))
 
     p_authority = sub.add_parser(
         "authority-proof",
@@ -1179,6 +1317,23 @@ def _looks_like_work_chain(path: str) -> bool:
     )
 
 
+def _looks_like_native_action_pack(path: str) -> bool:
+    """A zip whose ``manifest.json`` declares ``export_type: native_action``."""
+
+    try:
+        candidate = Path(path)
+        if not candidate.is_file() or not zipfile.is_zipfile(candidate):
+            return False
+        with zipfile.ZipFile(candidate) as archive:
+            info = archive.getinfo("manifest.json")
+            if info.file_size > NATIVE_ACTION_PACK_MAX_MEMBER_BYTES:
+                return False
+            manifest = json.loads(archive.read(info).decode("utf-8"))
+    except (OSError, KeyError, ValueError, zipfile.BadZipFile):
+        return False
+    return isinstance(manifest, dict) and manifest.get("export_type") == "native_action"
+
+
 _TOP_LEVEL_FLAGS = {"-h", "--help", "--version"}
 
 
@@ -1251,6 +1406,8 @@ def _route_argv(raw: list[str]) -> list[str] | None:
     target = raw[position]
     if target in LEGACY_COMMANDS:
         return [target, *raw[:position], *raw[position + 1 :]]
+    if _looks_like_native_action_pack(target):
+        return ["native-action-pack", *raw]
     if _looks_like_permit_package(target):
         return ["export", *raw]
     if _looks_like_work_chain(target):

@@ -1,5 +1,51 @@
 # Changelog
 
+## 3.37.0 (unreleased)
+
+### Native action packs (`nae-m1-interface` §7)
+
+- New `keel-verify native-action-pack PACK` (a zip or a directory holding
+  `export.json`, `manifest.json` and `key_manifest.json`). A zip whose
+  `manifest.json` declares `export_type: native_action` is detected
+  automatically. The pack's signed `key_manifest.json` is the default key
+  manifest; its signer is pinned by the bundled trust root or by
+  `--trust-root`.
+- When an integrity-verified `export.json` declares
+  `keel.native_action_pack.v1`, `export` (default, `--json` and `--raw`)
+  now also adjudicates the wrapped signed Permit decision
+  (`permit.decision.v1`) and the native action checks:
+  - `native_action` and `native_decision_inputs_v1` are present together,
+    and their unsigned record copies equal the signed originals;
+  - the canonical action has exactly the `keel.canonical_action/v1` key
+    set at every level, with no float, no unsafe integer, no null except
+    `workflow_binding`, and a lifetime of at most 24 hours;
+  - `sha256(JCS(canonical_action))` equals both stored
+    `action_binding_hash` values;
+  - the canonical action's project, principal and installation equal the
+    signed Permit's and the constraint's;
+  - the exact review v2 object has the §7.3 shape and binds to the approval,
+    the action, the Permit and the constraint's condition semantics;
+  - there is at most one `native.action.dispatch_started` and at most one
+    `native.action.upstream_result`, each bound to the action, in chain
+    order (an `outcome_unknown` result may stand alone);
+  - a requested claim at evidence level E or F (`--request-level`) is not
+    supported. A native pack never supports more than level D.
+- The result is reported under `artifact.native_action` (verdict, reason
+  code, action id, binding hash, state, level ceiling, and what it does not
+  establish: provider execution, external state change, exclusive
+  mediation). The four native claim ids in the interface are not
+  registered claims yet: that needs a keel-permit claim-registry version.
+- Verdicts and reason codes match keel-api's reference implementation on
+  every pack it can evaluate. The additional checks are listed in
+  `keel_verifier.native_action.ADDITIONAL_CHECKS`.
+
+### Compatibility
+
+- Every artifact that is not a `keel.native_action_pack.v1` export
+  produces byte-identical `--json` output and the same exit code as 3.30.1.
+  A native action pack that 3.30.1 accepted on export integrity alone can
+  now fail **[can reject previously accepted artifacts: native packs only]**.
+
 ## 3.36.0
 
 This release must ship after 3.35.0. Every 3.35.0 behavior is unchanged

@@ -1,0 +1,95 @@
+{
+  "canonicalization_profile": "keel.canonical_json.payload.v1",
+  "keys": [
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
+      "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
+      "purpose": "export_signing",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T15:45:00.195532+00:00",
+      "valid_to": null
+    },
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
+      "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
+      "purpose": "integrity_checkpoint",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T15:45:00.195532+00:00",
+      "valid_to": null
+    },
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
+      "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
+      "purpose": "scope_state",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T15:45:00.195532+00:00",
+      "valid_to": null
+    },
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "0b5a78207de7190d",
+      "public_key": "ed25519:WNrg0nFVbsoDpFxt44Nq+6KUFdbLH7YvMnjM7ZlXrJ0=",
+      "purpose": "permit_binding_signing",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T15:45:00.197974+00:00",
+      "valid_to": null
+    },
+    {
+      "algorithm": "ed25519",
+      "compromise_reason": null,
+      "compromised_at": null,
+      "event_refs": [],
+      "issuer_key_id": null,
+      "key_id": "0b5a78207de7190d",
+      "public_key": "ed25519:WNrg0nFVbsoDpFxt44Nq+6KUFdbLH7YvMnjM7ZlXrJ0=",
+      "purpose": "provider_fact_signing",
+      "region": "us-west-1",
+      "revoked_at": null,
+      "status": "active",
+      "valid_from": "2026-11-09T15:45:00.197974+00:00",
+      "valid_to": null
+    }
+  ],
+  "manifest_signature": {
+    "canonicalization_profile": "keel.canonical_json.payload.v1",
+    "content_hash": "sha256:c99aa7a1daf297592e4489b4bdd39994cb0d54b9e5167646c799b0ee049b4f74",
+    "key_id": "sha256:9d34b6a06831ca276dc1f906f5e6b31b",
+    "public_key": "ed25519:H1qfNVthT9RUJ99Jvu/VLPBC+0QSN59Po859tAIzvQ4=",
+    "purpose": "export_signing",
+    "signature": "ed25519:kpOiJP0bkAoDfL62QuqsMpwpz8gZlR7cxhVd3PW6BoGX56XaKGKmQuqNDSXSRagFFj7BaFVStbCo3C/y+DxECQ==",
+    "signature_type": "ed25519.content_hash.v1",
+    "signed_fields": [
+      "manifest_version",
+      "canonicalization_profile",
+      "keys"
+    ]
+  },
+  "manifest_version": "keel.public_key_manifest.v1"
+}

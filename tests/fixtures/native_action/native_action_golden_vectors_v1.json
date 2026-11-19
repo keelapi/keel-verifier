@@ -1,0 +1,625 @@
+{
+  "schema": "native_action_golden_vectors.v1",
+  "interface_version": "nae-m1-interface/1.0.0",
+  "generated_by": "keel-api scripts/generate_native_action_golden_vectors.py",
+  "hash_rule": "lowercase_hex(sha256(rfc8785(canonical_action)))",
+  "keyed_digest_rule": {
+    "test_root_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "purpose_key": "HMAC-SHA256(root, label)",
+    "digest": "lowercase_hex(HMAC-SHA256(purpose_key, value_utf8))",
+    "bik": "lowercase_hex(HMAC-SHA256(HMAC-SHA256(root, b'keel.native.bik.v1\\x00' + project_id_ascii), rfc8785(bik_payload)))"
+  },
+  "canonical_action_vectors": [
+    {
+      "id": "ca_basic",
+      "change_from_ca_basic": "none",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "supported",
+      "expected_reason_code": null,
+      "expected_action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0",
+      "jcs_length": 1715
+    },
+    {
+      "id": "ca_created_at_plus_1s",
+      "change_from_ca_basic": "created_at = 2026-11-09T12:00:01Z (fingerprint-strip regression)",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:01Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "c91db2f2dba19be67a9aa55db8e9af5b8a1b1a9ed98121ba4e406f2d4fd4a36e"
+      },
+      "expected_verdict": "supported",
+      "expected_reason_code": null,
+      "expected_action_binding_hash": "c91db2f2dba19be67a9aa55db8e9af5b8a1b1a9ed98121ba4e406f2d4fd4a36e",
+      "jcs_length": 1715
+    },
+    {
+      "id": "ca_draft_true",
+      "change_from_ca_basic": "canonical_input.draft = true",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": true
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "c6b01db813d0cd76c4f9fd5628bd171d8e53637e57ad45d486f7e6d9a04d405c"
+      },
+      "expected_verdict": "supported",
+      "expected_reason_code": null,
+      "expected_action_binding_hash": "c6b01db813d0cd76c4f9fd5628bd171d8e53637e57ad45d486f7e6d9a04d405c",
+      "jcs_length": 1714
+    },
+    {
+      "id": "ca_extra_key",
+      "change_from_ca_basic": "add top-level note",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z",
+          "note": "x"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_missing_key",
+      "change_from_ca_basic": "remove policy_epoch",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_signed_null",
+      "change_from_ca_basic": "policy_epoch = null",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": null,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_nested_extra_key",
+      "change_from_ca_basic": "add canonical_input.title (plaintext must never be signed)",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false,
+            "title": "plaintext title"
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_lifetime_over_24h",
+      "change_from_ca_basic": "expires_at = created_at + 24h + 1s",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-10T12:00:01Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_float",
+      "change_from_ca_basic": "policy_epoch = 7.0",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7.0,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "a22b0644cca41451250766b4418050995865cad65ba0633e8fe3ab58b7c376d0"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.canonical_action_shape"
+    },
+    {
+      "id": "ca_hash_swap",
+      "change_from_ca_basic": "action_binding_hash = ca_draft_true's",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "c6b01db813d0cd76c4f9fd5628bd171d8e53637e57ad45d486f7e6d9a04d405c"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.action_binding_hash_mismatch"
+    },
+    {
+      "id": "ca_request_hash_substituted",
+      "change_from_ca_basic": "action_binding_hash = an outbound request digest",
+      "native_action": {
+        "action_schema": "keel.canonical_action/v1",
+        "canonical_action": {
+          "action_schema": "keel.canonical_action/v1",
+          "action_id": "019a6b2e-7c00-7000-8000-000000000001",
+          "project_id": "11111111-1111-4111-8111-111111111111",
+          "principal_id": "22222222-2222-4222-8222-222222222222",
+          "installation_id": "33333333-3333-4333-8333-333333333333",
+          "surface": "managed_mcp",
+          "connector_identity": "github",
+          "connector_contract_version": "keel-coding-workspace-github-1.0.0",
+          "tool_schema_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operation": "repository.pull_request.create",
+          "target": {
+            "repository_reference_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "base_branch": "main",
+            "head_branch": "keel/nae-m1-fixture"
+          },
+          "canonical_input": {
+            "fact_profile_id": "keel.facts.repository_pull_request_create_exact.v1",
+            "native_input_version": "keel.native_input.repository_pull_request_create.v1",
+            "base_commit_sha": "1111111111111111111111111111111111111111",
+            "head_commit_sha": "2222222222222222222222222222222222222222",
+            "compare_state_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "changed_paths_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "title_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "body_commitment": {
+              "method": "keel.salted_sha256_jcs.v1",
+              "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            },
+            "draft": false
+          },
+          "credential_reference": "connector-credential:44444444-4444-4444-8444-444444444444",
+          "workflow_binding": null,
+          "policy_epoch": 7,
+          "created_at": "2026-11-09T12:00:00Z",
+          "expires_at": "2026-11-09T13:00:00Z"
+        },
+        "action_binding_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected_verdict": "disproved",
+      "expected_reason_code": "native.action_binding_hash_mismatch"
+    }
+  ],
+  "keyed_digest_vectors": [
+    {
+      "id": "bik_basic",
+      "purpose": "business_idempotency_key",
+      "inputs": {
+        "project_id": "11111111-1111-4111-8111-111111111111",
+        "repository_reference": "keel-fixtures/nae-m1-sandbox",
+        "base_branch": "main",
+        "head_branch": "keel/nae-m1-fixture",
+        "head_commit_sha": "2222222222222222222222222222222222222222"
+      },
+      "expected": "988bb847f1906e0581bb9ed560a0ad86b489cc0dbce170617aaa19a938efdb4c"
+    },
+    {
+      "id": "handle_digest",
+      "purpose": "handle lookup digest",
+      "inputs": {
+        "label": "keel.native.handle.v1",
+        "value": "kah_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expected": "be5f67d27b2e23c22d6a12fbaf9067711588907516d661c00bc70a529553d9fe"
+    },
+    {
+      "id": "token_digest",
+      "purpose": "access token lookup digest",
+      "inputs": {
+        "label": "keel.native.token.v1",
+        "value": "knrt_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+      },
+      "expected": "c90b67a48e442eacdaa7f6d1bf31d0631d8dd9f54acbe2f670c2b8a8d0dad5e5"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "capability_schema_version": "1.0",
   "verifier": {
     "name": "keel-verifier",
-    "version": "3.36.0",
+    "version": "3.37.0",
     "pypi": "https://pypi.org/project/keel-verifier/",
     "source": "https://github.com/keelapi/keel-verifier",
     "license": "MIT"
@@ -1162,6 +1162,12 @@
   ],
   "artifact_formats": [
     {
+      "name": "native_action_pack_v1",
+      "status": "supported",
+      "permit_spec": null,
+      "note": "NAE M1 native action pack (export.json schema keel.native_action_pack.v1): export integrity, the wrapped signed Permit decision, and the canonical action, exact review v2 and closure-event checks of nae-m1-interface section 7.2. Supports at most evidence level D; the native result is reported under artifact.native_action, not as registered claim ids."
+    },
+    {
       "name": "permit_v2",
       "status": "supported",
       "permit_spec": "spec/permit-v2.md",
@@ -1659,5 +1665,5 @@
       "status": "allowlisted"
     }
   ],
-  "version": "3.36.0"
+  "version": "3.37.0"
 }
