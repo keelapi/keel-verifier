@@ -55,6 +55,7 @@ MCP_NESTED_PATHS = (
     "params.arguments.labels.[].trace_id",
 )
 PLAIN_BODY = VECTORS_BY_ID["openai_responses_no_nested_volatile"]["body"]
+MCP_IDEMPOTENCY_BODY = VECTORS_BY_ID["mcp_tools_call_idempotency_key_argument"]["body"]
 
 
 # --- canonicalizer -----------------------------------------------------------
@@ -69,6 +70,14 @@ def test_wire_body_bytes_match_issuer_vectors(vector: dict[str, Any]) -> None:
                 body, binding_request_canonical_version=version
             )
             == vector[f"{version}_sha256"]
+        ), version
+        assert (
+            permit_binding.canonical_provider_wire_body_hash(
+                body,
+                binding_request_canonical_version=version,
+                preserve_mcp_tool_argument_idempotency=True,
+            )
+            == vector[f"{version}_mcp_sha256" if version != "v6" else "v6_sha256"]
         ), version
     assert permit_binding.canonical_provider_wire_body(
         body, binding_request_canonical_version="v6"
@@ -129,6 +138,40 @@ def test_nested_request_keys_outside_binding() -> None:
     )
 
 
+def test_mcp_idempotency_argument_is_kept_only_for_an_mcp_dispatch() -> None:
+    def arguments(version: str, preserve: bool) -> dict[str, Any]:
+        return json.loads(
+            permit_binding.canonical_provider_wire_body(
+                MCP_IDEMPOTENCY_BODY,
+                binding_request_canonical_version=version,
+                preserve_mcp_tool_argument_idempotency=preserve,
+            )
+        )["params"]["arguments"]
+
+    for version in ("v1", "v5"):
+        assert arguments(version, True)["idempotency_key"] == "refund-ch_123-1"
+        assert "idempotency_key" not in arguments(version, False)
+        assert permit_binding.nested_request_keys_outside_binding(
+            MCP_IDEMPOTENCY_BODY,
+            binding_request_canonical_version=version,
+            preserve_mcp_tool_argument_idempotency=True,
+        ) == ()
+        assert permit_binding.nested_request_keys_outside_binding(
+            MCP_IDEMPOTENCY_BODY,
+            binding_request_canonical_version=version,
+        ) == ("params.arguments.idempotency_key",)
+    for preserve in (True, False):
+        assert arguments("v6", preserve)["idempotency_key"] == "refund-ch_123-1"
+    # Only that exact path: other volatile arguments are still dropped.
+    assert "timestamp" not in json.loads(
+        permit_binding.canonical_provider_wire_body(
+            MCP_BODY,
+            binding_request_canonical_version="v5",
+            preserve_mcp_tool_argument_idempotency=True,
+        )
+    )["params"]["arguments"]
+
+
 def test_request_canonical_version_helpers_mirror_issuer() -> None:
     for binding_version in ("v5", "v6", "v7", "v8"):
         assert (
@@ -163,20 +206,32 @@ def test_request_canonical_version_helpers_mirror_issuer() -> None:
 # --- permit.decision.v1 ------------------------------------------------------
 
 
-def _issuer_hash(body: dict[str, Any], request_canonical_version: str) -> str:
+def _issuer_hash(
+    body: dict[str, Any], request_canonical_version: str, *, mcp: bool = False
+) -> str:
     """The Issuer's own hash for a vector body, independent of the code under test."""
 
     (vector,) = [vector for vector in VECTORS if vector["body"] == body]
+    if mcp and request_canonical_version != "v6":
+        return vector[f"{request_canonical_version}_mcp_sha256"]
     return vector[f"{request_canonical_version}_sha256"]
 
 
-def _payload(public_key: str, version: str, final_request_hash: str) -> dict[str, Any]:
+def _payload(
+    public_key: str,
+    version: str,
+    final_request_hash: str,
+    provider: str | None = None,
+) -> dict[str, Any]:
     if version == "v7":
-        return _v7_binding_payload(
+        payload = _v7_binding_payload(
             public_key, final_request_hash="sha256:" + final_request_hash
         )
-    payload = _binding_payload(public_key, version=version)
-    payload["final_request_hash"] = "sha256:" + final_request_hash
+    else:
+        payload = _binding_payload(public_key, version=version)
+        payload["final_request_hash"] = "sha256:" + final_request_hash
+    if provider is not None:
+        payload["provider"] = provider
     return payload
 
 
@@ -189,13 +244,14 @@ def _wire_evidence(
     bound_with: str,
     presented_body: dict[str, Any] | None = None,
     declared: Any = "__bound_with__",
+    provider: str | None = None,
 ) -> dict[str, Any]:
-    bound_hash = _issuer_hash(bound_body, bound_with)
+    bound_hash = _issuer_hash(bound_body, bound_with, mcp=provider == "mcp")
     evidence = _binding_evidence(
         private_key,
         public_key,
         version=binding_version,
-        payload=_payload(public_key, binding_version, bound_hash),
+        payload=_payload(public_key, binding_version, bound_hash, provider),
     )
     evidence["binding_request_hash"] = bound_hash
     if declared == "__bound_with__":
@@ -430,6 +486,78 @@ def test_legacy_binding_versions_ignore_declared_request_canonical_version(
 
     assert claim.aggregate_verdict == "supported"
     assert claim.does_not_establish is None
+
+
+@pytest.mark.parametrize(
+    ("binding_version", "bound_with"),
+    [("v2", "v1"), ("v5", "v5"), ("v7", "v5"), ("v7", "v6")],
+)
+def test_mcp_permit_keeps_idempotency_key_argument(
+    tmp_path: Path, binding_version: str, bound_with: str
+) -> None:
+    """3.37.0 dropped params.arguments.idempotency_key for every provider."""
+
+    private_key, public_key = keypair(b"i5" * 16)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _wire_evidence(
+        private_key,
+        public_key,
+        binding_version=binding_version,
+        bound_body=MCP_IDEMPOTENCY_BODY,
+        bound_with=bound_with,
+        provider="mcp",
+    )
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.reason_code == "PERMIT_DECISION_SUPPORTED"
+    assert claim.does_not_establish is None
+
+    tampered = copy.deepcopy(MCP_IDEMPOTENCY_BODY)
+    tampered["params"]["arguments"]["idempotency_key"] = "refund-ch_123-2"
+    evidence["binding_request_body"] = tampered
+    claim = _claim(evidence, trust_root)
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code.endswith("wire_body_hash_mismatch")
+
+
+def test_non_mcp_permit_still_strips_idempotency_key_argument(
+    tmp_path: Path,
+) -> None:
+    private_key, public_key = keypair(b"i6" * 16)
+    trust_root = write_permit_trust_root(tmp_path, public_key)
+    evidence = _wire_evidence(
+        private_key,
+        public_key,
+        binding_version="v7",
+        bound_body=MCP_IDEMPOTENCY_BODY,
+        bound_with="v5",
+    )
+
+    claim = _claim(evidence, trust_root)
+
+    assert claim.aggregate_verdict == "supported"
+    assert claim.does_not_establish is not None
+    assert any(
+        "params.arguments.idempotency_key" in entry
+        for entry in claim.does_not_establish
+    )
+
+    # The signed provider decides: changing it to flip the exception breaks the
+    # canonical hash before any wire-body check runs.
+    mcp_bound = _wire_evidence(
+        private_key,
+        public_key,
+        binding_version="v7",
+        bound_body=MCP_IDEMPOTENCY_BODY,
+        bound_with="v5",
+        provider="mcp",
+    )
+    mcp_bound["canonical_payload"]["provider"] = "openai"
+    claim = _claim(mcp_bound, trust_root)
+    assert claim.aggregate_verdict == "disproved"
+    assert claim.reason_code == "PERMIT_DECISION_CANONICAL_HASH_MISMATCH"
 
 
 def test_full_export_verifies_v6_bound_evidence(tmp_path: Path) -> None:

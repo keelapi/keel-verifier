@@ -41,6 +41,17 @@ only when the evidence carries a provider request body
   leaves such paths, the supported verdict now names them in
   `does_not_establish`. The verdict is the same as 3.37.0's.
 
+### MCP `idempotency_key` tool argument (v1 and v5)
+
+- For an MCP dispatch the Issuer keeps `params.arguments.idempotency_key` of
+  a `tools/call` body in the v1 and v5 bytes: it is a registered tool
+  argument, not Keel metadata. 3.37.0 stripped it for every provider, so it
+  disproved genuine v1- or v5-bound MCP evidence carrying that argument. The
+  verifier now keeps exactly that path when the signed
+  `canonical_payload.provider` is `mcp`, as the Issuer does. Every other
+  volatile or credential key is still stripped, and v6 is unaffected (it
+  never strips below the top level).
+
 ### Compatibility
 
 - **[can reject previously accepted artifacts]** For a v5 or v6 binding,

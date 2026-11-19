@@ -7938,9 +7938,15 @@ def _permit_decision_binding_recompute_checks(
         )
         if version_failure is not None:
             return version_failure
+        # keel-api keeps params.arguments.idempotency_key in v1/v5 bytes when
+        # the dispatch provider is mcp; the signed provider says which.
+        preserve_mcp_idempotency = (
+            str(canonical_payload.get("provider") or "").strip().lower() == "mcp"
+        )
         actual_hash = canonical_provider_wire_body_hash(
             wire_body,
             binding_request_canonical_version=canonical_version,
+            preserve_mcp_tool_argument_idempotency=preserve_mcp_idempotency,
         )
         if actual_hash != expected_hash:
             reason = (
@@ -7965,6 +7971,7 @@ def _permit_decision_binding_recompute_checks(
             unbound_paths = nested_request_keys_outside_binding(
                 wire_body,
                 binding_request_canonical_version=canonical_version,
+                preserve_mcp_tool_argument_idempotency=preserve_mcp_idempotency,
             )
             if unbound_paths:
                 boundary.append(_permit_decision_wire_body_boundary(unbound_paths))
