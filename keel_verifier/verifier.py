@@ -112,6 +112,10 @@ from keel_verifier.semantics import (
     make_permanent_allowlist,
     resolve_pack_semantics,
 )
+from keel_verifier.native_action import (
+    check_native_action_pack,
+    is_native_action_pack_document,
+)
 from keel_verifier.schemas.artifact_ref import ArtifactRef, parse_artifact_ref
 from keel_verifier.report_render import render_human
 from keel_verifier.permit_co_signature import (
@@ -16742,6 +16746,24 @@ def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
                 "closure.dispatch_binding.v1",
             }
         )
+    native_failure = _adjudicate_native_action_pack_export(
+        export_document=export_document_for_claims,
+        artifact=artifact,
+        claims=claims,
+        diagnostics=diagnostics,
+        args=args,
+    )
+    if native_failure is not None:
+        return _export_report(
+            ok=False,
+            exit_code=1,
+            artifact=artifact,
+            claims=claims,
+            semantics=semantics,
+            error=native_failure,
+            diagnostics=diagnostics,
+            requested_claims=explicitly_requested_claims,
+        )
     return _export_report(
         ok=True,
         exit_code=0,
@@ -16751,6 +16773,56 @@ def _verify_export_structured(args: argparse.Namespace) -> VerificationReport:
         diagnostics=diagnostics,
         requested_claims=explicitly_requested_claims,
     )
+
+
+def _adjudicate_native_action_pack_export(
+    *,
+    export_document: dict[str, Any] | None,
+    artifact: dict[str, Any],
+    claims: list[ClaimVerdict],
+    diagnostics: list[str],
+    args: argparse.Namespace,
+) -> str | None:
+    """NAE M1 native action pack checks (``nae-m1-interface`` §7.2).
+
+    Runs only when the integrity-verified ``export.json`` declares
+    ``keel.native_action_pack.v1``; every other export is left untouched.
+    Adds ``permit.decision.v1`` for the wrapped Permit decision and records
+    the native verdict under ``artifact["native_action"]``. Returns the
+    failure message, or ``None`` when the pack is supported.
+    """
+
+    if not is_native_action_pack_document(export_document):
+        return None
+    assert export_document is not None
+    bundle = export_document.get("permit_audit_bundle")
+    decision_claim = _adjudicate_permit_decision_v1(
+        export_document=bundle if isinstance(bundle, dict) else {},
+        key_manifest_source=_key_manifest_source_for_args(args),
+    )
+    claims.append(decision_claim)
+    result = check_native_action_pack(
+        export_document,
+        requested_levels=getattr(args, "native_requested_levels", None) or (),
+    )
+    artifact["kind"] = "native_action_pack"
+    artifact["native_action"] = result.to_dict()
+    if not result.supported:
+        message = (
+            f"NATIVE_ACTION_PACK_{result.verdict.upper()}: {result.reason_code}: "
+            f"{result.message}"
+        )
+        diagnostics.append(message)
+        return message
+    if decision_claim.aggregate_verdict != verdict_value("supported"):
+        message = (
+            "NATIVE_ACTION_PACK_DECISION_UNVERIFIED: the wrapped Permit decision "
+            "is not supported: "
+            f"{decision_claim.reason_code or decision_claim.aggregate_verdict}"
+        )
+        diagnostics.append(message)
+        return message
+    return None
 
 
 def verify_scope_faithfulness_claim(
@@ -17227,6 +17299,29 @@ def _cmd_export(args: argparse.Namespace) -> int:
             if claim.required and claim.aggregate_verdict != verdict_value("supported"):
                 print(f"FAILED: {claim.reason_code}: {claim.message}", file=sys.stderr)
                 return 1
+    if export_data.lstrip().startswith(b"{"):
+        try:
+            native_document = _load_export_json_document(export_data)
+        except Exception:
+            native_document = None
+        if is_native_action_pack_document(native_document):
+            native_artifact: dict[str, Any] = {}
+            native_failure = _adjudicate_native_action_pack_export(
+                export_document=native_document,
+                artifact=native_artifact,
+                claims=[],
+                diagnostics=[],
+                args=args,
+            )
+            if native_failure is not None:
+                print(f"FAILED: {native_failure}", file=sys.stderr)
+                return 1
+            native = native_artifact["native_action"]
+            print(
+                "  Native action: supported (level ceiling "
+                f"{native['level_ceiling']}; action_binding_hash "
+                f"{native['action_binding_hash']})"
+            )
     return 0
 
 

@@ -1,0 +1,684 @@
+{
+  "agreement_24177dd8d": "18/18",
+  "base": "base_export of tests/fixtures/native_action_pack_vectors_v1.json",
+  "base_file_sha256": "4f144367fa259c77d21293c42e6c6b442f20b63195382378cff5d3558aec067e",
+  "cases": [
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_001_exact_review_v2.policy.policy_epoch:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/policy/policy_epoch",
+          "value": 0.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_002_exact_review_v2.trusted_facts.additions_count:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/additions_count",
+          "value": 3.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_003_exact_review_v2.trusted_facts.ahead_by:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/ahead_by",
+          "value": 1.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_004_exact_review_v2.trusted_facts.behind_by:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/behind_by",
+          "value": 0.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_005_exact_review_v2.trusted_facts.changed_files_count:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/changed_files_count",
+          "value": 1.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_006_exact_review_v2.trusted_facts.deletions_count:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/deletions_count",
+          "value": 0.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_007_exact_review_v2.trusted_facts.existing_open_pull_request_count:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/existing_open_pull_request_count",
+          "value": 0.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_008_exact_review_v2.trusted_facts.protected_path_change_count:float",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/exact_review_v2/trusted_facts/protected_path_change_count",
+          "value": 0.0
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "CanonicalActionShapeError: floats are not permitted in a canonical action",
+      "requested_levels": [],
+      "v1_message": "exact_review_v2: floats are not permitted"
+    },
+    {
+      "expected_reason_code": "native.review_binding",
+      "expected_verdict": "disproved",
+      "id": "crash_009_approval:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/approval",
+          "value": [
+            {
+              "attestation_id": "e719634d-7bc8-4e46-970e-ac8a8a154e84",
+              "exact_review_v2_hash": "8d8f91bd5db739fb07144e8d81629e6a7ca10c83ca48eb340b8243d51d7a2a26",
+              "v1_review_hash": "60e41995d0aaacd921b64ea15786ecaa12a072960d2421044f4b87fb6b9391f6"
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.review_binding"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "recomputed exact_review_v2 hash does not equal the approval's exact_review_v2_hash"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_010_closure_events.0:null",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/0",
+          "value": null
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'NoneType' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_011_closure_events.0:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/0",
+          "value": [
+            {
+              "actor_email": null,
+              "actor_id": "6c9e90a8-4fd0-4ad2-8894-5203b3396524",
+              "actor_type": "agent",
+              "authorization_effect": "explicit_forbid",
+              "authorization_outcome": "Challenge",
+              "authorizer_input_hash": null,
+              "caller_event_id": null,
+              "category": "native",
+              "chain_scope": "project:7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "created_at": "2026-11-09T16:10:20",
+              "decision": null,
+              "effect_version": "phase0_derived_v1",
+              "event_id": "gev_01m70h6a21gepxa42df7fw00y2",
+              "event_type": "native.action.proposed",
+              "ip_address": null,
+              "lineage_type": null,
+              "model": null,
+              "occurred_at": "2026-11-09T16:10:20.609128",
+              "operation": null,
+              "org_id": null,
+              "outcome": "success",
+              "payload": {
+                "action_binding_hash": "8483b8a88a0a6a3092f866b7d0a83227cf6d1330d66202dc257b11fa15a9f98a",
+                "action_id": "01a1c113-27d5-7dfe-bc55-801a0edfeb23",
+                "credential_family_id": "146347f5-2e7c-4951-b7ac-d3ac9a26f1a4",
+                "installation_id": "e6bd95de-1f9f-4e3a-a7f4-5fb8505e1219",
+                "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                "state": "review_pending",
+                "system_revision": {
+                  "alembic_head": null,
+                  "build_sha": null
+                }
+              },
+              "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+              "prev_hash": "d6f5d0dd2ee4d113abc15ff15b9392817c85a8b8c9647387b9db49dc4df940c4",
+              "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "provider": null,
+              "record_hash": "4a07a7efa991aa00c11a2b038ae2c94d147462704dcdea18f6b76362f55b7766",
+              "request_id": null,
+              "resource_id": null,
+              "resource_type": null,
+              "runtime_route": null,
+              "schema_version": 2,
+              "sequence_number": 11,
+              "session_id": null,
+              "severity": "info",
+              "source_stage": null,
+              "span_id": null,
+              "surface": "native",
+              "trace_id": null,
+              "user_agent": null,
+              "workbench_evidence": {
+                "closure_digests": {
+                  "action_binding_hash": "8483b8a88a0a6a3092f866b7d0a83227cf6d1330d66202dc257b11fa15a9f98a"
+                },
+                "ids": {
+                  "event_id": "gev_01m70h6a21gepxa42df7fw00y2",
+                  "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                  "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+                  "surface": "native"
+                },
+                "request": null,
+                "response": null,
+                "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+                "runtime_route": null,
+                "schema_version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_012_closure_events.1:null",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/1",
+          "value": null
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'NoneType' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_013_closure_events.1:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/1",
+          "value": [
+            {
+              "actor_email": null,
+              "actor_id": "8adc28e6-8042-4cb3-a78a-b093b35a212c",
+              "actor_type": "dashboard_user",
+              "authorization_effect": "explicit_permit",
+              "authorization_outcome": "Allow",
+              "authorizer_input_hash": null,
+              "caller_event_id": null,
+              "category": "native",
+              "chain_scope": "project:7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "created_at": "2026-11-09T16:10:20",
+              "decision": null,
+              "effect_version": "phase0_derived_v1",
+              "event_id": "gev_01m70h6a3hbp48aegte3akxhdk",
+              "event_type": "native.action.review_decided",
+              "ip_address": null,
+              "lineage_type": null,
+              "model": null,
+              "occurred_at": "2026-11-09T16:10:20.657696",
+              "operation": null,
+              "org_id": null,
+              "outcome": "success",
+              "payload": {
+                "action_id": "01a1c113-27d5-7dfe-bc55-801a0edfeb23",
+                "attestation_id": "e719634d-7bc8-4e46-970e-ac8a8a154e84",
+                "decision": "approve",
+                "exact_review_v2_hash": "8d8f91bd5db739fb07144e8d81629e6a7ca10c83ca48eb340b8243d51d7a2a26",
+                "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                "step_up_challenge_id": "b330b058-a8ae-43f6-abf7-d0bfbf2f0e0d",
+                "system_revision": {
+                  "alembic_head": null,
+                  "build_sha": null
+                }
+              },
+              "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+              "prev_hash": "f4266d6e56c21acea9eb9b49a7598cbea6ad499aa116c2afdd8a55642a17a31a",
+              "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "provider": null,
+              "record_hash": "544b375593cc4fa426ccff65b35f0906e75062ca5cb91db53939ba41acf75366",
+              "request_id": null,
+              "resource_id": null,
+              "resource_type": null,
+              "runtime_route": null,
+              "schema_version": 2,
+              "sequence_number": 16,
+              "session_id": null,
+              "severity": "info",
+              "source_stage": null,
+              "span_id": null,
+              "surface": "native",
+              "trace_id": null,
+              "user_agent": null,
+              "workbench_evidence": {
+                "closure_digests": {
+                  "exact_review_v2_hash": "8d8f91bd5db739fb07144e8d81629e6a7ca10c83ca48eb340b8243d51d7a2a26"
+                },
+                "ids": {
+                  "event_id": "gev_01m70h6a3hbp48aegte3akxhdk",
+                  "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                  "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+                  "surface": "native"
+                },
+                "request": null,
+                "response": null,
+                "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+                "runtime_route": null,
+                "schema_version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_014_closure_events.2:null",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/2",
+          "value": null
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'NoneType' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_015_closure_events.2:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/2",
+          "value": [
+            {
+              "actor_email": null,
+              "actor_id": null,
+              "actor_type": null,
+              "authorization_effect": "explicit_permit",
+              "authorization_outcome": "Allow",
+              "authorizer_input_hash": null,
+              "caller_event_id": null,
+              "category": "native",
+              "chain_scope": "project:7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "created_at": "2026-11-09T16:10:20",
+              "decision": null,
+              "effect_version": "phase0_derived_v1",
+              "event_id": "gev_01m70h6a9c70syajrrwf4sy6hv",
+              "event_type": "native.action.dispatch_started",
+              "ip_address": null,
+              "lineage_type": null,
+              "model": null,
+              "occurred_at": "2026-11-09T16:10:20.844283",
+              "operation": null,
+              "org_id": null,
+              "outcome": "success",
+              "payload": {
+                "action_binding_hash": "8483b8a88a0a6a3092f866b7d0a83227cf6d1330d66202dc257b11fa15a9f98a",
+                "action_id": "01a1c113-27d5-7dfe-bc55-801a0edfeb23",
+                "final_request_hash": "75167d26ebf9e1f384928e6a6619b27ed1cc9d3ea0b20ed495033d7b7050e345",
+                "fresh_fact_snapshot_digest": "sha256:01a84c04d86192120f463e771b068f77d5b723b140454e518b4bd9ae82979199",
+                "frozen_arguments_equal": true,
+                "governed_request_id": "98f5a6d6-331e-4f45-9f8b-0bdf673dfc40",
+                "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                "preflight_facts_equal": true,
+                "system_revision": {
+                  "alembic_head": null,
+                  "build_sha": null
+                }
+              },
+              "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+              "prev_hash": "f3dbfb9f13407e2c400d93d026ff30320aa3efff434f2aaf689d9e40fc1a96d3",
+              "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "provider": null,
+              "record_hash": "552043d27936b8a61ce82ff22010fa3c3ad6ece7306ef6da3ef93063c69a23e5",
+              "request_id": null,
+              "resource_id": null,
+              "resource_type": null,
+              "runtime_route": null,
+              "schema_version": 2,
+              "sequence_number": 32,
+              "session_id": null,
+              "severity": "info",
+              "source_stage": null,
+              "span_id": null,
+              "surface": "native",
+              "trace_id": null,
+              "user_agent": null,
+              "workbench_evidence": {
+                "closure_digests": {
+                  "action_binding_hash": "8483b8a88a0a6a3092f866b7d0a83227cf6d1330d66202dc257b11fa15a9f98a",
+                  "final_request_hash": "75167d26ebf9e1f384928e6a6619b27ed1cc9d3ea0b20ed495033d7b7050e345",
+                  "fresh_fact_snapshot_digest": "sha256:01a84c04d86192120f463e771b068f77d5b723b140454e518b4bd9ae82979199"
+                },
+                "ids": {
+                  "event_id": "gev_01m70h6a9c70syajrrwf4sy6hv",
+                  "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                  "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+                  "surface": "native"
+                },
+                "request": null,
+                "response": null,
+                "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+                "runtime_route": null,
+                "schema_version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.single_dispatch",
+      "expected_verdict": "disproved",
+      "id": "crash_016_closure_events.2.payload:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/2/payload",
+          "value": [
+            {
+              "action_binding_hash": "8483b8a88a0a6a3092f866b7d0a83227cf6d1330d66202dc257b11fa15a9f98a",
+              "action_id": "01a1c113-27d5-7dfe-bc55-801a0edfeb23",
+              "final_request_hash": "75167d26ebf9e1f384928e6a6619b27ed1cc9d3ea0b20ed495033d7b7050e345",
+              "fresh_fact_snapshot_digest": "sha256:01a84c04d86192120f463e771b068f77d5b723b140454e518b4bd9ae82979199",
+              "frozen_arguments_equal": true,
+              "governed_request_id": "98f5a6d6-331e-4f45-9f8b-0bdf673dfc40",
+              "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+              "preflight_facts_equal": true,
+              "system_revision": {
+                "alembic_head": null,
+                "build_sha": null
+              }
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.single_dispatch"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "dispatch_started is not bound to this action with equal frozen arguments and preflight facts"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_017_closure_events.3:null",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/3",
+          "value": null
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'NoneType' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    },
+    {
+      "expected_reason_code": "native.evidence_incomplete",
+      "expected_verdict": "disproved",
+      "id": "crash_018_closure_events.3:list",
+      "json_patch": [
+        {
+          "op": "replace",
+          "path": "/closure_events/3",
+          "value": [
+            {
+              "actor_email": null,
+              "actor_id": null,
+              "actor_type": null,
+              "authorization_effect": "explicit_permit",
+              "authorization_outcome": "Allow",
+              "authorizer_input_hash": null,
+              "caller_event_id": null,
+              "category": "native",
+              "chain_scope": "project:7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "created_at": "2026-11-09T16:10:20",
+              "decision": null,
+              "effect_version": "phase0_derived_v1",
+              "event_id": "gev_01m70h6a9dgheb68gqnpy0nbrg",
+              "event_type": "native.action.upstream_result",
+              "ip_address": null,
+              "lineage_type": null,
+              "model": null,
+              "occurred_at": "2026-11-09T16:10:20.845604",
+              "operation": null,
+              "org_id": null,
+              "outcome": "success",
+              "payload": {
+                "action_id": "01a1c113-27d5-7dfe-bc55-801a0edfeb23",
+                "governed_request_id": "98f5a6d6-331e-4f45-9f8b-0bdf673dfc40",
+                "outcome": "upstream_reported_success",
+                "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                "pull_request_number": 1,
+                "system_revision": {
+                  "alembic_head": null,
+                  "build_sha": null
+                },
+                "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+              },
+              "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+              "prev_hash": "552043d27936b8a61ce82ff22010fa3c3ad6ece7306ef6da3ef93063c69a23e5",
+              "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+              "provider": null,
+              "record_hash": "5f365f711f311c5f03edc01a1315f2e3726132b8ed7a58a25d35f9f454022483",
+              "request_id": null,
+              "resource_id": null,
+              "resource_type": null,
+              "runtime_route": null,
+              "schema_version": 2,
+              "sequence_number": 33,
+              "session_id": null,
+              "severity": "info",
+              "source_stage": null,
+              "span_id": null,
+              "surface": "native",
+              "trace_id": null,
+              "user_agent": null,
+              "workbench_evidence": {
+                "closure_digests": {
+                  "upstream_result_digest": "f3a1ef22a2ea53003a29fc2ab8359a8cd4c83e1f819e9340b37c5029a9bd5b05"
+                },
+                "ids": {
+                  "event_id": "gev_01m70h6a9dgheb68gqnpy0nbrg",
+                  "permit_id": "78c1eb1a-dc39-4445-853a-bc403d71d0f1",
+                  "project_id": "7b6a4cc2-f902-4e3a-a801-4381ff593095",
+                  "surface": "native"
+                },
+                "request": null,
+                "response": null,
+                "retention_note": "No retained request or response snapshot is available for this event; use the stable IDs and retained digests to verify the trail.",
+                "runtime_route": null,
+                "schema_version": 1
+              }
+            }
+          ]
+        }
+      ],
+      "reference_at_24177dd8d": [
+        "disproved",
+        "native.evidence_incomplete"
+      ],
+      "reference_at_24177dd8d_agrees_with_v1": true,
+      "reference_at_27cae1c28": "AttributeError: 'list' object has no attribute 'get'",
+      "requested_levels": [],
+      "v1_message": "closure_events must be a list of events"
+    }
+  ],
+  "generated_by": "keel-verifier nae-m1-verifier session (crash_cases.py)",
+  "keel_verifier_commit": "a982b6b",
+  "note": "Each case crashes the keel-api reference at 27cae1c28. expected_* is keel-verifier V1's verdict and reason on the same document. All are single-field mutations; the classes are listed in summary.",
+  "patch_format": "RFC 6902 JSON Patch (replace/remove) applied to base_export",
+  "reference_used_to_find_crashes": "keel-api 27cae1c28",
+  "schema": "native_action_reference_crash_cases.v1",
+  "summary": {
+    "AttributeError -> disproved native.evidence_incomplete": 8,
+    "AttributeError -> disproved native.review_binding": 1,
+    "AttributeError -> disproved native.single_dispatch": 1,
+    "CanonicalActionShapeError -> disproved native.review_binding": 8
+  }
+}

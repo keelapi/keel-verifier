@@ -1,5 +1,70 @@
 # Changelog
 
+## 3.37.0
+
+This release must ship after 3.36.0. Every 3.36.0 behavior is unchanged
+except for native action packs, below. The native checks run only when a
+signed export declares `keel.native_action_pack.v1`.
+
+### Trust material
+
+- Unchanged from 3.36.0. The bundled TSA trust bundle, CRL snapshots and
+  public-CA receipt fixtures are byte-identical to 3.36.0's.
+- The DigiCert coverage window is therefore the same as 3.36.0's: from
+  2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z. No timestamp is stranded
+  between 3.36.0 and 3.37.0.
+
+### Native action packs
+
+- New `keel-verify native-action-pack PACK` (a zip or a directory holding
+  `export.json`, `manifest.json` and `key_manifest.json`). A zip whose
+  `manifest.json` declares `export_type: native_action` is detected
+  automatically. The pack's signed `key_manifest.json` is the default key
+  manifest; its signer is pinned by the bundled trust root or by
+  `--trust-root`.
+- When an integrity-verified `export.json` declares
+  `keel.native_action_pack.v1`, `export` (default, `--json` and `--raw`)
+  also adjudicates the wrapped signed Permit decision (`permit.decision.v1`)
+  and the native action checks:
+  - `native_action` and `native_decision_inputs_v1` are present together,
+    and their unsigned record copies equal the signed originals;
+  - the canonical action has exactly the `keel.canonical_action/v1` key set
+    at every level, with no float, no unsafe integer, no null except
+    `workflow_binding`, and a lifetime of at most 24 hours;
+  - `sha256(JCS(canonical_action))` equals both stored
+    `action_binding_hash` values;
+  - the canonical action's project, principal and installation equal the
+    signed Permit's and the decision inputs';
+  - the exact review v2 object (`keel.exact_request_review.v2`) has its full
+    key set and binds to the approval, the action, the Permit and the
+    decision inputs' condition semantics;
+  - an approval, when present, is an object, also in a pack with no review;
+  - the review decision names its attestation, and the approval names the
+    same one;
+  - there is at most one `native.action.dispatch_started` and at most one
+    `native.action.upstream_result`, each bound to the action, in chain
+    order (an `outcome_unknown` result may stand alone);
+  - `dispatch_started` names the execution Permit's final-request hash,
+    equal to the signed decision's when the pack is that Permit's;
+  - a requested claim at evidence level E or F (`--request-level`) is not
+    supported. A native pack never supports more than level D.
+- The result is reported under `artifact.native_action` (verdict, reason
+  code, action id, binding hash, state, level ceiling, and what it does not
+  establish: provider execution, external state change, exclusive
+  mediation). It is not yet expressed as registered claim ids.
+
+### Compatibility
+
+- Every artifact that is not a `keel.native_action_pack.v1` export produces
+  byte-identical `--json` output and the same exit code as 3.36.0.
+- **[can reject previously accepted artifacts: native packs only]** 3.36.0
+  and earlier accepted a native action pack on export integrity alone; such
+  a pack can now fail.
+- A zip whose `manifest.json` declares `export_type: native_action` is now
+  routed to `native-action-pack` when it is the first positional argument
+  (the 3.32.1 routing rule). 3.36.0 passed it to the legacy parser, which
+  exits 2 with a usage error.
+
 ## 3.36.0
 
 This release must ship after 3.35.0. Every 3.35.0 behavior is unchanged
