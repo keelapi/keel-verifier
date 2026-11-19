@@ -1,6 +1,18 @@
 # Changelog
 
-## 3.37.0 (unreleased)
+## 3.37.0
+
+This release must ship after 3.36.0. Every 3.36.0 behavior is unchanged
+except for native action packs, below. The native checks run only when a
+signed export declares `keel.native_action_pack.v1`.
+
+### Trust material
+
+- Unchanged from 3.36.0. The bundled TSA trust bundle, CRL snapshots and
+  public-CA receipt fixtures are byte-identical to 3.36.0's.
+- The DigiCert coverage window is therefore the same as 3.36.0's: from
+  2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z. No timestamp is stranded
+  between 3.36.0 and 3.37.0.
 
 ### Native action packs
 
@@ -44,10 +56,14 @@
 ### Compatibility
 
 - Every artifact that is not a `keel.native_action_pack.v1` export produces
-  byte-identical `--json` output and the same exit code as 3.30.1.
-- **[can reject previously accepted artifacts: native packs only]** 3.30.1
-  accepted a native action pack on export integrity alone; such a pack can
-  now fail.
+  byte-identical `--json` output and the same exit code as 3.36.0.
+- **[can reject previously accepted artifacts: native packs only]** 3.36.0
+  and earlier accepted a native action pack on export integrity alone; such
+  a pack can now fail.
+- A zip whose `manifest.json` declares `export_type: native_action` is now
+  routed to `native-action-pack` when it is the first positional argument
+  (the 3.32.1 routing rule). 3.36.0 passed it to the legacy parser, which
+  exits 2 with a usage error.
 
 ## 3.36.0
 
