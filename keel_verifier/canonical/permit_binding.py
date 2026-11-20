@@ -8,6 +8,11 @@ bytes for legitimate permits.
 ``v8`` is defined here first (earned-autonomy spec v4, piece V, section 1.10):
 the verifier ships before keel-api emits it. keel-api's v8 builder must mirror
 ``canonical_binding_payload_v8`` exactly.
+
+Provider wire-body request canonicalization ``v6`` (``canonical_provider_wire_body``
+with ``binding_request_canonical_version="v6"``) mirrors keel-api
+``app/services/permit_binding.py`` at commit 0b22118ca: RFC 8785 JCS after
+stripping volatile and credential keys from the top level of the body only.
 """
 
 from __future__ import annotations
@@ -37,6 +42,19 @@ LEGACY_CHAIN_CANONICAL_VERSIONS = frozenset({"v1", "closure_v1", "closure_v2"})
 RFC8785_CHAIN_CANONICAL_VERSIONS = frozenset({"closure_v3", "chain_v3"})
 LEGACY_BINDING_REQUEST_CANONICAL_VERSION = "v1"
 RFC8785_BINDING_REQUEST_CANONICAL_VERSION = "v5"
+# v6: RFC 8785 JCS like v5, but volatile and credential keys are stripped from
+# the top level of the provider body only; nested content (tool arguments,
+# schemas, message parts) is bound verbatim. keel-api binds every newly issued
+# v5-v8 Permit with v6 and keeps v5 for Permits first bound before v6 existed.
+FIDELITY_BINDING_REQUEST_CANONICAL_VERSION = "v6"
+# Request canonicalizers keel-api can have used for an RFC 8785-family binding.
+# The choice is not part of the signed binding payload.
+RFC8785_BINDING_REQUEST_CANONICAL_VERSIONS = frozenset(
+    {
+        RFC8785_BINDING_REQUEST_CANONICAL_VERSION,
+        FIDELITY_BINDING_REQUEST_CANONICAL_VERSION,
+    }
+)
 _V5_BINDING_FIELD_NAMES: frozenset[str] = frozenset()
 _V6_BINDING_FIELD_NAMES: frozenset[str] = frozenset(
     {"resource_attributes_canonical_hash"}
@@ -140,11 +158,44 @@ def chain_canonical_bytes(chain_format_version: str, payload: Mapping[str, Any])
 def binding_request_canonical_version_for_binding(
     binding_version: str | None,
 ) -> str:
+    """Request canonical version for a Permit that records none.
+
+    Mirrors keel-api: a Permit row without a stored
+    ``binding_request_canonical_version`` was bound before v6 existed, so an
+    RFC 8785-family binding means v5 and anything older means v1.
+    """
+
     return (
         RFC8785_BINDING_REQUEST_CANONICAL_VERSION
         if str(binding_version or "").strip() in RFC8785_BINDING_VERSIONS
         else LEGACY_BINDING_REQUEST_CANONICAL_VERSION
     )
+
+
+def binding_request_canonical_version_for_issuance(
+    binding_version: str | None,
+) -> str:
+    """Request canonical version keel-api uses for a Permit's first binding."""
+
+    if str(binding_version or "").strip() in RFC8785_BINDING_VERSIONS:
+        return FIDELITY_BINDING_REQUEST_CANONICAL_VERSION
+    return LEGACY_BINDING_REQUEST_CANONICAL_VERSION
+
+
+def binding_request_canonical_versions_for_binding(
+    binding_version: str | None,
+) -> frozenset[str]:
+    """Every request canonical version keel-api can pair with a binding version.
+
+    keel-api keeps a Permit's binding version when it re-signs it, and keeps
+    the request canonical version the Permit was first bound with, so a v5-v8
+    binding was hashed with v5 (bound before v6 existed) or v6, and a v1-v4
+    binding always with v1.
+    """
+
+    if str(binding_version or "").strip() in RFC8785_BINDING_VERSIONS:
+        return RFC8785_BINDING_REQUEST_CANONICAL_VERSIONS
+    return frozenset({LEGACY_BINDING_REQUEST_CANONICAL_VERSION})
 
 
 def _is_volatile_key(key: Any) -> bool:
@@ -154,19 +205,86 @@ def _is_volatile_key(key: Any) -> bool:
     return normalized in _VOLATILE_REQUEST_KEYS or normalized in _SENSITIVE_REQUEST_KEYS
 
 
-def _strip_volatile(value: Any) -> Any:
+_MCP_TOOL_ARGUMENT_IDEMPOTENCY_PATH: tuple[str, ...] = (
+    "params",
+    "arguments",
+    "idempotency_key",
+)
+
+
+def _mcp_tool_argument_idempotency_paths(
+    payload: Mapping[str, Any] | None,
+) -> frozenset[tuple[str, ...]]:
+    """keel-api's one exception to v1/v5 stripping, for MCP ``tools/call``.
+
+    ``params.arguments.idempotency_key`` is a registered tool argument, not
+    Keel observability metadata, so keel-api keeps it in the bound and
+    dispatched bytes when the dispatch provider is ``mcp``.
+    """
+
+    if not isinstance(payload, Mapping) or payload.get("method") != "tools/call":
+        return frozenset()
+    params = payload.get("params")
+    if not isinstance(params, Mapping):
+        return frozenset()
+    arguments = params.get("arguments")
+    if not isinstance(arguments, Mapping) or "idempotency_key" not in arguments:
+        return frozenset()
+    return frozenset({_MCP_TOOL_ARGUMENT_IDEMPOTENCY_PATH})
+
+
+def _strip_volatile(
+    value: Any,
+    *,
+    preserved_paths: frozenset[tuple[str, ...]] = frozenset(),
+    path: tuple[str, ...] = (),
+    top_level_only: bool = False,
+) -> Any:
+    # Mirrors keel-api ``_strip_volatile``. With ``top_level_only`` (request
+    # canonicalization v6) only the outermost object is stripped; list items
+    # count as nested. ``preserved_paths`` keeps exact key paths (v1/v5 MCP).
     if is_dataclass(value) and not isinstance(value, type):
-        return _strip_volatile(asdict(value))
+        return _strip_volatile(
+            asdict(value),
+            preserved_paths=preserved_paths,
+            path=path,
+            top_level_only=top_level_only,
+        )
     if isinstance(value, Mapping):
+        strip_here = not (top_level_only and path)
         return {
-            str(key): _strip_volatile(item)
+            str(key): _strip_volatile(
+                item,
+                preserved_paths=preserved_paths,
+                path=(*path, str(key)),
+                top_level_only=top_level_only,
+            )
             for key, item in value.items()
-            if not _is_volatile_key(key)
+            if not strip_here
+            or not _is_volatile_key(key)
+            or (*path, str(key)) in preserved_paths
         }
+    item_path = (*path, "[]") if top_level_only else path
     if isinstance(value, (list, tuple)):
-        return [_strip_volatile(item) for item in value]
+        return [
+            _strip_volatile(
+                item,
+                preserved_paths=preserved_paths,
+                path=item_path,
+                top_level_only=top_level_only,
+            )
+            for item in value
+        ]
     if isinstance(value, (set, frozenset)):
-        return sorted(_strip_volatile(item) for item in value)
+        return sorted(
+            _strip_volatile(
+                item,
+                preserved_paths=preserved_paths,
+                path=item_path,
+                top_level_only=top_level_only,
+            )
+            for item in value
+        )
     if isinstance(value, bytes):
         return base64.b64encode(value).decode("ascii")
     if isinstance(value, datetime):
@@ -180,26 +298,92 @@ def canonical_provider_wire_body(
     payload: Mapping[str, Any] | None,
     *,
     binding_request_canonical_version: str | None = None,
+    preserve_mcp_tool_argument_idempotency: bool = False,
 ) -> bytes:
-    sanitized = _strip_volatile(payload or {})
+    """Canonical provider request-body bytes keel-api hashes and dispatches.
+
+    v6: RFC 8785 JCS after stripping volatile and credential keys from the top
+    level only. v5: RFC 8785 JCS after stripping them at every depth. Anything
+    else (v1): legacy sorted-key JSON after stripping them at every depth.
+    keel-api passes ``preserve_mcp_tool_argument_idempotency`` when the
+    dispatch provider is ``mcp``; it only matters for v1 and v5.
+    """
+
     normalized_version = str(
         binding_request_canonical_version
         or LEGACY_BINDING_REQUEST_CANONICAL_VERSION
     ).strip()
+    if normalized_version == FIDELITY_BINDING_REQUEST_CANONICAL_VERSION:
+        return rfc8785.dumps(_strip_volatile(payload or {}, top_level_only=True))
+    preserved_paths = (
+        _mcp_tool_argument_idempotency_paths(payload)
+        if preserve_mcp_tool_argument_idempotency
+        else frozenset()
+    )
+    sanitized = _strip_volatile(payload or {}, preserved_paths=preserved_paths)
     if normalized_version == RFC8785_BINDING_REQUEST_CANONICAL_VERSION:
         return rfc8785.dumps(sanitized)
     return _legacy_canonical_json_v1_to_v4(sanitized)
+
+
+def nested_request_keys_outside_binding(
+    payload: Mapping[str, Any] | None,
+    *,
+    binding_request_canonical_version: str | None,
+    preserve_mcp_tool_argument_idempotency: bool = False,
+) -> tuple[str, ...]:
+    """Nested body paths the request canonicalizer drops before hashing.
+
+    v1 and v5 drop volatile and credential key names at every depth, so a
+    value under such a key below the top level is not covered by the bound
+    hash. v6 binds everything below the top level, so it returns nothing.
+    Paths are dotted, with ``[]`` for a list item.
+    """
+
+    normalized_version = str(
+        binding_request_canonical_version
+        or LEGACY_BINDING_REQUEST_CANONICAL_VERSION
+    ).strip()
+    if normalized_version == FIDELITY_BINDING_REQUEST_CANONICAL_VERSION:
+        return ()
+    preserved_paths = (
+        _mcp_tool_argument_idempotency_paths(payload)
+        if preserve_mcp_tool_argument_idempotency
+        else frozenset()
+    )
+    dropped: list[str] = []
+
+    def _walk(value: Any, path: tuple[str, ...]) -> None:
+        if isinstance(value, Mapping):
+            for key, item in value.items():
+                child = (*path, str(key))
+                if _is_volatile_key(key) and child not in preserved_paths:
+                    # Every version strips the top level, subtree included.
+                    if path:
+                        dropped.append(".".join(child))
+                    continue
+                _walk(item, child)
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                _walk(item, (*path, "[]"))
+
+    _walk(payload or {}, ())
+    return tuple(dropped)
 
 
 def canonical_provider_wire_body_hash(
     payload: Mapping[str, Any] | None,
     *,
     binding_request_canonical_version: str | None = None,
+    preserve_mcp_tool_argument_idempotency: bool = False,
 ) -> str:
     return _sha256_hex(
         canonical_provider_wire_body(
             payload,
             binding_request_canonical_version=binding_request_canonical_version,
+            preserve_mcp_tool_argument_idempotency=(
+                preserve_mcp_tool_argument_idempotency
+            ),
         )
     )
 

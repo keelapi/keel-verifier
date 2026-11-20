@@ -1,5 +1,98 @@
 # Changelog
 
+## 3.37.1
+
+This release must ship after 3.37.0. Every 3.37.0 behavior is unchanged
+except two things below:
+
+- the `permit.decision.v1` provider wire-body recompute, which runs only when
+  the evidence carries a provider request body (`binding_request_body` or one
+  of its aliases);
+- the DigiCert revocation coverage window.
+
+### Trust-material refresh
+
+- Refresh the bundled DigiCert Assured ID Root CA and DigiCert Trusted Root
+  G4 certificate-revocation lists after DigiCert's weekly reissue. Refresh
+  their pinned hashes, the bundle hash, the coupled public-CA receipt fixture
+  and the embedded release manifest. Each new CRL was accepted only after its
+  signature verified against the vendored issuer certificate.
+  - Assured ID Root CA: CRL number 0x0362 -> 0x0363; last_update
+    2026-11-12T23:47:20Z -> 2026-11-19T23:47:20Z; next_update
+    2026-12-03T23:47:20Z -> 2026-12-10T23:47:20Z.
+  - Trusted Root G4: CRL number 0x030B -> 0x030C; last_update
+    2026-11-13T17:42:35Z -> 2026-11-20T17:42:35Z; next_update
+    2026-12-04T17:42:35Z -> 2026-12-11T17:42:35Z.
+- No certificate was newly revoked. The Trusted G4 TimeStamping RSA4096
+  SHA256 2025 CA1 CRL (0x52, next_update 2026-12-09T16:40:26Z) and all three
+  GlobalSign CRLs (next_update 2027-01-15T00:00:00Z) are unchanged.
+- New DigiCert coverage window: 2026-11-20T17:42:35Z to 2026-12-09T16:40:26Z
+  (3.36.0 and 3.37.0: 2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z). The
+  earliest bundled next_update moves from 2026-12-03T23:47:20Z to
+  2026-12-09T16:40:26Z.
+- Stranded window: a DigiCert timestamp with genTime from
+  2026-11-18T16:40:26Z to before 2026-11-20T17:42:35Z verifies under 3.37.0
+  but is reported `not_validated_revocation_snapshot_stale` under 3.37.1. Use
+  the published 3.37.0 for evidence in that window. The two windows overlap,
+  so no DigiCert genTime from 2026-11-18T16:40:26Z to 2026-12-09T16:40:26Z is
+  left uncovered by both releases. GlobalSign coverage is unchanged.
+
+### Request canonicalization v6
+
+- The Keel Issuer binds the provider request body of every newly issued
+  v5-v8 Permit with request canonicalization **v6**: RFC 8785 JCS after
+  removing volatile and credential keys (`request_id`, `timestamp`,
+  `idempotency_key`, `authorization`, `api_key`, ...) from the top level of
+  the body only. Nested content, such as MCP tool arguments, tool and
+  response schemas and message parts, is bound verbatim. Permits first bound
+  before v6 keep **v5**, which removes those keys at every depth.
+- 3.37.0 implemented only v5, so it disproved genuine v6 evidence whose body
+  had such a key below the top level
+  (`permit.binding.<version>.wire_body_hash_mismatch`), and for v7 and v8 it
+  disproved any evidence declaring `binding_request_canonical_version: "v6"`
+  (`permit.binding.<version>.request_canonical_version_mismatch`). Both now
+  verify. The v6 bytes are byte-identical to the Issuer's
+  (`canonical_provider_wire_body(..., binding_request_canonical_version="v6")`).
+- The signed binding payload does not carry the request canonical version.
+  For v5-v8 the verifier uses the unsigned evidence field
+  `binding_request_canonical_version`: `v5` or `v6`; absent or blank means
+  `v5`, as the Issuer reads a Permit that records none. For v1-v4 the signed
+  binding version still fixes v1 and the field is ignored, as before.
+- A v6 match proves the body below the top level is exactly what was bound,
+  whichever canonicalizer the Issuer used. A v5 match proves less: values
+  under volatile or credential keys below the top level are not bound, and
+  an unsigned `v5` can be declared for a v6-bound Permit. When a v5 match
+  leaves such paths, the supported verdict now names them in
+  `does_not_establish`. The verdict is the same as 3.37.0's.
+
+### MCP `idempotency_key` tool argument (v1 and v5)
+
+- For an MCP dispatch the Issuer keeps `params.arguments.idempotency_key` of
+  a `tools/call` body in the v1 and v5 bytes: it is a registered tool
+  argument, not Keel metadata. 3.37.0 stripped it for every provider, so it
+  disproved genuine v1- or v5-bound MCP evidence carrying that argument. The
+  verifier now keeps exactly that path when the signed
+  `canonical_payload.provider` is `mcp`, as the Issuer does. Every other
+  volatile or credential key is still stripped, and v6 is unaffected (it
+  never strips below the top level).
+
+### Compatibility
+
+- **[can reject previously accepted artifacts]** For a v5 or v6 binding,
+  a declared `binding_request_canonical_version` other than `v5` or `v6`
+  (after trimming whitespace) is now disproved with
+  `permit.binding.<version>.request_canonical_version_mismatch`. 3.37.0
+  ignored it and recomputed with v5. The Issuer never emits such a value.
+- For a v7 or v8 binding, the same reason code's message now names the
+  declared value and the accepted versions.
+- A supported `permit.decision.v1` whose wire body matched under v5 with
+  volatile or credential keys below the top level gains one
+  `does_not_establish` entry.
+- A DigiCert TSA timestamp's validation follows the new coverage window
+  (Trust-material refresh, above).
+- Every other `--json` output is byte-identical to 3.37.0's, apart from the
+  verifier version.
+
 ## 3.37.0
 
 This release must ship after 3.36.0. Every 3.36.0 behavior is unchanged
