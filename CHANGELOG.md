@@ -3,15 +3,39 @@
 ## 3.37.1
 
 This release must ship after 3.37.0. Every 3.37.0 behavior is unchanged
-except the `permit.decision.v1` provider wire-body recompute, below. It runs
-only when the evidence carries a provider request body
-(`binding_request_body` or one of its aliases).
+except two things below:
 
-### Trust material
+- the `permit.decision.v1` provider wire-body recompute, which runs only when
+  the evidence carries a provider request body (`binding_request_body` or one
+  of its aliases);
+- the DigiCert revocation coverage window.
 
-- Unchanged from 3.37.0. The bundled TSA trust bundle, CRL snapshots and
-  public-CA receipt fixtures are byte-identical to 3.37.0's, so the DigiCert
-  coverage window is the same: 2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z.
+### Trust-material refresh
+
+- Refresh the bundled DigiCert Assured ID Root CA and DigiCert Trusted Root
+  G4 certificate-revocation lists after DigiCert's weekly reissue. Refresh
+  their pinned hashes, the bundle hash, the coupled public-CA receipt fixture
+  and the embedded release manifest. Each new CRL was accepted only after its
+  signature verified against the vendored issuer certificate.
+  - Assured ID Root CA: CRL number 0x0362 -> 0x0363; last_update
+    2026-11-12T23:47:20Z -> 2026-11-19T23:47:20Z; next_update
+    2026-12-03T23:47:20Z -> 2026-12-10T23:47:20Z.
+  - Trusted Root G4: CRL number 0x030B -> 0x030C; last_update
+    2026-11-13T17:42:35Z -> 2026-11-20T17:42:35Z; next_update
+    2026-12-04T17:42:35Z -> 2026-12-11T17:42:35Z.
+- No certificate was newly revoked. The Trusted G4 TimeStamping RSA4096
+  SHA256 2025 CA1 CRL (0x52, next_update 2026-12-09T16:40:26Z) and all three
+  GlobalSign CRLs (next_update 2027-01-15T00:00:00Z) are unchanged.
+- New DigiCert coverage window: 2026-11-20T17:42:35Z to 2026-12-09T16:40:26Z
+  (3.36.0 and 3.37.0: 2026-11-18T16:40:26Z to 2026-12-03T23:47:20Z). The
+  earliest bundled next_update moves from 2026-12-03T23:47:20Z to
+  2026-12-09T16:40:26Z.
+- Stranded window: a DigiCert timestamp with genTime from
+  2026-11-18T16:40:26Z to before 2026-11-20T17:42:35Z verifies under 3.37.0
+  but is reported `not_validated_revocation_snapshot_stale` under 3.37.1. Use
+  the published 3.37.0 for evidence in that window. The two windows overlap,
+  so no DigiCert genTime from 2026-11-18T16:40:26Z to 2026-12-09T16:40:26Z is
+  left uncovered by both releases. GlobalSign coverage is unchanged.
 
 ### Request canonicalization v6
 
@@ -63,8 +87,11 @@ only when the evidence carries a provider request body
   declared value and the accepted versions.
 - A supported `permit.decision.v1` whose wire body matched under v5 with
   volatile or credential keys below the top level gains one
-  `does_not_establish` entry. Every other `--json` output is byte-identical
-  to 3.37.0's, apart from the verifier version.
+  `does_not_establish` entry.
+- A DigiCert TSA timestamp's validation follows the new coverage window
+  (Trust-material refresh, above).
+- Every other `--json` output is byte-identical to 3.37.0's, apart from the
+  verifier version.
 
 ## 3.37.0
 
