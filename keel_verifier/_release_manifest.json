@@ -388,7 +388,7 @@
     "keel_verifier/data/tsa_trust/globalsign/root_r6.pem": "5ff8425be71c1805446bf10601ce3cb9619889866766fc9285583ca5a4a7de94",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.crl.pem": "9d5d17187a01230d62e639531d6c857c8c2b1aff2b7249049c87c5f734038cd0",
     "keel_verifier/data/tsa_trust/globalsign/timestamping_root_r45.pem": "f3c1abb03ca2a8399c864320266daf32d7a86b93adb7ee011857c72810c384b5",
-    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "44056b00d50a116e61915ca6a1e6560663ebf079bb6835e0765098d907e94bf3",
+    "keel_verifier/data/tsa_trust/tsa_trust_bundle_v1.json": "b63b1a91b43e77652ba3b3e9a6c12c80fde90a29b9f36f6c2a052a64e6de5ff1",
     "keel_verifier/doctor.py": "22afc7d6916ed5803a0e580a918138a949c32fc52aff896c2a43a684caa8bf88",
     "keel_verifier/human_artifact.py": "7464541744027a9c9ba864c3b23274b91f7dfde5c017be7a213bfe078715f7e7",
     "keel_verifier/install_diagnostics.py": "b7559943f7c8d2c184326b8a5399dbf5881bd3c74929567969409a6e7db386ee",
@@ -408,7 +408,7 @@
     "keel_verifier/semantics.py": "218a92d5cd007f9416324e1088695c8d9a6100a30db9b6b962a2b627e8b2e04e",
     "keel_verifier/standing_approval.py": "89a007ce776e12f512c0fc1c67cc9af5fcc00112771e76afb75317f442409508",
     "keel_verifier/verdicts.py": "0621dca117cbaded2e9d3f60be5e4ce48c3910bdde1b120f50468a2b2494f12d",
-    "keel_verifier/verifier.py": "09a0898ed885da6acb7cb267b0b64bf90ed94426e8a3e500f89c81b1c7abb0a0",
+    "keel_verifier/verifier.py": "177a0c25fee919530245a45d85d797352ec41a552931f037ca4ed203e00f790f",
     "keel_verifier/verifier_output_render.py": "af29253b764dce39d8c2a04a25155eca63ad2524437040fdd248d891196424f6",
     "keel_verifier/work_chain.py": "9a026a140a5f62dad1d2e395e79d627a1b26c888fee07ffb0c5cfe568d865bf7",
     "keel_verifier/work_chain_v2.py": "2b5135dc7708d58bb46b756b85afa4536143253c5e1202511a8e6edfbb444a14"
